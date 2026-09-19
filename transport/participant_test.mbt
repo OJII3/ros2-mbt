@@ -141,6 +141,17 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Err(message) => fail(message)
   }
   assert_eq(graph_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
+  let info_after_graph_registration = match
+    node.participant_entities_info("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    info_after_graph_registration.node_entities_info_seq()[0]
+    .writer_gid_seq()
+    .length(),
+    1,
+  )
   assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
   node.close()
 }

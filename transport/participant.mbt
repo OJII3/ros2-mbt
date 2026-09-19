@@ -139,6 +139,9 @@ pub fn RosParticipant::participant_entities_info(
     Err(message) => return Err(message)
   }
   for endpoint in self.local_endpoints {
+    if endpoint.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME {
+      continue
+    }
     let gid = @ros.Gid::from_guid(endpoint.endpoint_guid())
     match endpoint.kind() {
       @rtps.SedpEndpointKind::Publication => node.add_writer_gid(gid)
