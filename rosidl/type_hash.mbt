@@ -104,19 +104,43 @@ fn rosidl_hash_individual_json(
 }
 
 ///|
+fn rosidl_hash_string_less(left : String, right : String) -> Bool {
+  let left_bytes = @utf8.encode(left)
+  let right_bytes = @utf8.encode(right)
+  let length = if left_bytes.length() < right_bytes.length() {
+    left_bytes.length()
+  } else {
+    right_bytes.length()
+  }
+  for index in 0..<length {
+    if left_bytes[index] < right_bytes[index] {
+      return true
+    }
+    if left_bytes[index] > right_bytes[index] {
+      return false
+    }
+  }
+  left_bytes.length() < right_bytes.length()
+}
+
+///|
 fn rosidl_hash_sort_definitions(
   definitions : Array[MessageDefinition],
 ) -> Array[MessageDefinition] {
   let sorted : Array[MessageDefinition] = []
   for definition in definitions {
-    let mut index = 0
-    while index < sorted.length() {
-      if rosidl_hash_type_name(definition) < rosidl_hash_type_name(sorted[index]) {
-        break
-      }
-      index += 1
+    sorted.push(definition)
+    let mut index = sorted.length() - 1
+    while index > 0 &&
+      rosidl_hash_string_less(
+        rosidl_hash_type_name(sorted[index]),
+        rosidl_hash_type_name(sorted[index - 1]),
+      ) {
+      let previous = sorted[index - 1]
+      sorted[index - 1] = sorted[index]
+      sorted[index] = previous
+      index -= 1
     }
-    sorted.insert(index, definition)
   }
   sorted
 }
@@ -399,33 +423,11 @@ pub fn MessageDefinition::type_hash(
 }
 
 ///|
-/// Calculate the RIHS01 hash for a ROS service type description.
-///
-/// ROS describes a service as a synthetic type containing its request,
-/// response, and event message types. The event message also contains the
-/// standard service event metadata and one request/response item each.
-pub fn ServiceDefinition::type_hash(
-  self : ServiceDefinition,
-) -> Result[String, String] {
-  for field in self.request.fields() {
-    match rosidl_hash_primitive_type_id(field.type_name()) {
-      Ok(_) => ()
-      Err(_) =>
-        return Err(
-          "ServiceDefinition::type_hash needs a MessageWorkspace for nested request fields",
-        )
-    }
-  }
-  for field in self.response.fields() {
-    match rosidl_hash_primitive_type_id(field.type_name()) {
-      Ok(_) => ()
-      Err(_) =>
-        return Err(
-          "ServiceDefinition::type_hash needs a MessageWorkspace for nested response fields",
-        )
-    }
-  }
-
+/// Build the synthetic ROS service, event, and service metadata definitions.
+fn rosidl_service_hash_definitions(
+  service : ServiceDefinition,
+) -> Result[(MessageDefinition, Array[MessageDefinition]), String] {
+  let self = service
   let package_name = self.package_name()
   let service_name = self.service_name()
   let request = self.request
@@ -509,7 +511,41 @@ pub fn ServiceDefinition::type_hash(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  rosidl_hash_with_references(service, [request, response, event, info, time])
+  Ok((service, [request, response, event, info, time]))
+}
+
+///|
+/// Calculate the RIHS01 hash for a primitive-field ROS service type.
+///
+/// ROS describes a service as a synthetic type containing its request,
+/// response, and event message types. The event message also contains the
+/// standard service event metadata and one request/response item each.
+pub fn ServiceDefinition::type_hash(
+  self : ServiceDefinition,
+) -> Result[String, String] {
+  for field in self.request.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => ()
+      Err(_) =>
+        return Err(
+          "ServiceDefinition::type_hash needs a MessageWorkspace for nested request fields",
+        )
+    }
+  }
+  for field in self.response.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => ()
+      Err(_) =>
+        return Err(
+          "ServiceDefinition::type_hash needs a MessageWorkspace for nested response fields",
+        )
+    }
+  }
+  let (service, references) = match rosidl_service_hash_definitions(self) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  rosidl_hash_with_references(service, references)
 }
 
 ///|
@@ -550,6 +586,122 @@ fn rosidl_workspace_type_name_for_field(
       Ok(resolved_package + "/" + resolved_namespace + "/" + type_name)
     }
   }
+}
+
+///|
+fn rosidl_service_workspace_type_name_for_field(
+  workspace : MessageWorkspace,
+  definitions : Array[MessageDefinition],
+  owner : MessageDefinition,
+  field : MessageField,
+) -> Result[String, String] {
+  match rosidl_hash_primitive_type_id(field.type_name()) {
+    Ok(_) => Ok("")
+    Err(_) => {
+      for definition in definitions {
+        if rosidl_hash_type_name(definition) == field.type_name() {
+          return Ok(field.type_name())
+        }
+      }
+      let parts = field.type_name().split("/").collect()
+      if parts.length() == 1 && owner.interface_namespace() == "srv" {
+        let local_message_name = owner.package_name() + "/msg/" +
+          field.type_name()
+        if rosidl_workspace_source_index(
+          workspace.sources,
+          owner.package_name(),
+          "msg",
+          field.type_name(),
+        ) >= 0 {
+          return Ok(local_message_name)
+        }
+      }
+      rosidl_workspace_type_name_for_field(workspace, owner, field)
+    }
+  }
+}
+
+///|
+fn rosidl_hash_with_service_workspace(
+  workspace : MessageWorkspace,
+  service : ServiceDefinition,
+) -> Result[String, String] {
+  let (root, references) = match rosidl_service_hash_definitions(service) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let definitions : Array[MessageDefinition] = [root]
+  for reference in references {
+    definitions.push(reference)
+  }
+  let mut index = 0
+  while index < definitions.length() {
+    let definition = definitions[index]
+    for field in definition.fields() {
+      let nested_name = match
+        rosidl_service_workspace_type_name_for_field(
+          workspace, definitions, definition, field,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      if nested_name.length() > 0 &&
+        !rosidl_workspace_find_definition(definitions, nested_name) {
+        let nested = match
+          rosidl_workspace_resolve_type_name(workspace, nested_name) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        definitions.push(nested)
+      }
+    }
+    index += 1
+  }
+  let reference_definitions : Array[MessageDefinition] = []
+  for reference_index in 1..<definitions.length() {
+    reference_definitions.push(definitions[reference_index])
+  }
+  let sorted_references = rosidl_hash_sort_definitions(reference_definitions)
+  let reference_json : Array[(MessageDefinition, Array[String])] = []
+  for reference in sorted_references {
+    let field_names : Array[String] = []
+    for field in reference.fields() {
+      let nested_name = match
+        rosidl_service_workspace_type_name_for_field(
+          workspace, definitions, reference, field,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      field_names.push(nested_name)
+    }
+    reference_json.push((reference, field_names))
+  }
+  let root_field_names : Array[String] = []
+  for field in root.fields() {
+    let nested_name = match
+      rosidl_service_workspace_type_name_for_field(
+        workspace, definitions, root, field,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    root_field_names.push(nested_name)
+  }
+  let json = match rosidl_hash_json(root, root_field_names, reference_json) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(rosidl_hash_string(json))
+}
+
+///|
+/// Calculate a RIHS01 service hash using nested message sources in a workspace.
+pub fn MessageWorkspace::service_type_hash(
+  self : MessageWorkspace,
+  service : ServiceDefinition,
+) -> Result[String, String] {
+  rosidl_hash_with_service_workspace(self, service)
 }
 
 ///|
