@@ -357,6 +357,7 @@ pub fn SampleIdentity::from_bytes(Bytes) -> Result[Self, String]
 pub fn SampleIdentity::new(Guid, Int64) -> Result[Self, String]
 pub fn SampleIdentity::sequence_number(Self) -> Int64
 pub fn SampleIdentity::to_bytes(Self) -> Bytes
+pub fn SampleIdentity::unknown_sequence(Guid) -> Self
 pub fn SampleIdentity::writer_guid(Self) -> Guid
 
 pub struct SedpEndpointData {

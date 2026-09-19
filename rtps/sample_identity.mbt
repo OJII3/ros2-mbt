@@ -10,10 +10,16 @@ pub fn SampleIdentity::new(
   writer_guid : Guid,
   sequence_number : Int64,
 ) -> Result[SampleIdentity, String] {
-  if sequence_number < 1L {
-    return Err("an RTPS sample identity sequence number must be positive")
+  if sequence_number < -1L {
+    return Err("an RTPS sample identity sequence number is invalid")
   }
   Ok({ writer_guid, sequence_number, })
+}
+
+///|
+/// Create the unknown-sequence identity used by ROS 2 service requests.
+pub fn SampleIdentity::unknown_sequence(writer_guid : Guid) -> SampleIdentity {
+  { writer_guid, sequence_number: -1L, }
 }
 
 ///|

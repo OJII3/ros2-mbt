@@ -102,6 +102,11 @@ async test "reliable ROS service client and server correlate a response" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let expected_request_identity = @rtps.SampleIdentity::new(
+    @rtps.Guid::new(client_prefix, client_response_id),
+    1L,
+  ).unwrap()
+  assert_eq(request_identity, expected_request_identity)
   let (request, received_identity, request_source) = match
     server.receive_request() {
     Ok(value) => value

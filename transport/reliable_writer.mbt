@@ -179,6 +179,22 @@ pub async fn ReliableDataWriter::write_with_related_sample_identity(
   serialized_payload : Bytes,
   related_identity : @rtps.SampleIdentity,
 ) -> Result[Unit, String] {
+  match
+    self.write_with_related_sample_identity_and_return_identity(
+      serialized_payload, related_identity,
+    ) {
+    Ok(_) => Ok(())
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Send a related sample and return the reply's own RTPS sample identity.
+pub async fn ReliableDataWriter::write_with_related_sample_identity_and_return_identity(
+  self : ReliableDataWriter,
+  serialized_payload : Bytes,
+  related_identity : @rtps.SampleIdentity,
+) -> Result[@rtps.SampleIdentity, String] {
   let sequence_number = self.next_sequence_number
   let data = @rtps.DataSubmessage::new(
     self.reader_id,
@@ -186,10 +202,7 @@ pub async fn ReliableDataWriter::write_with_related_sample_identity(
     sequence_number,
     serialized_payload,
   ).with_related_sample_identity(related_identity)
-  match self.write_data(data) {
-    Ok(_) => Ok(())
-    Err(message) => Err(message)
-  }
+  self.write_data(data)
 }
 
 ///|

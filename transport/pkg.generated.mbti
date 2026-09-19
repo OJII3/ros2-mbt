@@ -194,6 +194,7 @@ pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write_and_return_identity(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
 pub async fn ReliableDataWriter::write_with_related_sample_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[Unit, String]
+pub async fn ReliableDataWriter::write_with_related_sample_identity_and_return_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[@rtps.SampleIdentity, String]
 
 pub struct ReliableRosDiscoveryPublisher {
   writer : ReliableDataWriter
@@ -305,6 +306,7 @@ pub struct RosServiceClient {
   service : @ros.RosService
   request_writer : ReliableDataWriter
   response_reader : ReliableDataReaderSession
+  response_reader_guid : @rtps.Guid
 }
 pub fn RosServiceClient::close(Self) -> Unit
 pub fn RosServiceClient::new(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]

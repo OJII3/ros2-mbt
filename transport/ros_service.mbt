@@ -29,6 +29,7 @@ pub struct RosServiceClient {
   service : @ros.RosService
   request_writer : ReliableDataWriter
   response_reader : ReliableDataReaderSession
+  response_reader_guid : @rtps.Guid
 }
 
 ///|
@@ -81,7 +82,12 @@ pub fn RosServiceClient::new(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ service, request_writer, response_reader, })
+  Ok({
+    service,
+    request_writer,
+    response_reader,
+    response_reader_guid: @rtps.Guid::new(guid_prefix, response_reader_id),
+  })
 }
 
 ///|
@@ -95,13 +101,26 @@ pub async fn RosServiceClient::request(
   self : RosServiceClient,
   serialized_request : Bytes,
 ) -> Result[@rtps.SampleIdentity, String] {
+  let related_identity = @rtps.SampleIdentity::unknown_sequence(
+    self.response_reader_guid,
+  )
   let identity = match
-    self.request_writer.write_and_return_identity(serialized_request) {
+    self.request_writer.write_with_related_sample_identity_and_return_identity(
+      serialized_request, related_identity,
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   match self.request_writer.send_heartbeat() {
-    Ok(_) => Ok(identity)
+    Ok(_) =>
+      match
+        @rtps.SampleIdentity::new(
+          self.response_reader_guid,
+          identity.sequence_number(),
+        ) {
+        Ok(value) => Ok(value)
+        Err(message) => Err(message)
+      }
     Err(message) => Err(message)
   }
 }
@@ -202,7 +221,20 @@ pub async fn RosServiceServer::receive_request(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok((data.serialized_payload(), identity, source))
+  let response_identity = match data.related_sample_identity() {
+    Ok(Some(related)) =>
+      match
+        @rtps.SampleIdentity::new(
+          related.writer_guid(),
+          identity.sequence_number(),
+        ) {
+        Ok(value) => value
+        Err(_) => identity
+      }
+    Ok(None) => identity
+    Err(_) => identity
+  }
+  Ok((data.serialized_payload(), response_identity, source))
 }
 
 ///|

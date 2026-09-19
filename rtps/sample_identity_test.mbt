@@ -15,4 +15,6 @@ test "RTPS sample identity round trip" {
   }
   assert_eq(identity.to_bytes().length(), 24)
   assert_eq(SampleIdentity::from_bytes(identity.to_bytes()), Ok(identity))
+  let unknown = SampleIdentity::unknown_sequence(identity.writer_guid())
+  assert_eq(SampleIdentity::from_bytes(unknown.to_bytes()), Ok(unknown))
 }
