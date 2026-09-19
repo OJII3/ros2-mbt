@@ -84,6 +84,8 @@ pub const HISTORY_KEEP_ALL : UInt = 1
 
 pub const HISTORY_KEEP_LAST : UInt = 0
 
+pub const INFO_DESTINATION_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const INFO_TIMESTAMP_FLAG_INVALIDATE : Byte = 0x02
 
 pub const INFO_TIMESTAMP_FLAG_LITTLE_ENDIAN : Byte = 0x01
@@ -406,6 +408,18 @@ pub fn HeartbeatSubmessage::to_payload(Self) -> Bytes
 pub fn HeartbeatSubmessage::to_submessage(Self) -> Submessage
 pub fn HeartbeatSubmessage::with_final(Self) -> Self
 pub fn HeartbeatSubmessage::writer_id(Self) -> EntityId
+
+pub struct InfoDestinationSubmessage {
+  flags : Byte
+  guid_prefix : GuidPrefix
+} derive(Eq, @debug.Debug)
+pub fn InfoDestinationSubmessage::flags(Self) -> Byte
+pub fn InfoDestinationSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn InfoDestinationSubmessage::guid_prefix(Self) -> GuidPrefix
+pub fn InfoDestinationSubmessage::new(GuidPrefix) -> Self
+pub fn InfoDestinationSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn InfoDestinationSubmessage::to_payload(Self) -> Bytes
+pub fn InfoDestinationSubmessage::to_submessage(Self) -> Submessage
 
 pub struct InfoTimestampSubmessage {
   flags : Byte

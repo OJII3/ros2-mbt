@@ -10,6 +10,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `PAD`、未知/ベンダーsubmessageの透過的な解析
 - RTPS submessageの4バイト境界配置と末尾submessageのzero-length解析
 - RTPS `EntityId` / `Guid` の16バイトwire format
+- RTPS `INFO_DST` submessage（宛先GUID prefix）のcodec
 - RTPS `Locator_t` と UDP/IPv4 locator のwire format
 - RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
 - RTPS `DATA` submessage（CDR payload、inline QoS、SequenceNumber）
