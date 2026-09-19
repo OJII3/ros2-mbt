@@ -44,6 +44,11 @@ test "ROS service parser generates request and response codecs" {
   assert_true(generated.contains("pub struct AddTwoInts_Response"))
   assert_true(generated.contains("writer.write_i64(self.a)"))
   assert_true(generated.contains("writer.write_i64(self.sum)"))
+  assert_true(
+    generated.contains(
+      "pub const AddTwoInts_TYPE_HASH : String = \"RIHS01_de8fec42de89bb46c66d22e7108914c4334d3555d679de8ff3ab5f4d7fe95c42\"",
+    ),
+  )
 }
 
 ///|

@@ -314,7 +314,15 @@ pub fn ServiceDefinition::response(
 ///|
 /// Generate request and response MoonBit CDR codecs for a ROS service.
 pub fn ServiceDefinition::generate_moonbit(self : ServiceDefinition) -> String {
-  self.request.generate_moonbit() + "\n" + self.response.generate_moonbit()
+  let output = self.request.generate_moonbit() + "\n" +
+    self.response.generate_moonbit()
+  match self.type_hash() {
+    Ok(type_hash) => output +
+      "\n///|\n" +
+      "pub const " + self.service_name + "_TYPE_HASH : String = \"" +
+      type_hash + "\"\n"
+    Err(_) => output
+  }
 }
 
 ///|
