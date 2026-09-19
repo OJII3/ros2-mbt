@@ -74,18 +74,52 @@ pub async fn ReliableDataReaderSession::receive_data(
             Ok(value) => value
             Err(_) => continue
           }
-          let acknack = match self.state.acknack_for_heartbeat(heartbeat) {
+          match self.acknowledge_heartbeat(heartbeat) {
+            Ok(_) => ()
+            Err(_) => continue
+          }
+        }
+        _ => ()
+      }
+    }
+  }
+  Err("reliable reader stopped")
+}
+
+///|
+/// Receive a HEARTBEAT, acknowledge it, and return it to the caller.
+pub async fn ReliableDataReaderSession::receive_heartbeat(
+  self : ReliableDataReaderSession,
+) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for submessage in message.submessages() {
+      match submessage.id() {
+        @rtps.SubmessageId::Data => {
+          let data = match @rtps.DataSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
           }
-          match
-            self.socket.send_acknack(
-              acknack,
-              self.guid_prefix,
-              self.vendor_id,
-              self.destination,
-            ) {
+          match self.state.accept_data(data) {
             Ok(_) => ()
+            Err(_) => ()
+          }
+        }
+        @rtps.SubmessageId::Heartbeat => {
+          let heartbeat = match
+            @rtps.HeartbeatSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          if heartbeat.reader_id() != self.state.reader_id ||
+            heartbeat.writer_id() != self.state.writer_id {
+            continue
+          }
+          match self.acknowledge_heartbeat(heartbeat) {
+            Ok(_) => return Ok((heartbeat, source))
             Err(message) => return Err(message)
           }
         }
@@ -94,6 +128,23 @@ pub async fn ReliableDataReaderSession::receive_data(
     }
   }
   Err("reliable reader stopped")
+}
+
+///|
+async fn ReliableDataReaderSession::acknowledge_heartbeat(
+  self : ReliableDataReaderSession,
+  heartbeat : @rtps.HeartbeatSubmessage,
+) -> Result[Unit, String] {
+  let acknack = match self.state.acknack_for_heartbeat(heartbeat) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.socket.send_acknack(
+    acknack,
+    self.guid_prefix,
+    self.vendor_id,
+    self.destination,
+  )
 }
 
 ///|

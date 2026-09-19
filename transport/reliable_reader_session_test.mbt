@@ -56,11 +56,35 @@ async test "reliable reader session receives discovered publication data" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
+  match
+    sender.send_heartbeat(
+      match @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
+        Ok(value) => value
+        Err(message) => fail(message)
+      },
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
   let (decoded, source) = match reader.receive_data() {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let (heartbeat, _) = match reader.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (acknack, _) = match sender.receive_acknack() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   assert_eq(decoded.serialized_payload(), b"payload")
+  assert_eq(heartbeat.last_sequence_number(), 1L)
+  assert_eq(acknack.num_bits(), 1U)
+  assert_eq(acknack.bitmap(), [0U])
   assert_eq(reader.sample_count(), 1)
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()

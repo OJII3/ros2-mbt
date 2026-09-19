@@ -154,6 +154,7 @@ pub struct ReliableDataReaderSession {
 pub fn ReliableDataReaderSession::close(Self) -> Unit
 pub fn ReliableDataReaderSession::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub fn ReliableDataReaderSession::sample_count(Self) -> Int
 
 pub struct ReliableDataWriter {
