@@ -55,27 +55,37 @@ async fn publish_reliable(
       return
     }
   }
-  for index in 0..<5 {
-    let message = @ros.StringMessage::new(
-      "hello from MoonBit #" + index.to_string(),
-    )
-    match publisher.publish(message.to_cdr_bytes()) {
-      Ok(_) => ()
-      Err(error) => {
-        println(error)
-        publisher.close()
-        return
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        match publisher.receive_acknack() {
+          Ok(_) => ()
+          Err(_) => return
+        }
       }
     }
-    match publisher.send_heartbeat() {
-      Ok(_) => ()
-      Err(error) => {
-        println(error)
-        publisher.close()
-        return
+    for index in 0..<5 {
+      let message = @ros.StringMessage::new(
+        "hello from MoonBit #" + index.to_string(),
+      )
+      match publisher.publish(message.to_cdr_bytes()) {
+        Ok(_) => ()
+        Err(error) => {
+          println(error)
+          publisher.close()
+          return
+        }
       }
+      match publisher.send_heartbeat() {
+        Ok(_) => ()
+        Err(error) => {
+          println(error)
+          publisher.close()
+          return
+        }
+      }
+      @async.sleep(1000)
     }
-    @async.sleep(1000)
   }
   publisher.close()
 }
