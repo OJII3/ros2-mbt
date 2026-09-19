@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/transport"
+
+import {
+  "moonbitlang/async/socket",
+}
+
+// Values
+pub const MAX_DATAGRAM_SIZE : Int = 65535
+
+// Errors
+
+// Types and methods
+pub struct Udp {
+  server : @socket.UdpServer
+}
+pub async fn Udp::bind(@socket.Addr) -> Self
+pub fn Udp::close(Self) -> Unit
+pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
+pub fn Udp::local_addr(Self) -> @socket.Addr
+pub async fn Udp::multicast(@socket.Addr) -> Self
+pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
+pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
+
+// Type aliases
+
+// Traits
