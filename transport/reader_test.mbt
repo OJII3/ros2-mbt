@@ -5,6 +5,11 @@ async test "best-effort reader accepts its discovered publication" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let other_prefix = match
+    @rtps.GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   let reader_id = match @rtps.EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -56,6 +61,16 @@ async test "best-effort reader accepts its discovered publication" {
         b"unrelated",
       ),
       prefix,
+      @rtps.VendorId::new(1, 15),
+      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match
+    sender.send_data(
+      @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"other participant"),
+      other_prefix,
       @rtps.VendorId::new(1, 15),
       @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
     ) {

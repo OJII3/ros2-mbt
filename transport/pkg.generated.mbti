@@ -51,6 +51,7 @@ pub struct DataReader {
   socket : Udp
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
+  writer_prefix : @rtps.GuidPrefix?
 }
 pub fn DataReader::close(Self) -> Unit
 pub fn DataReader::new(Udp, @rtps.EntityId, @rtps.EntityId) -> Self
@@ -160,6 +161,7 @@ pub struct ReliableDataReaderSession {
   guid_prefix : @rtps.GuidPrefix
   vendor_id : @rtps.VendorId
   destination : @socket.Addr
+  writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
 }
 pub fn ReliableDataReaderSession::close(Self) -> Unit

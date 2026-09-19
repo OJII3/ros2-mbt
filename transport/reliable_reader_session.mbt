@@ -8,6 +8,7 @@ pub struct ReliableDataReaderSession {
   guid_prefix : @rtps.GuidPrefix
   vendor_id : @rtps.VendorId
   destination : @socket.Addr
+  writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
 }
 
@@ -42,6 +43,7 @@ pub fn ReliableDataReaderSession::new_for_publication(
     guid_prefix,
     vendor_id,
     destination,
+    writer_prefix: publication.endpoint_guid().prefix(),
     state: ReliableDataReader::new(reader_id, writer_id),
   })
 }
@@ -70,6 +72,9 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
     for submessage in message.submessages() {
       match submessage.id() {
         @rtps.SubmessageId::Data => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
           let data = match @rtps.DataSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
@@ -87,6 +92,9 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
           }
         }
         @rtps.SubmessageId::Heartbeat => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
           let heartbeat = match
             @rtps.HeartbeatSubmessage::from_submessage(submessage) {
             Ok(value) => value
@@ -141,6 +149,9 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
     for submessage in message.submessages() {
       match submessage.id() {
         @rtps.SubmessageId::Data => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
           let data = match @rtps.DataSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
@@ -151,6 +162,9 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
           }
         }
         @rtps.SubmessageId::Heartbeat => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
           let heartbeat = match
             @rtps.HeartbeatSubmessage::from_submessage(submessage) {
             Ok(value) => value

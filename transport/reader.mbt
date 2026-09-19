@@ -4,6 +4,7 @@ pub struct DataReader {
   socket : Udp
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
+  writer_prefix : @rtps.GuidPrefix?
 }
 
 ///|
@@ -13,7 +14,7 @@ pub fn DataReader::new(
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
 ) -> DataReader {
-  { socket, reader_id, writer_id, }
+  { socket, reader_id, writer_id, writer_prefix: None, }
 }
 
 ///|
@@ -26,9 +27,12 @@ pub fn DataReader::new_for_publication(
   if publication.kind() != @rtps.SedpEndpointKind::Publication {
     return Err("a DataReader target must be an SEDP publication")
   }
-  Ok(
-    DataReader::new(socket, reader_id, publication.endpoint_guid().entity_id()),
-  )
+  Ok({
+    socket,
+    reader_id,
+    writer_id: publication.endpoint_guid().entity_id(),
+    writer_prefix: Some(publication.endpoint_guid().prefix()),
+  })
 }
 
 ///|
@@ -49,8 +53,13 @@ pub async fn DataReader::receive(
         Ok(value) => value
         Err(message) => return Err(message)
       }
+      let prefix_matches = match self.writer_prefix {
+        Some(prefix) => message.header().guid_prefix() == prefix
+        None => true
+      }
       if data.reader_id() != self.reader_id ||
-        data.writer_id() != self.writer_id {
+        data.writer_id() != self.writer_id ||
+        !prefix_matches {
         continue
       }
       return Ok((data, source))
