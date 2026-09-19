@@ -1,0 +1,75 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/rtps"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const HEADER_LENGTH : Int = 20
+
+pub const PROTOCOL_VERSION_MAJOR : Byte = 2
+
+pub const PROTOCOL_VERSION_MINOR : Byte = 3
+
+pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
+
+// Errors
+
+// Types and methods
+pub struct GuidPrefix {
+  bytes : Bytes
+}
+pub fn GuidPrefix::as_bytes(Self) -> Bytes
+pub fn GuidPrefix::from_array(Array[Byte]) -> Result[Self, String]
+pub fn GuidPrefix::new(Bytes) -> Result[Self, String]
+
+pub struct Header {
+  protocol_version : ProtocolVersion
+  vendor_id : VendorId
+  guid_prefix : GuidPrefix
+}
+pub fn Header::from_bytes(Bytes) -> Result[Self, String]
+pub fn Header::new(GuidPrefix, VendorId) -> Self
+pub fn Header::to_bytes(Self) -> Bytes
+
+pub struct ProtocolVersion {
+  major : Byte
+  minor : Byte
+} derive(Eq, @debug.Debug)
+pub fn ProtocolVersion::new(Byte, Byte) -> Self
+
+pub struct Submessage {
+  id : SubmessageId
+  flags : Byte
+  payload : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Submessage::from_bytes(Bytes) -> Result[(Self, Int), String]
+pub fn Submessage::little_endian(Self) -> Self
+pub fn Submessage::new(SubmessageId, Byte, Bytes) -> Self
+pub fn Submessage::to_bytes(Self) -> Result[Bytes, String]
+
+pub(all) enum SubmessageId {
+  InfoTimestamp
+  InfoDestination
+  AckNack
+  Heartbeat
+  Gap
+  InfoReply
+  Data
+  NackFrag
+  HeartbeatFrag
+  DataFrag
+} derive(Eq, @debug.Debug)
+pub fn SubmessageId::from_byte(Byte) -> Result[Self, String]
+pub fn SubmessageId::to_byte(Self) -> Byte
+
+pub struct VendorId {
+  major : Byte
+  minor : Byte
+} derive(Eq, @debug.Debug)
+pub fn VendorId::new(Byte, Byte) -> Self
+
+// Type aliases
+
+// Traits
