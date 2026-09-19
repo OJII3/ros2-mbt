@@ -71,6 +71,8 @@ async test "discovery session repeats SPDP announcements" {
       fail("expected an SPDP participant event")
     DiscoveryEvent::EndpointRemoved(_, _) =>
       fail("expected an SPDP participant event")
+    DiscoveryEvent::ParticipantRemoved(_) =>
+      fail("expected an SPDP participant event")
   }
   match second {
     DiscoveryEvent::Participant(decoded) =>
@@ -80,8 +82,29 @@ async test "discovery session repeats SPDP announcements" {
       fail("expected an SPDP participant event")
     DiscoveryEvent::EndpointRemoved(_, _) =>
       fail("expected an SPDP participant event")
+    DiscoveryEvent::ParticipantRemoved(_) =>
+      fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
+  receiver
+  .send_data(
+    @rtps.DataSubmessage::new(reader_id, writer_id, 3L, b"")
+      .with_key(participant_guid.to_bytes())
+      .with_status_info(@rtps.STATUS_INFO_DISPOSED),
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let (removed, _) = session.receive_once().unwrap()
+  match removed {
+    DiscoveryEvent::ParticipantRemoved(removed_guid) =>
+      assert_eq(removed_guid, participant_guid)
+    DiscoveryEvent::Participant(_) => fail("expected an SPDP removal event")
+    DiscoveryEvent::Publication(_) => fail("expected an SPDP removal event")
+    DiscoveryEvent::Subscription(_) => fail("expected an SPDP removal event")
+    DiscoveryEvent::EndpointRemoved(_, _) => fail("expected an SPDP removal event")
+  }
   session.close()
   receiver.close()
 }
@@ -156,6 +179,7 @@ async test "discovery session ignores SPDP from another domain" {
     DiscoveryEvent::Publication(_) => fail("expected a participant event")
     DiscoveryEvent::Subscription(_) => fail("expected a participant event")
     DiscoveryEvent::EndpointRemoved(_, _) => fail("expected a participant event")
+    DiscoveryEvent::ParticipantRemoved(_) => fail("expected a participant event")
   }
   sender.close()
   session.close()
@@ -236,6 +260,8 @@ async test "discovery session receives from an additional metatraffic socket" {
     DiscoveryEvent::Subscription(_) =>
       fail("expected an SPDP participant event")
     DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an SPDP participant event")
+    DiscoveryEvent::ParticipantRemoved(_) =>
       fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
@@ -322,6 +348,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     DiscoveryEvent::Participant(_) => fail("expected an SEDP publication")
     DiscoveryEvent::Subscription(_) => fail("expected an SEDP publication")
     DiscoveryEvent::EndpointRemoved(_, _) => fail("expected an SEDP publication")
+    DiscoveryEvent::ParticipantRemoved(_) => fail("expected an SEDP publication")
   }
   let (acknack, _) = sender.receive_acknack().unwrap()
   assert_eq(
@@ -356,6 +383,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     DiscoveryEvent::Participant(_) => fail("expected an SEDP removal event")
     DiscoveryEvent::Publication(_) => fail("expected an SEDP removal event")
     DiscoveryEvent::Subscription(_) => fail("expected an SEDP removal event")
+    DiscoveryEvent::ParticipantRemoved(_) => fail("expected an SEDP removal event")
   }
   session.close()
   sender.close()

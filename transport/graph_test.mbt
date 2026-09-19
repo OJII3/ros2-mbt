@@ -60,6 +60,45 @@ test "discovery graph upserts and matches endpoints" {
 }
 
 ///|
+test "discovery graph removes a participant and its endpoints" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+  ]).unwrap()
+  let participant_guid = @rtps.Guid::new(
+    prefix,
+    @rtps.EntityId::new(b"prt", 0xC1).unwrap(),
+  )
+  let participant = @rtps.SpdpParticipantData::new(
+    participant_guid,
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let subscription = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Subscription,
+    @rtps.Guid::new(prefix, @rtps.EntityId::new(b"sub", 0xC7).unwrap()),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let graph = DiscoveryGraph::new()
+  graph.ingest(DiscoveryEvent::Participant(participant))
+  graph.ingest(DiscoveryEvent::Publication(publication))
+  graph.ingest(DiscoveryEvent::Subscription(subscription))
+  graph.ingest(DiscoveryEvent::ParticipantRemoved(participant_guid))
+  assert_eq(graph.participant_count(), 0)
+  assert_eq(graph.publication_count(), 0)
+  assert_eq(graph.subscription_count(), 0)
+}
+
+///|
 test "discovery graph upserts ROS participant entities" {
   let gid = match @ros.Gid::new(b"0123456789abcdef") {
     Ok(value) => value

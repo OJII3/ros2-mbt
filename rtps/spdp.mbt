@@ -444,6 +444,17 @@ pub fn SpdpParticipantData::from_data_submessage(
 }
 
 ///|
+/// Parse the participant GUID from a key-only SPDP DATA submessage.
+pub fn SpdpParticipantData::participant_guid_from_key_data(
+  data : DataSubmessage,
+) -> Result[Guid, String] {
+  if (data.flags() & DATA_FLAG_KEY) == 0 {
+    return Err("the SPDP DATA submessage does not contain a key")
+  }
+  Guid::from_bytes(data.serialized_payload())
+}
+
+///|
 /// Serialize the SPDP participant data as a CDR little-endian payload.
 pub fn SpdpParticipantData::to_cdr_bytes(self : SpdpParticipantData) -> Bytes {
   self.to_parameter_list().to_cdr_bytes()

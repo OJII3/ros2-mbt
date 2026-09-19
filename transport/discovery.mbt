@@ -536,15 +536,40 @@ async fn DiscoverySession::decode_message(
                 }
             }
           }
-          Err(_) =>
-            if event is None {
-              match @rtps.SpdpParticipantData::from_data_submessage(data) {
-                Ok(participant) if participant.domain_id() == self.participant.domain_id() =>
-                  event = Some(DiscoveryEvent::Participant(participant))
-                Err(_) => ()
-                _ => ()
-              }
+          Err(_) => {
+            let status = match data.status_info() {
+              Ok(value) => value
+              Err(_) => continue
             }
+            match status {
+              Some(value) if
+                (value &
+                  (@rtps.STATUS_INFO_DISPOSED |
+                    @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+                if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
+                  continue
+                }
+                match
+                  @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
+                  Ok(participant_guid) =>
+                    if event is None {
+                      event = Some(DiscoveryEvent::ParticipantRemoved(participant_guid))
+                    }
+                  Err(_) => ()
+                }
+              }
+              _ =>
+                if event is None {
+                  match @rtps.SpdpParticipantData::from_data_submessage(data) {
+                    Ok(participant) if
+                      participant.domain_id() == self.participant.domain_id() =>
+                      event = Some(DiscoveryEvent::Participant(participant))
+                    Err(_) => ()
+                    _ => ()
+                  }
+                }
+            }
+          }
         }
       }
       @rtps.SubmessageId::Heartbeat => {

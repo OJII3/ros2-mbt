@@ -14,6 +14,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `Locator_t` と UDP/IPv4 locator のwire format
 - RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
 - RTPS `DATA` submessage（CDR payload、inline QoS、SequenceNumber）
+- RTPS `DATA` key-only payloadと`PID_STATUS_INFO`（dispose/unregister）
 - RTPS `DATA_FRAG` の fragment codec と best-effort/reliable reader の再構成
 - RTPS `GAP`、`HEARTBEAT_FRAG`、`NACK_FRAG` の codec と reliable fragment再送要求
 - RTPS `INFO_TS` submessage（NTP timestamp、Invalidate flag、両エンディアン）
@@ -59,6 +60,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
 - GAPを反映したACKNACK生成と、fragment欠落を反映したNACK_FRAG生成
 - SPDP/SEDP discovery event を保持する `DiscoveryGraph` と topic/type matching
+- SPDP/SEDP key-only dispose/unregister による参加者・endpoint削除
 - SPDP/SEDP と `ros_discovery_info` を graph に集約する `DiscoveryService`
 - 発見済み participant 全体への SEDP endpoint の単発・有限回・継続 announcement
 - `rmw_dds_common` の `Gid` / `NodeEntitiesInfo` / `ParticipantEntitiesInfo` CDR codec

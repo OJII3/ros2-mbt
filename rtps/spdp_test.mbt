@@ -102,3 +102,16 @@ test "SPDP participant data creates a DATA submessage" {
   assert_eq(message.submessages().length(), 1)
   assert_eq(message.header().to_bytes()[0], b'R')
 }
+
+///|
+test "SPDP extracts a participant GUID from key-only data" {
+  let guid = spdp_test_guid().unwrap()
+  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
+  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
+  let data = DataSubmessage::new(reader_id, writer_id, 2L, b"")
+    .with_key(guid.to_bytes())
+  assert_eq(
+    SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
+    guid,
+  )
+}

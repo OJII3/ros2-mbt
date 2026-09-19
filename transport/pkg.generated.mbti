@@ -82,10 +82,11 @@ pub(all) enum DiscoveryEvent {
   Publication(@rtps.SedpEndpointData)
   Subscription(@rtps.SedpEndpointData)
   EndpointRemoved(@rtps.SedpEndpointKind, @rtps.Guid)
+  ParticipantRemoved(@rtps.Guid)
 }
 
 pub struct DiscoveryGraph {
-  participants : Array[@rtps.SpdpParticipantData]
+  mut participants : Array[@rtps.SpdpParticipantData]
   mut publications : Array[@rtps.SedpEndpointData]
   mut subscriptions : Array[@rtps.SedpEndpointData]
   ros_participants : Array[@ros.ParticipantEntitiesInfo]
