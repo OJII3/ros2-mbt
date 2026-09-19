@@ -32,6 +32,10 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 
 pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
+pub const DATA_FRAG_FIXED_BODY_LENGTH : Int = 32
+
+pub const DATA_FRAG_INLINE_QOS_OFFSET : Int = 28
+
 pub const DATA_INLINE_QOS_OFFSET : Int = 16
 
 pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
@@ -231,6 +235,37 @@ pub fn AckNackSubmessage::to_payload(Self) -> Bytes
 pub fn AckNackSubmessage::to_submessage(Self) -> Submessage
 pub fn AckNackSubmessage::with_final(Self) -> Self
 pub fn AckNackSubmessage::writer_id(Self) -> EntityId
+
+pub struct DataFragSubmessage {
+  flags : Byte
+  extra_flags : UInt16
+  octets_to_inline_qos : UInt16
+  reader_id : EntityId
+  writer_id : EntityId
+  writer_sequence_number : Int64
+  fragment_starting_number : UInt
+  fragments_in_submessage : UInt16
+  fragment_size : UInt16
+  sample_size : UInt
+  inline_qos : Bytes
+  serialized_payload : Bytes
+} derive(Eq, @debug.Debug)
+pub fn DataFragSubmessage::flags(Self) -> Byte
+pub fn DataFragSubmessage::fragment_size(Self) -> UInt16
+pub fn DataFragSubmessage::fragment_starting_number(Self) -> UInt
+pub fn DataFragSubmessage::fragments_in_submessage(Self) -> UInt16
+pub fn DataFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn DataFragSubmessage::inline_qos(Self) -> Bytes
+pub fn DataFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt16, UInt16, UInt, Bytes) -> Result[Self, String]
+pub fn DataFragSubmessage::reader_id(Self) -> EntityId
+pub fn DataFragSubmessage::sample_size(Self) -> UInt
+pub fn DataFragSubmessage::serialized_payload(Self) -> Bytes
+pub fn DataFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn DataFragSubmessage::to_payload(Self) -> Bytes
+pub fn DataFragSubmessage::to_submessage(Self) -> Submessage
+pub fn DataFragSubmessage::with_inline_qos(Self, Bytes) -> Self
+pub fn DataFragSubmessage::writer_id(Self) -> EntityId
+pub fn DataFragSubmessage::writer_sequence_number(Self) -> Int64
 
 pub struct DataSubmessage {
   flags : Byte

@@ -166,6 +166,14 @@ fn data_append_u16_le(bytes : Array[Byte], value : UInt16) -> Unit {
 }
 
 ///|
+fn data_append_u32_le(bytes : Array[Byte], value : UInt) -> Unit {
+  bytes.push(value.to_byte())
+  bytes.push((value >> 8).to_byte())
+  bytes.push((value >> 16).to_byte())
+  bytes.push((value >> 24).to_byte())
+}
+
+///|
 fn append_u64_le(bytes : Array[Byte], value : UInt64) -> Unit {
   bytes.push(value.to_byte())
   bytes.push((value >> 8).to_byte())
@@ -181,6 +189,14 @@ fn append_u64_le(bytes : Array[Byte], value : UInt64) -> Unit {
 fn data_read_u16_le(input : Bytes, offset : Int) -> UInt16 {
   let value = input[offset].to_int() | (input[offset + 1].to_int() << 8)
   value.to_uint16()
+}
+
+///|
+fn data_read_u32_le(input : Bytes, offset : Int) -> UInt {
+  input[offset].to_int().reinterpret_as_uint() |
+  (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
+  (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
+  (input[offset + 3].to_int().reinterpret_as_uint() << 24)
 }
 
 ///|
