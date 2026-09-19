@@ -23,6 +23,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - best-effort `DataWriter`（sequence number 管理付き）
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`
 - `RosTopic` と発見済み endpoint を結ぶ `RosPublisher` / `RosSubscription` facade
+- reliable QoS向けの `ReliableRosPublisher` / `ReliableRosSubscription` facade
 - `RosTopic` と `std_msgs/msg/String` を使った loopback publisher/listener test
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
 - reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
