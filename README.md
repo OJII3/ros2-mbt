@@ -18,6 +18,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SPDP announcement の sequence number 管理と async periodic session helper
 - 発見済み participant の metatraffic locator へ送る SEDP helper
 - DDSI-RTPS default port mapping、SPDP/user-data address helper
+- DDSI discoveryのSPDP multicastとmetatraffic unicast両受信
 - DDSI 標準 locator と builtin endpoint を設定する participant helper
 - discovery/user-data socket をまとめる `RosParticipant` lifecycle facade
 - `RosParticipant` のローカルSEDP endpoint登録・保持・発見時自動再通知

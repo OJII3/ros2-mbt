@@ -98,17 +98,40 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let user_socket = match
-    Udp::ddsi_user_unicast(domain_id, participant_id, ip) {
+  let metatraffic_socket = match
+    Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
       discovery_socket.close()
       return Err(message)
     }
   }
-  RosParticipant::from_sockets(
-    discovery_socket, user_socket, participant, domain_id, first_sequence_number,
-  )
+  let user_socket = match
+    Udp::ddsi_user_unicast(domain_id, participant_id, ip) {
+    Ok(value) => value
+    Err(message) => {
+      discovery_socket.close()
+      metatraffic_socket.close()
+      return Err(message)
+    }
+  }
+  let session = match
+    DiscoverySession::new_default_with_receive_sockets(
+      discovery_socket,
+      [metatraffic_socket],
+      participant,
+      domain_id,
+      first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      discovery_socket.close()
+      metatraffic_socket.close()
+      user_socket.close()
+      return Err(message)
+    }
+  }
+  RosParticipant::from_discovery_session(session, user_socket)
 }
 
 ///|

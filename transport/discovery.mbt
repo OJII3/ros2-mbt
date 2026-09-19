@@ -2,6 +2,7 @@
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
   socket : Udp
+  receive_sockets : Array[Udp]
   participant : @rtps.SpdpParticipantData
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
@@ -24,12 +25,76 @@ pub fn DiscoverySession::new(
   }
   Ok({
     socket,
+    receive_sockets: [],
     participant,
     reader_id,
     writer_id,
     destination,
     next_sequence_number: first_sequence_number,
   })
+}
+
+///|
+/// Create an SPDP session with additional metatraffic receive sockets.
+///
+/// DDSI-RTPS uses the domain multicast port for SPDP and a participant's
+/// unicast metatraffic port for SEDP. The primary socket remains the send
+/// socket; all sockets are raced when receiving discovery events.
+pub fn DiscoverySession::new_with_receive_sockets(
+  socket : Udp,
+  receive_sockets : Array[Udp],
+  participant : @rtps.SpdpParticipantData,
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+  destination : @socket.Addr,
+  first_sequence_number : Int64,
+) -> Result[DiscoverySession, String] {
+  if first_sequence_number < 1L {
+    return Err("an SPDP sequence number must be positive")
+  }
+  Ok({
+    socket,
+    receive_sockets,
+    participant,
+    reader_id,
+    writer_id,
+    destination,
+    next_sequence_number: first_sequence_number,
+  })
+}
+
+///|
+/// Create a default DDSI session with an additional metatraffic receiver.
+pub fn DiscoverySession::new_default_with_receive_sockets(
+  socket : Udp,
+  receive_sockets : Array[Udp],
+  participant : @rtps.SpdpParticipantData,
+  domain_id : UInt,
+  first_sequence_number : Int64,
+) -> Result[DiscoverySession, String] {
+  let destination = match ddsi_default_spdp_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let writer_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  DiscoverySession::new_with_receive_sockets(
+    socket, receive_sockets, participant, reader_id, writer_id, destination, first_sequence_number,
+  )
 }
 
 ///|
@@ -145,11 +210,22 @@ pub async fn DiscoverySession::announce_forever(
 pub async fn DiscoverySession::receive_once(
   self : DiscoverySession,
 ) -> Result[(DiscoveryEvent, @socket.Addr), String] {
-  self.socket.receive_discovery()
+  if self.receive_sockets.length() == 0 {
+    return self.socket.receive_discovery()
+  }
+  let tasks : Array[async () -> Result[(DiscoveryEvent, @socket.Addr), String]] = []
+  tasks.push(async fn() { self.socket.receive_discovery() })
+  for receive_socket in self.receive_sockets {
+    tasks.push(async fn() { receive_socket.receive_discovery() })
+  }
+  @async.any(tasks, allow_failure=true)
 }
 
 ///|
 /// Close the session's underlying UDP socket.
 pub fn DiscoverySession::close(self : DiscoverySession) -> Unit {
   self.socket.close()
+  for receive_socket in self.receive_sockets {
+    receive_socket.close()
+  }
 }
