@@ -2,6 +2,7 @@
 package "kainaproject/ros2_mbt/ros"
 
 import {
+  "kainaproject/ros2_mbt/rtps",
   "moonbitlang/core/debug",
 }
 
@@ -26,6 +27,17 @@ pub(all) enum DdsTopicKind {
   ServiceRequest
   ServiceResponse
 } derive(Eq, @debug.Debug)
+
+pub struct RosTopic {
+  ros_name : String
+  dds_name : String
+  dds_type_name : String
+}
+pub fn RosTopic::dds_name(Self) -> String
+pub fn RosTopic::dds_type_name(Self) -> String
+pub fn RosTopic::new(String, String, String, String) -> Result[Self, String]
+pub fn RosTopic::ros_name(Self) -> String
+pub fn RosTopic::to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 
 pub struct StringMessage {
   data : String
