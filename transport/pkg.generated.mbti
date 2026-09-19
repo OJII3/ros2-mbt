@@ -254,6 +254,7 @@ pub struct RosParticipant {
 }
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
+pub fn RosParticipant::from_discovery_session(DiscoverySession, Udp) -> Result[Self, String]
 pub fn RosParticipant::from_sockets(Udp, Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn RosParticipant::graph(Self) -> DiscoveryGraph
 pub fn RosParticipant::into_parts(Self) -> (DiscoveryService, Udp)

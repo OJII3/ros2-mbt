@@ -24,14 +24,6 @@ pub fn RosParticipant::from_sockets(
   domain_id : UInt,
   first_sequence_number : Int64,
 ) -> Result[RosParticipant, String] {
-  let user_locator = match user_socket.local_unicast_locator() {
-    Ok(value) => value
-    Err(message) => {
-      discovery_socket.close()
-      user_socket.close()
-      return Err(message)
-    }
-  }
   let session = match
     DiscoverySession::new_default(
       discovery_socket, participant, domain_id, first_sequence_number,
@@ -42,6 +34,27 @@ pub fn RosParticipant::from_sockets(
       return Err(message)
     }
   }
+  RosParticipant::from_discovery_session(session, user_socket)
+}
+
+///|
+/// Build a participant from a caller-configured discovery session.
+///
+/// This is useful for custom discovery destinations and deterministic unicast
+/// tests. The session's participant data is used as the local identity.
+pub fn RosParticipant::from_discovery_session(
+  session : DiscoverySession,
+  user_socket : Udp,
+) -> Result[RosParticipant, String] {
+  let user_locator = match user_socket.local_unicast_locator() {
+    Ok(value) => value
+    Err(message) => {
+      session.close()
+      user_socket.close()
+      return Err(message)
+    }
+  }
+  let participant = session.participant
   Ok({
     participant,
     discovery: DiscoveryService::new(session),
