@@ -20,6 +20,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
+- reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
 - ROS topic descriptor から SEDP topic/type identity への bridge
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
