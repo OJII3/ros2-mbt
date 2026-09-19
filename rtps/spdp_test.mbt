@@ -49,6 +49,19 @@ test "SPDP participant data builds RTPS parameters" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.values(), values)
+  let decoded_participant = match
+    SpdpParticipantData::from_cdr_bytes(participant.to_cdr_bytes()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded_participant.to_cdr_bytes(), participant.to_cdr_bytes())
+}
+
+///|
+test "SPDP parser requires a participant GUID" {
+  let parameters = ParameterList::new()
+  parameters.add(Parameter::new(PID_DOMAIN_ID, b"\x00\x00\x00\x00"))
+  assert_true(SpdpParticipantData::from_parameter_list(parameters) is Err(_))
 }
 
 ///|

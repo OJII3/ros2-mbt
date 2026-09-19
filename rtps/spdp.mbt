@@ -136,6 +136,49 @@ fn spdp_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
 }
 
 ///|
+fn spdp_read_u32(value : Bytes) -> Result[UInt, String] {
+  if value.length() != 4 {
+    return Err("an SPDP uint32 parameter must contain 4 bytes")
+  }
+  match value {
+    [u32le(result)] => Ok(result)
+    _ => Err("invalid SPDP uint32 parameter")
+  }
+}
+
+///|
+fn spdp_read_protocol_version(value : Bytes) -> Result[ProtocolVersion, String] {
+  if value.length() != 4 {
+    return Err("an SPDP protocol version must contain 4 bytes")
+  }
+  Ok(ProtocolVersion::new(value[0], value[1]))
+}
+
+///|
+fn spdp_read_vendor_id(value : Bytes) -> Result[VendorId, String] {
+  if value.length() != 4 {
+    return Err("an SPDP vendor ID must contain 4 bytes")
+  }
+  Ok(VendorId::new(value[0], value[1]))
+}
+
+///|
+fn spdp_read_duration(value : Bytes) -> Result[(Int, UInt), String] {
+  if value.length() != 8 {
+    return Err("an SPDP lease duration must contain 8 bytes")
+  }
+  let seconds = match value[0:4] {
+    [u32le(result)] => result
+    _ => return Err("invalid SPDP lease duration")
+  }
+  let nanoseconds = match value[4:8] {
+    [u32le(result)] => result
+    _ => return Err("invalid SPDP lease duration")
+  }
+  Ok((seconds.reinterpret_as_int(), nanoseconds))
+}
+
+///|
 fn spdp_add_locators(
   parameters : ParameterList,
   id : UInt16,
@@ -206,6 +249,126 @@ pub fn SpdpParticipantData::to_parameter_list(
     ),
   )
   parameters
+}
+
+///|
+/// Parse SPDP participant data from its RTPS parameter list.
+pub fn SpdpParticipantData::from_parameter_list(
+  parameters : ParameterList,
+) -> Result[SpdpParticipantData, String] {
+  let mut protocol_version = ProtocolVersion::new(
+    PROTOCOL_VERSION_MAJOR,
+    PROTOCOL_VERSION_MINOR,
+  )
+  let mut vendor_id = VendorId::new(0, 0)
+  let mut participant_guid_bytes = b""
+  let mut domain_id : UInt = 0
+  let mut lease_seconds : Int = 0
+  let mut lease_nanoseconds : UInt = 0
+  let mut builtin_endpoint_set : UInt = 0
+  let mut has_participant_guid = false
+  let metatraffic_unicast_locators : Array[Locator] = []
+  let metatraffic_multicast_locators : Array[Locator] = []
+  let default_unicast_locators : Array[Locator] = []
+  let default_multicast_locators : Array[Locator] = []
+  for parameter in parameters.values() {
+    let value = parameter.value()
+    match parameter.id() {
+      PID_PROTOCOL_VERSION =>
+        protocol_version = match spdp_read_protocol_version(value) {
+          Ok(result) => result
+          Err(message) => return Err(message)
+        }
+      PID_VENDOR_ID =>
+        vendor_id = match spdp_read_vendor_id(value) {
+          Ok(result) => result
+          Err(message) => return Err(message)
+        }
+      PID_PARTICIPANT_GUID => {
+        participant_guid_bytes = value
+        has_participant_guid = true
+      }
+      PID_PARTICIPANT_LEASE_DURATION => {
+        let duration = match spdp_read_duration(value) {
+          Ok(result) => result
+          Err(message) => return Err(message)
+        }
+        lease_seconds = duration.0
+        lease_nanoseconds = duration.1
+      }
+      PID_DOMAIN_ID =>
+        domain_id = match spdp_read_u32(value) {
+          Ok(result) => result
+          Err(message) => return Err(message)
+        }
+      PID_BUILTIN_ENDPOINT_SET =>
+        builtin_endpoint_set = match spdp_read_u32(value) {
+          Ok(result) => result
+          Err(message) => return Err(message)
+        }
+      PID_METATRAFFIC_UNICAST_LOCATOR =>
+        metatraffic_unicast_locators.push(
+          match Locator::from_bytes(value) {
+            Ok(result) => result
+            Err(message) => return Err(message)
+          },
+        )
+      PID_METATRAFFIC_MULTICAST_LOCATOR =>
+        metatraffic_multicast_locators.push(
+          match Locator::from_bytes(value) {
+            Ok(result) => result
+            Err(message) => return Err(message)
+          },
+        )
+      PID_DEFAULT_UNICAST_LOCATOR =>
+        default_unicast_locators.push(
+          match Locator::from_bytes(value) {
+            Ok(result) => result
+            Err(message) => return Err(message)
+          },
+        )
+      PID_DEFAULT_MULTICAST_LOCATOR =>
+        default_multicast_locators.push(
+          match Locator::from_bytes(value) {
+            Ok(result) => result
+            Err(message) => return Err(message)
+          },
+        )
+      _ => ()
+    }
+  }
+  if !has_participant_guid {
+    return Err("SPDP participant data is missing PID_PARTICIPANT_GUID")
+  }
+  let participant_guid = match Guid::from_bytes(participant_guid_bytes) {
+    Ok(result) => result
+    Err(message) => return Err(message)
+  }
+  Ok({
+    protocol_version,
+    vendor_id,
+    participant_guid,
+    domain_id,
+    lease_seconds,
+    lease_nanoseconds,
+    builtin_endpoint_set,
+    metatraffic_unicast_locators,
+    metatraffic_multicast_locators,
+    default_unicast_locators,
+    default_multicast_locators,
+  })
+}
+
+///|
+/// Parse a CDR little-endian SPDP participant payload.
+pub fn SpdpParticipantData::from_cdr_bytes(
+  input : Bytes,
+) -> Result[SpdpParticipantData, String] {
+  let parameters = match ParameterList::from_cdr_bytes(input) {
+    Ok(result) => result
+    Err(message) => return Err(message)
+  }
+  SpdpParticipantData::from_parameter_list(parameters)
 }
 
 ///|

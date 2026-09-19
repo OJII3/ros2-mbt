@@ -197,6 +197,8 @@ pub fn SpdpParticipantData::add_default_multicast(Self, Locator) -> Unit
 pub fn SpdpParticipantData::add_default_unicast(Self, Locator) -> Unit
 pub fn SpdpParticipantData::add_metatraffic_multicast(Self, Locator) -> Unit
 pub fn SpdpParticipantData::add_metatraffic_unicast(Self, Locator) -> Unit
+pub fn SpdpParticipantData::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn SpdpParticipantData::from_parameter_list(ParameterList) -> Result[Self, String]
 pub fn SpdpParticipantData::new(Guid, VendorId, UInt, Int, UInt, UInt) -> Self
 pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes
 pub fn SpdpParticipantData::to_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
