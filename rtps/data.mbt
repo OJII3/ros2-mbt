@@ -82,6 +82,19 @@ pub fn DataSubmessage::with_inline_qos(
 }
 
 ///|
+/// Return a copy carrying a key-only serialized payload.
+pub fn DataSubmessage::with_key(
+  self : DataSubmessage,
+  serialized_key : Bytes,
+) -> DataSubmessage {
+  {
+    ..self,
+    flags: (self.flags & 0xFB) | DATA_FLAG_KEY,
+    serialized_payload: serialized_key,
+  }
+}
+
+///|
 fn DataSubmessage::with_inline_parameter(
   self : DataSubmessage,
   parameter : Parameter,

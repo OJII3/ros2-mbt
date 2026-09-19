@@ -69,12 +69,16 @@ async test "discovery session repeats SPDP announcements" {
     DiscoveryEvent::Publication(_) => fail("expected an SPDP participant event")
     DiscoveryEvent::Subscription(_) =>
       fail("expected an SPDP participant event")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an SPDP participant event")
   }
   match second {
     DiscoveryEvent::Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
     DiscoveryEvent::Publication(_) => fail("expected an SPDP participant event")
     DiscoveryEvent::Subscription(_) =>
+      fail("expected an SPDP participant event")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
       fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
@@ -151,6 +155,7 @@ async test "discovery session ignores SPDP from another domain" {
       assert_eq(participant.domain_id(), 0U)
     DiscoveryEvent::Publication(_) => fail("expected a participant event")
     DiscoveryEvent::Subscription(_) => fail("expected a participant event")
+    DiscoveryEvent::EndpointRemoved(_, _) => fail("expected a participant event")
   }
   sender.close()
   session.close()
@@ -229,6 +234,8 @@ async test "discovery session receives from an additional metatraffic socket" {
       assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
     DiscoveryEvent::Publication(_) => fail("expected an SPDP participant event")
     DiscoveryEvent::Subscription(_) =>
+      fail("expected an SPDP participant event")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
       fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
@@ -314,6 +321,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
       assert_eq(publication.topic_name(), "rt/chatter")
     DiscoveryEvent::Participant(_) => fail("expected an SEDP publication")
     DiscoveryEvent::Subscription(_) => fail("expected an SEDP publication")
+    DiscoveryEvent::EndpointRemoved(_, _) => fail("expected an SEDP publication")
   }
   let (acknack, _) = sender.receive_acknack().unwrap()
   assert_eq(
@@ -324,6 +332,31 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   assert_eq(acknack.bitmap_base(), 1L)
   assert_eq(acknack.num_bits(), 1U)
   assert_eq(acknack.bitmap(), [0x80000000U])
+  sender
+  .send_data(
+    @rtps.DataSubmessage::new(
+      @rtps.EntityId::unknown(),
+      sedp_writer,
+      2L,
+      b"",
+    )
+    .with_key(endpoint.endpoint_guid().to_bytes())
+    .with_status_info(@rtps.STATUS_INFO_DISPOSED),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let (removed_event, _) = session.receive_once().unwrap()
+  match removed_event {
+    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
+      assert_eq(kind, @rtps.SedpEndpointKind::Publication)
+      assert_eq(endpoint_guid, endpoint.endpoint_guid())
+    }
+    DiscoveryEvent::Participant(_) => fail("expected an SEDP removal event")
+    DiscoveryEvent::Publication(_) => fail("expected an SEDP removal event")
+    DiscoveryEvent::Subscription(_) => fail("expected an SEDP removal event")
+  }
   session.close()
   sender.close()
 }

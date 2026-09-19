@@ -660,6 +660,17 @@ pub fn SedpEndpointData::from_data_submessage(
 }
 
 ///|
+/// Parse the endpoint GUID from a key-only SEDP DATA submessage.
+pub fn SedpEndpointData::endpoint_guid_from_key_data(
+  data : DataSubmessage,
+) -> Result[Guid, String] {
+  if (data.flags() & DATA_FLAG_KEY) == 0 {
+    return Err("the SEDP DATA submessage does not contain a key")
+  }
+  Guid::from_bytes(data.serialized_payload())
+}
+
+///|
 /// Build an RTPS message containing this SEDP endpoint announcement.
 pub fn SedpEndpointData::to_message(
   self : SedpEndpointData,

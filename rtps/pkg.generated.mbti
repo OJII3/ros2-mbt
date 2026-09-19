@@ -314,6 +314,7 @@ pub fn DataSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataSubmessage::to_payload(Self) -> Bytes
 pub fn DataSubmessage::to_submessage(Self) -> Submessage
 pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self
+pub fn DataSubmessage::with_key(Self, Bytes) -> Self
 pub fn DataSubmessage::with_related_sample_identity(Self, SampleIdentity) -> Self
 pub fn DataSubmessage::with_status_info(Self, UInt) -> Self
 pub fn DataSubmessage::writer_id(Self) -> EntityId
@@ -550,6 +551,7 @@ pub fn SedpEndpointData::add_multicast_locator(Self, Locator) -> Unit
 pub fn SedpEndpointData::add_parameter(Self, Parameter) -> Unit
 pub fn SedpEndpointData::add_unicast_locator(Self, Locator) -> Unit
 pub fn SedpEndpointData::endpoint_guid(Self) -> Guid
+pub fn SedpEndpointData::endpoint_guid_from_key_data(DataSubmessage) -> Result[Guid, String]
 pub fn SedpEndpointData::extra_parameters(Self) -> Array[Parameter]
 pub fn SedpEndpointData::from_cdr_bytes(SedpEndpointKind, Bytes) -> Result[Self, String]
 pub fn SedpEndpointData::from_data_submessage(SedpEndpointKind, DataSubmessage) -> Result[Self, String]

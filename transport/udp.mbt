@@ -555,6 +555,7 @@ pub(all) enum DiscoveryEvent {
   Participant(@rtps.SpdpParticipantData)
   Publication(@rtps.SedpEndpointData)
   Subscription(@rtps.SedpEndpointData)
+  EndpointRemoved(@rtps.SedpEndpointKind, @rtps.Guid)
 }
 
 ///|
@@ -581,6 +582,27 @@ pub async fn Udp::receive_discovery(
       }
       match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
         Ok(kind) => {
+          let status = match data.status_info() {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          match status {
+            Some(value) if
+              (value &
+                (@rtps.STATUS_INFO_DISPOSED |
+                  @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+              if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
+                continue
+              }
+              let endpoint_guid = match
+                @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
+                Ok(value) => value
+                Err(_) => continue
+              }
+              return Ok((DiscoveryEvent::EndpointRemoved(kind, endpoint_guid), source))
+            }
+            _ => ()
+          }
           let endpoint = match
             @rtps.SedpEndpointData::from_data_submessage(kind, data) {
             Ok(value) => value

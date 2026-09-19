@@ -714,6 +714,7 @@ pub async fn RosParticipant::receive_discovery_once(
             }
           }
       }
+    DiscoveryEvent::EndpointRemoved(_, _) => ()
   }
   Ok((source, event))
 }

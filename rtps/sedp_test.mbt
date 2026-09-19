@@ -148,6 +148,23 @@ test "SEDP endpoint data round trips required fields and locators" {
 }
 
 ///|
+test "SEDP extracts an endpoint GUID from key-only data" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let endpoint_id = @rtps.EntityId::new(b"pub", 0x02).unwrap()
+  let endpoint_guid = @rtps.Guid::new(prefix, endpoint_id)
+  let reader_id = @rtps.EntityId::new(b"rea", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wri", 0xC2).unwrap()
+  let data = @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"")
+    .with_key(endpoint_guid.to_bytes())
+  assert_eq(
+    @rtps.SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
+    endpoint_guid,
+  )
+}
+
+///|
 test "SEDP endpoint type hash is optional and validates malformed user data" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let endpoint = SedpEndpointData::new(

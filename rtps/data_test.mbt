@@ -149,6 +149,21 @@ test "RTPS DATA carries status info" {
 }
 
 ///|
+test "RTPS DATA supports key-only payloads" {
+  let reader_id = test_entity_id(0xC7).unwrap()
+  let writer_id = test_entity_id(0xC2).unwrap()
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key")
+    .with_key(b"endpoint-key")
+  assert_eq(data.flags() & DATA_FLAG_DATA, 0x00)
+  assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
+  let decoded = DataSubmessage::from_submessage(
+    Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
+  ).unwrap()
+  assert_eq(decoded.serialized_payload(), b"endpoint-key")
+  assert_eq(decoded.flags(), data.flags())
+}
+
+///|
 test "RTPS DATA rejects malformed flags and body" {
   let reader_id = match test_entity_id(0xC7) {
     Ok(value) => value

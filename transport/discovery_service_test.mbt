@@ -508,6 +508,8 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
       assert_eq(participant.participant_guid().prefix(), remote_prefix)
     DiscoveryEvent::Publication(_) => fail("expected the follow-up SPDP event")
     DiscoveryEvent::Subscription(_) => fail("expected the follow-up SPDP event")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected the follow-up SPDP event")
   }
   let (retransmitted_message, _) = receiver.receive_message().unwrap()
   assert_eq(

@@ -50,6 +50,13 @@ test "discovery graph upserts and matches endpoints" {
   assert_eq(matched.length(), 1)
   assert_eq(matched[0].unicast_locators()[0].port(), 9000U)
   assert_eq(graph.find_subscriptions("rt/chatter", "missing").length(), 0)
+  graph.ingest(
+    DiscoveryEvent::EndpointRemoved(
+      @rtps.SedpEndpointKind::Publication,
+      publication.endpoint_guid(),
+    ),
+  )
+  assert_eq(graph.publication_count(), 0)
 }
 
 ///|

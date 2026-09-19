@@ -334,6 +334,8 @@ async test "UDP classifies discovery samples by builtin writer" {
       fail("expected an SEDP subscription event")
     DiscoveryEvent::Publication(_) =>
       fail("expected an SEDP subscription event")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an SEDP subscription event")
   }
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()

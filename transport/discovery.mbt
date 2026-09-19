@@ -496,19 +496,44 @@ async fn DiscoverySession::decode_message(
         match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
           Ok(kind) => {
             self.record_sedp_data(message.header().guid_prefix(), data)
-            if event is None {
-              match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
-                Ok(endpoint) =>
-                  event = Some(
-                    match kind {
-                      @rtps.SedpEndpointKind::Publication =>
-                        DiscoveryEvent::Publication(endpoint)
-                      @rtps.SedpEndpointKind::Subscription =>
-                        DiscoveryEvent::Subscription(endpoint)
-                    },
-                  )
-                Err(_) => ()
+            let status = match data.status_info() {
+              Ok(value) => value
+              Err(_) => continue
+            }
+            match status {
+              Some(value) if
+                (value &
+                  (@rtps.STATUS_INFO_DISPOSED |
+                    @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+                if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
+                  continue
+                }
+                match
+                  @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
+                  Ok(endpoint_guid) =>
+                    if event is None {
+                      event = Some(
+                        DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
+                      )
+                    }
+                  Err(_) => ()
+                }
               }
+              _ =>
+                if event is None {
+                  match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+                    Ok(endpoint) =>
+                      event = Some(
+                        match kind {
+                          @rtps.SedpEndpointKind::Publication =>
+                            DiscoveryEvent::Publication(endpoint)
+                          @rtps.SedpEndpointKind::Subscription =>
+                            DiscoveryEvent::Subscription(endpoint)
+                        },
+                      )
+                    Err(_) => ()
+                  }
+                }
             }
           }
           Err(_) =>

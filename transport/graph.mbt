@@ -2,8 +2,8 @@
 /// In-memory view of participants and SEDP endpoints seen during discovery.
 pub struct DiscoveryGraph {
   participants : Array[@rtps.SpdpParticipantData]
-  publications : Array[@rtps.SedpEndpointData]
-  subscriptions : Array[@rtps.SedpEndpointData]
+  mut publications : Array[@rtps.SedpEndpointData]
+  mut subscriptions : Array[@rtps.SedpEndpointData]
   ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 
@@ -54,6 +54,27 @@ pub fn DiscoveryGraph::ingest(
       }
       self.subscriptions.push(subscription)
     }
+    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
+      match kind {
+        @rtps.SedpEndpointKind::Publication => {
+          let remaining : Array[@rtps.SedpEndpointData] = []
+          for publication in self.publications {
+            if publication.endpoint_guid() != endpoint_guid {
+              remaining.push(publication)
+            }
+          }
+          self.publications = remaining
+        }
+        @rtps.SedpEndpointKind::Subscription => {
+          let remaining : Array[@rtps.SedpEndpointData] = []
+          for subscription in self.subscriptions {
+            if subscription.endpoint_guid() != endpoint_guid {
+              remaining.push(subscription)
+            }
+          }
+          self.subscriptions = remaining
+        }
+      }
   }
 }
 
