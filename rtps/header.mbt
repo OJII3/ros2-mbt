@@ -31,7 +31,7 @@ pub struct VendorId {
 /// The 12-byte prefix shared by all GUIDs in one DDS domain participant.
 pub struct GuidPrefix {
   bytes : Bytes
-}
+} derive(Eq, Debug)
 
 ///|
 /// The RTPS message header.

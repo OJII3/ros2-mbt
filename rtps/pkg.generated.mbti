@@ -17,9 +17,29 @@ pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
 // Errors
 
 // Types and methods
+pub struct EntityId {
+  key : Bytes
+  kind : Byte
+} derive(Eq, @debug.Debug)
+pub fn EntityId::from_bytes(Bytes) -> Result[Self, String]
+pub fn EntityId::key(Self) -> Bytes
+pub fn EntityId::kind(Self) -> Byte
+pub fn EntityId::new(Bytes, Byte) -> Result[Self, String]
+pub fn EntityId::to_bytes(Self) -> Bytes
+
+pub struct Guid {
+  prefix : GuidPrefix
+  entity_id : EntityId
+} derive(Eq, @debug.Debug)
+pub fn Guid::entity_id(Self) -> EntityId
+pub fn Guid::from_bytes(Bytes) -> Result[Self, String]
+pub fn Guid::new(GuidPrefix, EntityId) -> Self
+pub fn Guid::prefix(Self) -> GuidPrefix
+pub fn Guid::to_bytes(Self) -> Bytes
+
 pub struct GuidPrefix {
   bytes : Bytes
-}
+} derive(Eq, @debug.Debug)
 pub fn GuidPrefix::as_bytes(Self) -> Bytes
 pub fn GuidPrefix::from_array(Array[Byte]) -> Result[Self, String]
 pub fn GuidPrefix::new(Bytes) -> Result[Self, String]
