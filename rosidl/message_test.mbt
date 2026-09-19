@@ -1,5 +1,5 @@
 ///|
-test "ROS message parser ignores comments and generates a scalar CDR codec" {
+test "ROS message parser ignores comments and generates a primitive CDR codec" {
   let definition = match
     parse_message(
       "demo_msgs", "msg", "Pose", "# position\nbool valid\nchar sign\nint8 i8\nuint8 u8\nint16 i16\nuint16 u16\nint32 x\nuint32 y\nint64 timestamp\nuint64 sequence\nfloat32 weight\nfloat64 height # inline comment\nstring frame_id\n",
@@ -24,8 +24,31 @@ test "ROS message parser ignores comments and generates a scalar CDR codec" {
 }
 
 ///|
+test "ROS message generator handles fixed arrays and sequences" {
+  let definition = match
+    parse_message("demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    definition.fields()[0].collection(),
+    MessageFieldCollection::FixedArray(3),
+  )
+  assert_eq(
+    definition.fields()[1].collection(),
+    MessageFieldCollection::Sequence,
+  )
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("for _ in 0..<3"))
+  assert_true(generated.contains("writer.write_u32(self.samples.length()"))
+  assert_true(generated.contains("samples_length"))
+}
+
+///|
 test "ROS message parser rejects unsupported definitions" {
-  assert_true(parse_message("demo", "msg", "Bad", "int32[3] values") is Err(_))
+  assert_true(
+    parse_message("demo", "msg", "Bad", "int32[<=3] values") is Err(_),
+  )
   assert_true(parse_message("demo", "msg", "Bad", "other_type value") is Err(_))
   assert_true(
     parse_message("demo", "msg", "Bad", "int32 VALUE-NOT-ID") is Err(_),

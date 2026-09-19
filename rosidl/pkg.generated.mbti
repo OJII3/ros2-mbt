@@ -27,10 +27,19 @@ pub fn MessageDefinition::type_name(Self) -> String
 pub struct MessageField {
   type_name : String
   name : String
+  collection : MessageFieldCollection
 } derive(Eq, @debug.Debug)
+pub fn MessageField::collection(Self) -> MessageFieldCollection
 pub fn MessageField::name(Self) -> String
 pub fn MessageField::new(String, String) -> Self
 pub fn MessageField::type_name(Self) -> String
+pub fn MessageField::with_collection(Self, MessageFieldCollection) -> Self
+
+pub(all) enum MessageFieldCollection {
+  Scalar
+  FixedArray(Int)
+  Sequence
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

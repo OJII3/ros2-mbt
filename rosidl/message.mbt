@@ -1,12 +1,21 @@
 ///|
-/// A scalar field in a ROS `.msg` definition.
-pub struct MessageField {
-  type_name : String
-  name : String
+/// The collection shape of a ROS message field.
+pub(all) enum MessageFieldCollection {
+  Scalar
+  FixedArray(Int)
+  Sequence
 } derive(Eq, Debug)
 
 ///|
-/// A parsed ROS message definition containing supported scalar fields.
+/// A field in a ROS `.msg` definition.
+pub struct MessageField {
+  type_name : String
+  name : String
+  collection : MessageFieldCollection
+} derive(Eq, Debug)
+
+///|
+/// A parsed ROS message definition containing supported primitive fields.
 pub struct MessageDefinition {
   package_name : String
   interface_namespace : String
@@ -17,7 +26,16 @@ pub struct MessageDefinition {
 ///|
 /// Create a message field descriptor.
 pub fn MessageField::new(type_name : String, name : String) -> MessageField {
-  { type_name, name, }
+  { type_name, name, collection: MessageFieldCollection::Scalar, }
+}
+
+///|
+/// Return a copy of the field with an explicit collection shape.
+pub fn MessageField::with_collection(
+  self : MessageField,
+  collection : MessageFieldCollection,
+) -> MessageField {
+  { ..self, collection, }
 }
 
 ///|
@@ -30,6 +48,12 @@ pub fn MessageField::type_name(self : MessageField) -> String {
 /// Return the field identifier.
 pub fn MessageField::name(self : MessageField) -> String {
   self.name
+}
+
+///|
+/// Return whether the field is scalar, fixed-size, or a sequence.
+pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
+  self.collection
 }
 
 ///|
@@ -52,6 +76,14 @@ pub fn MessageDefinition::new(
     match rosidl_moon_type(field.type_name) {
       Ok(_) => ()
       Err(message) => return Err(message)
+    }
+    match field.collection {
+      MessageFieldCollection::FixedArray(length) =>
+        if length <= 0 {
+          return Err("ROS fixed array lengths must be positive")
+        }
+      MessageFieldCollection::Scalar => ()
+      MessageFieldCollection::Sequence => ()
     }
   }
   Ok({ package_name, interface_namespace, type_name, fields, })
@@ -86,11 +118,12 @@ pub fn MessageDefinition::fields(
 }
 
 ///|
-/// Parse the scalar-field subset of a ROS `.msg` definition.
+/// Parse the primitive-field subset of a ROS `.msg` definition.
 ///
-/// Blank lines and `#` comments are ignored. Array, sequence, constant, and
-/// nested message fields are rejected until their generated CDR representation
-/// is implemented.
+/// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
+/// unbounded sequences (`type[]`) are supported. Constants, bounded sequences,
+/// and nested message fields are rejected until their generated CDR
+/// representation is implemented.
 pub fn parse_message(
   package_name : String,
   interface_namespace : String,
@@ -116,22 +149,77 @@ pub fn parse_message(
     if words.length() != 2 {
       return Err("ROS message fields must have exactly a type and a name")
     }
-    if words[0].split("[").collect().length() > 1 ||
-      words[0].split("]").collect().length() > 1 {
-      return Err(
-        "ROS message arrays and sequences are not supported by this generator",
-      )
-    }
-    match rosidl_moon_type(words[0]) {
-      Ok(_) => ()
+    let (base_type, collection) = match rosidl_parse_field_type(words[0]) {
+      Ok(value) => value
       Err(message) => return Err(message)
     }
     if !rosidl_identifier(words[1]) {
       return Err("ROS message field names must be identifiers")
     }
-    fields.push(MessageField::new(words[0], words[1]))
+    fields.push(
+      MessageField::new(base_type, words[1]).with_collection(collection),
+    )
   }
   MessageDefinition::new(package_name, interface_namespace, type_name, fields)
+}
+
+///|
+fn rosidl_parse_field_type(
+  type_spec : String,
+) -> Result[(String, MessageFieldCollection), String] {
+  let parts = type_spec.split("[").collect()
+  if parts.length() == 1 {
+    match rosidl_moon_type(parts[0].to_owned()) {
+      Ok(_) => Ok((parts[0].to_owned(), MessageFieldCollection::Scalar))
+      Err(message) => Err(message)
+    }
+  } else if parts.length() != 2 {
+    Err("ROS message field type has an invalid collection suffix")
+  } else {
+    let base_type = parts[0].to_owned()
+    let suffix = parts[1].to_owned()
+    if suffix.length() == 0 || suffix[suffix.length() - 1] != ']' {
+      return Err("ROS message collection type must end with ]")
+    }
+    match rosidl_moon_type(base_type) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    let inner = suffix[0:suffix.length() - 1].to_owned()
+    if inner.length() == 0 {
+      Ok((base_type, MessageFieldCollection::Sequence))
+    } else if inner[0] == '<' {
+      Err("bounded ROS message sequences are not supported by this generator")
+    } else {
+      let length = match rosidl_positive_int(inner) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      Ok((base_type, MessageFieldCollection::FixedArray(length)))
+    }
+  }
+}
+
+///|
+fn rosidl_positive_int(value : String) -> Result[Int, String] {
+  let bytes = @utf8.encode(value)
+  if bytes.length() == 0 {
+    return Err("ROS fixed array length must not be empty")
+  }
+  let mut result = 0
+  for byte in bytes {
+    if byte < 48 || byte > 57 {
+      return Err("ROS fixed array length must be a positive integer")
+    }
+    if result > 1000000 {
+      return Err("ROS fixed array length is too large")
+    }
+    result = result * 10 + (byte.to_int() - 48)
+  }
+  if result <= 0 {
+    return Err("ROS fixed array length must be positive")
+  }
+  Ok(result)
 }
 
 ///|
@@ -149,21 +237,13 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     " {\n"
   for field in self.fields {
-    output += "  " +
-      field.name +
-      " : " +
-      rosidl_moon_type(field.type_name).unwrap() +
-      "\n"
+    output += "  " + field.name + " : " + rosidl_field_moon_type(field) + "\n"
   }
   output += "} derive(Eq, Debug)\n\n"
   output += "///|\n"
   output += "pub fn " + self.type_name + "::new(\n"
   for field in self.fields {
-    output += "  " +
-      field.name +
-      " : " +
-      rosidl_moon_type(field.type_name).unwrap() +
-      ",\n"
+    output += "  " + field.name + " : " + rosidl_field_moon_type(field) + ",\n"
   }
   output += ") -> " + self.type_name + " {\n  {\n"
   for field in self.fields {
@@ -179,7 +259,7 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
       "(self : " +
       self.type_name +
       ") -> " +
-      rosidl_moon_type(field.type_name).unwrap() +
+      rosidl_field_moon_type(field) +
       " {\n"
     output += "  self." + field.name + "\n}\n\n"
   }
@@ -191,11 +271,7 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     ") -> Bytes {\n"
   output += "  let writer = @cdr.Writer::new()\n"
   for field in self.fields {
-    output += "  writer." +
-      rosidl_writer_method(field.type_name) +
-      "(self." +
-      field.name +
-      ")\n"
+    output += rosidl_generate_writer(field)
   }
   output += "  writer.to_bytes()\n}\n\n"
   output += "///|\n"
@@ -209,14 +285,7 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   output += "    Err(message) => return Err(message)\n"
   output += "  }\n"
   for field in self.fields {
-    output += "  let " +
-      field.name +
-      " = match reader." +
-      rosidl_reader_method(field.type_name) +
-      "() {\n"
-    output += "    Ok(value) => value\n"
-    output += "    Err(message) => return Err(message)\n"
-    output += "  }\n"
+    output += rosidl_generate_reader(field)
   }
   output += "  if reader.remaining() != 0 {\n"
   output += "    return Err(\"trailing bytes after generated ROS message\")\n"
@@ -227,6 +296,110 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   }
   output += "  ))\n}\n"
   output
+}
+
+///|
+fn rosidl_field_moon_type(field : MessageField) -> String {
+  let base = rosidl_moon_type(field.type_name).unwrap()
+  match field.collection {
+    MessageFieldCollection::Scalar => base
+    MessageFieldCollection::FixedArray(_) => "Array[" + base + "]"
+    MessageFieldCollection::Sequence => "Array[" + base + "]"
+  }
+}
+
+///|
+fn rosidl_generate_writer(field : MessageField) -> String {
+  let codec_method = rosidl_writer_method(field.type_name)
+  match field.collection {
+    MessageFieldCollection::Scalar =>
+      "  writer." + codec_method + "(self." + field.name + ")\n"
+    MessageFieldCollection::FixedArray(_) =>
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      "    writer." +
+      codec_method +
+      "(value)\n" +
+      "  }\n"
+    MessageFieldCollection::Sequence =>
+      "  writer.write_u32(self." +
+      field.name +
+      ".length().reinterpret_as_uint())\n" +
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      "    writer." +
+      codec_method +
+      "(value)\n" +
+      "  }\n"
+  }
+}
+
+///|
+fn rosidl_generate_reader(field : MessageField) -> String {
+  let codec_method = rosidl_reader_method(field.type_name)
+  let base = rosidl_moon_type(field.type_name).unwrap()
+  match field.collection {
+    MessageFieldCollection::Scalar =>
+      "  let " +
+      field.name +
+      " = match reader." +
+      codec_method +
+      "() {\n" +
+      "    Ok(value) => value\n" +
+      "    Err(message) => return Err(message)\n" +
+      "  }\n"
+    MessageFieldCollection::FixedArray(length) =>
+      "  let " +
+      field.name +
+      " : Array[" +
+      base +
+      "] = []\n" +
+      "  for _ in 0..<" +
+      length.to_string() +
+      " {\n" +
+      "    " +
+      field.name +
+      ".push(match reader." +
+      codec_method +
+      "() {\n" +
+      "      Ok(value) => value\n" +
+      "      Err(message) => return Err(message)\n" +
+      "    })\n" +
+      "  }\n"
+    MessageFieldCollection::Sequence =>
+      "  let " +
+      field.name +
+      "_length = match reader.read_u32() {\n" +
+      "    Ok(value) => value.reinterpret_as_int()\n" +
+      "    Err(message) => return Err(message)\n" +
+      "  }\n" +
+      "  if " +
+      field.name +
+      "_length < 0 || " +
+      field.name +
+      "_length > reader.remaining() {\n" +
+      "    return Err(\"generated ROS sequence is truncated\")\n" +
+      "  }\n" +
+      "  let " +
+      field.name +
+      " : Array[" +
+      base +
+      "] = []\n" +
+      "  for _ in 0..<" +
+      field.name +
+      "_length {\n" +
+      "    " +
+      field.name +
+      ".push(match reader." +
+      codec_method +
+      "() {\n" +
+      "      Ok(value) => value\n" +
+      "      Err(message) => return Err(message)\n" +
+      "    })\n" +
+      "  }\n"
+  }
 }
 
 ///|
