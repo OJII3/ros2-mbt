@@ -23,6 +23,11 @@ test "RTPS GUID round trip" {
 }
 
 ///|
+test "RTPS unknown entity ID is the zero entity ID" {
+  assert_eq(EntityId::unknown().to_bytes(), b"\x00\x00\x00\x00")
+}
+
+///|
 test "RTPS GUID rejects invalid lengths" {
   assert_true(EntityId::new(b"ab", 0) is Err(_))
   assert_true(EntityId::from_bytes(b"abc") is Err(_))

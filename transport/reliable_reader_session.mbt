@@ -170,7 +170,10 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Ok(value) => value
             Err(_) => continue
           }
-          if heartbeat.reader_id() != self.state.reader_id ||
+          if (
+              heartbeat.reader_id() != self.state.reader_id &&
+              heartbeat.reader_id() != @rtps.EntityId::unknown()
+            ) ||
             heartbeat.writer_id() != self.state.writer_id {
             continue
           }

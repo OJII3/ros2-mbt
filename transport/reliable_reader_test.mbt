@@ -30,3 +30,21 @@ test "reliable reader creates an ACKNACK for missing samples" {
   assert_eq(acknack.bitmap(), [0x60000000U])
   assert_eq(acknack.count(), 1U)
 }
+
+///|
+test "reliable reader accepts a multicast HEARTBEAT with unknown reader" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    @rtps.EntityId::unknown(),
+    writer_id,
+    1L,
+    1L,
+    1U,
+  ).unwrap()
+  let acknack = reader.acknack_for_heartbeat(heartbeat).unwrap()
+  assert_eq(acknack.reader_id(), reader_id)
+  assert_eq(acknack.writer_id(), writer_id)
+  assert_eq(acknack.num_bits(), 1U)
+}

@@ -86,7 +86,14 @@ async test "reliable reader session receives discovered publication data" {
   }
   match
     sender.send_heartbeat(
-      match @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
+      match
+        @rtps.HeartbeatSubmessage::new(
+          @rtps.EntityId::unknown(),
+          writer_id,
+          1L,
+          1L,
+          1U,
+        ) {
         Ok(value) => value
         Err(message) => fail(message)
       },

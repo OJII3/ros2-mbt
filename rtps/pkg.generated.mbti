@@ -265,6 +265,7 @@ pub fn EntityId::key(Self) -> Bytes
 pub fn EntityId::kind(Self) -> Byte
 pub fn EntityId::new(Bytes, Byte) -> Result[Self, String]
 pub fn EntityId::to_bytes(Self) -> Bytes
+pub fn EntityId::unknown() -> Self
 
 pub struct Guid {
   prefix : GuidPrefix

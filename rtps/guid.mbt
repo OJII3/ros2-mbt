@@ -23,6 +23,12 @@ pub fn EntityId::new(key : Bytes, kind : Byte) -> Result[EntityId, String] {
 }
 
 ///|
+/// Return the RTPS wildcard entity ID used by multicast HEARTBEAT messages.
+pub fn EntityId::unknown() -> EntityId {
+  EntityId::new(b"\x00\x00\x00", 0).unwrap()
+}
+
+///|
 /// Return the three-byte entity key.
 pub fn EntityId::key(self : EntityId) -> Bytes {
   self.key

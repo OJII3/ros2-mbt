@@ -73,7 +73,8 @@ pub fn ReliableDataReader::acknack_for_heartbeat(
   self : ReliableDataReader,
   heartbeat : @rtps.HeartbeatSubmessage,
 ) -> Result[@rtps.AckNackSubmessage, String] {
-  if heartbeat.reader_id() != self.reader_id {
+  if heartbeat.reader_id() != self.reader_id &&
+    heartbeat.reader_id() != @rtps.EntityId::unknown() {
     return Err("the HEARTBEAT targets a different RTPS reader")
   }
   if heartbeat.writer_id() != self.writer_id {
