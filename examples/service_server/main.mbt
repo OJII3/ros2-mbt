@@ -46,6 +46,13 @@ async fn discover_service(
 ///|
 /// Serve one `example_interfaces/srv/AddTwoInts` request over ROS 2 DDS.
 async fn main {
+  let config = match @config.load() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
   let prefix = match
     @rtps.GuidPrefix::from_array([
       0x4D, 0x42, 0x54, 0x52, 0x50, 0x53, 0, 0, 0, 0, 0, 44,
@@ -95,7 +102,13 @@ async fn main {
   }
   let participant = match
     @transport.RosParticipant::new_ddsi(
-      prefix, vendor_id, 0U, 44U, 0x7F000001U, 60, 1L,
+      prefix,
+      vendor_id,
+      config.domain_id,
+      44U,
+      config.ip,
+      60,
+      1L,
     ) {
     Ok(value) => value
     Err(message) => {
@@ -143,7 +156,8 @@ async fn main {
     }
     discover_service(participant, service, graph_info)
   }
-  let (request_publication, response_subscription) = match discovered_endpoints {
+  let (request_publication, response_subscription) = match
+    discovered_endpoints {
     Ok(value) => value
     Err(message) => {
       println(message)
