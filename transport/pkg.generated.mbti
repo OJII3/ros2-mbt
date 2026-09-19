@@ -186,6 +186,7 @@ pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@rtps.Data
 pub async fn ReliableDataReaderSession::receive_data_with_identity(Self) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_related_data(Self, @rtps.SampleIdentity) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_related_data_with_writer(Self, @rtps.SampleIdentity, ReliableDataWriter) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 pub fn ReliableDataReaderSession::sample_count(Self) -> Int
 
 pub struct ReliableDataWriter {

@@ -26,6 +26,8 @@ async test "reliable ROS service client and server correlate a response" {
 
   let client_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let server_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_address = client_socket.local_addr()
+  let ack_sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
 
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -119,6 +121,25 @@ async test "reliable ROS service client and server correlate a response" {
   assert_eq(request, b"request")
   assert_eq(received_identity, request_identity)
   assert_eq(request_source.ip(), 0x7F000001U)
+  let request_acknack = @rtps.AckNackSubmessage::new(
+    server_request_id,
+    client_request_id,
+    1L,
+    1U,
+    [0x80000000U],
+    1U,
+  ).unwrap()
+  match
+    ack_sender.send_acknack(
+      request_acknack,
+      server_prefix,
+      vendor_id,
+      client_address,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  @async.sleep(10)
   match server.respond(request_identity, b"response") {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -130,8 +151,14 @@ async test "reliable ROS service client and server correlate a response" {
   }
   assert_eq(response, b"response")
   assert_eq(response_source.ip(), 0x7F000001U)
+  let (retransmitted_request, _, _) = match server.receive_request() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(retransmitted_request, b"request")
   client.close()
   server.close()
+  ack_sender.close()
 }
 
 ///|

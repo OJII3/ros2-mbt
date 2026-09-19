@@ -64,6 +64,15 @@ pub async fn ReliableDataReaderSession::receive_data(
 pub async fn ReliableDataReaderSession::receive_data_with_identity(
   self : ReliableDataReaderSession,
 ) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String] {
+  self.receive_data_with_optional_writer(None)
+}
+
+///|
+/// Receive DATA while optionally servicing a reliable writer on the same socket.
+async fn ReliableDataReaderSession::receive_data_with_optional_writer(
+  self : ReliableDataReaderSession,
+  control_writer : ReliableDataWriter?,
+) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String] {
   while true {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
@@ -71,6 +80,50 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
     }
     for submessage in message.submessages() {
       match submessage.id() {
+        @rtps.SubmessageId::AckNack => {
+          match control_writer {
+            Some(writer) => {
+              let acknack = match
+                @rtps.AckNackSubmessage::from_submessage(submessage) {
+                Ok(value) => value
+                Err(_) => continue
+              }
+              let prefix_matches = match writer.reader_prefix {
+                Some(prefix) => message.header().guid_prefix() == prefix
+                None => true
+              }
+              if acknack.writer_id() != writer.writer_id ||
+                acknack.reader_id() != writer.reader_id ||
+                !prefix_matches {
+                continue
+              }
+              ignore(writer.handle_acknack(acknack))
+            }
+            None => ()
+          }
+        }
+        @rtps.SubmessageId::NackFrag => {
+          match control_writer {
+            Some(writer) => {
+              let nackfrag = match
+                @rtps.NackFragSubmessage::from_submessage(submessage) {
+                Ok(value) => value
+                Err(_) => continue
+              }
+              let prefix_matches = match writer.reader_prefix {
+                Some(prefix) => message.header().guid_prefix() == prefix
+                None => true
+              }
+              if nackfrag.writer_id() != writer.writer_id ||
+                nackfrag.reader_id() != writer.reader_id ||
+                !prefix_matches {
+                continue
+              }
+              ignore(writer.handle_nackfrag(nackfrag))
+            }
+            None => ()
+          }
+        }
         @rtps.SubmessageId::Data => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
@@ -163,8 +216,28 @@ pub async fn ReliableDataReaderSession::receive_related_data(
   self : ReliableDataReaderSession,
   request_identity : @rtps.SampleIdentity,
 ) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  self.receive_related_data_with_optional_writer(request_identity, None)
+}
+
+///|
+/// Receive a related DATA sample while servicing a writer on the same socket.
+pub async fn ReliableDataReaderSession::receive_related_data_with_writer(
+  self : ReliableDataReaderSession,
+  request_identity : @rtps.SampleIdentity,
+  writer : ReliableDataWriter,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  self.receive_related_data_with_optional_writer(request_identity, Some(writer))
+}
+
+///|
+async fn ReliableDataReaderSession::receive_related_data_with_optional_writer(
+  self : ReliableDataReaderSession,
+  request_identity : @rtps.SampleIdentity,
+  control_writer : ReliableDataWriter?,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
   while true {
-    let (data, _, source) = match self.receive_data_with_identity() {
+    let (data, _, source) = match
+      self.receive_data_with_optional_writer(control_writer) {
       Ok(value) => value
       Err(message) => return Err(message)
     }

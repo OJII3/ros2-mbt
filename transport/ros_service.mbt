@@ -216,8 +216,14 @@ pub async fn RosServiceClient::receive_response(
   self : RosServiceClient,
   request_identity : @rtps.SampleIdentity,
 ) -> Result[(Bytes, @socket.Addr), String] {
-  let (data, source) = match
-    self.response_reader.receive_related_data(request_identity) {
+  let received = if self.shared_socket {
+    self.response_reader.receive_related_data_with_writer(
+      request_identity, self.request_writer,
+    )
+  } else {
+    self.response_reader.receive_related_data(request_identity)
+  }
+  let (data, source) = match received {
     Ok(value) => value
     Err(message) => return Err(message)
   }
