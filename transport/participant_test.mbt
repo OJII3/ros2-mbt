@@ -113,6 +113,13 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     participant.participant_guid(),
   )
   assert_eq(node.local_endpoints()[0].unicast_locators().length(), 1)
+  let info = match node.participant_entities_info("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(info.node_entities_info_seq().length(), 1)
+  assert_eq(info.node_entities_info_seq()[0].writer_gid_seq().length(), 1)
+  assert_eq(info.node_entities_info_seq()[0].reader_gid_seq().length(), 0)
   assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
   node.close()
 }

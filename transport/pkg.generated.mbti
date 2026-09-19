@@ -261,6 +261,7 @@ pub fn RosParticipant::into_parts(Self) -> (DiscoveryService, Udp)
 pub fn RosParticipant::local_endpoints(Self) -> Array[@rtps.SedpEndpointData]
 pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64) -> Result[Self, String]
 pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
+pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@ros.ParticipantEntitiesInfo, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn RosParticipant::register_endpoint(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub async fn RosParticipant::register_topic_endpoint(Self, @ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos) -> Result[Unit, String]

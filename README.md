@@ -22,6 +22,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - discovery/user-data socket をまとめる `RosParticipant` lifecycle facade
 - `RosParticipant` のローカルSEDP endpoint登録・保持・発見時自動再通知
 - topic・entity ID・QoSからuser locator付きSEDP endpointを登録するparticipant API
+- 登録済みendpointから`ParticipantEntitiesInfo`を生成するROS graph metadata API
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`

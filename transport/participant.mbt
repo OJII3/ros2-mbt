@@ -128,6 +128,31 @@ pub fn RosParticipant::local_endpoints(
 }
 
 ///|
+/// Build one ROS graph-discovery sample from the registered local endpoints.
+pub fn RosParticipant::participant_entities_info(
+  self : RosParticipant,
+  node_namespace : String,
+  node_name : String,
+) -> Result[@ros.ParticipantEntitiesInfo, String] {
+  let node = match @ros.NodeEntitiesInfo::new(node_namespace, node_name) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for endpoint in self.local_endpoints {
+    let gid = @ros.Gid::from_guid(endpoint.endpoint_guid())
+    match endpoint.kind() {
+      @rtps.SedpEndpointKind::Publication => node.add_writer_gid(gid)
+      @rtps.SedpEndpointKind::Subscription => node.add_reader_gid(gid)
+    }
+  }
+  let info = @ros.ParticipantEntitiesInfo::new(
+    @ros.Gid::from_guid(self.participant.participant_guid()),
+  )
+  info.add_node(node)
+  Ok(info)
+}
+
+///|
 /// Register and announce one local SEDP endpoint.
 ///
 /// The participant GUID in the endpoint is normalized to the local participant
