@@ -33,8 +33,8 @@ pub fn ReliableDataReaderSession::new_for_publication(
   if locators.length() == 0 {
     return Err("the discovered publication has no UDP locators")
   }
-  let destination = match udp_locator_to_addr(locators[0]) {
-    Ok(value) => value
+  let destination = match udp_locator_to_addrs(locators) {
+    Ok(value) => value[0]
     Err(message) => return Err(message)
   }
   let writer_id = publication.endpoint_guid().entity_id()

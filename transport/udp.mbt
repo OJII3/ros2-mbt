@@ -417,6 +417,29 @@ fn udp_locator_to_addr(locator : @rtps.Locator) -> Result[@socket.Addr, String] 
 }
 
 ///|
+/// Convert all supported UDP/IPv4 locators, ignoring other transport kinds.
+fn udp_locator_to_addrs(
+  locators : Array[@rtps.Locator],
+) -> Result[Array[@socket.Addr], String] {
+  let addresses : Array[@socket.Addr] = []
+  for locator in locators {
+    if locator.kind() != @rtps.LOCATOR_KIND_UDP_V4 {
+      continue
+    }
+    addresses.push(
+      match udp_locator_to_addr(locator) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      },
+    )
+  }
+  if addresses.length() == 0 {
+    return Err("no supported UDP/IPv4 locators were advertised")
+  }
+  Ok(addresses)
+}
+
+///|
 /// Send an SEDP announcement to all metatraffic locators in an SPDP sample.
 pub async fn Udp::send_sedp_to_participant(
   self : Udp,
@@ -452,11 +475,11 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
   if locators.length() == 0 {
     return Err("the remote participant has no metatraffic locators")
   }
-  for locator in locators {
-    let destination = match udp_locator_to_addr(locator) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for destination in destinations {
     match
       self.send_sedp(
         endpoint, vendor_id, reader_id, writer_id, writer_sequence_number, destination,
