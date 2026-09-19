@@ -1,0 +1,488 @@
+///|
+/// RIHS version prefix used by ROS 2 type-description hashes.
+pub const RIHS01_PREFIX : String = "RIHS01_"
+
+///|
+fn rosidl_hash_type_name(definition : MessageDefinition) -> String {
+  definition.package_name() + "/" + definition.interface_namespace() + "/" +
+    definition.type_name()
+}
+
+///|
+fn rosidl_hash_primitive_type_id(type_name : String) -> Result[Int, String] {
+  match type_name {
+    "int8" => Ok(2)
+    "uint8" => Ok(3)
+    "int16" => Ok(4)
+    "uint16" => Ok(5)
+    "int32" => Ok(6)
+    "uint32" => Ok(7)
+    "int64" => Ok(8)
+    "uint64" => Ok(9)
+    "float32" => Ok(10)
+    "float64" => Ok(11)
+    "char" => Ok(13)
+    "bool" => Ok(15)
+    "byte" => Ok(16)
+    "string" => Ok(17)
+    _ => Err("the ROS field is a nested type")
+  }
+}
+
+///|
+fn rosidl_hash_json_quote(value : String) -> String {
+  let bytes = @utf8.encode(value)
+  let mut result = "\""
+  for byte in bytes {
+    match byte {
+      b'"' => result += "\\\""
+      b'\\' => result += "\\\\"
+      _ => result += @utf8.decode(Bytes::from_array([byte])) catch {
+        _ => ""
+      }
+    }
+  }
+  result + "\""
+}
+
+///|
+fn rosidl_hash_field_type_json(
+  field : MessageField,
+  nested_type_name : String,
+) -> Result[String, String] {
+  let base_type_id = match rosidl_hash_primitive_type_id(field.type_name()) {
+    Ok(value) => value
+    Err(_) => if nested_type_name.length() > 0 {
+      1
+    } else {
+      return Err("a nested ROS field needs a resolved type description")
+    }
+  }
+  let (type_id, capacity) = match field.collection() {
+    MessageFieldCollection::Scalar => (base_type_id, 0)
+    MessageFieldCollection::FixedArray(length) => (base_type_id + 48, length)
+    MessageFieldCollection::BoundedSequence(length) =>
+      (base_type_id + 96, length)
+    MessageFieldCollection::Sequence => (base_type_id + 144, 0)
+  }
+  let type_name = match rosidl_hash_primitive_type_id(field.type_name()) {
+    Ok(_) => ""
+    Err(_) => nested_type_name
+  }
+  Ok(
+    "{\"type_id\": " + type_id.to_string() +
+      ", \"capacity\": " + capacity.to_string() +
+      ", \"string_capacity\": 0, \"nested_type_name\": " +
+      rosidl_hash_json_quote(type_name) + "}",
+  )
+}
+
+///|
+fn rosidl_hash_individual_json(
+  definition : MessageDefinition,
+  nested_type_names : Array[String],
+) -> Result[String, String] {
+  let fields = definition.fields()
+  let mut result = "{\"type_name\": " +
+    rosidl_hash_json_quote(rosidl_hash_type_name(definition)) +
+    ", \"fields\": ["
+  for index in 0..<fields.length() {
+    if index > 0 {
+      result += ", "
+    }
+    let nested_type_name = nested_type_names[index]
+    let field = fields[index]
+    let field_type = match
+      rosidl_hash_field_type_json(field, nested_type_name) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    result += "{\"name\": " + rosidl_hash_json_quote(field.name()) +
+      ", \"type\": " + field_type + "}"
+  }
+  Ok(result + "]}")
+}
+
+///|
+fn rosidl_hash_sort_definitions(
+  definitions : Array[MessageDefinition],
+) -> Array[MessageDefinition] {
+  let sorted : Array[MessageDefinition] = []
+  for definition in definitions {
+    let mut index = 0
+    while index < sorted.length() {
+      if rosidl_hash_type_name(definition) < rosidl_hash_type_name(sorted[index]) {
+        break
+      }
+      index += 1
+    }
+    sorted.insert(index, definition)
+  }
+  sorted
+}
+
+///|
+fn rosidl_hash_json(
+  definition : MessageDefinition,
+  nested_type_names : Array[String],
+  references : Array[(MessageDefinition, Array[String])],
+) -> Result[String, String] {
+  let top = match rosidl_hash_individual_json(definition, nested_type_names) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let mut result = "{\"type_description\": " + top +
+    ", \"referenced_type_descriptions\": ["
+  for index in 0..<references.length() {
+    if index > 0 {
+      result += ", "
+    }
+    let (reference, field_names) = references[index]
+    let individual = match
+      rosidl_hash_individual_json(reference, field_names) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    result += individual
+  }
+  Ok(result + "]}")
+}
+
+///|
+fn rosidl_sha256_rotr(value : UInt, shift : Int) -> UInt {
+  (value >> shift) | (value << (32 - shift))
+}
+
+///|
+fn rosidl_sha256(input : Bytes) -> Bytes {
+  let padding : Array[Byte] = []
+  for byte in input {
+    padding.push(byte)
+  }
+  padding.push(0x80)
+  while padding.length() % 64 != 56 {
+    padding.push(0)
+  }
+  let bit_length = input.length().to_int64().reinterpret_as_uint64() << 3
+  for shift in [56, 48, 40, 32, 24, 16, 8, 0] {
+    padding.push((bit_length >> shift).to_byte())
+  }
+
+  let constants : Array[UInt] = [
+    0x428A2F98U,
+    0x71374491U,
+    0xB5C0FBCFU,
+    0xE9B5DBA5U,
+    0x3956C25BU,
+    0x59F111F1U,
+    0x923F82A4U,
+    0xAB1C5ED5U,
+    0xD807AA98U,
+    0x12835B01U,
+    0x243185BEU,
+    0x550C7DC3U,
+    0x72BE5D74U,
+    0x80DEB1FEU,
+    0x9BDC06A7U,
+    0xC19BF174U,
+    0xE49B69C1U,
+    0xEFBE4786U,
+    0x0FC19DC6U,
+    0x240CA1CCU,
+    0x2DE92C6FU,
+    0x4A7484AAU,
+    0x5CB0A9DCU,
+    0x76F988DAU,
+    0x983E5152U,
+    0xA831C66DU,
+    0xB00327C8U,
+    0xBF597FC7U,
+    0xC6E00BF3U,
+    0xD5A79147U,
+    0x06CA6351U,
+    0x14292967U,
+    0x27B70A85U,
+    0x2E1B2138U,
+    0x4D2C6DFCU,
+    0x53380D13U,
+    0x650A7354U,
+    0x766A0ABBU,
+    0x81C2C92EU,
+    0x92722C85U,
+    0xA2BFE8A1U,
+    0xA81A664BU,
+    0xC24B8B70U,
+    0xC76C51A3U,
+    0xD192E819U,
+    0xD6990624U,
+    0xF40E3585U,
+    0x106AA070U,
+    0x19A4C116U,
+    0x1E376C08U,
+    0x2748774CU,
+    0x34B0BCB5U,
+    0x391C0CB3U,
+    0x4ED8AA4AU,
+    0x5B9CCA4FU,
+    0x682E6FF3U,
+    0x748F82EEU,
+    0x78A5636FU,
+    0x84C87814U,
+    0x8CC70208U,
+    0x90BEFFFAU,
+    0xA4506CEBU,
+    0xBEF9A3F7U,
+    0xC67178F2U,
+  ]
+  let hash : Array[UInt] = [
+    0x6A09E667U,
+    0xBB67AE85U,
+    0x3C6EF372U,
+    0xA54FF53AU,
+    0x510E527FU,
+    0x9B05688CU,
+    0x1F83D9ABU,
+    0x5BE0CD19U,
+  ]
+  let mut block = 0
+  while block < padding.length() {
+    let words : Array[UInt] = []
+    for index in 0..<16 {
+      let offset = block + index * 4
+      words.push(
+        (padding[offset].to_int().reinterpret_as_uint() << 24) |
+          (padding[offset + 1].to_int().reinterpret_as_uint() << 16) |
+          (padding[offset + 2].to_int().reinterpret_as_uint() << 8) |
+          padding[offset + 3].to_int().reinterpret_as_uint(),
+      )
+    }
+    for index in 16..<64 {
+      let value15 = words[index - 15]
+      let value2 = words[index - 2]
+      let sigma0 = rosidl_sha256_rotr(value15, 7) ^
+        rosidl_sha256_rotr(value15, 18) ^ (value15 >> 3)
+      let sigma1 = rosidl_sha256_rotr(value2, 17) ^
+        rosidl_sha256_rotr(value2, 19) ^ (value2 >> 10)
+      words.push(words[index - 16] + sigma0 + words[index - 7] + sigma1)
+    }
+    let mut a = hash[0]
+    let mut b = hash[1]
+    let mut c = hash[2]
+    let mut d = hash[3]
+    let mut e = hash[4]
+    let mut f = hash[5]
+    let mut g = hash[6]
+    let mut h = hash[7]
+    for index in 0..<64 {
+      let sigma1 = rosidl_sha256_rotr(e, 6) ^
+        rosidl_sha256_rotr(e, 11) ^ rosidl_sha256_rotr(e, 25)
+      let choose = (e & f) ^ ((e ^ 0xFFFFFFFFU) & g)
+      let temporary1 = h + sigma1 + choose + constants[index] + words[index]
+      let sigma0 = rosidl_sha256_rotr(a, 2) ^
+        rosidl_sha256_rotr(a, 13) ^ rosidl_sha256_rotr(a, 22)
+      let majority = (a & b) ^ (a & c) ^ (b & c)
+      let temporary2 = sigma0 + majority
+      h = g
+      g = f
+      f = e
+      e = d + temporary1
+      d = c
+      c = b
+      b = a
+      a = temporary1 + temporary2
+    }
+    hash[0] += a
+    hash[1] += b
+    hash[2] += c
+    hash[3] += d
+    hash[4] += e
+    hash[5] += f
+    hash[6] += g
+    hash[7] += h
+    block += 64
+  }
+  let output : Array[Byte] = []
+  for value in hash {
+    output.push((value >> 24).to_byte())
+    output.push((value >> 16).to_byte())
+    output.push((value >> 8).to_byte())
+    output.push(value.to_byte())
+  }
+  Bytes::from_array(output)
+}
+
+///|
+fn rosidl_hash_hex(value : Bytes) -> String {
+  let digits = b"0123456789abcdef"
+  let output : Array[Byte] = []
+  for byte in value {
+    output.push(digits[byte.to_int() >> 4])
+    output.push(digits[byte.to_int() & 0x0F])
+  }
+  @utf8.decode(Bytes::from_array(output)) catch {
+    _ => ""
+  }
+}
+
+///|
+fn rosidl_hash_string(value : String) -> String {
+  RIHS01_PREFIX + rosidl_hash_hex(rosidl_sha256(@utf8.encode(value)))
+}
+
+///|
+/// Calculate a RIHS01 hash for a message containing only primitive fields.
+pub fn MessageDefinition::type_hash(
+  self : MessageDefinition,
+) -> Result[String, String] {
+  let nested_type_names : Array[String] = []
+  for field in self.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => nested_type_names.push("")
+      Err(_) =>
+        return Err(
+          "MessageDefinition::type_hash needs a MessageWorkspace for nested fields",
+        )
+    }
+  }
+  let individual = match
+    rosidl_hash_individual_json(self, nested_type_names) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let json = "{\"type_description\": " + individual +
+    ", \"referenced_type_descriptions\": []}"
+  Ok(rosidl_hash_string(json))
+}
+
+///|
+fn rosidl_workspace_type_name_for_field(
+  workspace : MessageWorkspace,
+  owner : MessageDefinition,
+  field : MessageField,
+) -> Result[String, String] {
+  match rosidl_hash_primitive_type_id(field.type_name()) {
+    Ok(_) => Ok("")
+    Err(_) => {
+      let (package_name, type_name, qualified) = match
+        rosidl_workspace_reference_parts(field.type_name()) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let resolved_package = if qualified {
+        package_name
+      } else {
+        owner.package_name()
+      }
+      let resolved_namespace = if qualified {
+        "msg"
+      } else {
+        owner.interface_namespace()
+      }
+      if rosidl_workspace_source_index(
+        workspace.sources,
+        resolved_package,
+        resolved_namespace,
+        type_name,
+      ) < 0 {
+        return Err(
+          "cannot calculate a type hash without the nested ROS message source: " +
+            field.type_name(),
+        )
+      }
+      Ok(resolved_package + "/" + resolved_namespace + "/" + type_name)
+    }
+  }
+}
+
+///|
+fn rosidl_workspace_find_definition(
+  definitions : Array[MessageDefinition],
+  type_name : String,
+) -> Bool {
+  for definition in definitions {
+    if rosidl_hash_type_name(definition) == type_name {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn rosidl_workspace_resolve_type_name(
+  workspace : MessageWorkspace,
+  type_name : String,
+) -> Result[MessageDefinition, String] {
+  let parts = type_name.split("/").collect()
+  if parts.length() != 3 {
+    return Err("an internal ROS type hash reference is not fully qualified")
+  }
+  workspace.resolve(parts[0].to_owned(), parts[1].to_owned(), parts[2].to_owned())
+}
+
+///|
+/// Calculate a RIHS01 hash with all nested message definitions from a workspace.
+pub fn MessageWorkspace::type_hash(
+  self : MessageWorkspace,
+  package_name : String,
+  interface_namespace : String,
+  type_name : String,
+) -> Result[String, String] {
+  let root = match self.resolve(package_name, interface_namespace, type_name) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let definitions : Array[MessageDefinition] = [root]
+  let mut index = 0
+  while index < definitions.length() {
+    let definition = definitions[index]
+    for field in definition.fields() {
+      let nested_name = match
+        rosidl_workspace_type_name_for_field(self, definition, field) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      if nested_name.length() > 0 &&
+        !rosidl_workspace_find_definition(definitions, nested_name) {
+        let nested = match
+          rosidl_workspace_resolve_type_name(self, nested_name) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        definitions.push(nested)
+      }
+    }
+    index += 1
+  }
+  let reference_definitions : Array[MessageDefinition] = []
+  for reference_index in 1..<definitions.length() {
+    reference_definitions.push(definitions[reference_index])
+  }
+  let references = rosidl_hash_sort_definitions(reference_definitions)
+  let reference_json : Array[(MessageDefinition, Array[String])] = []
+  for reference in references {
+    let field_names : Array[String] = []
+    for field in reference.fields() {
+      let nested_name = match
+        rosidl_workspace_type_name_for_field(self, reference, field) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      field_names.push(nested_name)
+    }
+    reference_json.push((reference, field_names))
+  }
+  let root_field_names : Array[String] = []
+  for field in root.fields() {
+    let nested_name = match
+      rosidl_workspace_type_name_for_field(self, root, field) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    root_field_names.push(nested_name)
+  }
+  let json = match rosidl_hash_json(root, root_field_names, reference_json) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(rosidl_hash_string(json))
+}

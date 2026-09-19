@@ -536,6 +536,14 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
       "\n"
   }
   output += "} derive(Eq, Debug)\n\n"
+  match self.type_hash() {
+    Ok(type_hash) => {
+      output += "///|\n"
+      output += "pub const " + self.type_name + "_TYPE_HASH : String = \"" +
+        type_hash + "\"\n\n"
+    }
+    Err(_) => ()
+  }
   for constant in self.constants {
     output += "///|\n"
     output += "pub const " +

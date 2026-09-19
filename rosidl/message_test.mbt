@@ -21,6 +21,7 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
   assert_true(generated.contains("writer.write_u16_uint(self.u16)"))
   assert_true(generated.contains("writer.write_f64(self.height)"))
   assert_true(generated.contains("reader.read_string()"))
+  assert_true(generated.contains("pub const Pose_TYPE_HASH : String = \"RIHS01_"))
 }
 
 ///|

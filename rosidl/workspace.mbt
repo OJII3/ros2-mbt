@@ -289,6 +289,22 @@ pub fn MessageWorkspace::generate_moonbit(
   let mut output = rosidl_workspace_import_block(imports)
   for definition in definitions {
     output += definition.generate_moonbit()
+    match definition.type_hash() {
+      Ok(_) => ()
+      Err(_) => match
+        self.type_hash(
+          definition.package_name(),
+          definition.interface_namespace(),
+          definition.type_name(),
+        ) {
+        Ok(type_hash) => {
+          output += "\n///|\n"
+          output += "pub const " + definition.type_name() +
+            "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+        }
+        Err(_) => ()
+      }
+    }
     output += "\n"
   }
   Ok(output)
@@ -321,7 +337,20 @@ pub fn MessageWorkspace::generate_message_moonbit(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(rosidl_workspace_import_block(imports) + definition.generate_moonbit())
+  let mut output = rosidl_workspace_import_block(imports) +
+    definition.generate_moonbit()
+  match definition.type_hash() {
+    Ok(_) => ()
+    Err(_) => match self.type_hash(package_name, interface_namespace, type_name) {
+      Ok(type_hash) => {
+        output += "\n///|\n"
+        output += "pub const " + definition.type_name() +
+          "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+      }
+      Err(_) => ()
+    }
+  }
+  Ok(output)
 }
 
 ///|
