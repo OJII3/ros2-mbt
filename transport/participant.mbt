@@ -229,6 +229,8 @@ pub async fn RosParticipant::register_endpoint(
     }
   }
   self.local_endpoints.push(registered)
+  // A graph sample generated before this endpoint was registered is stale.
+  self.latest_graph_info = None
   self.discovery.announce_sedp_to_all(registered)
 }
 

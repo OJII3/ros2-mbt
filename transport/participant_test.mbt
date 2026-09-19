@@ -558,6 +558,19 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   assert_eq(heartbeat.last_sequence_number(), 1L)
   assert_eq(acknack.bitmap(), [0U])
   assert_eq(subscriber.graph().ros_participant_count(), 1)
+  let late_writer_id = @rtps.EntityId::new(b"lat", 0xC2).unwrap()
+  let late_topic = @ros.RosTopic::new(
+    "/late_topic", "std_msgs", "msg", "String",
+  ).unwrap()
+  publisher
+    .register_topic_endpoint(
+      late_topic,
+      @rtps.SedpEndpointKind::Publication,
+      late_writer_id,
+      @rtps.SedpQos::default(),
+    )
+    .unwrap()
+  assert_true(publisher.latest_graph_info is None)
   publisher.close()
   subscriber.close()
 }
