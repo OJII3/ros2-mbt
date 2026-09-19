@@ -2,6 +2,7 @@
 package "kainaproject/ros2_mbt/transport"
 
 import {
+  "kainaproject/ros2_mbt/rtps",
   "moonbitlang/async/socket",
 }
 
@@ -20,6 +21,8 @@ pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub async fn Udp::multicast(@socket.Addr) -> Self
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
+pub async fn Udp::receive_message(Self) -> Result[(@rtps.Message, @socket.Addr), String]
+pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
 
 // Type aliases
