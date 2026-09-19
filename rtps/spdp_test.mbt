@@ -92,4 +92,13 @@ test "SPDP participant data creates a DATA submessage" {
   let data = participant.to_data_submessage(reader_id, writer_id, 1L)
   assert_eq(data.serialized_payload(), participant.to_cdr_bytes())
   assert_eq(data.writer_sequence_number(), 1L)
+  let parsed_participant = match
+    SpdpParticipantData::from_data_submessage(data) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(parsed_participant.to_cdr_bytes(), participant.to_cdr_bytes())
+  let message = participant.to_message(reader_id, writer_id, 1L)
+  assert_eq(message.submessages().length(), 1)
+  assert_eq(message.header().to_bytes()[0], b'R')
 }

@@ -372,6 +372,14 @@ pub fn SpdpParticipantData::from_cdr_bytes(
 }
 
 ///|
+/// Parse an SPDP participant DATA submessage.
+pub fn SpdpParticipantData::from_data_submessage(
+  data : DataSubmessage,
+) -> Result[SpdpParticipantData, String] {
+  SpdpParticipantData::from_cdr_bytes(data.serialized_payload())
+}
+
+///|
 /// Serialize the SPDP participant data as a CDR little-endian payload.
 pub fn SpdpParticipantData::to_cdr_bytes(self : SpdpParticipantData) -> Bytes {
   self.to_parameter_list().to_cdr_bytes()
@@ -391,4 +399,23 @@ pub fn SpdpParticipantData::to_data_submessage(
     writer_sequence_number,
     self.to_cdr_bytes(),
   )
+}
+
+///|
+/// Build an RTPS message containing one SPDP participant announcement.
+pub fn SpdpParticipantData::to_message(
+  self : SpdpParticipantData,
+  reader_id : EntityId,
+  writer_id : EntityId,
+  writer_sequence_number : Int64,
+) -> Message {
+  let message = Message::new(
+    Header::new(self.participant_guid.prefix(), self.vendor_id),
+  )
+  message.add(
+    self
+    .to_data_submessage(reader_id, writer_id, writer_sequence_number)
+    .to_submessage(),
+  )
+  message
 }
