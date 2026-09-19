@@ -13,6 +13,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `Locator_t` と UDP/IPv4 locator のwire format
 - RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
 - RTPS `DATA` submessage（CDR payload、inline QoS、SequenceNumber）
+- RTPS `INFO_TS` submessage（NTP timestamp、Invalidate flag、両エンディアン）
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
