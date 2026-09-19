@@ -5,6 +5,7 @@ pub struct DataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   writer_prefix : @rtps.GuidPrefix?
+  participant_prefix : @rtps.GuidPrefix?
   state : ReliableDataReader
 }
 
@@ -20,6 +21,7 @@ pub fn DataReader::new(
     reader_id,
     writer_id,
     writer_prefix: None,
+    participant_prefix: None,
     state: ReliableDataReader::new(reader_id, writer_id),
   }
 }
@@ -31,6 +33,29 @@ pub fn DataReader::new_for_publication(
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[DataReader, String] {
+  data_reader_for_publication(socket, None, reader_id, publication)
+}
+
+///|
+/// Create a discovered reader that also filters INFO_DST for its participant.
+pub fn DataReader::new_for_publication_with_prefix(
+  socket : Udp,
+  participant_prefix : @rtps.GuidPrefix,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Result[DataReader, String] {
+  data_reader_for_publication(
+    socket, Some(participant_prefix), reader_id, publication,
+  )
+}
+
+///|
+fn data_reader_for_publication(
+  socket : Udp,
+  participant_prefix : @rtps.GuidPrefix?,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Result[DataReader, String] {
   if publication.kind() != @rtps.SedpEndpointKind::Publication {
     return Err("a DataReader target must be an SEDP publication")
   }
@@ -39,6 +64,7 @@ pub fn DataReader::new_for_publication(
     reader_id,
     writer_id: publication.endpoint_guid().entity_id(),
     writer_prefix: Some(publication.endpoint_guid().prefix()),
+    participant_prefix,
     state: ReliableDataReader::new(
       reader_id,
       publication.endpoint_guid().entity_id(),
@@ -55,6 +81,14 @@ pub async fn DataReader::receive(
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
+    }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) => match self.participant_prefix {
+        Some(prefix) if destination != prefix => continue
+        _ => ()
+      }
+      Ok(None) => ()
+      Err(_) => continue
     }
     for submessage in message.submessages() {
       match submessage.id() {

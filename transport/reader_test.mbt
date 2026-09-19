@@ -31,7 +31,9 @@ async test "best-effort reader accepts its discovered publication" {
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let reader = match
-    DataReader::new_for_publication(receiver, reader_id, publication) {
+    DataReader::new_for_publication_with_prefix(
+      receiver, prefix, reader_id, publication,
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -72,6 +74,25 @@ async test "best-effort reader accepts its discovered publication" {
       @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"other participant"),
       other_prefix,
       @rtps.VendorId::new(1, 15),
+      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let wrong_destination = @rtps.Message::new(
+    @rtps.Header::new(prefix, @rtps.VendorId::new(1, 15)),
+  )
+  wrong_destination.add(
+    @rtps.InfoDestinationSubmessage::new(other_prefix).to_submessage(),
+  )
+  wrong_destination.add(
+    @rtps.DataSubmessage::new(
+      reader_id, writer_id, 1L, b"wrong destination",
+    ).to_submessage(),
+  )
+  match
+    sender.send_message(
+      wrong_destination,
       @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
     ) {
     Ok(_) => ()

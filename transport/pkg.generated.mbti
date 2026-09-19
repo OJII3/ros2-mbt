@@ -52,11 +52,13 @@ pub struct DataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   writer_prefix : @rtps.GuidPrefix?
+  participant_prefix : @rtps.GuidPrefix?
   state : ReliableDataReader
 }
 pub fn DataReader::close(Self) -> Unit
 pub fn DataReader::new(Udp, @rtps.EntityId, @rtps.EntityId) -> Self
 pub fn DataReader::new_for_publication(Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub fn DataReader::new_for_publication_with_prefix(Udp, @rtps.GuidPrefix, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
 pub async fn DataReader::receive(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 
 pub struct DataWriter {
@@ -380,6 +382,7 @@ pub struct RosSubscription {
 }
 pub fn RosSubscription::close(Self) -> Unit
 pub fn RosSubscription::new_for_publication(@ros.RosTopic, Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub fn RosSubscription::new_for_publication_with_prefix(@ros.RosTopic, Udp, @rtps.GuidPrefix, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
 pub async fn RosSubscription::receive(Self) -> Result[(Bytes, @socket.Addr), String]
 pub fn RosSubscription::topic(Self) -> @ros.RosTopic
 

@@ -81,12 +81,13 @@ async fn receive_reliable(
 async fn receive_best_effort(
   topic : @ros.RosTopic,
   socket : @transport.Udp,
+  prefix : @rtps.GuidPrefix,
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Unit {
   let subscription = match
-    @transport.RosSubscription::new_for_publication(
-      topic, socket, reader_id, publication,
+    @transport.RosSubscription::new_for_publication_with_prefix(
+      topic, socket, prefix, reader_id, publication,
     ) {
     Ok(value) => value
     Err(message) => {
@@ -255,6 +256,6 @@ async fn main {
       topic, user_socket, prefix, vendor_id, reader_id, publication,
     )
   } else {
-    receive_best_effort(topic, user_socket, reader_id, publication)
+    receive_best_effort(topic, user_socket, prefix, reader_id, publication)
   }
 }

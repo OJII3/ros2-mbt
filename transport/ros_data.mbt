@@ -75,12 +75,44 @@ pub fn RosSubscription::new_for_publication(
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[RosSubscription, String] {
+  ros_subscription_for_publication(
+    topic, socket, None, reader_id, publication,
+  )
+}
+
+///|
+/// Create a best-effort subscription that filters INFO_DST for its participant.
+pub fn RosSubscription::new_for_publication_with_prefix(
+  topic : @ros.RosTopic,
+  socket : Udp,
+  participant_prefix : @rtps.GuidPrefix,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Result[RosSubscription, String] {
+  ros_subscription_for_publication(
+    topic, socket, Some(participant_prefix), reader_id, publication,
+  )
+}
+
+///|
+fn ros_subscription_for_publication(
+  topic : @ros.RosTopic,
+  socket : Udp,
+  participant_prefix : @rtps.GuidPrefix?,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Result[RosSubscription, String] {
   if publication.topic_name() != topic.dds_name() ||
     publication.type_name() != topic.dds_type_name() {
     return Err("the discovered publication does not match the ROS topic")
   }
-  let reader = match
-    DataReader::new_for_publication(socket, reader_id, publication) {
+  let reader = match (match participant_prefix {
+    Some(prefix) =>
+      DataReader::new_for_publication_with_prefix(
+        socket, prefix, reader_id, publication,
+      )
+    None => DataReader::new_for_publication(socket, reader_id, publication)
+  }) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
