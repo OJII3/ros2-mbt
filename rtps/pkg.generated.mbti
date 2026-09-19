@@ -6,6 +6,16 @@ import {
 }
 
 // Values
+pub const DATA_FIXED_BODY_LENGTH : Int = 20
+
+pub const DATA_FLAG_DATA : Byte = 0x04
+
+pub const DATA_FLAG_INLINE_QOS : Byte = 0x02
+
+pub const DATA_FLAG_KEY : Byte = 0x08
+
+pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const HEADER_LENGTH : Int = 20
 
 pub const LOCATOR_KIND_UDP_V4 : Int = 1
@@ -43,6 +53,28 @@ pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
 // Errors
 
 // Types and methods
+pub struct DataSubmessage {
+  flags : Byte
+  extra_flags : UInt16
+  octets_to_inline_qos : UInt16
+  reader_id : EntityId
+  writer_id : EntityId
+  writer_sequence_number : Int64
+  inline_qos : Bytes
+  serialized_payload : Bytes
+} derive(Eq, @debug.Debug)
+pub fn DataSubmessage::flags(Self) -> Byte
+pub fn DataSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn DataSubmessage::inline_qos(Self) -> Bytes
+pub fn DataSubmessage::new(EntityId, EntityId, Int64, Bytes) -> Self
+pub fn DataSubmessage::reader_id(Self) -> EntityId
+pub fn DataSubmessage::serialized_payload(Self) -> Bytes
+pub fn DataSubmessage::to_payload(Self) -> Bytes
+pub fn DataSubmessage::to_submessage(Self) -> Submessage
+pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self
+pub fn DataSubmessage::writer_id(Self) -> EntityId
+pub fn DataSubmessage::writer_sequence_number(Self) -> Int64
+
 pub struct EntityId {
   key : Bytes
   kind : Byte
