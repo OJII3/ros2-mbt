@@ -8,6 +8,7 @@ pub struct RosParticipant {
   discovery : DiscoveryService
   user_socket : Udp
   user_locator : @rtps.Locator
+  local_endpoints : Array[@rtps.SedpEndpointData]
 }
 
 ///|
@@ -46,6 +47,7 @@ pub fn RosParticipant::from_sockets(
     discovery: DiscoveryService::new(session),
     user_socket,
     user_locator,
+    local_endpoints: [],
   })
 }
 
@@ -105,6 +107,36 @@ pub fn RosParticipant::graph(self : RosParticipant) -> DiscoveryGraph {
 }
 
 ///|
+/// Return the local SEDP endpoints registered with this participant.
+pub fn RosParticipant::local_endpoints(
+  self : RosParticipant,
+) -> Array[@rtps.SedpEndpointData] {
+  self.local_endpoints
+}
+
+///|
+/// Register and announce one local SEDP endpoint.
+///
+/// The participant GUID in the endpoint is normalized to the local participant
+/// GUID. The endpoint is retained so it can be announced to participants that
+/// are discovered later.
+pub async fn RosParticipant::register_endpoint(
+  self : RosParticipant,
+  endpoint : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  let registered = endpoint.with_participant_guid(
+    self.participant.participant_guid(),
+  )
+  for existing in self.local_endpoints {
+    if existing.endpoint_guid() == registered.endpoint_guid() {
+      return Err("the SEDP endpoint is already registered")
+    }
+  }
+  self.local_endpoints.push(registered)
+  self.discovery.announce_sedp_to_all(registered)
+}
+
+///|
 /// Send one SPDP participant announcement.
 pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,
@@ -117,7 +149,26 @@ pub async fn RosParticipant::announce_spdp_once(
 pub async fn RosParticipant::receive_discovery_once(
   self : RosParticipant,
 ) -> Result[(@socket.Addr, DiscoveryEvent), String] {
-  self.discovery.receive_once()
+  let (source, event) = match self.discovery.receive_once() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match event {
+    DiscoveryEvent::Participant(remote_participant) =>
+      if remote_participant.participant_guid() !=
+        self.participant.participant_guid() {
+        for endpoint in self.local_endpoints {
+          match
+            self.discovery.announce_sedp_once(endpoint, remote_participant) {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
+        }
+      }
+    DiscoveryEvent::Publication(_) => ()
+    DiscoveryEvent::Subscription(_) => ()
+  }
+  Ok((source, event))
 }
 
 ///|

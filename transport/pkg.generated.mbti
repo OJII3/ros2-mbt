@@ -250,15 +250,18 @@ pub struct RosParticipant {
   discovery : DiscoveryService
   user_socket : Udp
   user_locator : @rtps.Locator
+  local_endpoints : Array[@rtps.SedpEndpointData]
 }
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
 pub fn RosParticipant::from_sockets(Udp, Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn RosParticipant::graph(Self) -> DiscoveryGraph
 pub fn RosParticipant::into_parts(Self) -> (DiscoveryService, Udp)
+pub fn RosParticipant::local_endpoints(Self) -> Array[@rtps.SedpEndpointData]
 pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64) -> Result[Self, String]
 pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+pub async fn RosParticipant::register_endpoint(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn RosParticipant::user_locator(Self) -> @rtps.Locator
 
 pub struct RosPublisher {
