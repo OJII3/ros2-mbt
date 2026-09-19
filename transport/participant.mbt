@@ -150,6 +150,28 @@ pub async fn RosParticipant::register_endpoint(
 }
 
 ///|
+/// Create, locate, register, and announce one ROS topic endpoint.
+pub async fn RosParticipant::register_topic_endpoint(
+  self : RosParticipant,
+  topic : @ros.RosTopic,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_id : @rtps.EntityId,
+  qos : @rtps.SedpQos,
+) -> Result[Unit, String] {
+  let endpoint = match
+    topic.to_sedp_with_qos(
+      kind,
+      @rtps.Guid::new(self.participant.participant_guid().prefix(), endpoint_id),
+      qos,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  endpoint.add_unicast_locator(self.user_locator)
+  self.register_endpoint(endpoint)
+}
+
+///|
 /// Send one SPDP participant announcement.
 pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,

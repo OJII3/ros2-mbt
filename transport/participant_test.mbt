@@ -97,15 +97,13 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let endpoint = match
-    topic.to_sedp(
+  match
+    node.register_topic_endpoint(
+      topic,
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, writer_id),
+      writer_id,
+      @rtps.SedpQos::default(),
     ) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  match node.register_endpoint(endpoint) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -114,7 +112,8 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     node.local_endpoints()[0].participant_guid(),
     participant.participant_guid(),
   )
-  assert_true(node.register_endpoint(endpoint) is Err(_))
+  assert_eq(node.local_endpoints()[0].unicast_locators().length(), 1)
+  assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
   node.close()
 }
 
@@ -229,16 +228,13 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let endpoint = match
-    topic.to_sedp(
+  match
+    publisher.register_topic_endpoint(
+      topic,
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(publisher_prefix, writer_id),
+      writer_id,
+      @rtps.SedpQos::default(),
     ) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  endpoint.add_unicast_locator(publisher.user_locator())
-  match publisher.register_endpoint(endpoint) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
