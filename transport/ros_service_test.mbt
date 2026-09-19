@@ -32,10 +32,15 @@ async test "reliable ROS service client and server correlate a response" {
   let server_response_id = service_test_entity(b"srs", 0xC2)
   let client_response_id = service_test_entity(b"crs", 0xC7)
 
+  let client_request_guid = @rtps.Guid::new(client_prefix, client_request_id)
+  let client_response_guid = @rtps.Guid::new(client_prefix, client_response_id)
+  let server_request_guid = @rtps.Guid::new(server_prefix, server_request_id)
+  let server_response_guid = @rtps.Guid::new(server_prefix, server_response_id)
   let client_request_publication = match
-    service.request_to_sedp(
+    service.request_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(client_prefix, client_request_id),
+      client_request_guid,
+      client_response_guid,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -44,9 +49,10 @@ async test "reliable ROS service client and server correlate a response" {
     service_test_endpoint_locator(client_socket),
   )
   let server_request_subscription = match
-    service.request_to_sedp(
+    service.request_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(server_prefix, server_request_id),
+      server_request_guid,
+      server_response_guid,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -55,9 +61,10 @@ async test "reliable ROS service client and server correlate a response" {
     service_test_endpoint_locator(server_socket),
   )
   let server_response_publication = match
-    service.response_to_sedp(
+    service.response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(server_prefix, server_response_id),
+      server_response_guid,
+      server_request_guid,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -66,9 +73,10 @@ async test "reliable ROS service client and server correlate a response" {
     service_test_endpoint_locator(server_socket),
   )
   let client_response_subscription = match
-    service.response_to_sedp(
+    service.response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(client_prefix, client_response_id),
+      client_response_guid,
+      client_request_guid,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -124,4 +132,51 @@ async test "reliable ROS service client and server correlate a response" {
   assert_eq(response_source.ip(), 0x7F000001U)
   client.close()
   server.close()
+}
+
+///|
+async test "ROS service rejects mismatched related endpoint metadata" {
+  let prefix = service_test_prefix([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  let service = @ros.RosService::new(
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
+  ).unwrap()
+  let request_id = service_test_entity(b"req", 0xC2)
+  let response_id = service_test_entity(b"res", 0xC7)
+  let wrong_response_id = service_test_entity(b"bad", 0xC7)
+  let request_guid = @rtps.Guid::new(prefix, request_id)
+  let response_guid = @rtps.Guid::new(prefix, response_id)
+  let wrong_response_guid = @rtps.Guid::new(prefix, wrong_response_id)
+  let request = service
+    .request_to_sedp_with_related_endpoint(
+      @rtps.SedpEndpointKind::Subscription,
+      request_guid,
+      wrong_response_guid,
+    )
+    .unwrap()
+  let response = service
+    .response_to_sedp_with_related_endpoint(
+      @rtps.SedpEndpointKind::Publication,
+      response_guid,
+      request_guid,
+    )
+    .unwrap()
+  let request_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let response_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  assert_true(
+    RosServiceClient::new(
+      service,
+      request_socket,
+      response_socket,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      service_test_entity(b"cli", 0xC2),
+      request,
+      service_test_entity(b"cl2", 0xC7),
+      response,
+      1L,
+    )
+    is Err(_),
+  )
+  request_socket.close()
+  response_socket.close()
 }

@@ -24,6 +24,60 @@ fn validate_service_endpoint(
 }
 
 ///|
+/// Read the optional DDS-RPC related endpoint GUID from SEDP metadata.
+fn related_endpoint_guid(
+  endpoint : @rtps.SedpEndpointData,
+) -> Result[@rtps.Guid?, String] {
+  let parameters = match endpoint.to_parameter_list() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for parameter in parameters.values() {
+    if parameter.id() != @rtps.PID_RELATED_ENTITY_GUID {
+      continue
+    }
+    let guid = match @rtps.Guid::from_bytes(parameter.value()) {
+      Ok(value) => value
+      Err(message) =>
+        return Err("invalid related service endpoint GUID: " + message)
+    }
+    return Ok(Some(guid))
+  }
+  Ok(None)
+}
+
+///|
+/// Validate the optional cross-links in a service request/reply endpoint pair.
+fn validate_service_endpoint_pair(
+  request_endpoint : @rtps.SedpEndpointData,
+  response_endpoint : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  let request_related = match related_endpoint_guid(request_endpoint) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match request_related {
+    Some(guid) if guid != response_endpoint.endpoint_guid() =>
+      return Err(
+        "the service request endpoint links to a different response endpoint",
+      )
+    _ => ()
+  }
+  let response_related = match related_endpoint_guid(response_endpoint) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match response_related {
+    Some(guid) if guid != request_endpoint.endpoint_guid() =>
+      return Err(
+        "the service response endpoint links to a different request endpoint",
+      )
+    _ => ()
+  }
+  Ok(())
+}
+
+///|
 /// A ROS service client using reliable request/reply DATA endpoints.
 pub struct RosServiceClient {
   service : @ros.RosService
@@ -65,6 +119,11 @@ pub fn RosServiceClient::new(
       service.dds_response_name(),
       service.dds_response_type_name(),
     ) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  match
+    validate_service_endpoint_pair(request_subscription, response_publication) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -214,6 +273,11 @@ pub fn RosServiceServer::new(
       service.dds_response_name(),
       service.dds_response_type_name(),
     ) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  match
+    validate_service_endpoint_pair(request_publication, response_subscription) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
