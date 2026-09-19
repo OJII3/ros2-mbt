@@ -82,6 +82,16 @@ pub fn DiscoveryGraph::ros_participants(Self) -> Array[@ros.ParticipantEntitiesI
 pub fn DiscoveryGraph::subscription_count(Self) -> Int
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
 
+pub struct DiscoveryService {
+  session : DiscoverySession
+  graph : DiscoveryGraph
+}
+pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
+pub fn DiscoveryService::close(Self) -> Unit
+pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
+pub fn DiscoveryService::new(DiscoverySession) -> Self
+pub async fn DiscoveryService::receive_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+
 pub struct DiscoverySession {
   socket : Udp
   participant : @rtps.SpdpParticipantData
