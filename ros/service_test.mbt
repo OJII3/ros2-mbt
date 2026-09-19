@@ -115,8 +115,19 @@ test "ROS service SEDP links request and response endpoints" {
       request_guid,
     )
     .unwrap()
-  let request_parameters = request.to_parameter_list().unwrap().values()
-  let response_parameters = response.to_parameter_list().unwrap().values()
+  let decoded_request = @rtps.SedpEndpointData::from_cdr_bytes(
+    @rtps.SedpEndpointKind::Publication,
+    request.to_cdr_bytes().unwrap(),
+  ).unwrap()
+  let decoded_response = @rtps.SedpEndpointData::from_cdr_bytes(
+    @rtps.SedpEndpointKind::Subscription,
+    response.to_cdr_bytes().unwrap(),
+  ).unwrap()
+  let request_parameters = decoded_request.to_parameter_list().unwrap().values()
+  let response_parameters = decoded_response
+    .to_parameter_list()
+    .unwrap()
+    .values()
   let mut request_related : Bytes? = None
   let mut response_related : Bytes? = None
   for parameter in request_parameters {
