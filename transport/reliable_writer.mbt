@@ -253,14 +253,30 @@ pub async fn ReliableDataWriter::handle_acknack(
 pub async fn ReliableDataWriter::receive_acknack(
   self : ReliableDataWriter,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
-  let (acknack, source) = match self.socket.receive_acknack() {
-    Ok(value) => value
-    Err(message) => return Err(message)
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for submessage in message.submessages() {
+      if submessage.id() != @rtps.SubmessageId::AckNack {
+        continue
+      }
+      let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      if acknack.writer_id() != self.writer_id ||
+        acknack.reader_id() != self.reader_id {
+        continue
+      }
+      match self.handle_acknack(acknack) {
+        Ok(_) => return Ok((acknack, source))
+        Err(message) => return Err(message)
+      }
+    }
   }
-  match self.handle_acknack(acknack) {
-    Ok(_) => Ok((acknack, source))
-    Err(message) => Err(message)
-  }
+  Err("reliable writer stopped")
 }
 
 ///|

@@ -120,6 +120,19 @@ async test "reliable writer receives ACKNACK from its socket" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
+  match
+    ack_sender.send_heartbeat(
+      match @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
+        Ok(value) => value
+        Err(message) => fail(message)
+      },
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      writer_address,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
   let acknack = match
     @rtps.AckNackSubmessage::new(
       reader_id,
