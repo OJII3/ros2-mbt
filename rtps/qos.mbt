@@ -146,6 +146,12 @@ pub fn qos_lifespan(seconds : Int, nanoseconds : UInt) -> Parameter {
 }
 
 ///|
+/// Construct a PID_USER_DATA parameter without interpreting its opaque bytes.
+pub fn qos_user_data(value : Bytes) -> Parameter {
+  Parameter::new(PID_USER_DATA, value)
+}
+
+///|
 /// Construct a PID_LATENCY_BUDGET parameter.
 pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> Parameter {
   Parameter::new(PID_LATENCY_BUDGET, qos_duration(seconds, nanoseconds))

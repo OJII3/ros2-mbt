@@ -37,6 +37,14 @@ test "RTPS discovery locator parameter identifiers match the wire standard" {
 }
 
 ///|
+test "RTPS user data parameter uses the standard identifier" {
+  assert_eq(PID_USER_DATA, 0x002C)
+  let parameter = qos_user_data(b"typehash=RIHS01_000102;\x00")
+  assert_eq(parameter.id(), PID_USER_DATA)
+  assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
+}
+
+///|
 test "DDS-RPC service discovery parameter identifiers match the wire standard" {
   assert_eq(PID_SERVICE_INSTANCE_NAME, 0x0080)
   assert_eq(PID_RELATED_ENTITY_GUID, 0x0081)

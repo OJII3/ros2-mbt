@@ -41,6 +41,7 @@ test "SEDP endpoint data round trips required fields and locators" {
       b"\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
     ),
   )
+  endpoint.add_parameter(qos_user_data(b"typehash=RIHS01_000102;\x00"))
   let encoded = match endpoint.to_cdr_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -51,6 +52,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   }
   let mut key_hash_found = false
   let mut type_max_size_found = false
+  let mut user_data_found = false
   for parameter in encoded_parameters.values() {
     if parameter.id() == PID_KEY_HASH {
       key_hash_found = true
@@ -60,9 +62,14 @@ test "SEDP endpoint data round trips required fields and locators" {
       type_max_size_found = true
       assert_eq(parameter.value(), b"\x00\x00\x00\x00")
     }
+    if parameter.id() == PID_USER_DATA {
+      user_data_found = true
+      assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
+    }
   }
   assert_true(key_hash_found)
   assert_true(type_max_size_found)
+  assert_true(user_data_found)
   let decoded = match
     SedpEndpointData::from_cdr_bytes(SedpEndpointKind::Publication, encoded) {
     Ok(value) => value
@@ -73,6 +80,15 @@ test "SEDP endpoint data round trips required fields and locators" {
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
   assert_eq(decoded.kind(), SedpEndpointKind::Publication)
+  let decoded_user_data = decoded.extra_parameters()
+  let mut decoded_user_data_found = false
+  for parameter in decoded_user_data {
+    if parameter.id() == PID_USER_DATA {
+      decoded_user_data_found = true
+      assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
+    }
+  }
+  assert_true(decoded_user_data_found)
   let reencoded = match decoded.to_cdr_bytes() {
     Ok(value) => value
     Err(message) => fail(message)

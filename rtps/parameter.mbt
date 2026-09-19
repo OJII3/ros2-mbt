@@ -39,6 +39,10 @@ pub const PID_LIVELINESS : UInt16 = 0x001B
 pub const PID_LIFESPAN : UInt16 = 0x002B
 
 ///|
+/// Entity user data, such as the ROS 2 type hash advertised in SEDP.
+pub const PID_USER_DATA : UInt16 = 0x002C
+
+///|
 pub const PID_DESTINATION_ORDER : UInt16 = 0x0025
 
 ///|
