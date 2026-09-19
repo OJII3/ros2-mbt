@@ -4,6 +4,7 @@ pub(all) enum MessageFieldCollection {
   Scalar
   FixedArray(Int)
   Sequence
+  BoundedSequence(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -121,6 +122,10 @@ pub fn MessageDefinition::new(
         }
       MessageFieldCollection::Scalar => ()
       MessageFieldCollection::Sequence => ()
+      MessageFieldCollection::BoundedSequence(length) =>
+        if length <= 0 {
+          return Err("ROS bounded sequence lengths must be positive")
+        }
     }
   }
   Ok({ package_name, interface_namespace, type_name, fields, constants: [], })
@@ -184,9 +189,9 @@ pub fn MessageDefinition::constants(
 /// Parse the primitive-field subset of a ROS `.msg` definition.
 ///
 /// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
-/// unbounded sequences (`type[]`) and scalar constants are supported. Bounded
-/// sequences and nested message fields are rejected until their generated CDR
-/// representation is implemented.
+/// unbounded sequences (`type[]`), bounded sequences (`type[<=N]`), and scalar
+/// constants are supported. Nested message fields are rejected until their
+/// generated CDR representation is implemented.
 pub fn parse_message(
   package_name : String,
   interface_namespace : String,
@@ -201,7 +206,7 @@ pub fn parse_message(
       continue
     }
     let equal_parts = line.split("=").collect()
-    if equal_parts.length() > 1 {
+    if line.contains("=") && !line.contains("<=") {
       if equal_parts.length() != 2 {
         return Err("ROS message constants must contain one =")
       }
@@ -280,7 +285,14 @@ fn rosidl_parse_field_type(
     if inner.length() == 0 {
       Ok((base_type, MessageFieldCollection::Sequence))
     } else if inner[0] == '<' {
-      Err("bounded ROS message sequences are not supported by this generator")
+      if inner.length() <= 2 || inner[1] != '=' {
+        return Err("ROS bounded sequence must use the <=N form")
+      }
+      let bound = match rosidl_positive_int(inner[2:].to_owned()) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      Ok((base_type, MessageFieldCollection::BoundedSequence(bound)))
     } else {
       let length = match rosidl_positive_int(inner) {
         Ok(value) => value
@@ -406,6 +418,7 @@ fn rosidl_field_moon_type(field : MessageField) -> String {
     MessageFieldCollection::Scalar => base
     MessageFieldCollection::FixedArray(_) => "Array[" + base + "]"
     MessageFieldCollection::Sequence => "Array[" + base + "]"
+    MessageFieldCollection::BoundedSequence(_) => "Array[" + base + "]"
   }
 }
 
@@ -424,6 +437,17 @@ fn rosidl_generate_writer(field : MessageField) -> String {
       "(value)\n" +
       "  }\n"
     MessageFieldCollection::Sequence =>
+      "  writer.write_u32(self." +
+      field.name +
+      ".length().reinterpret_as_uint())\n" +
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      "    writer." +
+      codec_method +
+      "(value)\n" +
+      "  }\n"
+    MessageFieldCollection::BoundedSequence(_) =>
       "  writer.write_u32(self." +
       field.name +
       ".length().reinterpret_as_uint())\n" +
@@ -479,6 +503,44 @@ fn rosidl_generate_reader(field : MessageField) -> String {
       "  if " +
       field.name +
       "_length < 0 || " +
+      field.name +
+      "_length > reader.remaining() {\n" +
+      "    return Err(\"generated ROS sequence is truncated\")\n" +
+      "  }\n" +
+      "  let " +
+      field.name +
+      " : Array[" +
+      base +
+      "] = []\n" +
+      "  for _ in 0..<" +
+      field.name +
+      "_length {\n" +
+      "    " +
+      field.name +
+      ".push(match reader." +
+      codec_method +
+      "() {\n" +
+      "      Ok(value) => value\n" +
+      "      Err(message) => return Err(message)\n" +
+      "    })\n" +
+      "  }\n"
+    MessageFieldCollection::BoundedSequence(bound) =>
+      "  let " +
+      field.name +
+      "_length = match reader.read_u32() {\n" +
+      "    Ok(value) => value.reinterpret_as_int()\n" +
+      "    Err(message) => return Err(message)\n" +
+      "  }\n" +
+      "  if " +
+      field.name +
+      "_length < 0 || " +
+      field.name +
+      "_length > " +
+      bound.to_string() +
+      " {\n" +
+      "    return Err(\"generated ROS bounded sequence exceeds its bound\")\n" +
+      "  }\n" +
+      "  if " +
       field.name +
       "_length > reader.remaining() {\n" +
       "    return Err(\"generated ROS sequence is truncated\")\n" +

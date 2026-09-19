@@ -52,6 +52,7 @@ pub(all) enum MessageFieldCollection {
   Scalar
   FixedArray(Int)
   Sequence
+  BoundedSequence(Int)
 } derive(Eq, @debug.Debug)
 
 // Type aliases

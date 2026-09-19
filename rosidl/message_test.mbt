@@ -63,9 +63,26 @@ test "ROS message generator handles fixed arrays and sequences" {
 }
 
 ///|
+test "ROS message generator handles bounded sequences" {
+  let definition = match
+    parse_message("demo", "msg", "Bounded", "int32[<=3] values") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    definition.fields()[0].collection(),
+    MessageFieldCollection::BoundedSequence(3),
+  )
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("writer.write_u32(self.values.length()"))
+  assert_true(generated.contains("values_length > 3"))
+}
+
+///|
 test "ROS message parser rejects unsupported definitions" {
+  assert_true(parse_message("demo", "msg", "Bad", "int32[<3] values") is Err(_))
   assert_true(
-    parse_message("demo", "msg", "Bad", "int32[<=3] values") is Err(_),
+    parse_message("demo", "msg", "Bad", "int32[<=0] values") is Err(_),
   )
   assert_true(parse_message("demo", "msg", "Bad", "other_type value") is Err(_))
   assert_true(
