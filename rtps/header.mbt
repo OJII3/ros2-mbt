@@ -89,6 +89,12 @@ pub fn Header::new(guid_prefix : GuidPrefix, vendor_id : VendorId) -> Header {
 }
 
 ///|
+/// Return the participant prefix carried by this RTPS message.
+pub fn Header::guid_prefix(self : Header) -> GuidPrefix {
+  self.guid_prefix
+}
+
+///|
 /// Serialize an RTPS message header in network byte order.
 pub fn Header::to_bytes(self : Header) -> Bytes {
   let bytes : Array[Byte] = [b'R', b'T', b'P', b'S']

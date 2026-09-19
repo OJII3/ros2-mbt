@@ -66,6 +66,48 @@ test "RTPS DATA supports inline QoS" {
 }
 
 ///|
+test "RTPS DATA carries a related sample identity" {
+  let prefix = match
+    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let identity = match SampleIdentity::new(Guid::new(prefix, writer_id), 9L) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"reply").with_related_sample_identity(
+    identity,
+  )
+  let decoded = match
+    DataSubmessage::from_submessage(
+      match
+        Submessage::from_bytes(
+          match data.to_submessage().to_bytes() {
+            Ok(value) => value
+            Err(message) => fail(message)
+          },
+        ) {
+        Ok((value, _)) => value
+        Err(message) => fail(message)
+      },
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.related_sample_identity(), Ok(Some(identity)))
+  assert_eq(decoded.serialized_payload(), b"reply")
+}
+
+///|
 test "RTPS DATA rejects malformed flags and body" {
   let reader_id = match test_entity_id(0xC7) {
     Ok(value) => value

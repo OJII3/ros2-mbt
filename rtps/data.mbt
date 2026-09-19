@@ -66,6 +66,28 @@ pub fn DataSubmessage::with_inline_qos(
 }
 
 ///|
+/// Return a copy carrying the DDS-RPC related request identity.
+pub fn DataSubmessage::with_related_sample_identity(
+  self : DataSubmessage,
+  identity : SampleIdentity,
+) -> DataSubmessage {
+  let parameters = ParameterList::new()
+  if self.inline_qos.length() > 0 {
+    match ParameterList::from_bytes(self.inline_qos) {
+      Ok((existing, _)) =>
+        for parameter in existing.values() {
+          parameters.add(parameter)
+        }
+      Err(_) => ()
+    }
+  }
+  parameters.add(
+    Parameter::new(PID_RELATED_SAMPLE_IDENTITY, identity.to_bytes()),
+  )
+  self.with_inline_qos(parameters.to_bytes())
+}
+
+///|
 pub fn DataSubmessage::flags(self : DataSubmessage) -> Byte {
   self.flags
 }
@@ -93,6 +115,43 @@ pub fn DataSubmessage::inline_qos(self : DataSubmessage) -> Bytes {
 ///|
 pub fn DataSubmessage::serialized_payload(self : DataSubmessage) -> Bytes {
   self.serialized_payload
+}
+
+///|
+/// Decode the related request identity from inline QoS, if present.
+pub fn DataSubmessage::related_sample_identity(
+  self : DataSubmessage,
+) -> Result[SampleIdentity?, String] {
+  if self.inline_qos.length() == 0 {
+    return Ok(None)
+  }
+  let parameters = match ParameterList::from_bytes(self.inline_qos) {
+    Ok((value, _)) => value
+    Err(message) => return Err(message)
+  }
+  for parameter in parameters.values() {
+    if parameter.id() != PID_RELATED_SAMPLE_IDENTITY {
+      continue
+    }
+    let identity = match SampleIdentity::from_bytes(parameter.value()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok(Some(identity))
+  }
+  Ok(None)
+}
+
+///|
+/// Return the identity of this DATA sample using the RTPS message prefix.
+pub fn DataSubmessage::sample_identity(
+  self : DataSubmessage,
+  guid_prefix : GuidPrefix,
+) -> Result[SampleIdentity, String] {
+  SampleIdentity::new(
+    Guid::new(guid_prefix, self.writer_id),
+    self.writer_sequence_number,
+  )
 }
 
 ///|

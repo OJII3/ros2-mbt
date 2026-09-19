@@ -66,6 +66,10 @@ pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
 pub const PID_DATA_REPRESENTATION : UInt16 = 0x0073
 
 ///|
+/// Related request identity carried by DDS-RPC reply samples.
+pub const PID_RELATED_SAMPLE_IDENTITY : UInt16 = 0x0083
+
+///|
 pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
 
 ///|

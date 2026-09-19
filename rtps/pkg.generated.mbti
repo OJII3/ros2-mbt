@@ -132,6 +132,8 @@ pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
 
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
+pub const PID_RELATED_SAMPLE_IDENTITY : UInt16 = 0x0083
+
 pub const PID_RELIABILITY : UInt16 = 0x001A
 
 pub const PID_RESOURCE_LIMITS : UInt16 = 0x0041
@@ -229,11 +231,14 @@ pub fn DataSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn DataSubmessage::inline_qos(Self) -> Bytes
 pub fn DataSubmessage::new(EntityId, EntityId, Int64, Bytes) -> Self
 pub fn DataSubmessage::reader_id(Self) -> EntityId
+pub fn DataSubmessage::related_sample_identity(Self) -> Result[SampleIdentity?, String]
+pub fn DataSubmessage::sample_identity(Self, GuidPrefix) -> Result[SampleIdentity, String]
 pub fn DataSubmessage::serialized_payload(Self) -> Bytes
 pub fn DataSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataSubmessage::to_payload(Self) -> Bytes
 pub fn DataSubmessage::to_submessage(Self) -> Submessage
 pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self
+pub fn DataSubmessage::with_related_sample_identity(Self, SampleIdentity) -> Self
 pub fn DataSubmessage::writer_id(Self) -> EntityId
 pub fn DataSubmessage::writer_sequence_number(Self) -> Int64
 
@@ -270,6 +275,7 @@ pub struct Header {
   guid_prefix : GuidPrefix
 } derive(Eq, @debug.Debug)
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
+pub fn Header::guid_prefix(Self) -> GuidPrefix
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
 
@@ -342,6 +348,16 @@ pub struct ProtocolVersion {
   minor : Byte
 } derive(Eq, @debug.Debug)
 pub fn ProtocolVersion::new(Byte, Byte) -> Self
+
+pub struct SampleIdentity {
+  writer_guid : Guid
+  sequence_number : Int64
+} derive(Eq, @debug.Debug)
+pub fn SampleIdentity::from_bytes(Bytes) -> Result[Self, String]
+pub fn SampleIdentity::new(Guid, Int64) -> Result[Self, String]
+pub fn SampleIdentity::sequence_number(Self) -> Int64
+pub fn SampleIdentity::to_bytes(Self) -> Bytes
+pub fn SampleIdentity::writer_guid(Self) -> Guid
 
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
