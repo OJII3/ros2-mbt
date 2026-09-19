@@ -16,9 +16,11 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
 - UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
+- 発見済み participant の metatraffic locator へ送る SEDP helper
 - DDSI-RTPS default port mapping と SPDP multicast address helper
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
+- 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
 - reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
@@ -43,13 +45,13 @@ moon check
 moon test --target native
 ```
 
-周期的なSPDP/SEDP multicast discovery loop、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
+周期的なSEDP multicast discovery loop、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 
 ## Roadmap
 
-1. UDP multicast/unicast transport（基本送受信と単発 discovery packet は実装済み）
-2. SPDP participant discovery（packet codec と受信 dispatch は実装済み、周期 loop は未実装）
-3. SEDP endpoint discovery（packet codec と受信 dispatch は実装済み、周期 loop は未実装）
-4. `DATA` submessageとROS topic mapping
-5. `geometry_msgs/Twist`などの最小ROS message codegen
+1. UDP multicast/unicast transport（基本送受信、SPDP multicast helper、単発 discovery packet は実装済み）
+2. SPDP participant discovery（packet codec、受信 dispatch、周期 announcement は実装済み）
+3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への送信は実装済み）
+4. `DATA` submessage と ROS topic mapping（best-effort reader/writer adapter まで実装済み）
+5. `geometry_msgs/Twist`などの最小ROS message codec（手書きの最小 codec は実装済み、codegen は未実装）
 6. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト
