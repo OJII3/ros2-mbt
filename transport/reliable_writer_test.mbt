@@ -177,6 +177,11 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let other_prefix = match
+    @rtps.GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   let endpoint_id = match @rtps.EntityId::new(b"ep1", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -251,6 +256,27 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
       1U,
     ) {
     Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    receiver.send_acknack(
+      match
+        @rtps.AckNackSubmessage::new(
+          @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+          @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+          1L,
+          1U,
+          [0U],
+          99U,
+        ) {
+        Ok(value) => value
+        Err(message) => fail(message)
+      },
+      other_prefix,
+      @rtps.VendorId::new(1, 15),
+      sender_address,
+    ) {
+    Ok(_) => ()
     Err(message) => fail(message)
   }
   match

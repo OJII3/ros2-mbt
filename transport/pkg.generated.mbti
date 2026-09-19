@@ -179,6 +179,7 @@ pub struct ReliableDataWriter {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   destination : @socket.Addr
+  reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
   history : Array[@rtps.DataSubmessage]

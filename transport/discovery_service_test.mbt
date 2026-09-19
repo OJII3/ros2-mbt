@@ -184,7 +184,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
   match
     receiver.send_acknack(
       acknack,
-      local_prefix,
+      remote_prefix,
       @rtps.VendorId::new(1, 15),
       sender.local_addr(),
     ) {

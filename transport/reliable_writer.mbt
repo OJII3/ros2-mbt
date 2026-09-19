@@ -11,6 +11,7 @@ pub struct ReliableDataWriter {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   destination : @socket.Addr
+  reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
   history : Array[@rtps.DataSubmessage]
@@ -37,6 +38,7 @@ pub fn ReliableDataWriter::new(
     reader_id,
     writer_id,
     destination,
+    reader_prefix: None,
     next_sequence_number: first_sequence_number,
     next_heartbeat_count: 1U,
     history: [],
@@ -69,15 +71,20 @@ pub fn ReliableDataWriter::new_for_subscription(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  ReliableDataWriter::new(
-    socket,
-    guid_prefix,
-    vendor_id,
-    subscription.endpoint_guid().entity_id(),
-    writer_id,
-    destination,
-    first_sequence_number,
-  )
+  let writer = match
+    ReliableDataWriter::new(
+      socket,
+      guid_prefix,
+      vendor_id,
+      subscription.endpoint_guid().entity_id(),
+      writer_id,
+      destination,
+      first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..writer, reader_prefix: Some(subscription.endpoint_guid().prefix()), })
 }
 
 ///|
@@ -106,15 +113,23 @@ pub fn ReliableDataWriter::new_for_sedp(
     Err(message) => return Err(message)
   }
   let kind = endpoint.kind()
-  ReliableDataWriter::new(
-    socket,
-    endpoint.participant_guid().prefix(),
-    vendor_id,
-    kind.builtin_reader_id(),
-    kind.builtin_writer_id(),
-    destination,
-    first_sequence_number,
-  )
+  let writer = match
+    ReliableDataWriter::new(
+      socket,
+      endpoint.participant_guid().prefix(),
+      vendor_id,
+      kind.builtin_reader_id(),
+      kind.builtin_writer_id(),
+      destination,
+      first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({
+    ..writer,
+    reader_prefix: Some(remote_participant.participant_guid().prefix()),
+  })
 }
 
 ///|
@@ -338,8 +353,13 @@ pub async fn ReliableDataWriter::receive_acknack(
         Ok(value) => value
         Err(message) => return Err(message)
       }
+      let prefix_matches = match self.reader_prefix {
+        Some(prefix) => message.header().guid_prefix() == prefix
+        None => true
+      }
       if acknack.writer_id() != self.writer_id ||
-        acknack.reader_id() != self.reader_id {
+        acknack.reader_id() != self.reader_id ||
+        !prefix_matches {
         continue
       }
       match self.handle_acknack(acknack) {
