@@ -70,6 +70,24 @@ pub fn ParticipantEntitiesInfo::new(Gid) -> Self
 pub fn ParticipantEntitiesInfo::node_entities_info_seq(Self) -> Array[NodeEntitiesInfo]
 pub fn ParticipantEntitiesInfo::to_cdr_bytes(Self) -> Bytes
 
+pub struct RosService {
+  ros_name : String
+  dds_request_name : String
+  dds_response_name : String
+  dds_request_type_name : String
+  dds_response_type_name : String
+} derive(Eq, @debug.Debug)
+pub fn RosService::dds_request_name(Self) -> String
+pub fn RosService::dds_request_type_name(Self) -> String
+pub fn RosService::dds_response_name(Self) -> String
+pub fn RosService::dds_response_type_name(Self) -> String
+pub fn RosService::new(String, String, String) -> Result[Self, String]
+pub fn RosService::request_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::request_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::response_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::response_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::ros_name(Self) -> String
+
 pub struct RosTopic {
   ros_name : String
   dds_name : String
