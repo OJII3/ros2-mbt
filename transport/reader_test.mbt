@@ -96,3 +96,38 @@ async test "best-effort reader accepts its discovered publication" {
   sender.close()
   reader.close()
 }
+
+///|
+async test "best-effort reader accepts DATA with an unknown reader ID" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, writer_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let reader = DataReader::new_for_publication(receiver, reader_id, publication).unwrap()
+  sender
+  .send_data(
+    @rtps.DataSubmessage::new(
+      @rtps.EntityId::unknown(),
+      writer_id,
+      1L,
+      b"multicast payload",
+    ),
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader.socket.local_addr(),
+  )
+  .unwrap()
+  let (decoded, _) = reader.receive().unwrap()
+  assert_eq(decoded.serialized_payload(), b"multicast payload")
+  sender.close()
+  reader.close()
+}

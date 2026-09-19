@@ -48,3 +48,18 @@ test "reliable reader accepts a multicast HEARTBEAT with unknown reader" {
   assert_eq(acknack.writer_id(), writer_id)
   assert_eq(acknack.num_bits(), 1U)
 }
+
+///|
+test "reliable reader accepts DATA with an unknown reader ID" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let data = @rtps.DataSubmessage::new(
+    @rtps.EntityId::unknown(),
+    writer_id,
+    1L,
+    b"multicast payload",
+  )
+  assert_true(reader.accept_data(data) is Ok(_))
+  assert_eq(reader.sample_count(), 1)
+}

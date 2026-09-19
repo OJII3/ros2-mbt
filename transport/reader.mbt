@@ -57,7 +57,10 @@ pub async fn DataReader::receive(
         Some(prefix) => message.header().guid_prefix() == prefix
         None => true
       }
-      if data.reader_id() != self.reader_id ||
+      if (
+          data.reader_id() != self.reader_id &&
+          data.reader_id() != @rtps.EntityId::unknown()
+        ) ||
         data.writer_id() != self.writer_id ||
         !prefix_matches {
         continue

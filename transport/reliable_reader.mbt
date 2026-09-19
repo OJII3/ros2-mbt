@@ -39,7 +39,8 @@ pub fn ReliableDataReader::accept_data(
   self : ReliableDataReader,
   data : @rtps.DataSubmessage,
 ) -> Result[Unit, String] {
-  if data.reader_id() != self.reader_id {
+  if data.reader_id() != self.reader_id &&
+    data.reader_id() != @rtps.EntityId::unknown() {
     return Err("the DATA sample targets a different RTPS reader")
   }
   if data.writer_id() != self.writer_id {
