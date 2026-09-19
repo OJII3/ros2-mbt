@@ -50,11 +50,39 @@ pub async fn Udp::send_to(
 }
 
 ///|
+/// Serialize and send one RTPS message as a complete UDP datagram.
+pub async fn Udp::send_message(
+  self : Udp,
+  message : @rtps.Message,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  let payload = match message.to_bytes() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.send_to(payload, destination)
+  Ok(())
+}
+
+///|
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
   let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
   let (length, source) = self.server.recvfrom(buffer, max_len=MAX_DATAGRAM_SIZE)
   (Bytes::from_array(buffer[:length]), source)
+}
+
+///|
+/// Receive and parse one RTPS message from a UDP datagram.
+pub async fn Udp::receive_message(
+  self : Udp,
+) -> Result[(@rtps.Message, @socket.Addr), String] {
+  let (payload, source) = self.receive()
+  let message = match @rtps.Message::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok((message, source))
 }
 
 ///|

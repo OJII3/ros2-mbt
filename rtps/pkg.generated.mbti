@@ -126,7 +126,7 @@ pub struct Header {
   protocol_version : ProtocolVersion
   vendor_id : VendorId
   guid_prefix : GuidPrefix
-}
+} derive(Eq, @debug.Debug)
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
@@ -147,7 +147,7 @@ pub fn Locator::udp_v4(Bytes, UInt) -> Result[Self, String]
 pub struct Message {
   header : Header
   submessages : Array[Submessage]
-}
+} derive(Eq, @debug.Debug)
 pub fn Message::add(Self, Submessage) -> Unit
 pub fn Message::from_bytes(Bytes) -> Result[Self, String]
 pub fn Message::header(Self) -> Header

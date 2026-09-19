@@ -3,7 +3,7 @@
 pub struct Message {
   header : Header
   submessages : Array[Submessage]
-}
+} derive(Eq, Debug)
 
 ///|
 pub fn Message::new(header : Header) -> Message {

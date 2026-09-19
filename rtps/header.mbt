@@ -43,7 +43,7 @@ pub struct Header {
   protocol_version : ProtocolVersion
   vendor_id : VendorId
   guid_prefix : GuidPrefix
-}
+} derive(Eq, Debug)
 
 ///|
 pub fn ProtocolVersion::new(major : Byte, minor : Byte) -> ProtocolVersion {
