@@ -8,8 +8,12 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS message header (`RTPS` magic、protocol version、vendor ID、GUID prefix)
 - RTPS submessage header（ID、flags、payload length、little-endian flag）
 - RTPS `EntityId` / `Guid` の16バイトwire format
+- RTPS `Locator_t` と UDP/IPv4 locator のwire format
+- RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
+- RTPS `DATA` submessage（CDR payload、inline QoS、SequenceNumber）
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
+- native async UDPのbind、unicast送受信、multicast socket wrapper
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -23,7 +27,7 @@ moon check
 moon test --target native
 ```
 
-現在はライブラリ基盤のみで、UDP transport、SPDP/SEDP discovery、ROS message codegenは未実装です。
+SPDP/SEDPのparticipant・endpointデータ生成、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 
 ## Roadmap
 
