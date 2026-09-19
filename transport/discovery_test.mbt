@@ -161,3 +161,95 @@ async test "discovery session receives from an additional metatraffic socket" {
   session.close()
   sender.close()
 }
+
+///|
+async test "discovery session acknowledges reliable SEDP heartbeats" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let participant_id = @rtps.EntityId::new(
+    b"prt",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let spdp_reader = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let spdp_writer = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let sedp_writer = @rtps.EntityId::new(b"\x00\x00\x03", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
+  )
+  let session = DiscoverySession::new(
+    receiver,
+    participant,
+    spdp_reader,
+    spdp_writer,
+    sender.local_addr(),
+    1L,
+  ).unwrap()
+  sender
+  .send_heartbeat(
+    @rtps.HeartbeatSubmessage::new(
+      @rtps.EntityId::unknown(),
+      sedp_writer,
+      1L,
+      1L,
+      1U,
+    ).unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let endpoint = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  sender
+  .send_data(
+    endpoint
+    .to_data_submessage(@rtps.EntityId::unknown(), sedp_writer, 1L)
+    .unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let (event, _) = session.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::Publication(publication) =>
+      assert_eq(publication.topic_name(), "rt/chatter")
+    DiscoveryEvent::Participant(_) => fail("expected an SEDP publication")
+    DiscoveryEvent::Subscription(_) => fail("expected an SEDP publication")
+  }
+  let (acknack, _) = sender.receive_acknack().unwrap()
+  assert_eq(
+    acknack.reader_id(),
+    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+  )
+  assert_eq(acknack.writer_id(), sedp_writer)
+  assert_eq(acknack.bitmap_base(), 1L)
+  assert_eq(acknack.num_bits(), 1U)
+  assert_eq(acknack.bitmap(), [0x80000000U])
+  session.close()
+  sender.close()
+}

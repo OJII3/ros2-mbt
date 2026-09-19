@@ -1,4 +1,12 @@
 ///|
+/// Reliable receive state for one remote SEDP builtin writer.
+struct DiscoverySedpReader {
+  writer_prefix : @rtps.GuidPrefix
+  writer_id : @rtps.EntityId
+  reader : ReliableDataReader
+}
+
+///|
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
   socket : Udp
@@ -8,6 +16,7 @@ pub struct DiscoverySession {
   writer_id : @rtps.EntityId
   destination : @socket.Addr
   mut next_sequence_number : Int64
+  sedp_readers : Array[DiscoverySedpReader]
 }
 
 ///|
@@ -31,6 +40,7 @@ pub fn DiscoverySession::new(
     writer_id,
     destination,
     next_sequence_number: first_sequence_number,
+    sedp_readers: [],
   })
 }
 
@@ -60,6 +70,7 @@ pub fn DiscoverySession::new_with_receive_sockets(
     writer_id,
     destination,
     next_sequence_number: first_sequence_number,
+    sedp_readers: [],
   })
 }
 
@@ -206,19 +217,202 @@ pub async fn DiscoverySession::announce_forever(
 }
 
 ///|
-/// Receive one discovery event using this session's socket.
+/// Return the receive result from one of the session's discovery sockets.
+async fn DiscoverySession::receive_message(
+  self : DiscoverySession,
+) -> Result[(@rtps.Message, @socket.Addr, Int), String] {
+  if self.receive_sockets.length() == 0 {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((message, source, 0))
+  }
+  let tasks : Array[
+    async () -> Result[(@rtps.Message, @socket.Addr, Int), String],
+  ] = []
+  tasks.push(async fn() {
+    match self.socket.receive_message() {
+      Ok((message, source)) => Ok((message, source, 0))
+      Err(message) => Err(message)
+    }
+  })
+  let mut receive_index = 1
+  for receive_socket in self.receive_sockets {
+    let index = receive_index
+    tasks.push(async fn() {
+      match receive_socket.receive_message() {
+        Ok((message, source)) => Ok((message, source, index))
+        Err(message) => Err(message)
+      }
+    })
+    receive_index += 1
+  }
+  @async.any(tasks, allow_failure=true)
+}
+
+///|
+/// Locate or create reliable receive state for one remote SEDP writer.
+fn DiscoverySession::sedp_reader_index(
+  self : DiscoverySession,
+  writer_prefix : @rtps.GuidPrefix,
+  writer_id : @rtps.EntityId,
+) -> Result[Int, String] {
+  for index in 0..<self.sedp_readers.length() {
+    let reader = self.sedp_readers[index]
+    if reader.writer_prefix == writer_prefix && reader.writer_id == writer_id {
+      return Ok(index)
+    }
+  }
+  let kind = match @rtps.SedpEndpointKind::from_builtin_writer_id(writer_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.sedp_readers.push({
+    writer_prefix,
+    writer_id,
+    reader: ReliableDataReader::new(kind.builtin_reader_id(), writer_id),
+  })
+  Ok(self.sedp_readers.length() - 1)
+}
+
+///|
+/// Remember a received SEDP DATA sample for later ACKNACK generation.
+fn DiscoverySession::record_sedp_data(
+  self : DiscoverySession,
+  writer_prefix : @rtps.GuidPrefix,
+  data : @rtps.DataSubmessage,
+) -> Unit {
+  let index = match self.sedp_reader_index(writer_prefix, data.writer_id()) {
+    Ok(value) => value
+    Err(_) => return
+  }
+  ignore(self.sedp_readers[index].reader.accept_data(data))
+}
+
+///|
+/// Acknowledge a reliable SEDP HEARTBEAT on the socket that received it.
+async fn DiscoverySession::acknowledge_sedp_heartbeat(
+  self : DiscoverySession,
+  socket_index : Int,
+  writer_prefix : @rtps.GuidPrefix,
+  heartbeat : @rtps.HeartbeatSubmessage,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  let index = match
+    self.sedp_reader_index(writer_prefix, heartbeat.writer_id()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let acknack = match
+    self.sedp_readers[index].reader.acknack_for_heartbeat(heartbeat) {
+    Ok(value) => value.with_final()
+    Err(message) => return Err(message)
+  }
+  let socket = if socket_index == 0 {
+    self.socket
+  } else {
+    self.receive_sockets[socket_index - 1]
+  }
+  socket.send_acknack(
+    acknack,
+    self.participant.participant_guid().prefix(),
+    self.participant.vendor_id(),
+    source,
+  )
+}
+
+///|
+/// Decode one RTPS message into its first SPDP/SEDP discovery event.
+async fn DiscoverySession::decode_message(
+  self : DiscoverySession,
+  message : @rtps.Message,
+  source : @socket.Addr,
+  socket_index : Int,
+) -> Result[DiscoveryEvent?, String] {
+  let mut event : DiscoveryEvent? = None
+  for submessage in message.submessages() {
+    match submessage.id() {
+      @rtps.SubmessageId::Data => {
+        let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
+          Ok(kind) => {
+            self.record_sedp_data(message.header().guid_prefix(), data)
+            if event is None {
+              match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+                Ok(endpoint) =>
+                  event = Some(
+                    match kind {
+                      @rtps.SedpEndpointKind::Publication =>
+                        DiscoveryEvent::Publication(endpoint)
+                      @rtps.SedpEndpointKind::Subscription =>
+                        DiscoveryEvent::Subscription(endpoint)
+                    },
+                  )
+                Err(_) => ()
+              }
+            }
+          }
+          Err(_) =>
+            if event is None {
+              match @rtps.SpdpParticipantData::from_data_submessage(data) {
+                Ok(participant) =>
+                  event = Some(DiscoveryEvent::Participant(participant))
+                Err(_) => ()
+              }
+            }
+        }
+      }
+      @rtps.SubmessageId::Heartbeat => {
+        let heartbeat = match
+          @rtps.HeartbeatSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id())
+          is Ok(_) {
+          match
+            self.acknowledge_sedp_heartbeat(
+              socket_index,
+              message.header().guid_prefix(),
+              heartbeat,
+              source,
+            ) {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
+        }
+      }
+      _ => ()
+    }
+  }
+  Ok(event)
+}
+
+///|
+/// Receive one discovery event and acknowledge reliable SEDP heartbeats.
 pub async fn DiscoverySession::receive_once(
   self : DiscoverySession,
 ) -> Result[(DiscoveryEvent, @socket.Addr), String] {
-  if self.receive_sockets.length() == 0 {
-    return self.socket.receive_discovery()
+  while true {
+    let (message, source, socket_index) = match self.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let event = match self.decode_message(message, source, socket_index) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match event {
+      Some(value) => return Ok((value, source))
+      None => ()
+    }
+  } nobreak {
+    Err("discovery receive loop stopped")
   }
-  let tasks : Array[async () -> Result[(DiscoveryEvent, @socket.Addr), String]] = []
-  tasks.push(async fn() { self.socket.receive_discovery() })
-  for receive_socket in self.receive_sockets {
-    tasks.push(async fn() { receive_socket.receive_discovery() })
-  }
-  @async.any(tasks, allow_failure=true)
 }
 
 ///|
