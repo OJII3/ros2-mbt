@@ -19,6 +19,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - 発見済み participant の metatraffic locator へ送る SEDP helper
 - DDSI-RTPS default port mapping、SPDP/user-data address helper
 - DDSI 標準 locator と builtin endpoint を設定する participant helper
+- discovery/user-data socket をまとめる `RosParticipant` lifecycle facade
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`

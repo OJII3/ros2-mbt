@@ -245,6 +245,22 @@ pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtp
 pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 
+pub struct RosParticipant {
+  participant : @rtps.SpdpParticipantData
+  discovery : DiscoveryService
+  user_socket : Udp
+  user_locator : @rtps.Locator
+}
+pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
+pub fn RosParticipant::close(Self) -> Unit
+pub fn RosParticipant::from_sockets(Udp, Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
+pub fn RosParticipant::graph(Self) -> DiscoveryGraph
+pub fn RosParticipant::into_parts(Self) -> (DiscoveryService, Udp)
+pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64) -> Result[Self, String]
+pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
+pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+pub fn RosParticipant::user_locator(Self) -> @rtps.Locator
+
 pub struct RosPublisher {
   topic : @ros.RosTopic
   writer : DataWriter

@@ -46,9 +46,11 @@ fn ddsi_udp_locator(ip : UInt, port : Int) -> Result[@rtps.Locator, String] {
 
 ///|
 fn ddsi_port(domain_id : UInt, offset : Int) -> Result[Int, String] {
-  let port = DDSI_PORT_BASE +
-    domain_id.reinterpret_as_int() * DDSI_DOMAIN_ID_GAIN +
-    offset
+  let domain = domain_id.reinterpret_as_int()
+  if domain < 0 || offset < 0 {
+    return Err("the DDSI-RTPS domain or participant ID is out of range")
+  }
+  let port = DDSI_PORT_BASE + domain * DDSI_DOMAIN_ID_GAIN + offset
   if port < 1 || port > 65535 {
     return Err("the DDSI-RTPS port is outside the UDP port range")
   }
@@ -67,10 +69,13 @@ pub fn ddsi_spdp_unicast_port(
   domain_id : UInt,
   participant_id : UInt,
 ) -> Result[Int, String] {
+  let participant = participant_id.reinterpret_as_int()
+  if participant < 0 {
+    return Err("the DDSI-RTPS participant ID is out of range")
+  }
   ddsi_port(
     domain_id,
-    DDSI_SPDP_UNICAST_OFFSET +
-    participant_id.reinterpret_as_int() * DDSI_PARTICIPANT_ID_GAIN,
+    DDSI_SPDP_UNICAST_OFFSET + participant * DDSI_PARTICIPANT_ID_GAIN,
   )
 }
 
@@ -86,10 +91,13 @@ pub fn ddsi_user_unicast_port(
   domain_id : UInt,
   participant_id : UInt,
 ) -> Result[Int, String] {
+  let participant = participant_id.reinterpret_as_int()
+  if participant < 0 {
+    return Err("the DDSI-RTPS participant ID is out of range")
+  }
   ddsi_port(
     domain_id,
-    DDSI_USER_UNICAST_OFFSET +
-    participant_id.reinterpret_as_int() * DDSI_PARTICIPANT_ID_GAIN,
+    DDSI_USER_UNICAST_OFFSET + participant * DDSI_PARTICIPANT_ID_GAIN,
   )
 }
 

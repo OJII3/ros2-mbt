@@ -8,6 +8,8 @@ test "DDSI-RTPS default discovery ports" {
   assert_eq(ddsi_user_unicast_port(0, 0), Ok(7411))
   assert_eq(ddsi_user_unicast_port(3, 2), Ok(8165))
   assert_true(ddsi_spdp_multicast_port(1000) is Err(_))
+  assert_true(ddsi_spdp_multicast_port(0xFFFFFFFFU) is Err(_))
+  assert_true(ddsi_spdp_unicast_port(0, 0xFFFFFFFFU) is Err(_))
 }
 
 ///|
