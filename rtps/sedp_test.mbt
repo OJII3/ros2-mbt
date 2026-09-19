@@ -45,6 +45,18 @@ test "SEDP endpoint data round trips required fields and locators" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let encoded_parameters = match ParameterList::from_cdr_bytes(encoded) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let mut key_hash_found = false
+  for parameter in encoded_parameters.values() {
+    if parameter.id() == PID_KEY_HASH {
+      key_hash_found = true
+      assert_eq(parameter.value(), endpoint_guid.to_bytes())
+    }
+  }
+  assert_true(key_hash_found)
   let decoded = match
     SedpEndpointData::from_cdr_bytes(SedpEndpointKind::Publication, encoded) {
     Ok(value) => value

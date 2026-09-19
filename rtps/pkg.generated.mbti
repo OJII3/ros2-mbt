@@ -110,6 +110,8 @@ pub const PID_EXPECTS_INLINE_QOS : UInt16 = 0x0043
 
 pub const PID_HISTORY : UInt16 = 0x0040
 
+pub const PID_KEY_HASH : UInt16 = 0x0070
+
 pub const PID_LATENCY_BUDGET : UInt16 = 0x0027
 
 pub const PID_LIFESPAN : UInt16 = 0x002B

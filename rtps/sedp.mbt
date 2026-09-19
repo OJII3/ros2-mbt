@@ -392,6 +392,7 @@ fn sedp_read_string(value : Bytes, label : String) -> Result[String, String] {
 fn sedp_is_identity_parameter(id : UInt16) -> Bool {
   id == PID_ENDPOINT_GUID ||
   id == PID_PARTICIPANT_GUID ||
+  id == PID_KEY_HASH ||
   id == PID_TOPIC_NAME ||
   id == PID_TYPE_NAME ||
   id == PID_UNICAST_LOCATOR ||
@@ -428,6 +429,7 @@ pub fn SedpEndpointData::to_parameter_list(
       },
     ),
   )
+  parameters.add(Parameter::new(PID_KEY_HASH, self.endpoint_guid.to_bytes()))
   for locator in self.unicast_locators {
     parameters.add(Parameter::new(PID_UNICAST_LOCATOR, locator.to_bytes()))
   }

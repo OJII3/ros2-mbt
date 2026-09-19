@@ -73,6 +73,10 @@ pub const PID_RELATED_SAMPLE_IDENTITY : UInt16 = 0x0083
 pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
 
 ///|
+/// Endpoint instance key hash, normally derived from the endpoint GUID.
+pub const PID_KEY_HASH : UInt16 = 0x0070
+
+///|
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
 ///|
