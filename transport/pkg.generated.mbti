@@ -105,6 +105,7 @@ pub struct DiscoveryService {
 }
 pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_once(Self, @rtps.SedpEndpointData, @rtps.SpdpParticipantData) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_to_all(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
 pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
 pub fn DiscoveryService::new(DiscoverySession) -> Self

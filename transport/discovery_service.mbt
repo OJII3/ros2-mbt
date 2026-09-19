@@ -58,6 +58,25 @@ pub async fn DiscoveryService::announce_sedp_once(
 }
 
 ///|
+/// Send one local SEDP endpoint announcement to every discovered participant.
+pub async fn DiscoveryService::announce_sedp_to_all(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  let local_guid = self.session.participant.participant_guid()
+  for remote_participant in self.graph.participants() {
+    if remote_participant.participant_guid() == local_guid {
+      continue
+    }
+    match self.announce_sedp_once(endpoint, remote_participant) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Return the next sequence number for a local SEDP endpoint kind.
 pub fn DiscoveryService::next_sedp_sequence_number(
   self : DiscoveryService,
