@@ -105,6 +105,16 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
             Err(_) => continue
           }
         }
+        @rtps.SubmessageId::Gap => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let gap = match @rtps.GapSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          ignore(self.state.accept_gap(gap))
+        }
         _ => ()
       }
     }
@@ -181,6 +191,16 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Ok(_) => return Ok((heartbeat, source))
             Err(message) => return Err(message)
           }
+        }
+        @rtps.SubmessageId::Gap => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let gap = match @rtps.GapSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          ignore(self.state.accept_gap(gap))
         }
         _ => ()
       }

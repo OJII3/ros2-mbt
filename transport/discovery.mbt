@@ -347,6 +347,20 @@ fn DiscoverySession::record_sedp_data(
 }
 
 ///|
+/// Remember a received SEDP GAP for later ACKNACK generation.
+fn DiscoverySession::record_sedp_gap(
+  self : DiscoverySession,
+  writer_prefix : @rtps.GuidPrefix,
+  gap : @rtps.GapSubmessage,
+) -> Unit {
+  let index = match self.sedp_reader_index(writer_prefix, gap.writer_id()) {
+    Ok(value) => value
+    Err(_) => return
+  }
+  ignore(self.sedp_readers[index].reader.accept_gap(gap))
+}
+
+///|
 /// Acknowledge a reliable SEDP HEARTBEAT on the socket that received it.
 async fn DiscoverySession::acknowledge_sedp_heartbeat(
   self : DiscoverySession,
@@ -495,6 +509,16 @@ async fn DiscoverySession::decode_message(
             Ok(_) => ()
             Err(message) => return Err(message)
           }
+        }
+      }
+      @rtps.SubmessageId::Gap => {
+        let gap = match @rtps.GapSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if @rtps.SedpEndpointKind::from_builtin_writer_id(gap.writer_id())
+          is Ok(_) {
+          self.record_sedp_gap(message.header().guid_prefix(), gap)
         }
       }
       @rtps.SubmessageId::AckNack => {

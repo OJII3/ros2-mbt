@@ -126,3 +126,73 @@ async test "reliable reader session receives discovered publication data" {
   sender.close()
   reader.close()
 }
+
+///|
+async test "reliable reader session applies GAP before acknowledging HEARTBEAT" {
+  let prefix = @rtps.GuidPrefix::from_array(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = @rtps.Locator::udp_v4(
+    b"\x7F\x00\x00\x01",
+    sender.local_addr().port().reinterpret_as_uint(),
+  ).unwrap()
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, writer_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_unicast_locator(locator)
+  let reader = ReliableDataReaderSession::new_for_publication(
+    receiver,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    publication,
+  ).unwrap()
+  let gap = @rtps.GapSubmessage::new(
+    reader_id,
+    writer_id,
+    2L,
+    4L,
+    5U,
+    [0x90000000U],
+  ).unwrap()
+  match
+    sender.send_message(
+      gap.to_message(prefix, @rtps.VendorId::new(1, 15)),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    5L,
+    1U,
+  ).unwrap()
+  match
+    sender.send_heartbeat(
+      heartbeat,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (received, _) = reader.receive_heartbeat().unwrap()
+  let (acknack, _) = sender.receive_acknack().unwrap()
+  assert_eq(received.last_sequence_number(), 5L)
+  assert_eq(acknack.bitmap_base(), 1L)
+  assert_eq(acknack.num_bits(), 5U)
+  assert_eq(acknack.bitmap(), [0x88000000U])
+  sender.close()
+  reader.close()
+}
