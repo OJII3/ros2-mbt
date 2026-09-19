@@ -68,6 +68,21 @@ test "ROS service request and response hashes match RIHS01 vectors" {
 }
 
 ///|
+test "ROS service hash includes the generated event type" {
+  let definition = parse_service(
+    "example_interfaces",
+    "AddTwoInts",
+    "int64 a\nint64 b\n---\nint64 sum",
+  ).unwrap()
+  assert_eq(
+    definition.type_hash(),
+    Ok(
+      "RIHS01_de8fec42de89bb46c66d22e7108914c4334d3555d679de8ff3ab5f4d7fe95c42",
+    ),
+  )
+}
+
+///|
 test "ROS service parser requires exactly one separator" {
   assert_true(parse_service("demo", "Empty", "int32 value") is Err(_))
   assert_true(

@@ -980,7 +980,8 @@ fn rosidl_type_reference_name(value : String) -> Bool {
     return rosidl_identifier(parts[0].to_owned()) &&
       rosidl_identifier(parts[1].to_owned())
   }
-  if parts.length() != 3 || parts[1] != "msg" {
+  if parts.length() != 3 ||
+    (parts[1] != "msg" && parts[1] != "srv") {
     return false
   }
   rosidl_identifier(parts[0].to_owned()) &&

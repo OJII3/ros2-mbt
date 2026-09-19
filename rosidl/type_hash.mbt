@@ -330,19 +330,63 @@ fn rosidl_hash_string(value : String) -> String {
 }
 
 ///|
+fn rosidl_hash_field_names(
+  definition : MessageDefinition,
+) -> Result[Array[String], String] {
+  let nested_type_names : Array[String] = []
+  for field in definition.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => nested_type_names.push("")
+      Err(_) => {
+        let parts = field.type_name().split("/").collect()
+        if parts.length() != 3 {
+          return Err(
+            "a nested ROS field needs a fully qualified type name for hashing",
+          )
+        }
+        nested_type_names.push(field.type_name())
+      }
+    }
+  }
+  Ok(nested_type_names)
+}
+
+///|
+fn rosidl_hash_with_references(
+  definition : MessageDefinition,
+  references : Array[MessageDefinition],
+) -> Result[String, String] {
+  let sorted_references = rosidl_hash_sort_definitions(references)
+  let reference_json : Array[(MessageDefinition, Array[String])] = []
+  for reference in sorted_references {
+    let field_names = match rosidl_hash_field_names(reference) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    reference_json.push((reference, field_names))
+  }
+  let root_field_names = match rosidl_hash_field_names(definition) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let json = match rosidl_hash_json(definition, root_field_names, reference_json) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(rosidl_hash_string(json))
+}
+
+///|
 /// Calculate a RIHS01 hash for a message containing only primitive fields.
 pub fn MessageDefinition::type_hash(
   self : MessageDefinition,
 ) -> Result[String, String] {
-  let nested_type_names : Array[String] = []
-  for field in self.fields() {
-    match rosidl_hash_primitive_type_id(field.type_name()) {
-      Ok(_) => nested_type_names.push("")
-      Err(_) =>
-        return Err(
-          "MessageDefinition::type_hash needs a MessageWorkspace for nested fields",
-        )
-    }
+  let nested_type_names = match rosidl_hash_field_names(self) {
+    Ok(value) => value
+    Err(_) =>
+      return Err(
+        "MessageDefinition::type_hash needs a MessageWorkspace for nested fields",
+      )
   }
   let individual = match
     rosidl_hash_individual_json(self, nested_type_names) {
@@ -352,6 +396,120 @@ pub fn MessageDefinition::type_hash(
   let json = "{\"type_description\": " + individual +
     ", \"referenced_type_descriptions\": []}"
   Ok(rosidl_hash_string(json))
+}
+
+///|
+/// Calculate the RIHS01 hash for a ROS service type description.
+///
+/// ROS describes a service as a synthetic type containing its request,
+/// response, and event message types. The event message also contains the
+/// standard service event metadata and one request/response item each.
+pub fn ServiceDefinition::type_hash(
+  self : ServiceDefinition,
+) -> Result[String, String] {
+  for field in self.request.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => ()
+      Err(_) =>
+        return Err(
+          "ServiceDefinition::type_hash needs a MessageWorkspace for nested request fields",
+        )
+    }
+  }
+  for field in self.response.fields() {
+    match rosidl_hash_primitive_type_id(field.type_name()) {
+      Ok(_) => ()
+      Err(_) =>
+        return Err(
+          "ServiceDefinition::type_hash needs a MessageWorkspace for nested response fields",
+        )
+    }
+  }
+
+  let package_name = self.package_name()
+  let service_name = self.service_name()
+  let request = self.request
+  let response = self.response
+  let request_type_name = package_name + "/srv/" + request.type_name()
+  let response_type_name = package_name + "/srv/" + response.type_name()
+  let event_type_name = package_name + "/srv/" + service_name + "_Event"
+  let info_type_name = "service_msgs/msg/ServiceEventInfo"
+  let time_type_name = "builtin_interfaces/msg/Time"
+
+  let time = match
+    MessageDefinition::new(
+      "builtin_interfaces",
+      "msg",
+      "Time",
+      [
+        MessageField::new("int32", "sec"),
+        MessageField::new("uint32", "nanosec"),
+      ],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let info = match
+    MessageDefinition::new_with_types(
+      "service_msgs",
+      "msg",
+      "ServiceEventInfo",
+      [
+        MessageField::new("uint8", "event_type"),
+        MessageField::new(time_type_name, "stamp"),
+        MessageField::new("char", "client_gid").with_collection(
+          MessageFieldCollection::FixedArray(16),
+        ),
+        MessageField::new("int64", "sequence_number"),
+      ],
+      [MessageTypeReference::new(time_type_name, "Time")],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let event = match
+    MessageDefinition::new_with_types(
+      package_name,
+      "srv",
+      service_name + "_Event",
+      [
+        MessageField::new(info_type_name, "info"),
+        MessageField::new(request_type_name, "request").with_collection(
+          MessageFieldCollection::BoundedSequence(1),
+        ),
+        MessageField::new(response_type_name, "response").with_collection(
+          MessageFieldCollection::BoundedSequence(1),
+        ),
+      ],
+      [
+        MessageTypeReference::new(info_type_name, "ServiceEventInfo"),
+        MessageTypeReference::new(request_type_name, request.type_name()),
+        MessageTypeReference::new(response_type_name, response.type_name()),
+      ],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let service = match
+    MessageDefinition::new_with_types(
+      package_name,
+      "srv",
+      service_name,
+      [
+        MessageField::new(request_type_name, "request_message"),
+        MessageField::new(response_type_name, "response_message"),
+        MessageField::new(event_type_name, "event_message"),
+      ],
+      [
+        MessageTypeReference::new(request_type_name, request.type_name()),
+        MessageTypeReference::new(response_type_name, response.type_name()),
+        MessageTypeReference::new(event_type_name, event.type_name()),
+      ],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  rosidl_hash_with_references(service, [request, response, event, info, time])
 }
 
 ///|

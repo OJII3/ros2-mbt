@@ -124,6 +124,7 @@ pub fn ServiceDefinition::package_name(Self) -> String
 pub fn ServiceDefinition::request(Self) -> MessageDefinition
 pub fn ServiceDefinition::response(Self) -> MessageDefinition
 pub fn ServiceDefinition::service_name(Self) -> String
+pub fn ServiceDefinition::type_hash(Self) -> Result[String, String]
 
 // Type aliases
 
