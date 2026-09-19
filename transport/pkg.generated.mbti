@@ -31,6 +31,16 @@ pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
 // Errors
 
 // Types and methods
+pub struct DataReader {
+  socket : Udp
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+}
+pub fn DataReader::close(Self) -> Unit
+pub fn DataReader::new(Udp, @rtps.EntityId, @rtps.EntityId) -> Self
+pub fn DataReader::new_for_publication(Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub async fn DataReader::receive(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+
 pub struct DataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
@@ -42,6 +52,7 @@ pub struct DataWriter {
 }
 pub fn DataWriter::close(Self) -> Unit
 pub fn DataWriter::new(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn DataWriter::new_for_subscription(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn DataWriter::next_sequence_number(Self) -> Int64
 pub async fn DataWriter::write(Self, Bytes) -> Result[Unit, String]
 

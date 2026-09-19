@@ -39,6 +39,43 @@ pub fn DataWriter::new(
 }
 
 ///|
+/// Create a writer targeting a discovered SEDP subscription endpoint.
+pub fn DataWriter::new_for_subscription(
+  socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  subscription : @rtps.SedpEndpointData,
+  first_sequence_number : Int64,
+) -> Result[DataWriter, String] {
+  if subscription.kind() != @rtps.SedpEndpointKind::Subscription {
+    return Err("a DataWriter target must be an SEDP subscription")
+  }
+  let unicast_locators = subscription.unicast_locators()
+  let locators = if unicast_locators.length() > 0 {
+    unicast_locators
+  } else {
+    subscription.multicast_locators()
+  }
+  if locators.length() == 0 {
+    return Err("the discovered subscription has no UDP locators")
+  }
+  let destination = match udp_locator_to_addr(locators[0]) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  DataWriter::new(
+    socket,
+    guid_prefix,
+    vendor_id,
+    subscription.endpoint_guid().entity_id(),
+    writer_id,
+    destination,
+    first_sequence_number,
+  )
+}
+
+///|
 /// Return the sequence number that will be used by the next write.
 pub fn DataWriter::next_sequence_number(self : DataWriter) -> Int64 {
   self.next_sequence_number
