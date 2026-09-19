@@ -86,9 +86,11 @@ pub fn RosService::dds_response_type_name(Self) -> String
 pub fn RosService::new(String, String, String) -> Result[Self, String]
 pub fn RosService::request_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::request_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_related_endpoint(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::response_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::response_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosService::response_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::response_to_sedp_with_related_endpoint(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::ros_name(Self) -> String
 

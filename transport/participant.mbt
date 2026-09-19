@@ -282,12 +282,14 @@ pub async fn RosParticipant::register_topic_endpoint_with_type_hash(
 }
 
 ///|
-/// Register the request reader and response writer for a ROS service server.
-pub async fn RosParticipant::register_service_server(
+/// Register a ROS service server with optional request/response type hashes.
+async fn RosParticipant::register_service_server_with_optional_type_hashes(
   self : RosParticipant,
   service : @ros.RosService,
   request_reader_id : @rtps.EntityId,
   response_writer_id : @rtps.EntityId,
+  request_type_hash : String?,
+  response_type_hash : String?,
 ) -> Result[Unit, String] {
   let prefix = self.participant.participant_guid().prefix()
   let request_guid = @rtps.Guid::new(prefix, request_reader_id)
@@ -301,6 +303,11 @@ pub async fn RosParticipant::register_service_server(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  match request_type_hash {
+    Some(type_hash) =>
+      request.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    None => ()
+  }
   request.add_unicast_locator(self.user_locator)
   match self.register_endpoint(request) {
     Ok(_) => ()
@@ -315,17 +322,60 @@ pub async fn RosParticipant::register_service_server(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  match response_type_hash {
+    Some(type_hash) =>
+      response.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    None => ()
+  }
   response.add_unicast_locator(self.user_locator)
   self.register_endpoint(response)
 }
 
 ///|
-/// Register the request writer and response reader for a ROS service client.
-pub async fn RosParticipant::register_service_client(
+/// Register the request reader and response writer for a ROS service server.
+pub async fn RosParticipant::register_service_server(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_reader_id : @rtps.EntityId,
+  response_writer_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  self.register_service_server_with_optional_type_hashes(
+    service,
+    request_reader_id,
+    response_writer_id,
+    None,
+    None,
+  )
+}
+
+///|
+/// Register a ROS service server and advertise request/response type hashes.
+pub async fn RosParticipant::register_service_server_with_type_hashes(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_reader_id : @rtps.EntityId,
+  response_writer_id : @rtps.EntityId,
+  request_type_hash : String,
+  response_type_hash : String,
+) -> Result[Unit, String] {
+  self.register_service_server_with_optional_type_hashes(
+    service,
+    request_reader_id,
+    response_writer_id,
+    Some(request_type_hash),
+    Some(response_type_hash),
+  )
+}
+
+///|
+/// Register a ROS service client with optional request/response type hashes.
+async fn RosParticipant::register_service_client_with_optional_type_hashes(
   self : RosParticipant,
   service : @ros.RosService,
   request_writer_id : @rtps.EntityId,
   response_reader_id : @rtps.EntityId,
+  request_type_hash : String?,
+  response_type_hash : String?,
 ) -> Result[Unit, String] {
   let prefix = self.participant.participant_guid().prefix()
   let request_guid = @rtps.Guid::new(prefix, request_writer_id)
@@ -338,6 +388,11 @@ pub async fn RosParticipant::register_service_client(
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
+  }
+  match request_type_hash {
+    Some(type_hash) =>
+      request.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    None => ()
   }
   request.add_unicast_locator(self.user_locator)
   match self.register_endpoint(request) {
@@ -353,8 +408,49 @@ pub async fn RosParticipant::register_service_client(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  match response_type_hash {
+    Some(type_hash) =>
+      response.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    None => ()
+  }
   response.add_unicast_locator(self.user_locator)
   self.register_endpoint(response)
+}
+
+///|
+/// Register the request writer and response reader for a ROS service client.
+pub async fn RosParticipant::register_service_client(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_writer_id : @rtps.EntityId,
+  response_reader_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  self.register_service_client_with_optional_type_hashes(
+    service,
+    request_writer_id,
+    response_reader_id,
+    None,
+    None,
+  )
+}
+
+///|
+/// Register a ROS service client and advertise request/response type hashes.
+pub async fn RosParticipant::register_service_client_with_type_hashes(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_writer_id : @rtps.EntityId,
+  response_reader_id : @rtps.EntityId,
+  request_type_hash : String,
+  response_type_hash : String,
+) -> Result[Unit, String] {
+  self.register_service_client_with_optional_type_hashes(
+    service,
+    request_writer_id,
+    response_reader_id,
+    Some(request_type_hash),
+    Some(response_type_hash),
+  )
 }
 
 ///|

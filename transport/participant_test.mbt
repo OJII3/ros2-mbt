@@ -247,8 +247,16 @@ async test "ROS participant registers service client endpoints" {
   ).unwrap()
   let request_writer_id = @rtps.EntityId::new(b"crq", 0xC2).unwrap()
   let response_reader_id = @rtps.EntityId::new(b"crs", 0xC7).unwrap()
+  let request_hash = "RIHS01_request_hash"
+  let response_hash = "RIHS01_response_hash"
   match
-    node.register_service_client(service, request_writer_id, response_reader_id) {
+    node.register_service_client_with_type_hashes(
+      service,
+      request_writer_id,
+      response_reader_id,
+      request_hash,
+      response_hash,
+    ) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -265,6 +273,8 @@ async test "ROS participant registers service client endpoints" {
   )
   let request_qos = node.local_endpoints()[0].qos().unwrap()
   assert_eq(request_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
+  assert_eq(node.local_endpoints()[0].type_hash(), Ok(Some(request_hash)))
+  assert_eq(node.local_endpoints()[1].type_hash(), Ok(Some(response_hash)))
   let info = node.participant_entities_info("/demo", "client").unwrap()
   assert_eq(info.node_entities_info_seq()[0].writer_gid_seq().length(), 1)
   assert_eq(info.node_entities_info_seq()[0].reader_gid_seq().length(), 1)

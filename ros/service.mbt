@@ -108,6 +108,21 @@ pub fn RosService::request_to_sedp_with_qos(
 }
 
 ///|
+/// Build a service request SEDP endpoint and advertise its ROS type hash.
+pub fn RosService::request_to_sedp_with_qos_and_type_hash(
+  self : RosService,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  qos : @rtps.SedpQos,
+  type_hash : String,
+) -> Result[@rtps.SedpEndpointData, String] {
+  self.request_to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+    endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    endpoint
+  })
+}
+
+///|
 /// Build a service request SEDP endpoint linked to its response endpoint.
 pub fn RosService::request_to_sedp_with_related_endpoint(
   self : RosService,
@@ -168,6 +183,21 @@ pub fn RosService::response_to_sedp_with_qos(
     qos,
     None,
   )
+}
+
+///|
+/// Build a service response SEDP endpoint and advertise its ROS type hash.
+pub fn RosService::response_to_sedp_with_qos_and_type_hash(
+  self : RosService,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  qos : @rtps.SedpQos,
+  type_hash : String,
+) -> Result[@rtps.SedpEndpointData, String] {
+  self.response_to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+    endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    endpoint
+  })
 }
 
 ///|

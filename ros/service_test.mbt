@@ -143,3 +143,45 @@ test "ROS service SEDP links request and response endpoints" {
   assert_eq(request_related, Some(response_guid.to_bytes()))
   assert_eq(response_related, Some(request_guid.to_bytes()))
 }
+
+///|
+test "ROS service SEDP can advertise request and response type hashes" {
+  let service = RosService::new(
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
+  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let request_guid = @rtps.Guid::new(
+    prefix, @rtps.EntityId::new(b"req", 0xC7).unwrap(),
+  )
+  let response_guid = @rtps.Guid::new(
+    prefix, @rtps.EntityId::new(b"res", 0xC2).unwrap(),
+  )
+  let request_hash = "RIHS01_request_hash"
+  let response_hash = "RIHS01_response_hash"
+  let request = service.request_to_sedp_with_qos_and_type_hash(
+    @rtps.SedpEndpointKind::Subscription,
+    request_guid,
+    @rtps.SedpQos::new(
+      @rtps.RELIABILITY_RELIABLE,
+      @rtps.DURABILITY_VOLATILE,
+      @rtps.HISTORY_KEEP_LAST,
+      10,
+    ),
+    request_hash,
+  ).unwrap()
+  let response = service.response_to_sedp_with_qos_and_type_hash(
+    @rtps.SedpEndpointKind::Publication,
+    response_guid,
+    @rtps.SedpQos::new(
+      @rtps.RELIABILITY_RELIABLE,
+      @rtps.DURABILITY_VOLATILE,
+      @rtps.HISTORY_KEEP_LAST,
+      10,
+    ),
+    response_hash,
+  ).unwrap()
+  assert_eq(request.type_hash(), Ok(Some(request_hash)))
+  assert_eq(response.type_hash(), Ok(Some(response_hash)))
+}
