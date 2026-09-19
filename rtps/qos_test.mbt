@@ -39,3 +39,12 @@ test "RTPS QoS helper parameter identifiers" {
   )
   assert_eq(qos_type_max_size_serialized(1024).value(), b"\x00\x04\x00\x00")
 }
+
+///|
+test "RTPS QoS helper encodes ROS type hash user data" {
+  let type_hash =
+    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  let parameter = qos_user_data_type_hash(type_hash)
+  assert_eq(parameter.id(), PID_USER_DATA)
+  assert_eq(parameter.value(), @utf8.encode("typehash=" + type_hash + ";"))
+}

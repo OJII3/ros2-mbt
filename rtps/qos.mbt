@@ -152,6 +152,12 @@ pub fn qos_user_data(value : Bytes) -> Parameter {
 }
 
 ///|
+/// Construct ROS 2's `typehash=<RIHS01 hash>;` USER_DATA value.
+pub fn qos_user_data_type_hash(type_hash : String) -> Parameter {
+  qos_user_data(@utf8.encode("typehash=" + type_hash + ";"))
+}
+
+///|
 /// Construct a PID_LATENCY_BUDGET parameter.
 pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> Parameter {
   Parameter::new(PID_LATENCY_BUDGET, qos_duration(seconds, nanoseconds))

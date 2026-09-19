@@ -104,3 +104,29 @@ test "ROS topic descriptor advertises the configured data representations" {
     [@rtps.DATA_REPRESENTATION_XCDR2],
   )
 }
+
+///|
+test "ROS topic descriptor advertises its RIHS01 type hash" {
+  let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let entity_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
+  let type_hash =
+    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  let endpoint = topic.to_sedp_with_qos_and_type_hash(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, entity_id),
+    @rtps.SedpQos::default(),
+    type_hash,
+  ).unwrap()
+  let expected = @rtps.qos_user_data_type_hash(type_hash).value()
+  let mut found = false
+  for parameter in endpoint.extra_parameters() {
+    if parameter.id() == @rtps.PID_USER_DATA {
+      found = true
+      assert_eq(parameter.value(), expected)
+    }
+  }
+  assert_true(found)
+}

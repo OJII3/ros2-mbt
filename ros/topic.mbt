@@ -91,3 +91,18 @@ pub fn RosTopic::to_sedp_with_qos(
     endpoint
   })
 }
+
+///|
+/// Build an SEDP endpoint and advertise its ROS 2 RIHS01 type hash.
+pub fn RosTopic::to_sedp_with_qos_and_type_hash(
+  self : RosTopic,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  qos : @rtps.SedpQos,
+  type_hash : String,
+) -> Result[@rtps.SedpEndpointData, String] {
+  self.to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+    endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
+    endpoint
+  })
+}

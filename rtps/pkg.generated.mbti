@@ -220,6 +220,8 @@ pub fn qos_type_max_size_serialized(UInt) -> Parameter
 
 pub fn qos_user_data(Bytes) -> Parameter
 
+pub fn qos_user_data_type_hash(String) -> Parameter
+
 // Errors
 
 // Types and methods

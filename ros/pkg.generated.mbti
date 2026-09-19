@@ -101,6 +101,7 @@ pub fn RosTopic::new(String, String, String, String) -> Result[Self, String]
 pub fn RosTopic::ros_name(Self) -> String
 pub fn RosTopic::to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosTopic::to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosTopic::to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
 
 pub struct StringMessage {
   data : String
