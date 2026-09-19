@@ -176,6 +176,60 @@ pub async fn Udp::receive_sedp(
 }
 
 ///|
+/// A discovery sample recognized from an RTPS DATA submessage.
+pub(all) enum DiscoveryEvent {
+  Participant(@rtps.SpdpParticipantData)
+  Publication(@rtps.SedpEndpointData)
+  Subscription(@rtps.SedpEndpointData)
+}
+
+///|
+/// Receive the first recognized SPDP or SEDP sample in a UDP datagram.
+///
+/// SEDP publication/subscription samples are distinguished by their
+/// predefined builtin writer entity IDs. Unknown DATA samples are skipped so
+/// that a shared discovery socket can also carry unrelated RTPS traffic.
+pub async fn Udp::receive_discovery(
+  self : Udp,
+) -> Result[(DiscoveryEvent, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::Data {
+      continue
+    }
+    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(_) => continue
+    }
+    match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
+      Ok(kind) => {
+        let endpoint = match
+          @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match kind {
+          @rtps.SedpEndpointKind::Publication =>
+            return Ok((DiscoveryEvent::Publication(endpoint), source))
+          @rtps.SedpEndpointKind::Subscription =>
+            return Ok((DiscoveryEvent::Subscription(endpoint), source))
+        }
+      }
+      Err(_) => ()
+    }
+    match @rtps.SpdpParticipantData::from_data_submessage(data) {
+      Ok(participant) =>
+        return Ok((DiscoveryEvent::Participant(participant), source))
+      Err(_) => continue
+    }
+  }
+  Err("RTPS datagram does not contain a recognized discovery DATA submessage")
+}
+
+///|
 /// Close the underlying socket.
 pub fn Udp::close(self : Udp) -> Unit {
   self.server.close()

@@ -12,6 +12,12 @@ pub const MAX_DATAGRAM_SIZE : Int = 65535
 // Errors
 
 // Types and methods
+pub(all) enum DiscoveryEvent {
+  Participant(@rtps.SpdpParticipantData)
+  Publication(@rtps.SedpEndpointData)
+  Subscription(@rtps.SedpEndpointData)
+}
+
 pub struct Udp {
   server : @socket.UdpServer
 }
@@ -21,6 +27,7 @@ pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub async fn Udp::multicast(@socket.Addr) -> Self
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
+pub async fn Udp::receive_discovery(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
 pub async fn Udp::receive_message(Self) -> Result[(@rtps.Message, @socket.Addr), String]
 pub async fn Udp::receive_sedp(Self, @rtps.SedpEndpointKind) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String]
 pub async fn Udp::receive_spdp(Self) -> Result[(@rtps.SpdpParticipantData, @socket.Addr), String]

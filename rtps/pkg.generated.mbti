@@ -316,6 +316,7 @@ pub(all) enum SedpEndpointKind {
   Publication
   Subscription
 } derive(Eq, @debug.Debug)
+pub fn SedpEndpointKind::from_builtin_writer_id(EntityId) -> Result[Self, String]
 
 pub struct SpdpParticipantData {
   protocol_version : ProtocolVersion

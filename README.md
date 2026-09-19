@@ -14,6 +14,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
+- UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
@@ -31,13 +32,13 @@ moon check
 moon test --target native
 ```
 
-SPDP/SEDPのmulticast discovery loop、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
+周期的なSPDP/SEDP multicast discovery loop、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 
 ## Roadmap
 
-1. UDP multicast/unicast transport
-2. SPDP participant discovery
-3. SEDP endpoint discovery
+1. UDP multicast/unicast transport（基本送受信と単発 discovery packet は実装済み）
+2. SPDP participant discovery（packet codec と受信 dispatch は実装済み、周期 loop は未実装）
+3. SEDP endpoint discovery（packet codec と受信 dispatch は実装済み、周期 loop は未実装）
 4. `DATA` submessageとROS topic mapping
 5. `geometry_msgs/Twist`などの最小ROS message codegen
 6. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト

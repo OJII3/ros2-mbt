@@ -98,3 +98,30 @@ test "SEDP parser rejects missing required fields" {
     is Err(_),
   )
 }
+
+///|
+test "SEDP resolves predefined builtin writer entity IDs" {
+  let publication_writer = match EntityId::new(b"\x00\x00\x03", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let subscription_writer = match EntityId::new(b"\x00\x00\x04", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let unknown_writer = match EntityId::new(b"\x00\x00\x05", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    SedpEndpointKind::from_builtin_writer_id(publication_writer),
+    Ok(SedpEndpointKind::Publication),
+  )
+  assert_eq(
+    SedpEndpointKind::from_builtin_writer_id(subscription_writer),
+    Ok(SedpEndpointKind::Subscription),
+  )
+  assert_true(
+    SedpEndpointKind::from_builtin_writer_id(unknown_writer) is Err(_),
+  )
+}

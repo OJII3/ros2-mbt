@@ -22,6 +22,26 @@ pub const ENTITYID_SEDP_SUBSCRIPTIONS_WRITER : Byte = 0xC2
 pub const ENTITYID_SEDP_SUBSCRIPTIONS_READER : Byte = 0xC7
 
 ///|
+/// Resolve the SEDP kind from a predefined builtin writer entity ID.
+///
+/// The publications and subscriptions writers use entity keys 0x000003 and
+/// 0x000004 respectively. The entity kind is the ordinary writer kind 0xC2.
+pub fn SedpEndpointKind::from_builtin_writer_id(
+  writer_id : EntityId,
+) -> Result[SedpEndpointKind, String] {
+  if writer_id.kind() != ENTITYID_SEDP_PUBLICATIONS_WRITER {
+    return Err("the entity is not an SEDP writer")
+  }
+  if writer_id.key() == b"\x00\x00\x03" {
+    return Ok(SedpEndpointKind::Publication)
+  }
+  if writer_id.key() == b"\x00\x00\x04" {
+    return Ok(SedpEndpointKind::Subscription)
+  }
+  Err("the entity is not a predefined SEDP writer")
+}
+
+///|
 /// A common SEDP publication/subscription endpoint sample.
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
