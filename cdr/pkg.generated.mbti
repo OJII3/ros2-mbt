@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/cdr"
+
+import {
+  "moonbitlang/core/buffer",
+}
+
+// Values
+pub const CDR_LE : UInt16 = 0x0001
+
+pub const ENCAPSULATION_LENGTH : Int = 4
+
+// Errors
+
+// Types and methods
+pub struct Writer {
+  buffer : @buffer.Buffer
+}
+pub fn Writer::length(Self) -> Int
+pub fn Writer::new() -> Self
+pub fn Writer::to_bytes(Self) -> Bytes
+pub fn Writer::with_capacity(Int) -> Self
+pub fn Writer::write_byte_array(Self, Bytes) -> Unit
+pub fn Writer::write_byte_sequence(Self, Bytes) -> Unit
+pub fn Writer::write_f32(Self, Float) -> Unit
+pub fn Writer::write_f64(Self, Double) -> Unit
+pub fn Writer::write_i16(Self, Int16) -> Unit
+pub fn Writer::write_i32(Self, Int) -> Unit
+pub fn Writer::write_i64(Self, Int64) -> Unit
+pub fn Writer::write_string(Self, String) -> Unit
+pub fn Writer::write_u16(Self, UInt16) -> Unit
+pub fn Writer::write_u32(Self, UInt) -> Unit
+pub fn Writer::write_u64(Self, UInt64) -> Unit
+pub fn Writer::write_u8(Self, Byte) -> Unit
+
+// Type aliases
+
+// Traits
