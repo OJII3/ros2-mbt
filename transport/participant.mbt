@@ -12,6 +12,7 @@ pub struct RosParticipant {
   mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
+  mut latest_graph_info : @ros.ParticipantEntitiesInfo?
   graph_publishers : Array[ReliableRosDiscoveryPublisher]
   graph_publisher_guids : Array[@rtps.Guid]
   graph_subscriptions : Array[ReliableRosDiscoverySubscription]
@@ -71,6 +72,7 @@ pub fn RosParticipant::from_discovery_session(
     spdp_socket: None,
     graph_publication_id: None,
     graph_subscription_id: None,
+    latest_graph_info: None,
     graph_publishers: [],
     graph_publisher_guids: [],
     graph_subscriptions: [],
@@ -390,6 +392,7 @@ pub async fn RosParticipant::publish_ros_discovery_info(
   self : RosParticipant,
   info : @ros.ParticipantEntitiesInfo,
 ) -> Result[Unit, String] {
+  self.latest_graph_info = Some(info)
   if self.graph_publishers.length() == 0 {
     return Err("no remote ROS graph subscriptions have been discovered")
   }
@@ -548,9 +551,16 @@ pub async fn RosParticipant::receive_discovery_once(
                   writer_id,
                   subscription,
                   1L,
-                ) {
+              ) {
                 Ok(value) => value
                 Err(message) => return Err(message)
+              }
+              match self.latest_graph_info {
+                Some(info) => match publisher.announce_once(info) {
+                  Ok(_) => ()
+                  Err(message) => return Err(message)
+                }
+                None => ()
               }
               self.graph_publishers.push(publisher)
               self.graph_publisher_guids.push(endpoint_guid)

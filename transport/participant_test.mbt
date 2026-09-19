@@ -503,6 +503,11 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
+  let info = match publisher.participant_entities_info("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_true(publisher.publish_ros_discovery_info(info) is Err(_))
   match publisher.announce_spdp_once() {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -537,14 +542,6 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   assert_eq(publisher.ros_discovery_subscription_count(), 1)
   assert_eq(subscriber.ros_discovery_publisher_count(), 1)
   assert_eq(subscriber.ros_discovery_subscription_count(), 1)
-  let info = match publisher.participant_entities_info("/demo", "talker") {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  match publisher.publish_ros_discovery_info(info) {
-    Ok(_) => ()
-    Err(message) => fail(message)
-  }
   let (decoded, _) = match subscriber.receive_ros_discovery_info(0) {
     Ok(value) => value
     Err(message) => fail(message)

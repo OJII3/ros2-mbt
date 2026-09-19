@@ -293,6 +293,7 @@ pub struct RosParticipant {
   mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
+  mut latest_graph_info : @ros.ParticipantEntitiesInfo?
   graph_publishers : Array[ReliableRosDiscoveryPublisher]
   graph_publisher_guids : Array[@rtps.Guid]
   graph_subscriptions : Array[ReliableRosDiscoverySubscription]
