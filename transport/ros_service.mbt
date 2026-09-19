@@ -30,6 +30,7 @@ pub struct RosServiceClient {
   request_writer : ReliableDataWriter
   response_reader : ReliableDataReaderSession
   response_reader_guid : @rtps.Guid
+  shared_socket : Bool
 }
 
 ///|
@@ -87,7 +88,32 @@ pub fn RosServiceClient::new(
     request_writer,
     response_reader,
     response_reader_guid: @rtps.Guid::new(guid_prefix, response_reader_id),
+    shared_socket: false,
   })
+}
+
+///|
+/// Create a client using one shared UDP socket for requests and responses.
+pub fn RosServiceClient::new_with_shared_socket(
+  service : @ros.RosService,
+  socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_writer_id : @rtps.EntityId,
+  request_subscription : @rtps.SedpEndpointData,
+  response_reader_id : @rtps.EntityId,
+  response_publication : @rtps.SedpEndpointData,
+  first_request_sequence_number : Int64,
+) -> Result[RosServiceClient, String] {
+  let client = match
+    RosServiceClient::new(
+      service, socket, socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
+      response_reader_id, response_publication, first_request_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..client, shared_socket: true, })
 }
 
 ///|
@@ -142,7 +168,9 @@ pub async fn RosServiceClient::receive_response(
 ///|
 pub fn RosServiceClient::close(self : RosServiceClient) -> Unit {
   self.request_writer.close()
-  self.response_reader.close()
+  if !self.shared_socket {
+    self.response_reader.close()
+  }
 }
 
 ///|
@@ -151,6 +179,7 @@ pub struct RosServiceServer {
   service : @ros.RosService
   request_reader : ReliableDataReaderSession
   response_writer : ReliableDataWriter
+  shared_socket : Bool
 }
 
 ///|
@@ -203,7 +232,31 @@ pub fn RosServiceServer::new(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ service, request_reader, response_writer, })
+  Ok({ service, request_reader, response_writer, shared_socket: false, })
+}
+
+///|
+/// Create a server using one shared UDP socket for requests and responses.
+pub fn RosServiceServer::new_with_shared_socket(
+  service : @ros.RosService,
+  socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_reader_id : @rtps.EntityId,
+  request_publication : @rtps.SedpEndpointData,
+  response_writer_id : @rtps.EntityId,
+  response_subscription : @rtps.SedpEndpointData,
+  first_response_sequence_number : Int64,
+) -> Result[RosServiceServer, String] {
+  let server = match
+    RosServiceServer::new(
+      service, socket, socket, guid_prefix, vendor_id, request_reader_id, request_publication,
+      response_writer_id, response_subscription, first_response_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..server, shared_socket: true, })
 }
 
 ///|
@@ -257,5 +310,7 @@ pub async fn RosServiceServer::respond(
 ///|
 pub fn RosServiceServer::close(self : RosServiceServer) -> Unit {
   self.request_reader.close()
-  self.response_writer.close()
+  if !self.shared_socket {
+    self.response_writer.close()
+  }
 }

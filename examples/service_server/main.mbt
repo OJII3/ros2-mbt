@@ -151,8 +151,8 @@ async fn main {
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()
   let server = match
-    @transport.RosServiceServer::new(
-      service, user_socket, user_socket, prefix, vendor_id, request_reader_id, request_publication,
+    @transport.RosServiceServer::new_with_shared_socket(
+      service, user_socket, prefix, vendor_id, request_reader_id, request_publication,
       response_writer_id, response_subscription, 1L,
     ) {
     Ok(value) => value

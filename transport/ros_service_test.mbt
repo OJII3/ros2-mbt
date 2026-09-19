@@ -24,10 +24,8 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
 
-  let client_request_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let server_request_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let server_response_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let client_response_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
 
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -43,7 +41,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   client_request_publication.add_unicast_locator(
-    service_test_endpoint_locator(client_request_socket),
+    service_test_endpoint_locator(client_socket),
   )
   let server_request_subscription = match
     service.request_to_sedp(
@@ -54,7 +52,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   server_request_subscription.add_unicast_locator(
-    service_test_endpoint_locator(server_request_socket),
+    service_test_endpoint_locator(server_socket),
   )
   let server_response_publication = match
     service.response_to_sedp(
@@ -65,7 +63,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   server_response_publication.add_unicast_locator(
-    service_test_endpoint_locator(server_response_socket),
+    service_test_endpoint_locator(server_socket),
   )
   let client_response_subscription = match
     service.response_to_sedp(
@@ -76,23 +74,21 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   client_response_subscription.add_unicast_locator(
-    service_test_endpoint_locator(client_response_socket),
+    service_test_endpoint_locator(client_socket),
   )
 
   let client = match
-    RosServiceClient::new(
-      service, client_request_socket, client_response_socket, client_prefix, vendor_id,
-      client_request_id, server_request_subscription, client_response_id, server_response_publication,
-      1L,
+    RosServiceClient::new_with_shared_socket(
+      service, client_socket, client_prefix, vendor_id, client_request_id, server_request_subscription,
+      client_response_id, server_response_publication, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let server = match
-    RosServiceServer::new(
-      service, server_request_socket, server_response_socket, server_prefix, vendor_id,
-      server_request_id, client_request_publication, server_response_id, client_response_subscription,
-      1L,
+    RosServiceServer::new_with_shared_socket(
+      service, server_socket, server_prefix, vendor_id, server_request_id, client_request_publication,
+      server_response_id, client_response_subscription, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
