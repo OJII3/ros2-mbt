@@ -66,6 +66,8 @@ pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
+pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
 
 // Errors
@@ -141,6 +143,17 @@ pub fn Locator::new(Int, UInt, Bytes) -> Result[Self, String]
 pub fn Locator::port(Self) -> UInt
 pub fn Locator::to_bytes(Self) -> Bytes
 pub fn Locator::udp_v4(Bytes, UInt) -> Result[Self, String]
+
+pub struct Message {
+  header : Header
+  submessages : Array[Submessage]
+}
+pub fn Message::add(Self, Submessage) -> Unit
+pub fn Message::from_bytes(Bytes) -> Result[Self, String]
+pub fn Message::header(Self) -> Header
+pub fn Message::new(Header) -> Self
+pub fn Message::submessages(Self) -> Array[Submessage]
+pub fn Message::to_bytes(Self) -> Result[Bytes, String]
 
 pub struct Parameter {
   id : UInt16

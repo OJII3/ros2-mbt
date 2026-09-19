@@ -14,6 +14,10 @@ pub const HEADER_LENGTH : Int = 20
 pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
 
 ///|
+/// RTPS submessage flag indicating little-endian fields.
+pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
+///|
 /// The RTPS protocol version.
 pub struct ProtocolVersion {
   major : Byte
@@ -194,7 +198,7 @@ pub fn Submessage::new(
 ///|
 /// Return a copy with the RTPS little-endian flag set.
 pub fn Submessage::little_endian(self : Submessage) -> Submessage {
-  { ..self, flags: self.flags | 0x01, }
+  { ..self, flags: self.flags | SUBMESSAGE_FLAG_LITTLE_ENDIAN, }
 }
 
 ///|
@@ -204,11 +208,21 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
     return Err("an RTPS submessage payload cannot exceed 65535 bytes")
   }
   let length = self.payload.length()
+  let length_low = (length & 0xFF).to_byte()
+  let length_high = ((length >> 8) & 0xFF).to_byte()
   let bytes : Array[Byte] = [
     self.id.to_byte(),
     self.flags,
-    (length & 0xFF).to_byte(),
-    ((length >> 8) & 0xFF).to_byte(),
+    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+      length_low
+    } else {
+      length_high
+    },
+    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+      length_high
+    } else {
+      length_low
+    },
   ]
   for i in 0..<length {
     bytes.push(self.payload[i])
@@ -237,7 +251,11 @@ pub fn Submessage::from_bytes(
     Ok(id) => id
     Err(message) => return Err(message)
   }
-  let payload_length = input[2].to_int() | (input[3].to_int() << 8)
+  let payload_length = if (input[1] & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+    input[2].to_int() | (input[3].to_int() << 8)
+  } else {
+    (input[2].to_int() << 8) | input[3].to_int()
+  }
   let total_length = SUBMESSAGE_HEADER_LENGTH + payload_length
   if input.length() < total_length {
     return Err("truncated RTPS submessage payload")
