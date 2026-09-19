@@ -94,6 +94,23 @@ pub async fn ReliableRosPublisher::handle_acknack(
 }
 
 ///|
+/// Receive a matching NACK_FRAG and retransmit requested fragments.
+pub async fn ReliableRosPublisher::receive_nackfrag(
+  self : ReliableRosPublisher,
+) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
+  self.writer.receive_nackfrag()
+}
+
+///|
+/// Apply a NACK_FRAG directly and retransmit requested fragments.
+pub async fn ReliableRosPublisher::handle_nackfrag(
+  self : ReliableRosPublisher,
+  nackfrag : @rtps.NackFragSubmessage,
+) -> Result[Unit, String] {
+  self.writer.handle_nackfrag(nackfrag)
+}
+
+///|
 /// Close the publisher's underlying UDP socket.
 pub fn ReliableRosPublisher::close(self : ReliableRosPublisher) -> Unit {
   self.writer.close()

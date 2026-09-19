@@ -248,11 +248,13 @@ pub struct ReliableRosPublisher {
 }
 pub fn ReliableRosPublisher::close(Self) -> Unit
 pub async fn ReliableRosPublisher::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub async fn ReliableRosPublisher::handle_nackfrag(Self, @rtps.NackFragSubmessage) -> Result[Unit, String]
 pub fn ReliableRosPublisher::history_length(Self) -> Int
 pub fn ReliableRosPublisher::new_for_subscription(@ros.RosTopic, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableRosPublisher::next_sequence_number(Self) -> Int64
 pub async fn ReliableRosPublisher::publish(Self, Bytes) -> Result[Unit, String]
 pub async fn ReliableRosPublisher::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn ReliableRosPublisher::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
 pub async fn ReliableRosPublisher::send_heartbeat(Self) -> Result[Unit, String]
 pub fn ReliableRosPublisher::topic(Self) -> @ros.RosTopic
 
