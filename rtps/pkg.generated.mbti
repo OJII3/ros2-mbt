@@ -28,6 +28,14 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 
 pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
+pub const ENTITYID_SEDP_PUBLICATIONS_READER : Byte = 0xC7
+
+pub const ENTITYID_SEDP_PUBLICATIONS_WRITER : Byte = 0xC2
+
+pub const ENTITYID_SEDP_SUBSCRIPTIONS_READER : Byte = 0xC7
+
+pub const ENTITYID_SEDP_SUBSCRIPTIONS_WRITER : Byte = 0xC2
+
 pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
 
 pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
@@ -42,15 +50,39 @@ pub const LOCATOR_LENGTH : Int = 24
 
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
+pub const PID_DATA_REPRESENTATION : UInt16 = 0x0073
+
+pub const PID_DEADLINE : UInt16 = 0x0023
+
 pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
 
 pub const PID_DEFAULT_UNICAST_LOCATOR : UInt16 = 0x003c
 
+pub const PID_DESTINATION_ORDER : UInt16 = 0x0025
+
 pub const PID_DOMAIN_ID : UInt16 = 0x000F
+
+pub const PID_DURABILITY : UInt16 = 0x001D
+
+pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
+
+pub const PID_EXPECTS_INLINE_QOS : UInt16 = 0x0043
+
+pub const PID_HISTORY : UInt16 = 0x0040
+
+pub const PID_LIFESPAN : UInt16 = 0x002B
+
+pub const PID_LIVELINESS : UInt16 = 0x001B
 
 pub const PID_METATRAFFIC_MULTICAST_LOCATOR : UInt16 = 0x0032
 
 pub const PID_METATRAFFIC_UNICAST_LOCATOR : UInt16 = 0x0031
+
+pub const PID_MULTICAST_LOCATOR : UInt16 = 0x0030
+
+pub const PID_OWNERSHIP : UInt16 = 0x001F
+
+pub const PID_OWNERSHIP_STRENGTH : UInt16 = 0x0006
 
 pub const PID_PARTICIPANT_GUID : UInt16 = 0x0050
 
@@ -58,7 +90,19 @@ pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
 
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
+pub const PID_RELIABILITY : UInt16 = 0x001A
+
+pub const PID_RESOURCE_LIMITS : UInt16 = 0x0041
+
 pub const PID_SENTINEL : UInt16 = 0x0001
+
+pub const PID_TOPIC_NAME : UInt16 = 0x0005
+
+pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
+
+pub const PID_TYPE_NAME : UInt16 = 0x0007
+
+pub const PID_UNICAST_LOCATOR : UInt16 = 0x002F
 
 pub const PID_VENDOR_ID : UInt16 = 0x0016
 
@@ -179,6 +223,37 @@ pub struct ProtocolVersion {
   minor : Byte
 } derive(Eq, @debug.Debug)
 pub fn ProtocolVersion::new(Byte, Byte) -> Self
+
+pub struct SedpEndpointData {
+  kind : SedpEndpointKind
+  endpoint_guid : Guid
+  participant_guid : Guid
+  topic_name : String
+  type_name : String
+  unicast_locators : Array[Locator]
+  multicast_locators : Array[Locator]
+  extra_parameters : Array[Parameter]
+} derive(Eq, @debug.Debug)
+pub fn SedpEndpointData::add_multicast_locator(Self, Locator) -> Unit
+pub fn SedpEndpointData::add_parameter(Self, Parameter) -> Unit
+pub fn SedpEndpointData::add_unicast_locator(Self, Locator) -> Unit
+pub fn SedpEndpointData::endpoint_guid(Self) -> Guid
+pub fn SedpEndpointData::from_cdr_bytes(SedpEndpointKind, Bytes) -> Result[Self, String]
+pub fn SedpEndpointData::from_parameter_list(SedpEndpointKind, ParameterList) -> Result[Self, String]
+pub fn SedpEndpointData::kind(Self) -> SedpEndpointKind
+pub fn SedpEndpointData::new(SedpEndpointKind, Guid, String, String) -> Result[Self, String]
+pub fn SedpEndpointData::participant_guid(Self) -> Guid
+pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn SedpEndpointData::to_data_submessage(Self, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
+pub fn SedpEndpointData::to_parameter_list(Self) -> Result[ParameterList, String]
+pub fn SedpEndpointData::topic_name(Self) -> String
+pub fn SedpEndpointData::type_name(Self) -> String
+pub fn SedpEndpointData::with_participant_guid(Self, Guid) -> Self
+
+pub(all) enum SedpEndpointKind {
+  Publication
+  Subscription
+} derive(Eq, @debug.Debug)
 
 pub struct SpdpParticipantData {
   protocol_version : ProtocolVersion

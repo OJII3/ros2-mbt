@@ -9,6 +9,63 @@ pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
 pub const PID_DOMAIN_ID : UInt16 = 0x000F
 
 ///|
+pub const PID_TOPIC_NAME : UInt16 = 0x0005
+
+///|
+pub const PID_TYPE_NAME : UInt16 = 0x0007
+
+///|
+pub const PID_UNICAST_LOCATOR : UInt16 = 0x002F
+
+///|
+pub const PID_MULTICAST_LOCATOR : UInt16 = 0x0030
+
+///|
+pub const PID_RELIABILITY : UInt16 = 0x001A
+
+///|
+pub const PID_DURABILITY : UInt16 = 0x001D
+
+///|
+pub const PID_DEADLINE : UInt16 = 0x0023
+
+///|
+pub const PID_LIVELINESS : UInt16 = 0x001B
+
+///|
+pub const PID_LIFESPAN : UInt16 = 0x002B
+
+///|
+pub const PID_DESTINATION_ORDER : UInt16 = 0x0025
+
+///|
+pub const PID_HISTORY : UInt16 = 0x0040
+
+///|
+pub const PID_RESOURCE_LIMITS : UInt16 = 0x0041
+
+///|
+pub const PID_EXPECTS_INLINE_QOS : UInt16 = 0x0043
+
+///|
+pub const PID_OWNERSHIP : UInt16 = 0x001F
+
+///|
+pub const PID_OWNERSHIP_STRENGTH : UInt16 = 0x0006
+
+///|
+pub const PID_PARTICIPANT_GUID : UInt16 = 0x0050
+
+///|
+pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
+
+///|
+pub const PID_DATA_REPRESENTATION : UInt16 = 0x0073
+
+///|
+pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
+
+///|
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
 ///|
@@ -25,9 +82,6 @@ pub const PID_DEFAULT_UNICAST_LOCATOR : UInt16 = 0x003c
 
 ///|
 pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
-
-///|
-pub const PID_PARTICIPANT_GUID : UInt16 = 0x0050
 
 ///|
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
