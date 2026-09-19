@@ -13,6 +13,8 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `Locator_t` と UDP/IPv4 locator のwire format
 - RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
 - RTPS `DATA` submessage（CDR payload、inline QoS、SequenceNumber）
+- RTPS `DATA_FRAG` の fragment codec と best-effort/reliable reader の再構成
+- RTPS `GAP`、`HEARTBEAT_FRAG`、`NACK_FRAG` の codec と reliable fragment再送要求
 - RTPS `INFO_TS` submessage（NTP timestamp、Invalidate flag、両エンディアン）
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
@@ -49,6 +51,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
 - reliable SEDP writer と UDP-backed reliable reader session
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
+- GAPを反映したACKNACK生成と、fragment欠落を反映したNACK_FRAG生成
 - SPDP/SEDP discovery event を保持する `DiscoveryGraph` と topic/type matching
 - SPDP/SEDP と `ros_discovery_info` を graph に集約する `DiscoveryService`
 - 発見済み participant 全体への SEDP endpoint の単発・有限回・継続 announcement
@@ -110,7 +113,7 @@ service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCの
 1. UDP multicast/unicast transport（基本送受信、SPDP multicast helper、単発 discovery packet は実装済み）
 2. SPDP participant discovery（packet codec、受信 dispatch、周期 announcement は実装済み）
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
-4. `DATA` submessage と ROS topic mapping（best-effort reader/writer adapter まで実装済み）
+4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み）
 7. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト
