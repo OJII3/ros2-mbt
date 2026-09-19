@@ -156,8 +156,10 @@ pub struct ReliableDataReader {
   mut next_acknack_count : UInt
   samples : Array[@rtps.DataSubmessage]
   gaps : Array[@rtps.GapSubmessage]
+  fragments : Array[ReliableFragmentedSample]
 }
 pub fn ReliableDataReader::accept_data(Self, @rtps.DataSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::accept_data_frag(Self, @rtps.DataFragSubmessage) -> Result[@rtps.DataSubmessage?, String]
 pub fn ReliableDataReader::accept_gap(Self, @rtps.GapSubmessage) -> Result[Unit, String]
 pub fn ReliableDataReader::acknack_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[@rtps.AckNackSubmessage, String]
 pub fn ReliableDataReader::new(@rtps.EntityId, @rtps.EntityId) -> Self
@@ -207,6 +209,8 @@ pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write_and_return_identity(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
 pub async fn ReliableDataWriter::write_with_related_sample_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write_with_related_sample_identity_and_return_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[@rtps.SampleIdentity, String]
+
+type ReliableFragmentedSample
 
 pub struct ReliableRosDiscoveryPublisher {
   writer : ReliableDataWriter

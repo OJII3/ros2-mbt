@@ -91,6 +91,30 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
             Err(_) => continue
           }
         }
+        @rtps.SubmessageId::DataFrag => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let fragment = match @rtps.DataFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          let data = match self.state.accept_data_frag(fragment) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          match data {
+            Some(value) => {
+              let identity = match
+                value.sample_identity(message.header().guid_prefix()) {
+                Ok(identity) => identity
+                Err(_) => continue
+              }
+              return Ok((value, identity, source))
+            }
+            None => ()
+          }
+        }
         @rtps.SubmessageId::Heartbeat => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
@@ -170,6 +194,16 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Ok(_) => ()
             Err(_) => ()
           }
+        }
+        @rtps.SubmessageId::DataFrag => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let fragment = match @rtps.DataFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          ignore(self.state.accept_data_frag(fragment))
         }
         @rtps.SubmessageId::Heartbeat => {
           if message.header().guid_prefix() != self.writer_prefix {

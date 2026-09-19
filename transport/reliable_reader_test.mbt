@@ -90,3 +90,50 @@ test "reliable reader does not request sequences declared by GAP" {
   assert_eq(acknack.num_bits(), 5U)
   assert_eq(acknack.bitmap(), [0x88000000U])
 }
+
+///|
+test "reliable reader reassembles DATA_FRAG samples out of order" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let final_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    9L,
+    3U,
+    (1 : Int).to_uint16(),
+    (4 : Int).to_uint16(),
+    10U,
+    b"ij",
+  ).unwrap()
+  let first_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    9L,
+    1U,
+    (1 : Int).to_uint16(),
+    (4 : Int).to_uint16(),
+    10U,
+    b"abcd",
+  ).unwrap()
+  let second_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    9L,
+    2U,
+    (1 : Int).to_uint16(),
+    (4 : Int).to_uint16(),
+    10U,
+    b"efgh",
+  ).unwrap()
+  assert_eq(reader.accept_data_frag(final_fragment), Ok(None))
+  assert_eq(reader.accept_data_frag(first_fragment), Ok(None))
+  let data = match reader.accept_data_frag(second_fragment) {
+    Ok(Some(value)) => value
+    Ok(None) => fail("the final DATA_FRAG did not complete the sample")
+    Err(message) => fail(message)
+  }
+  assert_eq(data.writer_sequence_number(), 9L)
+  assert_eq(data.serialized_payload(), b"abcdefghij")
+  assert_eq(reader.sample_count(), 1)
+}
