@@ -30,6 +30,9 @@ pub const PID_DURABILITY : UInt16 = 0x001D
 pub const PID_DEADLINE : UInt16 = 0x0023
 
 ///|
+pub const PID_LATENCY_BUDGET : UInt16 = 0x0027
+
+///|
 pub const PID_LIVELINESS : UInt16 = 0x001B
 
 ///|

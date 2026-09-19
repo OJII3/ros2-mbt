@@ -28,6 +28,18 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 
 pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
+pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
+
+pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
+
+pub const DURABILITY_PERSISTENT : UInt = 3
+
+pub const DURABILITY_TRANSIENT : UInt = 2
+
+pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
+
+pub const DURABILITY_VOLATILE : UInt = 0
+
 pub const ENTITYID_SEDP_PUBLICATIONS_READER : Byte = 0xC7
 
 pub const ENTITYID_SEDP_PUBLICATIONS_WRITER : Byte = 0xC2
@@ -42,11 +54,25 @@ pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
 pub const HEADER_LENGTH : Int = 20
 
+pub const HISTORY_KEEP_ALL : UInt = 1
+
+pub const HISTORY_KEEP_LAST : UInt = 0
+
+pub const LIVELINESS_AUTOMATIC : UInt = 0
+
+pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
+
+pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
+
 pub const LOCATOR_KIND_UDP_V4 : Int = 1
 
 pub const LOCATOR_KIND_UDP_V6 : Int = 2
 
 pub const LOCATOR_LENGTH : Int = 24
+
+pub const OWNERSHIP_EXCLUSIVE : UInt = 1
+
+pub const OWNERSHIP_SHARED : UInt = 0
 
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
@@ -69,6 +95,8 @@ pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
 pub const PID_EXPECTS_INLINE_QOS : UInt16 = 0x0043
 
 pub const PID_HISTORY : UInt16 = 0x0040
+
+pub const PID_LATENCY_BUDGET : UInt16 = 0x0027
 
 pub const PID_LIFESPAN : UInt16 = 0x002B
 
@@ -110,9 +138,41 @@ pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
+pub const RELIABILITY_BEST_EFFORT : UInt = 1
+
+pub const RELIABILITY_RELIABLE : UInt = 2
+
 pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
+
+pub fn qos_data_representation(Array[UInt16]) -> Parameter
+
+pub fn qos_deadline(Int, UInt) -> Parameter
+
+pub fn qos_destination_order(UInt) -> Parameter
+
+pub fn qos_durability(UInt) -> Parameter
+
+pub fn qos_expects_inline_qos(Bool) -> Parameter
+
+pub fn qos_history(UInt, Int) -> Parameter
+
+pub fn qos_latency_budget(Int, UInt) -> Parameter
+
+pub fn qos_lifespan(Int, UInt) -> Parameter
+
+pub fn qos_liveliness(UInt, Int, UInt) -> Parameter
+
+pub fn qos_ownership(UInt) -> Parameter
+
+pub fn qos_ownership_strength(Int) -> Parameter
+
+pub fn qos_reliability(UInt, Int, UInt) -> Parameter
+
+pub fn qos_resource_limits(Int, Int, Int) -> Parameter
+
+pub fn qos_type_max_size_serialized(UInt) -> Parameter
 
 // Errors
 
