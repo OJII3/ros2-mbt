@@ -15,12 +15,21 @@ pub struct MessageField {
 } derive(Eq, Debug)
 
 ///|
+/// A scalar constant declared in a ROS `.msg` definition.
+pub struct MessageConstant {
+  type_name : String
+  name : String
+  value : String
+} derive(Eq, Debug)
+
+///|
 /// A parsed ROS message definition containing supported primitive fields.
 pub struct MessageDefinition {
   package_name : String
   interface_namespace : String
   type_name : String
   fields : Array[MessageField]
+  constants : Array[MessageConstant]
 } derive(Eq, Debug)
 
 ///|
@@ -57,6 +66,34 @@ pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
 }
 
 ///|
+/// Create a message constant descriptor.
+pub fn MessageConstant::new(
+  type_name : String,
+  name : String,
+  value : String,
+) -> MessageConstant {
+  { type_name, name, value, }
+}
+
+///|
+/// Return the ROS type spelling of this constant.
+pub fn MessageConstant::type_name(self : MessageConstant) -> String {
+  self.type_name
+}
+
+///|
+/// Return the constant identifier.
+pub fn MessageConstant::name(self : MessageConstant) -> String {
+  self.name
+}
+
+///|
+/// Return the source literal spelling of this constant.
+pub fn MessageConstant::value(self : MessageConstant) -> String {
+  self.value
+}
+
+///|
 /// Create a validated message definition from its fields.
 pub fn MessageDefinition::new(
   package_name : String,
@@ -86,7 +123,25 @@ pub fn MessageDefinition::new(
       MessageFieldCollection::Sequence => ()
     }
   }
-  Ok({ package_name, interface_namespace, type_name, fields, })
+  Ok({ package_name, interface_namespace, type_name, fields, constants: [], })
+}
+
+///|
+/// Add validated constants to a parsed message definition.
+pub fn MessageDefinition::with_constants(
+  self : MessageDefinition,
+  constants : Array[MessageConstant],
+) -> Result[MessageDefinition, String] {
+  for constant in constants {
+    if !rosidl_identifier(constant.name) {
+      return Err("ROS message constant names must be identifiers")
+    }
+    match rosidl_constant_literal(constant.type_name, constant.value) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok({ ..self, constants, })
 }
 
 ///|
@@ -118,11 +173,19 @@ pub fn MessageDefinition::fields(
 }
 
 ///|
+/// Return the declared constants.
+pub fn MessageDefinition::constants(
+  self : MessageDefinition,
+) -> Array[MessageConstant] {
+  self.constants
+}
+
+///|
 /// Parse the primitive-field subset of a ROS `.msg` definition.
 ///
 /// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
-/// unbounded sequences (`type[]`) are supported. Constants, bounded sequences,
-/// and nested message fields are rejected until their generated CDR
+/// unbounded sequences (`type[]`) and scalar constants are supported. Bounded
+/// sequences and nested message fields are rejected until their generated CDR
 /// representation is implemented.
 pub fn parse_message(
   package_name : String,
@@ -131,21 +194,32 @@ pub fn parse_message(
   source : String,
 ) -> Result[MessageDefinition, String] {
   let fields : Array[MessageField] = []
+  let constants : Array[MessageConstant] = []
   for raw_line in source.split("\n") {
     let line = rosidl_trim(rosidl_without_comment(raw_line.to_owned()))
     if line.length() == 0 {
       continue
     }
-    if line.split("=").collect().length() > 1 {
-      return Err("ROS message constants are not supported by this generator")
-    }
-    let words : Array[String] = []
-    for raw_word in line.split(" ") {
-      let word = rosidl_trim(raw_word.to_owned())
-      if word.length() > 0 {
-        words.push(word)
+    let equal_parts = line.split("=").collect()
+    if equal_parts.length() > 1 {
+      if equal_parts.length() != 2 {
+        return Err("ROS message constants must contain one =")
       }
+      let declaration = rosidl_words(equal_parts[0].to_owned())
+      if declaration.length() != 2 {
+        return Err("ROS message constants must have a type and a name")
+      }
+      let value = rosidl_trim(equal_parts[1].to_owned())
+      match rosidl_constant_literal(declaration[0], value) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+      constants.push(
+        MessageConstant::new(declaration[0], declaration[1], value),
+      )
+      continue
     }
+    let words = rosidl_words(line)
     if words.length() != 2 {
       return Err("ROS message fields must have exactly a type and a name")
     }
@@ -160,7 +234,24 @@ pub fn parse_message(
       MessageField::new(base_type, words[1]).with_collection(collection),
     )
   }
-  MessageDefinition::new(package_name, interface_namespace, type_name, fields)
+  let definition = match
+    MessageDefinition::new(package_name, interface_namespace, type_name, fields) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  definition.with_constants(constants)
+}
+
+///|
+fn rosidl_words(line : String) -> Array[String] {
+  let words : Array[String] = []
+  for raw_word in line.split(" ") {
+    let word = rosidl_trim(raw_word.to_owned())
+    if word.length() > 0 {
+      words.push(word)
+    }
+  }
+  words
 }
 
 ///|
@@ -240,6 +331,16 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     output += "  " + field.name + " : " + rosidl_field_moon_type(field) + "\n"
   }
   output += "} derive(Eq, Debug)\n\n"
+  for constant in self.constants {
+    output += "///|\n"
+    output += "pub const " +
+      constant.name +
+      " : " +
+      rosidl_moon_type(constant.type_name).unwrap() +
+      " = " +
+      rosidl_constant_literal(constant.type_name, constant.value).unwrap() +
+      "\n\n"
+  }
   output += "///|\n"
   output += "pub fn " + self.type_name + "::new(\n"
   for field in self.fields {
@@ -471,6 +572,96 @@ fn rosidl_moon_type(type_name : String) -> Result[String, String] {
     "string" => Ok("String")
     _ => Err("unsupported ROS message field type: " + type_name)
   }
+}
+
+///|
+fn rosidl_constant_literal(
+  type_name : String,
+  value : String,
+) -> Result[String, String] {
+  match type_name {
+    "bool" =>
+      if value == "true" || value == "false" {
+        Ok(value)
+      } else {
+        Err("ROS bool constants must be true or false")
+      }
+    "string" => {
+      let bytes = @utf8.encode(value)
+      if bytes.length() >= 2 &&
+        bytes[0] == b'"' &&
+        bytes[bytes.length() - 1] == b'"' {
+        Ok(value)
+      } else {
+        Err("ROS string constants must use double quotes")
+      }
+    }
+    "float32" => {
+      if !rosidl_numeric_literal(value, true) {
+        return Err("ROS float constants must be numeric")
+      }
+      if value[value.length() - 1] == 'F' {
+        Ok(value)
+      } else {
+        Ok(value + "F")
+      }
+    }
+    "float64" =>
+      if rosidl_numeric_literal(value, true) {
+        Ok(value)
+      } else {
+        Err("ROS float constants must be numeric")
+      }
+    "int64" =>
+      if rosidl_numeric_literal(value, false) {
+        Ok(value + "L")
+      } else {
+        Err("ROS integer constants must be numeric")
+      }
+    "uint64" =>
+      if rosidl_numeric_literal(value, false) {
+        Ok(value + "UL")
+      } else {
+        Err("ROS integer constants must be numeric")
+      }
+    "byte"
+    | "char"
+    | "int8"
+    | "uint8"
+    | "int16"
+    | "uint16"
+    | "int32"
+    | "uint32" =>
+      if rosidl_numeric_literal(value, false) {
+        Ok(value)
+      } else {
+        Err("ROS integer constants must be numeric")
+      }
+    _ => Err("unsupported ROS constant type: " + type_name)
+  }
+}
+
+///|
+fn rosidl_numeric_literal(value : String, allow_float : Bool) -> Bool {
+  let bytes = @utf8.encode(value)
+  if bytes.length() == 0 {
+    return false
+  }
+  let mut has_digit = false
+  let mut has_dot = false
+  for index in 0..<bytes.length() {
+    let byte = bytes[index]
+    if byte >= 48 && byte <= 57 {
+      has_digit = true
+    } else if byte == b'-' && index == 0 {
+      continue
+    } else if allow_float && byte == b'.' && !has_dot {
+      has_dot = true
+    } else {
+      return false
+    }
+  }
+  has_digit
 }
 
 ///|

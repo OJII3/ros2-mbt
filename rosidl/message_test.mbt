@@ -24,6 +24,24 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
 }
 
 ///|
+test "ROS message parser and generator handle scalar constants" {
+  let definition = match
+    parse_message(
+      "demo", "msg", "Limits", "int32 MAX=42\nfloat64 SCALE=1.5\nstring LABEL=\"demo\"\nint32 value",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(definition.constants().length(), 3)
+  assert_eq(definition.constants()[0].name(), "MAX")
+  assert_eq(definition.constants()[2].value(), "\"demo\"")
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub const MAX : Int = 42"))
+  assert_true(generated.contains("pub const SCALE : Double = 1.5"))
+  assert_true(generated.contains("pub const LABEL : String = \"demo\""))
+}
+
+///|
 test "ROS message generator handles fixed arrays and sequences" {
   let definition = match
     parse_message("demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples") {
@@ -53,5 +71,7 @@ test "ROS message parser rejects unsupported definitions" {
   assert_true(
     parse_message("demo", "msg", "Bad", "int32 VALUE-NOT-ID") is Err(_),
   )
-  assert_true(parse_message("demo", "msg", "Bad", "int32 answer=42") is Err(_))
+  assert_true(
+    parse_message("demo", "msg", "Bad", "int32 BAD=not_number") is Err(_),
+  )
 }

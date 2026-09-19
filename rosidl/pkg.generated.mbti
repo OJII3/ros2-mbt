@@ -11,18 +11,31 @@ pub fn parse_message(String, String, String, String) -> Result[MessageDefinition
 // Errors
 
 // Types and methods
+pub struct MessageConstant {
+  type_name : String
+  name : String
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn MessageConstant::name(Self) -> String
+pub fn MessageConstant::new(String, String, String) -> Self
+pub fn MessageConstant::type_name(Self) -> String
+pub fn MessageConstant::value(Self) -> String
+
 pub struct MessageDefinition {
   package_name : String
   interface_namespace : String
   type_name : String
   fields : Array[MessageField]
+  constants : Array[MessageConstant]
 } derive(Eq, @debug.Debug)
+pub fn MessageDefinition::constants(Self) -> Array[MessageConstant]
 pub fn MessageDefinition::fields(Self) -> Array[MessageField]
 pub fn MessageDefinition::generate_moonbit(Self) -> String
 pub fn MessageDefinition::interface_namespace(Self) -> String
 pub fn MessageDefinition::new(String, String, String, Array[MessageField]) -> Result[Self, String]
 pub fn MessageDefinition::package_name(Self) -> String
 pub fn MessageDefinition::type_name(Self) -> String
+pub fn MessageDefinition::with_constants(Self, Array[MessageConstant]) -> Result[Self, String]
 
 pub struct MessageField {
   type_name : String
