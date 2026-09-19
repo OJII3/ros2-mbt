@@ -100,6 +100,10 @@ pub fn DiscoveryGraph::ros_participants(Self) -> Array[@ros.ParticipantEntitiesI
 pub fn DiscoveryGraph::subscription_count(Self) -> Int
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
 
+type DiscoverySedpReader
+
+type DiscoverySedpWriter
+
 pub struct DiscoveryService {
   session : DiscoverySession
   graph : DiscoveryGraph
@@ -132,6 +136,8 @@ pub struct DiscoverySession {
   writer_id : @rtps.EntityId
   destination : @socket.Addr
   mut next_sequence_number : Int64
+  sedp_readers : Array[DiscoverySedpReader]
+  sedp_writers : Array[DiscoverySedpWriter]
 }
 pub async fn DiscoverySession::announce_forever(Self, Int) -> Result[Unit, String]
 pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String]

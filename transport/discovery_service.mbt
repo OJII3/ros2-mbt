@@ -56,6 +56,15 @@ async fn DiscoveryService::send_sedp_to_participant(
   sequence_number : Int64,
   heartbeat_count : UInt,
 ) -> Result[Unit, String] {
+  match
+    self.session.remember_sedp_sample(
+      endpoint,
+      self.session.participant.vendor_id(),
+      sequence_number,
+    ) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
   self.session.socket.send_sedp_to_participant_with_heartbeat_count(
     endpoint,
     self.session.participant.vendor_id(),

@@ -7,6 +7,13 @@ struct DiscoverySedpReader {
 }
 
 ///|
+/// History for one local SEDP builtin writer.
+struct DiscoverySedpWriter {
+  kind : @rtps.SedpEndpointKind
+  samples : Array[@rtps.DataSubmessage]
+}
+
+///|
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
   socket : Udp
@@ -17,6 +24,7 @@ pub struct DiscoverySession {
   destination : @socket.Addr
   mut next_sequence_number : Int64
   sedp_readers : Array[DiscoverySedpReader]
+  sedp_writers : Array[DiscoverySedpWriter]
 }
 
 ///|
@@ -41,6 +49,7 @@ pub fn DiscoverySession::new(
     destination,
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
+    sedp_writers: [],
   })
 }
 
@@ -71,6 +80,7 @@ pub fn DiscoverySession::new_with_receive_sockets(
     destination,
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
+    sedp_writers: [],
   })
 }
 
@@ -277,6 +287,52 @@ fn DiscoverySession::sedp_reader_index(
 }
 
 ///|
+/// Locate or create history for one local SEDP writer kind.
+fn DiscoverySession::sedp_writer_index(
+  self : DiscoverySession,
+  kind : @rtps.SedpEndpointKind,
+) -> Int {
+  for index in 0..<self.sedp_writers.length() {
+    if self.sedp_writers[index].kind == kind {
+      return index
+    }
+  }
+  self.sedp_writers.push({ kind, samples: [], })
+  self.sedp_writers.length() - 1
+}
+
+///|
+/// Retain one local SEDP sample for ACKNACK-driven retransmission.
+fn DiscoverySession::remember_sedp_sample(
+  self : DiscoverySession,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  sequence_number : Int64,
+) -> Result[Unit, String] {
+  let kind = endpoint.kind()
+  let sample = match
+    endpoint.to_data_submessage_with_vendor(
+      vendor_id,
+      kind.builtin_reader_id(),
+      kind.builtin_writer_id(),
+      sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let index = self.sedp_writer_index(kind)
+  for sample_index in 0..<self.sedp_writers[index].samples.length() {
+    if self.sedp_writers[index].samples[sample_index].writer_sequence_number() ==
+      sequence_number {
+      self.sedp_writers[index].samples[sample_index] = sample
+      return Ok(())
+    }
+  }
+  self.sedp_writers[index].samples.push(sample)
+  Ok(())
+}
+
+///|
 /// Remember a received SEDP DATA sample for later ACKNACK generation.
 fn DiscoverySession::record_sedp_data(
   self : DiscoverySession,
@@ -320,6 +376,61 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     self.participant.vendor_id(),
     source,
   )
+}
+
+///|
+fn discovery_acknack_bitmap_contains(
+  bitmap : Array[UInt],
+  offset : Int,
+) -> Bool {
+  let word_index = offset / 32
+  let bit_index = offset % 32
+  (bitmap[word_index] & (0x80000000U >> bit_index)) != 0U
+}
+
+///|
+/// Retransmit local SEDP samples requested by one remote ACKNACK.
+async fn DiscoverySession::retransmit_sedp_acknack(
+  self : DiscoverySession,
+  socket_index : Int,
+  acknack : @rtps.AckNackSubmessage,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  let kind = match
+    @rtps.SedpEndpointKind::from_builtin_writer_id(acknack.writer_id()) {
+    Ok(value) => value
+    Err(_) => return Ok(())
+  }
+  let writer_index = self.sedp_writer_index(kind)
+  let socket = if socket_index == 0 {
+    self.socket
+  } else {
+    self.receive_sockets[socket_index - 1]
+  }
+  let bitmap = acknack.bitmap()
+  let num_bits = acknack.num_bits().reinterpret_as_int()
+  for offset in 0..<num_bits {
+    if !discovery_acknack_bitmap_contains(bitmap, offset) {
+      continue
+    }
+    let sequence_number = acknack.bitmap_base() + offset.to_int64()
+    for sample in self.sedp_writers[writer_index].samples {
+      if sample.writer_sequence_number() != sequence_number {
+        continue
+      }
+      match
+        socket.send_data(
+          sample,
+          self.participant.participant_guid().prefix(),
+          self.participant.vendor_id(),
+          source,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -384,6 +495,17 @@ async fn DiscoverySession::decode_message(
             Ok(_) => ()
             Err(message) => return Err(message)
           }
+        }
+      }
+      @rtps.SubmessageId::AckNack => {
+        let acknack = match
+          @rtps.AckNackSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match self.retransmit_sedp_acknack(socket_index, acknack, source) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       }
       _ => ()
