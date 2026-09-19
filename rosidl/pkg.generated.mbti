@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/rosidl"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse_message(String, String, String, String) -> Result[MessageDefinition, String]
+
+// Errors
+
+// Types and methods
+pub struct MessageDefinition {
+  package_name : String
+  interface_namespace : String
+  type_name : String
+  fields : Array[MessageField]
+} derive(Eq, @debug.Debug)
+pub fn MessageDefinition::fields(Self) -> Array[MessageField]
+pub fn MessageDefinition::generate_moonbit(Self) -> String
+pub fn MessageDefinition::interface_namespace(Self) -> String
+pub fn MessageDefinition::new(String, String, String, Array[MessageField]) -> Result[Self, String]
+pub fn MessageDefinition::package_name(Self) -> String
+pub fn MessageDefinition::type_name(Self) -> String
+
+pub struct MessageField {
+  type_name : String
+  name : String
+} derive(Eq, @debug.Debug)
+pub fn MessageField::name(Self) -> String
+pub fn MessageField::new(String, String) -> Self
+pub fn MessageField::type_name(Self) -> String
+
+// Type aliases
+
+// Traits

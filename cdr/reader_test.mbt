@@ -1,6 +1,7 @@
 ///|
 test "CDR reader round trips primitive values" {
   let writer = Writer::new()
+  writer.write_bool(true)
   writer.write_u8(0x7F)
   writer.write_i16(-1234)
   writer.write_u32(0x01020304U)
@@ -11,6 +12,7 @@ test "CDR reader round trips primitive values" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  assert_eq(reader.read_bool(), Ok(true))
   assert_eq(reader.read_u8(), Ok(0x7F))
   assert_eq(reader.read_i16(), Ok(-1234))
   assert_eq(reader.read_u32(), Ok(0x01020304U))
@@ -18,6 +20,21 @@ test "CDR reader round trips primitive values" {
   assert_eq(reader.read_f32(), Ok(1.5F))
   assert_eq(reader.read_f64(), Ok(-2.5))
   assert_eq(reader.remaining(), 0)
+}
+
+///|
+test "CDR signed 8-bit and MoonBit-sized 16-bit helpers" {
+  let writer = Writer::new()
+  writer.write_i8(-2)
+  writer.write_i16_int(-1234)
+  writer.write_u16_uint(54321U)
+  let reader = match Reader::from_bytes(writer.to_bytes()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(reader.read_i8(), Ok(-2))
+  assert_eq(reader.read_i16(), Ok(-1234))
+  assert_eq(reader.read_u16(), Ok(54321U))
 }
 
 ///|

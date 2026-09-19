@@ -63,9 +63,21 @@ pub fn Writer::length(self : Writer) -> Int {
 }
 
 ///|
+/// Write a CDR boolean encoded as 0 or 1.
+pub fn Writer::write_bool(self : Writer, value : Bool) -> Unit {
+  self.write_u8(if value { 1 } else { 0 })
+}
+
+///|
 /// Write a CDR octet without alignment.
 pub fn Writer::write_u8(self : Writer, value : Byte) -> Unit {
   self.buffer.write_byte(value)
+}
+
+///|
+/// Write a signed CDR int8 without alignment.
+pub fn Writer::write_i8(self : Writer, value : Int) -> Unit {
+  self.buffer.write_byte(value.reinterpret_as_uint().to_byte())
 }
 
 ///|
@@ -76,10 +88,27 @@ pub fn Writer::write_i16(self : Writer, value : Int16) -> Unit {
 }
 
 ///|
+/// Write a signed CDR int16 from a MoonBit Int.
+pub fn Writer::write_i16_int(self : Writer, value : Int) -> Unit {
+  self.align(2)
+  let encoded = value.reinterpret_as_uint()
+  self.buffer.write_byte(encoded.to_byte())
+  self.buffer.write_byte((encoded >> 8).to_byte())
+}
+
+///|
 /// Write an unsigned 16-bit integer with CDR alignment.
 pub fn Writer::write_u16(self : Writer, value : UInt16) -> Unit {
   self.align(2)
   self.buffer.write_uint16_le(value)
+}
+
+///|
+/// Write a CDR uint16 from a MoonBit UInt.
+pub fn Writer::write_u16_uint(self : Writer, value : UInt) -> Unit {
+  self.align(2)
+  self.buffer.write_byte(value.to_byte())
+  self.buffer.write_byte((value >> 8).to_byte())
 }
 
 ///|

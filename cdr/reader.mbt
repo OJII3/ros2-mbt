@@ -53,6 +53,22 @@ pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
 }
 
 ///|
+/// Read a signed CDR int8 without alignment.
+pub fn Reader::read_i8(self : Reader) -> Result[Int, String] {
+  match self.read_u8() {
+    Ok(value) => {
+      let raw = value.to_int()
+      if raw >= 128 {
+        Ok(raw - 256)
+      } else {
+        Ok(raw)
+      }
+    }
+    Err(message) => Err(message)
+  }
+}
+
+///|
 /// Read a CDR boolean encoded as 0 or 1.
 pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
   match self.read_u8() {
