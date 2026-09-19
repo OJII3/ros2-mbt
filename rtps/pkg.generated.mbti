@@ -540,6 +540,7 @@ pub fn SedpEndpointData::to_message(Self, VendorId, EntityId, EntityId, Int64) -
 pub fn SedpEndpointData::to_parameter_list(Self) -> Result[ParameterList, String]
 pub fn SedpEndpointData::to_parameter_list_with_vendor(Self, VendorId) -> Result[ParameterList, String]
 pub fn SedpEndpointData::topic_name(Self) -> String
+pub fn SedpEndpointData::type_hash(Self) -> Result[String?, String]
 pub fn SedpEndpointData::type_name(Self) -> String
 pub fn SedpEndpointData::unicast_locators(Self) -> Array[Locator]
 pub fn SedpEndpointData::with_participant_guid(Self, Guid) -> Self

@@ -230,6 +230,35 @@ pub fn SedpEndpointData::extra_parameters(
 }
 
 ///|
+/// Read the ROS 2 RIHS01 type hash from the endpoint USER_DATA parameter.
+///
+/// A missing USER_DATA or typehash key is represented as `None` so endpoints
+/// from ROS 2 implementations predating type-hash advertisement remain usable.
+pub fn SedpEndpointData::type_hash(
+  self : SedpEndpointData,
+) -> Result[String?, String] {
+  for parameter in self.extra_parameters {
+    if parameter.id() != PID_USER_DATA {
+      continue
+    }
+    let value = @utf8.decode(parameter.value()) catch {
+      _ => return Err("SEDP USER_DATA is not valid UTF-8")
+    }
+    for entry in value.split(";") {
+      let parts = entry.split("=").collect()
+      if parts.length() == 0 || parts[0] != "typehash" {
+        continue
+      }
+      if parts.length() != 2 || parts[1].length() == 0 {
+        return Err("SEDP USER_DATA contains an invalid typehash value")
+      }
+      return Ok(Some(parts[1].to_owned()))
+    }
+  }
+  Ok(None)
+}
+
+///|
 fn sedp_qos_u32(value : Bytes, label : String) -> Result[UInt, String] {
   if value.length() < 4 {
     return Err("SEDP " + label + " parameter is truncated")

@@ -89,6 +89,10 @@ test "SEDP endpoint data round trips required fields and locators" {
     }
   }
   assert_true(decoded_user_data_found)
+  assert_eq(
+    decoded.type_hash(),
+    Ok(Some("RIHS01_000102")),
+  )
   let reencoded = match decoded.to_cdr_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -141,6 +145,22 @@ test "SEDP endpoint data round trips required fields and locators" {
     Err(message) => fail(message)
   }
   assert_eq(message.submessages().length(), 1)
+}
+
+///|
+test "SEDP endpoint type hash is optional and validates malformed user data" {
+  let endpoint_guid = sedp_test_guid(0xC2).unwrap()
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    endpoint_guid,
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  assert_eq(endpoint.type_hash(), Ok(None))
+  endpoint.add_parameter(qos_user_data(b"typehash="))
+  assert_true(endpoint.type_hash() is Err(_))
+  endpoint.add_parameter(qos_user_data(Bytes::from_array([0xFF])))
+  assert_true(endpoint.type_hash() is Err(_))
 }
 
 ///|
