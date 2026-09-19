@@ -87,3 +87,17 @@ test "RTPS message preserves an unknown submessage and continues parsing" {
   assert_eq(message.submessages()[0].id(), SubmessageId::Unknown(0x7F))
   assert_eq(message.submessages()[1].id(), SubmessageId::Data)
 }
+
+///|
+test "RTPS final submessage with zero length consumes the remainder" {
+  let message = match
+    Message::from_bytes(
+      b"RTPS\x02\x03\x01\x0F\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x15\x01\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(message.submessages().length(), 1)
+  assert_eq(message.submessages()[0].id(), SubmessageId::Data)
+  assert_eq(message.submessages()[0].payload.length(), 20)
+}

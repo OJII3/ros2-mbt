@@ -272,10 +272,19 @@ pub fn Submessage::from_bytes(
     Ok(id) => id
     Err(message) => return Err(message)
   }
-  let payload_length = if (input[1] & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+  let encoded_payload_length = if (input[1] & SUBMESSAGE_FLAG_LITTLE_ENDIAN) !=
+    0 {
     input[2].to_int() | (input[3].to_int() << 8)
   } else {
     (input[2].to_int() << 8) | input[3].to_int()
+  }
+  let payload_length = if encoded_payload_length == 0 {
+    match id {
+      Pad | InfoTimestamp => 0
+      _ => input.length() - SUBMESSAGE_HEADER_LENGTH
+    }
+  } else {
+    encoded_payload_length
   }
   let total_length = SUBMESSAGE_HEADER_LENGTH + payload_length
   if input.length() < total_length {
