@@ -171,6 +171,85 @@ async test "reliable writer receives ACKNACK from its socket" {
 }
 
 ///|
+async test "reliable writer fragments large samples and handles NACK_FRAG" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let writer = ReliableDataWriter::new(
+    sender,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    writer_id,
+    receiver.local_addr(),
+    1L,
+  ).unwrap()
+  let payload : Array[Byte] = []
+  for index in 0..<(3010) {
+    payload.push((index % 251).to_byte())
+  }
+  match writer.write(Bytes::from_array(payload)) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_eq(writer.history_length(), 1)
+  let (first_message, _) = receiver.receive_message().unwrap()
+  let first_fragment = @rtps.DataFragSubmessage::from_submessage(
+    first_message.submessages()[0],
+  ).unwrap()
+  let (second_message, _) = receiver.receive_message().unwrap()
+  let second_fragment = @rtps.DataFragSubmessage::from_submessage(
+    second_message.submessages()[0],
+  ).unwrap()
+  assert_eq(first_fragment.fragment_starting_number(), 1U)
+  assert_eq(first_fragment.serialized_payload().length(), 1200)
+  assert_eq(second_fragment.fragment_starting_number(), 2U)
+  assert_eq(second_fragment.serialized_payload().length(), 1200)
+  let (third_message, _) = receiver.receive_message().unwrap()
+  let third_fragment = @rtps.DataFragSubmessage::from_submessage(
+    third_message.submessages()[0],
+  ).unwrap()
+  assert_eq(third_fragment.fragment_starting_number(), 3U)
+  assert_eq(third_fragment.serialized_payload().length(), 610)
+  match writer.send_heartbeat() {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (heartbeat, _) = receiver.receive_heartbeat().unwrap()
+  assert_eq(heartbeat.first_sequence_number(), 1L)
+  let (heartbeat_frag_message, _) = receiver.receive_message().unwrap()
+  let heartbeat_frag = @rtps.HeartbeatFragSubmessage::from_submessage(
+    heartbeat_frag_message.submessages()[0],
+  ).unwrap()
+  assert_eq(heartbeat_frag.last_fragment_number(), 3U)
+  let nackfrag = @rtps.NackFragSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    1U,
+    3U,
+    [0x40000000U],
+    1U,
+  ).unwrap()
+  match writer.handle_nackfrag(nackfrag) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (retransmitted_message, _) = receiver.receive_message().unwrap()
+  let retransmitted = @rtps.DataFragSubmessage::from_submessage(
+    retransmitted_message.submessages()[0],
+  ).unwrap()
+  assert_eq(retransmitted.fragment_starting_number(), 2U)
+  assert_eq(retransmitted.serialized_payload().length(), 1200)
+  writer.close()
+  receiver.close()
+}
+
+///|
 async test "reliable writer builds an SEDP builtin endpoint writer" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

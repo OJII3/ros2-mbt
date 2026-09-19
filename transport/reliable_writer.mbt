@@ -4,6 +4,77 @@
 /// The caller drives HEARTBEAT transmission and passes decoded ACKNACKs to
 /// `handle_acknack`. This keeps scheduling and socket receive ownership in the
 /// application while providing the wire-level retransmission primitive.
+/// Keep each fragment below common UDP payload limits, including RTPS headers.
+const RELIABLE_WRITER_FRAGMENT_SIZE : Int = 1200
+
+///|
+struct ReliableFragmentedWrite {
+  sequence_number : Int64
+  fragments : Array[@rtps.DataFragSubmessage]
+}
+
+///|
+fn reliable_writer_bytes_from(
+  input : Bytes,
+  start : Int,
+  length : Int,
+) -> Bytes {
+  let bytes : Array[Byte] = []
+  for i in 0..<length {
+    bytes.push(input[start + i])
+  }
+  Bytes::from_array(bytes)
+}
+
+///|
+fn reliable_writer_data_fits_datagram(data : @rtps.DataSubmessage) -> Bool {
+  data.to_payload().length() + 4 + 20 <= RELIABLE_WRITER_FRAGMENT_SIZE
+}
+
+///|
+fn reliable_writer_fragment_data(
+  data : @rtps.DataSubmessage,
+) -> Result[Array[@rtps.DataFragSubmessage], String] {
+  let payload = data.serialized_payload()
+  if payload.length() == 0 {
+    return Err("cannot fragment an empty RTPS DATA payload")
+  }
+  let fragment_count =
+    (payload.length() + RELIABLE_WRITER_FRAGMENT_SIZE - 1) /
+      RELIABLE_WRITER_FRAGMENT_SIZE
+  let fragments : Array[@rtps.DataFragSubmessage] = []
+  for index in 0..<fragment_count {
+    let offset = index * RELIABLE_WRITER_FRAGMENT_SIZE
+    let length = if payload.length() - offset > RELIABLE_WRITER_FRAGMENT_SIZE {
+      RELIABLE_WRITER_FRAGMENT_SIZE
+    } else {
+      payload.length() - offset
+    }
+    let fragment = match
+      @rtps.DataFragSubmessage::new(
+        data.reader_id(),
+        data.writer_id(),
+        data.writer_sequence_number(),
+        (index + 1).reinterpret_as_uint(),
+        (1 : Int).to_uint16(),
+        RELIABLE_WRITER_FRAGMENT_SIZE.to_uint16(),
+        payload.length().reinterpret_as_uint(),
+        reliable_writer_bytes_from(payload, offset, length),
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    fragments.push(
+      if index == 0 && data.inline_qos().length() > 0 {
+        fragment.with_inline_qos(data.inline_qos())
+      } else {
+        fragment
+      },
+    )
+  }
+  Ok(fragments)
+}
+
 pub struct ReliableDataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
@@ -15,6 +86,7 @@ pub struct ReliableDataWriter {
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
   history : Array[@rtps.DataSubmessage]
+  fragmented_history : Array[ReliableFragmentedWrite]
 }
 
 ///|
@@ -42,6 +114,7 @@ pub fn ReliableDataWriter::new(
     next_sequence_number: first_sequence_number,
     next_heartbeat_count: 1U,
     history: [],
+    fragmented_history: [],
   })
 }
 
@@ -234,6 +307,30 @@ async fn ReliableDataWriter::write_data(
   self : ReliableDataWriter,
   data : @rtps.DataSubmessage,
 ) -> Result[@rtps.SampleIdentity, String] {
+  if !reliable_writer_data_fits_datagram(data) {
+    let fragments = match reliable_writer_fragment_data(data) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for index in 0..<fragments.length() {
+      let fragment = fragments[index]
+      match
+        self.socket.send_message(
+          fragment.to_message(self.guid_prefix, self.vendor_id),
+          self.destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+    self.history.push(data)
+    self.fragmented_history.push({
+      sequence_number: data.writer_sequence_number(),
+      fragments,
+    })
+    self.next_sequence_number = data.writer_sequence_number() + 1L
+    return data.sample_identity(self.guid_prefix)
+  }
   match
     self.socket.send_data(
       data,
@@ -282,6 +379,29 @@ pub async fn ReliableDataWriter::send_heartbeat(
       self.destination,
     ) {
     Ok(_) => {
+      for fragmented in self.fragmented_history {
+        let heartbeat_frag = match
+          @rtps.HeartbeatFragSubmessage::new(
+            self.reader_id,
+            self.writer_id,
+            fragmented.sequence_number,
+            fragmented.fragments.length().reinterpret_as_uint(),
+            self.next_heartbeat_count,
+          ) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        match
+          self.socket.send_heartbeat_frag(
+            heartbeat_frag,
+            self.guid_prefix,
+            self.vendor_id,
+            self.destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      }
       self.next_heartbeat_count += 1U
       Ok(())
     }
@@ -316,6 +436,26 @@ pub async fn ReliableDataWriter::handle_acknack(
       continue
     }
     let requested_sequence = acknack.bitmap_base() + offset.to_int64()
+    let mut fragmented_found = false
+    for fragmented in self.fragmented_history {
+      if fragmented.sequence_number != requested_sequence {
+        continue
+      }
+      fragmented_found = true
+      for fragment in fragmented.fragments {
+        match
+          self.socket.send_message(
+            fragment.to_message(self.guid_prefix, self.vendor_id),
+            self.destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      }
+    }
+    if fragmented_found {
+      continue
+    }
     for sample in self.history {
       if sample.writer_sequence_number() != requested_sequence {
         continue
@@ -325,6 +465,46 @@ pub async fn ReliableDataWriter::handle_acknack(
           sample,
           self.guid_prefix,
           self.vendor_id,
+          self.destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Retransmit fragments selected by a NACK_FRAG bitmap.
+pub async fn ReliableDataWriter::handle_nackfrag(
+  self : ReliableDataWriter,
+  nackfrag : @rtps.NackFragSubmessage,
+) -> Result[Unit, String] {
+  if nackfrag.writer_id() != self.writer_id {
+    return Err("the NACK_FRAG targets a different RTPS writer")
+  }
+  if nackfrag.reader_id() != self.reader_id {
+    return Err("the NACK_FRAG targets a different RTPS reader")
+  }
+  let bitmap = nackfrag.bitmap()
+  let num_bits = nackfrag.num_bits().reinterpret_as_int()
+  for fragmented in self.fragmented_history {
+    if fragmented.sequence_number != nackfrag.writer_sequence_number() {
+      continue
+    }
+    for offset in 0..<num_bits {
+      if !reliable_bitmap_contains(bitmap, offset) {
+        continue
+      }
+      let fragment_number = nackfrag.bitmap_base().reinterpret_as_int() + offset
+      if fragment_number < 1 || fragment_number > fragmented.fragments.length() {
+        continue
+      }
+      let fragment = fragmented.fragments[fragment_number - 1]
+      match
+        self.socket.send_message(
+          fragment.to_message(self.guid_prefix, self.vendor_id),
           self.destination,
         ) {
         Ok(_) => ()
@@ -364,6 +544,42 @@ pub async fn ReliableDataWriter::receive_acknack(
       }
       match self.handle_acknack(acknack) {
         Ok(_) => return Ok((acknack, source))
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  Err("reliable writer stopped")
+}
+
+///|
+/// Receive one NACK_FRAG and retransmit its requested fragments.
+pub async fn ReliableDataWriter::receive_nackfrag(
+  self : ReliableDataWriter,
+) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for submessage in message.submessages() {
+      if submessage.id() != @rtps.SubmessageId::NackFrag {
+        continue
+      }
+      let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let prefix_matches = match self.reader_prefix {
+        Some(prefix) => message.header().guid_prefix() == prefix
+        None => true
+      }
+      if nackfrag.writer_id() != self.writer_id ||
+        nackfrag.reader_id() != self.reader_id ||
+        !prefix_matches {
+        continue
+      }
+      match self.handle_nackfrag(nackfrag) {
+        Ok(_) => return Ok((nackfrag, source))
         Err(message) => return Err(message)
       }
     }
