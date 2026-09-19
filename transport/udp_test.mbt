@@ -8,6 +8,12 @@ async test "UDP binds an ephemeral loopback port" {
 }
 
 ///|
+async test "UDP DDSI constructors reject invalid domains before binding" {
+  assert_true(Udp::ddsi_spdp_unicast(300, 0, 0x7F000001U) is Err(_))
+  assert_true(Udp::ddsi_user_unicast(300, 0, 0x7F000001U) is Err(_))
+}
+
+///|
 async test "UDP sends and receives one datagram" {
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))

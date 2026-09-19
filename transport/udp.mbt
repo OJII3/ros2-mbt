@@ -25,6 +25,56 @@ pub async fn Udp::multicast(group : @socket.Addr) -> Udp {
 }
 
 ///|
+/// Bind to the DDSI-RTPS SPDP multicast port for a domain.
+pub async fn Udp::ddsi_spdp_multicast(domain_id : UInt) -> Result[Udp, String] {
+  let address = match ddsi_default_spdp_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(Udp::multicast(address))
+}
+
+///|
+/// Bind to a DDSI-RTPS SPDP unicast port.
+pub async fn Udp::ddsi_spdp_unicast(
+  domain_id : UInt,
+  participant_id : UInt,
+  ip : UInt,
+) -> Result[Udp, String] {
+  let address = match
+    ddsi_default_spdp_unicast_addr(domain_id, participant_id, ip) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(Udp::bind(address))
+}
+
+///|
+/// Bind to the DDSI-RTPS user-data multicast port for a domain.
+pub async fn Udp::ddsi_user_multicast(domain_id : UInt) -> Result[Udp, String] {
+  let address = match ddsi_default_user_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(Udp::multicast(address))
+}
+
+///|
+/// Bind to a DDSI-RTPS user-data unicast port.
+pub async fn Udp::ddsi_user_unicast(
+  domain_id : UInt,
+  participant_id : UInt,
+  ip : UInt,
+) -> Result[Udp, String] {
+  let address = match
+    ddsi_default_user_unicast_addr(domain_id, participant_id, ip) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(Udp::bind(address))
+}
+
+///|
 /// Return the address selected by the operating system.
 pub fn Udp::local_addr(self : Udp) -> @socket.Addr {
   self.server.addr

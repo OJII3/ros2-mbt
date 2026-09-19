@@ -177,6 +177,10 @@ pub struct Udp {
 }
 pub async fn Udp::bind(@socket.Addr) -> Self
 pub fn Udp::close(Self) -> Unit
+pub async fn Udp::ddsi_spdp_multicast(UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_unicast(UInt, UInt, UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_user_multicast(UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub async fn Udp::multicast(@socket.Addr) -> Self
