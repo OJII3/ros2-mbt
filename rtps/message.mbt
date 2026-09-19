@@ -33,13 +33,36 @@ pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
   for i in 0..<header.length() {
     bytes.push(header[i])
   }
-  for submessage in self.submessages {
+  for index in 0..<self.submessages.length() {
+    let submessage = self.submessages[index]
     let encoded = match submessage.to_bytes() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     for i in 0..<encoded.length() {
       bytes.push(encoded[i])
+    }
+    if index + 1 < self.submessages.length() {
+      let remainder = encoded.length() % 4
+      if remainder != 0 {
+        let padding_length = 4 - remainder
+        let padding : Array[Byte] = []
+        for _ in 0..<padding_length {
+          padding.push(0)
+        }
+        let encoded_padding = match
+          Submessage::new(
+            SubmessageId::Pad,
+            SUBMESSAGE_FLAG_LITTLE_ENDIAN,
+            Bytes::from_array(padding),
+          ).to_bytes() {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        for i in 0..<encoded_padding.length() {
+          bytes.push(encoded_padding[i])
+        }
+      }
     }
   }
   Ok(Bytes::from_array(bytes))
