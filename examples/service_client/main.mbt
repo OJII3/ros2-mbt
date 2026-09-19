@@ -128,8 +128,12 @@ async fn main {
     }
   }
   match
-    participant.register_service_client(
-      service, request_writer_id, response_reader_id,
+    participant.register_service_client_with_type_hashes(
+      service,
+      request_writer_id,
+      response_reader_id,
+      "RIHS01_000c5fd92d6b2e1a05949348f584d6d652adea1e92d691792011ac2273508302",
+      "RIHS01_de5c030d4af33cba2749310b249737b631594703f9300495f48bffb2b44dcc2f",
     ) {
     Ok(_) => ()
     Err(message) => {

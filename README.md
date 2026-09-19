@@ -45,6 +45,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `RosTopic` と発見済み endpoint を結ぶ `RosPublisher` / `RosSubscription` facade
 - reliable QoS向けの `ReliableRosPublisher` / `ReliableRosSubscription` facade
 - ROS service の request/response DDS topic・type identity descriptor
+- ROS service request/response endpointのRIHS01型ハッシュ広告API
 - DDS-RPC enhanced service discovery向けの request/response 関連 endpoint GUID
 - RTPS DDS-RPC related sample identity と inline QoS
 - reliable ROS service client/server facade（request/reply 相関付き）
