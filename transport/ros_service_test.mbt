@@ -156,6 +156,27 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   assert_eq(retransmitted_request, b"request")
+  let second_request_identity = match client.request(b"request-2") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (second_request, second_received_identity, _) = match
+    server.receive_request() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(second_request, b"request-2")
+  assert_eq(second_received_identity, second_request_identity)
+  match server.respond(second_request_identity, b"response-2") {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (second_response, _) = match
+    client.receive_response(second_request_identity) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(second_response, b"response-2")
   client.close()
   server.close()
   ack_sender.close()
