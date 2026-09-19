@@ -53,3 +53,23 @@ test "RTPS submessage rejects truncation" {
   let result = Submessage::from_bytes(b"\x15\x01\x07")
   assert_true(result is Err(_))
 }
+
+///|
+test "RTPS message accepts a PAD submessage" {
+  let prefix = match
+    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let message = match
+    Message::from_bytes(
+      b"RTPS\x02\x03\x01\x0F\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x01\x01\x04\x00\x00\x00\x00\x00\x15\x01\x04\x00\x00\x00\x00\x00",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(message.header().guid_prefix(), prefix)
+  assert_eq(message.submessages().length(), 2)
+  assert_eq(message.submessages()[0].id(), SubmessageId::Pad)
+  assert_eq(message.submessages()[1].id(), SubmessageId::Data)
+}

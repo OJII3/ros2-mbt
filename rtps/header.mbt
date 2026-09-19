@@ -139,6 +139,7 @@ pub fn Header::from_bytes(input : Bytes) -> Result[Header, String] {
 ///|
 /// The RTPS submessage identifiers defined by the core protocol.
 pub(all) enum SubmessageId {
+  Pad
   InfoTimestamp
   InfoDestination
   AckNack
@@ -154,6 +155,7 @@ pub(all) enum SubmessageId {
 ///|
 pub fn SubmessageId::to_byte(self : SubmessageId) -> Byte {
   match self {
+    Pad => 0x01
     InfoTimestamp => 0x09
     InfoDestination => 0x0E
     AckNack => 0x06
@@ -170,6 +172,7 @@ pub fn SubmessageId::to_byte(self : SubmessageId) -> Byte {
 ///|
 pub fn SubmessageId::from_byte(value : Byte) -> Result[SubmessageId, String] {
   match value {
+    0x01 => Ok(Pad)
     0x09 => Ok(InfoTimestamp)
     0x0E => Ok(InfoDestination)
     0x06 => Ok(AckNack)

@@ -468,6 +468,7 @@ pub fn Submessage::new(SubmessageId, Byte, Bytes) -> Self
 pub fn Submessage::to_bytes(Self) -> Result[Bytes, String]
 
 pub(all) enum SubmessageId {
+  Pad
   InfoTimestamp
   InfoDestination
   AckNack
