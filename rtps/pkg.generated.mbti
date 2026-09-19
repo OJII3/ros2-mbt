@@ -8,6 +8,26 @@ import {
 // Values
 pub const HEADER_LENGTH : Int = 20
 
+pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
+
+pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
+
+pub const PID_DEFAULT_UNICAST_LOCATOR : UInt16 = 0x003c
+
+pub const PID_METATRAFFIC_MULTICAST_LOCATOR : UInt16 = 0x0032
+
+pub const PID_METATRAFFIC_UNICAST_LOCATOR : UInt16 = 0x0031
+
+pub const PID_PARTICIPANT_GUID : UInt16 = 0x0050
+
+pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
+
+pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
+
+pub const PID_SENTINEL : UInt16 = 0x0001
+
+pub const PID_VENDOR_ID : UInt16 = 0x0016
+
 pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
@@ -52,6 +72,25 @@ pub struct Header {
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
+
+pub struct Parameter {
+  id : UInt16
+  value : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Parameter::id(Self) -> UInt16
+pub fn Parameter::new(UInt16, Bytes) -> Self
+pub fn Parameter::value(Self) -> Bytes
+
+pub struct ParameterList {
+  values : Array[Parameter]
+}
+pub fn ParameterList::add(Self, Parameter) -> Unit
+pub fn ParameterList::from_bytes(Bytes) -> Result[(Self, Int), String]
+pub fn ParameterList::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn ParameterList::new() -> Self
+pub fn ParameterList::to_bytes(Self) -> Bytes
+pub fn ParameterList::to_cdr_bytes(Self) -> Bytes
+pub fn ParameterList::values(Self) -> Array[Parameter]
 
 pub struct ProtocolVersion {
   major : Byte
