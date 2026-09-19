@@ -30,6 +30,20 @@ pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
 // Errors
 
 // Types and methods
+pub struct DataWriter {
+  socket : Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  destination : @socket.Addr
+  mut next_sequence_number : Int64
+}
+pub fn DataWriter::close(Self) -> Unit
+pub fn DataWriter::new(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn DataWriter::next_sequence_number(Self) -> Int64
+pub async fn DataWriter::write(Self, Bytes) -> Result[Unit, String]
+
 pub(all) enum DiscoveryEvent {
   Participant(@rtps.SpdpParticipantData)
   Publication(@rtps.SedpEndpointData)
