@@ -1,5 +1,9 @@
 ///|
 /// The ROS 2 `std_msgs/msg/String` message.
+pub const STD_MSGS_STRING_TYPE_HASH : String =
+  "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+
+///|
 pub struct StringMessage {
   data : String
 }

@@ -34,6 +34,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - discovery/user-data socket をまとめる `RosParticipant` lifecycle facade
 - `RosParticipant` のローカルSEDP endpoint登録・保持・発見時自動再通知
 - topic・entity ID・QoSからuser locator付きSEDP endpointを登録するparticipant API
+- topic SEDPの`PID_USER_DATA`へのROS RIHS01型ハッシュ広告と、型ハッシュ付きtopic登録API
 - 登録済みendpointから`ParticipantEntitiesInfo`を生成するROS graph metadata API
 - reliable `ros_discovery_info` endpointをparticipantへ登録するAPI
 - 発見したgraph endpointに対応するreliable reader/writerの自動生成とgraph metadata送受信
@@ -66,6 +67,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
 - primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、明示的な型参照に対応、`rosidl`）
+- `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（primitiveおよび同一workspace内のnested type）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - `std_msgs/msg/String` を外部ROS 2と送受信する実行可能な `examples/talker` / `examples/listener`

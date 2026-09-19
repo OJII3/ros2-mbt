@@ -200,11 +200,12 @@ async fn main {
     }
   }
   match
-    participant.register_topic_endpoint(
+    participant.register_topic_endpoint_with_type_hash(
       topic,
       @rtps.SedpEndpointKind::Subscription,
       reader_id,
       qos,
+      @ros.STD_MSGS_STRING_TYPE_HASH,
     ) {
     Ok(_) => ()
     Err(message) => {

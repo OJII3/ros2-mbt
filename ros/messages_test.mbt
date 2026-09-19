@@ -1,5 +1,9 @@
 ///|
 test "std_msgs String CDR round trip" {
+  assert_eq(
+    STD_MSGS_STRING_TYPE_HASH,
+    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18",
+  )
   let message = StringMessage::new("hello ROS 2")
   let encoded = message.to_cdr_bytes()
   assert_eq(encoded[0], 0)
