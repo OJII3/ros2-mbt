@@ -137,3 +137,34 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
   assert_eq(data.serialized_payload(), b"abcdefghij")
   assert_eq(reader.sample_count(), 1)
 }
+
+///|
+test "reliable reader requests missing DATA_FRAGs" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let first_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    10L,
+    1U,
+    (1 : Int).to_uint16(),
+    (4 : Int).to_uint16(),
+    10U,
+    b"abcd",
+  ).unwrap()
+  assert_eq(reader.accept_data_frag(first_fragment), Ok(None))
+  let heartbeat = @rtps.HeartbeatFragSubmessage::new(
+    reader_id,
+    writer_id,
+    10L,
+    3U,
+    1U,
+  ).unwrap()
+  let nackfrag = reader.nackfrag_for_heartbeat_frag(heartbeat).unwrap()
+  assert_eq(nackfrag.bitmap_base(), 1U)
+  assert_eq(nackfrag.num_bits(), 3U)
+  assert_eq(nackfrag.bitmap(), [0x60000000U])
+  assert_eq(nackfrag.count(), 1U)
+  assert_eq(reader.next_nackfrag_count(), 2U)
+}
