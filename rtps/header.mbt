@@ -150,6 +150,7 @@ pub(all) enum SubmessageId {
   NackFrag
   HeartbeatFrag
   DataFrag
+  Unknown(Byte)
 } derive(Eq, Debug)
 
 ///|
@@ -166,6 +167,7 @@ pub fn SubmessageId::to_byte(self : SubmessageId) -> Byte {
     NackFrag => 0x12
     HeartbeatFrag => 0x13
     DataFrag => 0x16
+    Unknown(value) => value
   }
 }
 
@@ -183,7 +185,7 @@ pub fn SubmessageId::from_byte(value : Byte) -> Result[SubmessageId, String] {
     0x12 => Ok(NackFrag)
     0x13 => Ok(HeartbeatFrag)
     0x16 => Ok(DataFrag)
-    _ => Err("unsupported RTPS submessage identifier")
+    _ => Ok(Unknown(value))
   }
 }
 

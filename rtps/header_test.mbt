@@ -73,3 +73,17 @@ test "RTPS message accepts a PAD submessage" {
   assert_eq(message.submessages()[0].id(), SubmessageId::Pad)
   assert_eq(message.submessages()[1].id(), SubmessageId::Data)
 }
+
+///|
+test "RTPS message preserves an unknown submessage and continues parsing" {
+  let message = match
+    Message::from_bytes(
+      b"RTPS\x02\x03\x01\x0F\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x7F\x01\x02\x00\xAA\xBB\x15\x01\x04\x00\x00\x00\x00\x00",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(message.submessages().length(), 2)
+  assert_eq(message.submessages()[0].id(), SubmessageId::Unknown(0x7F))
+  assert_eq(message.submessages()[1].id(), SubmessageId::Data)
+}
