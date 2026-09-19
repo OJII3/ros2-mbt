@@ -38,6 +38,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - 発見したgraph endpointに対応するreliable reader/writerの自動生成とgraph metadata送受信
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
+- best-effort writer の大きい payload の DATA_FRAG 送信
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`
 - `RosTopic` と発見済み endpoint を結ぶ `RosPublisher` / `RosSubscription` facade
 - reliable QoS向けの `ReliableRosPublisher` / `ReliableRosSubscription` facade
