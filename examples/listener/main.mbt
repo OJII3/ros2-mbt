@@ -28,6 +28,20 @@ async fn main {
       return
     }
   }
+  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0xC2) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0xC7) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
   let participant = match
     @transport.RosParticipant::new_ddsi(
       prefix, vendor_id, 0U, 43U, 0x7F000001U, 60, 1L,
@@ -45,6 +59,17 @@ async fn main {
     10,
   )
   match
+    participant.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  match
     participant.register_topic_endpoint(
       topic,
       @rtps.SedpEndpointKind::Subscription,
@@ -52,6 +77,15 @@ async fn main {
       qos,
     ) {
     Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  let graph_info = match
+    participant.participant_entities_info("/demo", "moon_listener") {
+    Ok(value) => value
     Err(message) => {
       println(message)
       participant.close()
@@ -67,6 +101,7 @@ async fn main {
     }
   }
   let mut remote_publication : @rtps.SedpEndpointData? = None
+  let mut graph_info_published = false
   while remote_publication is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
@@ -75,6 +110,26 @@ async fn main {
           remote_publication = Some(publication)
         }
       Ok(_) => ()
+      Err(message) => {
+        println(message)
+        participant.close()
+        return
+      }
+    }
+    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+      match participant.publish_ros_discovery_info(graph_info) {
+        Ok(_) => graph_info_published = true
+        Err(message) => {
+          println(message)
+          participant.close()
+          return
+        }
+      }
+    }
+  }
+  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => graph_info_published = true
       Err(message) => {
         println(message)
         participant.close()
