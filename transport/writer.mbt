@@ -9,7 +9,7 @@ pub struct DataWriter {
   vendor_id : @rtps.VendorId
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   mut next_sequence_number : Int64
 }
 
@@ -33,7 +33,7 @@ pub fn DataWriter::new(
     vendor_id,
     reader_id,
     writer_id,
-    destination,
+    destinations: [destination],
     next_sequence_number: first_sequence_number,
   })
 }
@@ -60,19 +60,23 @@ pub fn DataWriter::new_for_subscription(
   if locators.length() == 0 {
     return Err("the discovered subscription has no UDP locators")
   }
-  let destination = match udp_locator_to_addrs(locators) {
-    Ok(value) => value[0]
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  DataWriter::new(
+  let writer = match DataWriter::new(
     socket,
     guid_prefix,
     vendor_id,
     subscription.endpoint_guid().entity_id(),
     writer_id,
-    destination,
+    destinations[0],
     first_sequence_number,
-  )
+  ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..writer, destinations, })
 }
 
 ///|
@@ -95,27 +99,36 @@ pub async fn DataWriter::write(
     serialized_payload,
   )
   let result = if reliable_writer_data_fits_datagram(data) {
-    self.socket.send_data(
-      data,
-      self.guid_prefix,
-      self.vendor_id,
-      self.destination,
-    )
+    for destination in self.destinations {
+      match
+        self.socket.send_data(
+          data,
+          self.guid_prefix,
+          self.vendor_id,
+          destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+    Ok(())
   } else {
     let fragments = match reliable_writer_fragment_data(data) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     for fragment in fragments {
-      match
-        self.socket.send_data_frag(
-          fragment,
-          self.guid_prefix,
-          self.vendor_id,
-          self.destination,
-        ) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      for destination in self.destinations {
+        match
+          self.socket.send_data_frag(
+            fragment,
+            self.guid_prefix,
+            self.vendor_id,
+            destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
     Ok(())

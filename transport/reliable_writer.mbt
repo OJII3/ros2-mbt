@@ -81,7 +81,7 @@ pub struct ReliableDataWriter {
   vendor_id : @rtps.VendorId
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
@@ -109,7 +109,7 @@ pub fn ReliableDataWriter::new(
     vendor_id,
     reader_id,
     writer_id,
-    destination,
+    destinations: [destination],
     reader_prefix: None,
     next_sequence_number: first_sequence_number,
     next_heartbeat_count: 1U,
@@ -140,8 +140,8 @@ pub fn ReliableDataWriter::new_for_subscription(
   if locators.length() == 0 {
     return Err("the discovered subscription has no UDP locators")
   }
-  let destination = match udp_locator_to_addrs(locators) {
-    Ok(value) => value[0]
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
   let writer = match
@@ -151,13 +151,17 @@ pub fn ReliableDataWriter::new_for_subscription(
       vendor_id,
       subscription.endpoint_guid().entity_id(),
       writer_id,
-      destination,
+      destinations[0],
       first_sequence_number,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..writer, reader_prefix: Some(subscription.endpoint_guid().prefix()), })
+  Ok({
+    ..writer,
+    destinations,
+    reader_prefix: Some(subscription.endpoint_guid().prefix()),
+  })
 }
 
 ///|
@@ -181,8 +185,8 @@ pub fn ReliableDataWriter::new_for_sedp(
   if locators.length() == 0 {
     return Err("the remote participant has no metatraffic locators")
   }
-  let destination = match udp_locator_to_addrs(locators) {
-    Ok(value) => value[0]
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
   let kind = endpoint.kind()
@@ -193,7 +197,7 @@ pub fn ReliableDataWriter::new_for_sedp(
       vendor_id,
       kind.builtin_reader_id(),
       kind.builtin_writer_id(),
-      destination,
+      destinations[0],
       first_sequence_number,
     ) {
     Ok(value) => value
@@ -201,6 +205,7 @@ pub fn ReliableDataWriter::new_for_sedp(
   }
   Ok({
     ..writer,
+    destinations,
     reader_prefix: Some(remote_participant.participant_guid().prefix()),
   })
 }
@@ -314,13 +319,15 @@ async fn ReliableDataWriter::write_data(
     }
     for index in 0..<fragments.length() {
       let fragment = fragments[index]
-      match
-        self.socket.send_message(
-          fragment.to_message(self.guid_prefix, self.vendor_id),
-          self.destination,
-        ) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      for destination in self.destinations {
+        match
+          self.socket.send_message(
+            fragment.to_message(self.guid_prefix, self.vendor_id),
+            destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
     self.history.push(data)
@@ -331,21 +338,22 @@ async fn ReliableDataWriter::write_data(
     self.next_sequence_number = data.writer_sequence_number() + 1L
     return data.sample_identity(self.guid_prefix)
   }
-  match
-    self.socket.send_data(
-      data,
-      self.guid_prefix,
-      self.vendor_id,
-      self.destination,
-    ) {
-    Ok(_) => {
-      self.history.push(data)
-      self.next_sequence_number = data.writer_sequence_number() + 1L
-      match data.sample_identity(self.guid_prefix) {
-        Ok(identity) => Ok(identity)
-        Err(message) => Err(message)
-      }
+  for destination in self.destinations {
+    match
+      self.socket.send_data(
+        data,
+        self.guid_prefix,
+        self.vendor_id,
+        destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
     }
+  }
+  self.history.push(data)
+  self.next_sequence_number = data.writer_sequence_number() + 1L
+  match data.sample_identity(self.guid_prefix) {
+    Ok(identity) => Ok(identity)
     Err(message) => Err(message)
   }
 }
@@ -371,42 +379,45 @@ pub async fn ReliableDataWriter::send_heartbeat(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match
-    self.socket.send_heartbeat(
-      heartbeat,
-      self.guid_prefix,
-      self.vendor_id,
-      self.destination,
-    ) {
-    Ok(_) => {
-      for fragmented in self.fragmented_history {
-        let heartbeat_frag = match
-          @rtps.HeartbeatFragSubmessage::new(
-            self.reader_id,
-            self.writer_id,
-            fragmented.sequence_number,
-            fragmented.fragments.length().reinterpret_as_uint(),
-            self.next_heartbeat_count,
-          ) {
-          Ok(value) => value
-          Err(message) => return Err(message)
-        }
-        match
-          self.socket.send_heartbeat_frag(
-            heartbeat_frag,
-            self.guid_prefix,
-            self.vendor_id,
-            self.destination,
-          ) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
-        }
-      }
-      self.next_heartbeat_count += 1U
-      Ok(())
+  for destination in self.destinations {
+    match
+      self.socket.send_heartbeat(
+        heartbeat,
+        self.guid_prefix,
+        self.vendor_id,
+        destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
     }
-    Err(message) => Err(message)
   }
+  for fragmented in self.fragmented_history {
+    let heartbeat_frag = match
+      @rtps.HeartbeatFragSubmessage::new(
+        self.reader_id,
+        self.writer_id,
+        fragmented.sequence_number,
+        fragmented.fragments.length().reinterpret_as_uint(),
+        self.next_heartbeat_count,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for destination in self.destinations {
+      match
+        self.socket.send_heartbeat_frag(
+          heartbeat_frag,
+          self.guid_prefix,
+          self.vendor_id,
+          destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  self.next_heartbeat_count += 1U
+  Ok(())
 }
 
 ///|
@@ -443,13 +454,15 @@ pub async fn ReliableDataWriter::handle_acknack(
       }
       fragmented_found = true
       for fragment in fragmented.fragments {
-        match
-          self.socket.send_message(
-            fragment.to_message(self.guid_prefix, self.vendor_id),
-            self.destination,
-          ) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        for destination in self.destinations {
+          match
+            self.socket.send_message(
+              fragment.to_message(self.guid_prefix, self.vendor_id),
+              destination,
+            ) {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
         }
       }
     }
@@ -460,15 +473,17 @@ pub async fn ReliableDataWriter::handle_acknack(
       if sample.writer_sequence_number() != requested_sequence {
         continue
       }
-      match
-        self.socket.send_data(
-          sample,
-          self.guid_prefix,
-          self.vendor_id,
-          self.destination,
-        ) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      for destination in self.destinations {
+        match
+          self.socket.send_data(
+            sample,
+            self.guid_prefix,
+            self.vendor_id,
+            destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
   }
@@ -502,13 +517,15 @@ pub async fn ReliableDataWriter::handle_nackfrag(
         continue
       }
       let fragment = fragmented.fragments[fragment_number - 1]
-      match
-        self.socket.send_message(
-          fragment.to_message(self.guid_prefix, self.vendor_id),
-          self.destination,
-        ) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      for destination in self.destinations {
+        match
+          self.socket.send_message(
+            fragment.to_message(self.guid_prefix, self.vendor_id),
+            destination,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
   }

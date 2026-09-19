@@ -7,7 +7,7 @@ pub struct ReliableDataReaderSession {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
   vendor_id : @rtps.VendorId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
 }
@@ -33,8 +33,8 @@ pub fn ReliableDataReaderSession::new_for_publication(
   if locators.length() == 0 {
     return Err("the discovered publication has no UDP locators")
   }
-  let destination = match udp_locator_to_addrs(locators) {
-    Ok(value) => value[0]
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
   let writer_id = publication.endpoint_guid().entity_id()
@@ -42,7 +42,7 @@ pub fn ReliableDataReaderSession::new_for_publication(
     socket,
     guid_prefix,
     vendor_id,
-    destination,
+    destinations,
     writer_prefix: publication.endpoint_guid().prefix(),
     state: ReliableDataReader::new(reader_id, writer_id),
   })
@@ -278,15 +278,17 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat(
     Err(message) => return Err(message)
   }
   for acknack in acknacks {
-    match
-      self.socket.send_acknack(
-        acknack,
-        self.guid_prefix,
-        self.vendor_id,
-        self.destination,
-      ) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    for destination in self.destinations {
+      match
+        self.socket.send_acknack(
+          acknack,
+          self.guid_prefix,
+          self.vendor_id,
+          destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
     }
   }
   Ok(())
@@ -302,15 +304,17 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
     Err(message) => return Err(message)
   }
   for nackfrag in nackfrags {
-    match
-      self.socket.send_nack_frag(
-        nackfrag,
-        self.guid_prefix,
-        self.vendor_id,
-        self.destination,
-      ) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    for destination in self.destinations {
+      match
+        self.socket.send_nack_frag(
+          nackfrag,
+          self.guid_prefix,
+          self.vendor_id,
+          destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
     }
   }
   Ok(())

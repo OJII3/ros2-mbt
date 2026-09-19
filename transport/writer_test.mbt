@@ -54,13 +54,14 @@ async test "best-effort data writer increments sequence numbers" {
 }
 
 ///|
-async test "best-effort data writer skips unsupported endpoint locators" {
+async test "best-effort data writer uses all supported endpoint locators" {
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let second_receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let subscription = @rtps.SedpEndpointData::new(
     @rtps.SedpEndpointKind::Subscription,
@@ -83,6 +84,12 @@ async test "best-effort data writer skips unsupported endpoint locators" {
       receiver.local_addr().port().reinterpret_as_uint(),
     ).unwrap(),
   )
+  subscription.add_unicast_locator(
+    @rtps.Locator::udp_v4(
+      b"\x7F\x00\x00\x01",
+      second_receiver.local_addr().port().reinterpret_as_uint(),
+    ).unwrap(),
+  )
   let writer = DataWriter::new_for_subscription(
     sender,
     prefix,
@@ -94,8 +101,11 @@ async test "best-effort data writer skips unsupported endpoint locators" {
   writer.write(b"payload").unwrap()
   let (data, _) = receiver.receive_data().unwrap()
   assert_eq(data.serialized_payload(), b"payload")
+  let (second_data, _) = second_receiver.receive_data().unwrap()
+  assert_eq(second_data.serialized_payload(), b"payload")
   writer.close()
   receiver.close()
+  second_receiver.close()
 }
 
 ///|

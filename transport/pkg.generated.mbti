@@ -65,7 +65,7 @@ pub struct DataWriter {
   vendor_id : @rtps.VendorId
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   mut next_sequence_number : Int64
 }
 pub fn DataWriter::close(Self) -> Unit
@@ -176,7 +176,7 @@ pub struct ReliableDataReaderSession {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
   vendor_id : @rtps.VendorId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
 }
@@ -194,7 +194,7 @@ pub struct ReliableDataWriter {
   vendor_id : @rtps.VendorId
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  destination : @socket.Addr
+  destinations : Array[@socket.Addr]
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
