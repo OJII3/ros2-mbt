@@ -8,6 +8,12 @@ import {
 // Values
 pub const HEADER_LENGTH : Int = 20
 
+pub const LOCATOR_KIND_UDP_V4 : Int = 1
+
+pub const LOCATOR_KIND_UDP_V6 : Int = 2
+
+pub const LOCATOR_LENGTH : Int = 24
+
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
 pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
@@ -72,6 +78,19 @@ pub struct Header {
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
+
+pub struct Locator {
+  kind : Int
+  port : UInt
+  address : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Locator::address(Self) -> Bytes
+pub fn Locator::from_bytes(Bytes) -> Result[Self, String]
+pub fn Locator::kind(Self) -> Int
+pub fn Locator::new(Int, UInt, Bytes) -> Result[Self, String]
+pub fn Locator::port(Self) -> UInt
+pub fn Locator::to_bytes(Self) -> Bytes
+pub fn Locator::udp_v4(Bytes, UInt) -> Result[Self, String]
 
 pub struct Parameter {
   id : UInt16
