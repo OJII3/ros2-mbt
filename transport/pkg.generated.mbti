@@ -165,7 +165,9 @@ pub struct ReliableDataReaderSession {
 pub fn ReliableDataReaderSession::close(Self) -> Unit
 pub fn ReliableDataReaderSession::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_data_with_identity(Self) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_related_data(Self, @rtps.SampleIdentity) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 pub fn ReliableDataReaderSession::sample_count(Self) -> Int
 
 pub struct ReliableDataWriter {
@@ -190,6 +192,8 @@ pub fn ReliableDataWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
+pub async fn ReliableDataWriter::write_and_return_identity(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
+pub async fn ReliableDataWriter::write_with_related_sample_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[Unit, String]
 
 pub struct ReliableRosDiscoveryPublisher {
   writer : ReliableDataWriter
@@ -294,6 +298,28 @@ pub fn RosPublisher::new_for_subscription(@ros.RosTopic, Udp, @rtps.GuidPrefix, 
 pub fn RosPublisher::next_sequence_number(Self) -> Int64
 pub async fn RosPublisher::publish(Self, Bytes) -> Result[Unit, String]
 pub fn RosPublisher::topic(Self) -> @ros.RosTopic
+
+pub struct RosServiceClient {
+  service : @ros.RosService
+  request_writer : ReliableDataWriter
+  response_reader : ReliableDataReaderSession
+}
+pub fn RosServiceClient::close(Self) -> Unit
+pub fn RosServiceClient::new(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub async fn RosServiceClient::receive_response(Self, @rtps.SampleIdentity) -> Result[(Bytes, @socket.Addr), String]
+pub async fn RosServiceClient::request(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
+pub fn RosServiceClient::service(Self) -> @ros.RosService
+
+pub struct RosServiceServer {
+  service : @ros.RosService
+  request_reader : ReliableDataReaderSession
+  response_writer : ReliableDataWriter
+}
+pub fn RosServiceServer::close(Self) -> Unit
+pub fn RosServiceServer::new(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub async fn RosServiceServer::receive_request(Self) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String]
+pub async fn RosServiceServer::respond(Self, @rtps.SampleIdentity, Bytes) -> Result[Unit, String]
+pub fn RosServiceServer::service(Self) -> @ros.RosService
 
 pub struct RosSubscription {
   topic : @ros.RosTopic

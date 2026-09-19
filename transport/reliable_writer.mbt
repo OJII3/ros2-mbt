@@ -150,6 +150,54 @@ pub async fn ReliableDataWriter::write(
     sequence_number,
     serialized_payload,
   )
+  match self.write_data(data) {
+    Ok(_) => Ok(())
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Send one sample and return its RTPS sample identity.
+pub async fn ReliableDataWriter::write_and_return_identity(
+  self : ReliableDataWriter,
+  serialized_payload : Bytes,
+) -> Result[@rtps.SampleIdentity, String] {
+  let sequence_number = self.next_sequence_number
+  let data = @rtps.DataSubmessage::new(
+    self.reader_id,
+    self.writer_id,
+    sequence_number,
+    serialized_payload,
+  )
+  self.write_data(data)
+}
+
+///|
+/// Send a reply sample with the DDS-RPC related request identity.
+pub async fn ReliableDataWriter::write_with_related_sample_identity(
+  self : ReliableDataWriter,
+  serialized_payload : Bytes,
+  related_identity : @rtps.SampleIdentity,
+) -> Result[Unit, String] {
+  let sequence_number = self.next_sequence_number
+  let data = @rtps.DataSubmessage::new(
+    self.reader_id,
+    self.writer_id,
+    sequence_number,
+    serialized_payload,
+  ).with_related_sample_identity(related_identity)
+  match self.write_data(data) {
+    Ok(_) => Ok(())
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Send a DATA sample and retain it for ACKNACK retransmission.
+async fn ReliableDataWriter::write_data(
+  self : ReliableDataWriter,
+  data : @rtps.DataSubmessage,
+) -> Result[@rtps.SampleIdentity, String] {
   match
     self.socket.send_data(
       data,
@@ -159,8 +207,11 @@ pub async fn ReliableDataWriter::write(
     ) {
     Ok(_) => {
       self.history.push(data)
-      self.next_sequence_number = sequence_number + 1L
-      Ok(())
+      self.next_sequence_number = data.writer_sequence_number() + 1L
+      match data.sample_identity(self.guid_prefix) {
+        Ok(identity) => Ok(identity)
+        Err(message) => Err(message)
+      }
     }
     Err(message) => Err(message)
   }

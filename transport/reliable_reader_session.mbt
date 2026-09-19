@@ -51,6 +51,17 @@ pub fn ReliableDataReaderSession::new_for_publication(
 pub async fn ReliableDataReaderSession::receive_data(
   self : ReliableDataReaderSession,
 ) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  match self.receive_data_with_identity() {
+    Ok((data, _, source)) => Ok((data, source))
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Receive DATA and return its RTPS sample identity.
+pub async fn ReliableDataReaderSession::receive_data_with_identity(
+  self : ReliableDataReaderSession,
+) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String] {
   while true {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
@@ -64,7 +75,14 @@ pub async fn ReliableDataReaderSession::receive_data(
             Err(_) => continue
           }
           match self.state.accept_data(data) {
-            Ok(_) => return Ok((data, source))
+            Ok(_) => {
+              let identity = match
+                data.sample_identity(message.header().guid_prefix()) {
+                Ok(value) => value
+                Err(_) => continue
+              }
+              return Ok((data, identity, source))
+            }
             Err(_) => continue
           }
         }
@@ -84,6 +102,30 @@ pub async fn ReliableDataReaderSession::receive_data(
     }
   }
   Err("reliable reader stopped")
+}
+
+///|
+/// Receive DATA until a reply referring to the requested sample arrives.
+pub async fn ReliableDataReaderSession::receive_related_data(
+  self : ReliableDataReaderSession,
+  request_identity : @rtps.SampleIdentity,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  while true {
+    let (data, _, source) = match self.receive_data_with_identity() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let related = match data.related_sample_identity() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match related {
+      Some(identity) if identity == request_identity =>
+        return Ok((data, source))
+      _ => ()
+    }
+  }
+  Err("reliable related-data reader stopped")
 }
 
 ///|
