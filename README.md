@@ -24,6 +24,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
 - SPDP/SEDP discovery event を保持する `DiscoveryGraph` と topic/type matching
 - `rmw_dds_common` の `Gid` / `NodeEntitiesInfo` / `ParticipantEntitiesInfo` CDR codec
+- `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
 - ROS topic descriptor から SEDP topic/type identity への bridge
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード

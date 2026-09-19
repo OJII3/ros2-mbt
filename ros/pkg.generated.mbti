@@ -7,6 +7,12 @@ import {
 }
 
 // Values
+pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
+
+pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
+
+pub fn ros_discovery_info_to_sedp(@rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
+
 pub fn ros_name_to_dds(String, DdsTopicKind) -> Result[String, String]
 
 pub fn ros_service_request_to_dds(String) -> Result[String, String]
