@@ -37,8 +37,87 @@ async fn discover_subscription(
 }
 
 ///|
-/// Publish a small number of reliable String samples after discovering a ROS 2
-/// subscription on `/chatter`.
+async fn publish_reliable(
+  topic : @ros.RosTopic,
+  socket : @transport.Udp,
+  prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  subscription : @rtps.SedpEndpointData,
+) -> Unit {
+  let publisher = match
+    @transport.ReliableRosPublisher::new_for_subscription(
+      topic, socket, prefix, vendor_id, writer_id, subscription, 1L,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  for index in 0..<5 {
+    let message = @ros.StringMessage::new(
+      "hello from MoonBit #" + index.to_string(),
+    )
+    match publisher.publish(message.to_cdr_bytes()) {
+      Ok(_) => ()
+      Err(error) => {
+        println(error)
+        publisher.close()
+        return
+      }
+    }
+    match publisher.send_heartbeat() {
+      Ok(_) => ()
+      Err(error) => {
+        println(error)
+        publisher.close()
+        return
+      }
+    }
+    @async.sleep(1000)
+  }
+  publisher.close()
+}
+
+///|
+async fn publish_best_effort(
+  topic : @ros.RosTopic,
+  socket : @transport.Udp,
+  prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  subscription : @rtps.SedpEndpointData,
+) -> Unit {
+  let publisher = match
+    @transport.RosPublisher::new_for_subscription(
+      topic, socket, prefix, vendor_id, writer_id, subscription, 1L,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  for index in 0..<5 {
+    let message = @ros.StringMessage::new(
+      "hello from MoonBit #" + index.to_string(),
+    )
+    match publisher.publish(message.to_cdr_bytes()) {
+      Ok(_) => ()
+      Err(error) => {
+        println(error)
+        publisher.close()
+        return
+      }
+    }
+    @async.sleep(1000)
+  }
+  publisher.close()
+}
+
+///|
+/// Publish String samples after discovering a ROS 2 subscription on `/chatter`.
 async fn main {
   let config = match @config.load() {
     Ok(value) => value
@@ -160,39 +239,23 @@ async fn main {
       return
     }
   }
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
-  let publisher = match
-    @transport.ReliableRosPublisher::new_for_subscription(
-      topic, user_socket, prefix, vendor_id, writer_id, subscription, 1L,
-    ) {
-    Ok(value) => value
+  let is_reliable = match subscription.qos() {
+    Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE
     Err(message) => {
       println(message)
+      participant.close()
       return
     }
   }
-  for index in 0..<5 {
-    let message = @ros.StringMessage::new(
-      "hello from MoonBit #" + index.to_string(),
+  let (discovery, user_socket) = participant.into_parts()
+  discovery.close()
+  if is_reliable {
+    publish_reliable(
+      topic, user_socket, prefix, vendor_id, writer_id, subscription,
     )
-    match publisher.publish(message.to_cdr_bytes()) {
-      Ok(_) => ()
-      Err(error) => {
-        println(error)
-        publisher.close()
-        return
-      }
-    }
-    match publisher.send_heartbeat() {
-      Ok(_) => ()
-      Err(error) => {
-        println(error)
-        publisher.close()
-        return
-      }
-    }
-    @async.sleep(1000)
+  } else {
+    publish_best_effort(
+      topic, user_socket, prefix, vendor_id, writer_id, subscription,
+    )
   }
-  publisher.close()
 }

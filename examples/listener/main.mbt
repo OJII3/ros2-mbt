@@ -37,8 +37,87 @@ async fn discover_publication(
 }
 
 ///|
-/// Receive a small number of reliable String samples after discovering a ROS 2
-/// publication on `/chatter`.
+async fn receive_reliable(
+  topic : @ros.RosTopic,
+  socket : @transport.Udp,
+  prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Unit {
+  let subscription = match
+    @transport.ReliableRosSubscription::new_for_publication(
+      topic, socket, prefix, vendor_id, reader_id, publication,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  for _ in 0..<5 {
+    let (payload, _) = match subscription.receive() {
+      Ok(value) => value
+      Err(error) => {
+        println(error)
+        subscription.close()
+        return
+      }
+    }
+    let message = match @ros.StringMessage::from_cdr_bytes(payload) {
+      Ok(value) => value
+      Err(error) => {
+        println(error)
+        subscription.close()
+        return
+      }
+    }
+    println(message.data())
+  }
+  subscription.close()
+}
+
+///|
+async fn receive_best_effort(
+  topic : @ros.RosTopic,
+  socket : @transport.Udp,
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+) -> Unit {
+  let subscription = match
+    @transport.RosSubscription::new_for_publication(
+      topic, socket, reader_id, publication,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  for _ in 0..<5 {
+    let (payload, _) = match subscription.receive() {
+      Ok(value) => value
+      Err(error) => {
+        println(error)
+        subscription.close()
+        return
+      }
+    }
+    let message = match @ros.StringMessage::from_cdr_bytes(payload) {
+      Ok(value) => value
+      Err(error) => {
+        println(error)
+        subscription.close()
+        return
+      }
+    }
+    println(message.data())
+  }
+  subscription.close()
+}
+
+///|
+/// Receive String samples after discovering a ROS 2 publication on `/chatter`.
 async fn main {
   let config = match @config.load() {
     Ok(value) => value
@@ -104,7 +183,7 @@ async fn main {
     }
   }
   let qos = @rtps.SedpQos::new(
-    @rtps.RELIABILITY_RELIABLE,
+    @rtps.RELIABILITY_BEST_EFFORT,
     @rtps.DURABILITY_VOLATILE,
     @rtps.HISTORY_KEEP_LAST,
     10,
@@ -160,36 +239,21 @@ async fn main {
       return
     }
   }
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
-  let subscription = match
-    @transport.ReliableRosSubscription::new_for_publication(
-      topic, user_socket, prefix, vendor_id, reader_id, publication,
-    ) {
-    Ok(value) => value
+  let is_reliable = match publication.qos() {
+    Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE
     Err(message) => {
       println(message)
+      participant.close()
       return
     }
   }
-  for _ in 0..<5 {
-    let (payload, _) = match subscription.receive() {
-      Ok(value) => value
-      Err(error) => {
-        println(error)
-        subscription.close()
-        return
-      }
-    }
-    let message = match @ros.StringMessage::from_cdr_bytes(payload) {
-      Ok(value) => value
-      Err(error) => {
-        println(error)
-        subscription.close()
-        return
-      }
-    }
-    println(message.data())
+  let (discovery, user_socket) = participant.into_parts()
+  discovery.close()
+  if is_reliable {
+    receive_reliable(
+      topic, user_socket, prefix, vendor_id, reader_id, publication,
+    )
+  } else {
+    receive_best_effort(topic, user_socket, reader_id, publication)
   }
-  subscription.close()
 }

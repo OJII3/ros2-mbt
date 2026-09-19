@@ -100,7 +100,7 @@ ros2 topic pub --qos-reliability reliable /chatter std_msgs/msg/String "{data: h
 direnv exec . moon run examples/listener
 ```
 
-`examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、reliableな `std_msgs/msg/String` を5件送信します。`examples/listener` は同じ手順でpublicationを発見し、5件受信してCDRを復号します。`ROS2_MBT_IP` はMoonBit participantがDDSI locatorとして広告するローカルIPv4アドレスで、未設定時は `127.0.0.1` です。`ROS_DOMAIN_ID` はROS 2側と一致させ、未設定時は `0` です。ROS 2側のDDS実装と到達可能なネットワークで実行してください。macOSでは、依存しているUDP multicast socketの同一ポート共有がOSの負荷分散対象になるため、同一ホスト上で複数participantを動かす検証は不安定です。外部ROS 2実装との実通信試験は、この環境では未実施です。
+`examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、相手のreliability QoSに合わせて `std_msgs/msg/String` を5件送信します。`examples/listener` もpublicationのQoSに応じたreaderを選択し、5件受信してCDRを復号します。`ROS2_MBT_IP` はMoonBit participantがDDSI locatorとして広告するローカルIPv4アドレスで、未設定時は `127.0.0.1` です。`ROS_DOMAIN_ID` はROS 2側と一致させ、未設定時は `0` です。ROS 2側のDDS実装と到達可能なネットワークで実行してください。macOSでは、依存しているUDP multicast socketの同一ポート共有がOSの負荷分散対象になるため、同一ホスト上で複数participantを動かす検証は不安定です。外部ROS 2実装との実通信試験は、この環境では未実施です。
 
 serviceの動作確認は、MoonBit serverに対してROS 2 CLIから呼び出すか、ROS 2 serverを起動してMoonBit clientから呼び出します。
 
