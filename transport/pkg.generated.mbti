@@ -20,13 +20,27 @@ pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
 
 pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
 
+pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
+
+pub const DDSI_USER_UNICAST_OFFSET : Int = 11
+
 pub const MAX_DATAGRAM_SIZE : Int = 65535
 
 pub fn ddsi_default_spdp_multicast_addr(UInt) -> Result[@socket.Addr, String]
 
+pub fn ddsi_default_spdp_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_default_user_multicast_addr(UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_default_user_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+
 pub fn ddsi_spdp_multicast_port(UInt) -> Result[Int, String]
 
 pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
+
+pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
+
+pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
 
 // Errors
 
