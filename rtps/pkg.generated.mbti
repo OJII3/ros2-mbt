@@ -629,6 +629,7 @@ pub fn SpdpParticipantData::metatraffic_multicast_locators(Self) -> Array[Locato
 pub fn SpdpParticipantData::metatraffic_unicast_locators(Self) -> Array[Locator]
 pub fn SpdpParticipantData::new(Guid, VendorId, UInt, Int, UInt, UInt) -> Self
 pub fn SpdpParticipantData::participant_guid(Self) -> Guid
+pub fn SpdpParticipantData::participant_guid_from_key_data(DataSubmessage) -> Result[Guid, String]
 pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes
 pub fn SpdpParticipantData::to_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
 pub fn SpdpParticipantData::to_message(Self, EntityId, EntityId, Int64) -> Message
