@@ -31,6 +31,20 @@ pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
 pub const DDSI_USER_UNICAST_OFFSET : Int = 11
 
 ///|
+/// Convert an IPv4 integer and port into an RTPS UDP locator.
+fn ddsi_udp_locator(ip : UInt, port : Int) -> Result[@rtps.Locator, String] {
+  @rtps.Locator::udp_v4(
+    Bytes::from_array([
+      (ip >> 24).to_byte(),
+      (ip >> 16).to_byte(),
+      (ip >> 8).to_byte(),
+      ip.to_byte(),
+    ]),
+    port.reinterpret_as_uint(),
+  )
+}
+
+///|
 fn ddsi_port(domain_id : UInt, offset : Int) -> Result[Int, String] {
   let port = DDSI_PORT_BASE +
     domain_id.reinterpret_as_int() * DDSI_DOMAIN_ID_GAIN +
@@ -129,4 +143,82 @@ pub fn ddsi_default_user_unicast_addr(
     Err(message) => return Err(message)
   }
   Ok(@socket.Addr::new(ip, port))
+}
+
+///|
+/// Create a participant with the standard DDSI-RTPS locators for IPv4.
+///
+/// The returned participant advertises both unicast and domain multicast
+/// metatraffic/user-data locators and all six standard builtin endpoint bits.
+pub fn new_ddsi_participant(
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  domain_id : UInt,
+  participant_id : UInt,
+  ip : UInt,
+  lease_seconds : Int,
+) -> Result[@rtps.SpdpParticipantData, String] {
+  let participant_entity_id = match @rtps.EntityId::new(b"\x00\x01\x00", 0xC1) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(guid_prefix, participant_entity_id),
+    vendor_id,
+    domain_id,
+    lease_seconds,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR |
+    @rtps.BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR,
+  )
+  let metatraffic_unicast = match
+    ddsi_default_spdp_unicast_addr(domain_id, participant_id, ip) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let user_unicast = match
+    ddsi_default_user_unicast_addr(domain_id, participant_id, ip) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let metatraffic_multicast = match
+    ddsi_default_spdp_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let user_multicast = match ddsi_default_user_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  participant.add_metatraffic_unicast(
+    match
+      ddsi_udp_locator(metatraffic_unicast.ip(), metatraffic_unicast.port()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    },
+  )
+  participant.add_default_unicast(
+    match ddsi_udp_locator(user_unicast.ip(), user_unicast.port()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    },
+  )
+  participant.add_metatraffic_multicast(
+    match
+      ddsi_udp_locator(metatraffic_multicast.ip(), metatraffic_multicast.port()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    },
+  )
+  participant.add_default_multicast(
+    match ddsi_udp_locator(user_multicast.ip(), user_multicast.port()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    },
+  )
+  Ok(participant)
 }

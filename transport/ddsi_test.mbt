@@ -41,3 +41,35 @@ test "DDSI-RTPS default IPv4 addresses" {
   assert_eq(multicast.ip(), 0xEFFF0001U)
   assert_eq(multicast.port(), 7401)
 }
+
+///|
+test "DDSI participant helper advertises standard locators" {
+  let prefix = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let participant = match
+    new_ddsi_participant(
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      0,
+      3,
+      0x7F000001U,
+      60,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(participant.domain_id(), 0U)
+  assert_eq(participant.lease_seconds(), 60)
+  assert_eq(participant.builtin_endpoint_set(), 0x0000003FU)
+  assert_eq(participant.metatraffic_unicast_locators().length(), 1)
+  assert_eq(participant.metatraffic_multicast_locators().length(), 1)
+  assert_eq(participant.default_unicast_locators().length(), 1)
+  assert_eq(participant.default_multicast_locators().length(), 1)
+  assert_eq(participant.metatraffic_unicast_locators()[0].port(), 7416)
+  assert_eq(participant.default_unicast_locators()[0].port(), 7417)
+  assert_eq(participant.metatraffic_multicast_locators()[0].port(), 7400)
+  assert_eq(participant.default_multicast_locators()[0].port(), 7401)
+}

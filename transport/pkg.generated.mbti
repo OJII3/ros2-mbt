@@ -42,6 +42,8 @@ pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
 
 pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
 
+pub fn new_ddsi_participant(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int) -> Result[@rtps.SpdpParticipantData, String]
+
 // Errors
 
 // Types and methods
