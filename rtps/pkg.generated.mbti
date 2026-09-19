@@ -462,6 +462,7 @@ pub fn Message::header(Self) -> Header
 pub fn Message::new(Header) -> Self
 pub fn Message::submessages(Self) -> Array[Submessage]
 pub fn Message::to_bytes(Self) -> Result[Bytes, String]
+pub fn Message::with_destination_guid_prefix(Self, GuidPrefix) -> Self
 
 pub struct NackFragSubmessage {
   flags : Byte

@@ -372,10 +372,11 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat(
   for acknack in acknacks {
     for destination in self.destinations {
       match
-        self.socket.send_acknack(
-          acknack,
-          self.guid_prefix,
-          self.vendor_id,
+        self.socket.send_message(
+          acknack.to_message(
+            self.guid_prefix,
+            self.vendor_id,
+          ).with_destination_guid_prefix(self.writer_prefix),
           destination,
         ) {
         Ok(_) => ()
@@ -398,10 +399,11 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
   for nackfrag in nackfrags {
     for destination in self.destinations {
       match
-        self.socket.send_nack_frag(
-          nackfrag,
-          self.guid_prefix,
-          self.vendor_id,
+        self.socket.send_message(
+          nackfrag.to_message(
+            self.guid_prefix,
+            self.vendor_id,
+          ).with_destination_guid_prefix(self.writer_prefix),
           destination,
         ) {
         Ok(_) => ()

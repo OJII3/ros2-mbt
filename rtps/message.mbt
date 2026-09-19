@@ -26,6 +26,20 @@ pub fn Message::submessages(self : Message) -> Array[Submessage] {
 }
 
 ///|
+/// Return a copy with an INFO_DST submessage before the existing submessages.
+pub fn Message::with_destination_guid_prefix(
+  self : Message,
+  guid_prefix : GuidPrefix,
+) -> Message {
+  let message = Message::new(self.header)
+  message.add(InfoDestinationSubmessage::new(guid_prefix).to_submessage())
+  for submessage in self.submessages {
+    message.add(submessage)
+  }
+  message
+}
+
+///|
 /// Return the optional INFO_DST participant prefix carried by this message.
 pub fn Message::destination_guid_prefix(
   self : Message,

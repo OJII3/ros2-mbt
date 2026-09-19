@@ -239,6 +239,18 @@ pub fn ReliableDataWriter::history_length(self : ReliableDataWriter) -> Int {
 }
 
 ///|
+/// Add the remote participant destination when this writer targets a discovered endpoint.
+fn ReliableDataWriter::message_for_reader(
+  self : ReliableDataWriter,
+  message : @rtps.Message,
+) -> @rtps.Message {
+  match self.reader_prefix {
+    Some(prefix) => message.with_destination_guid_prefix(prefix)
+    None => message
+  }
+}
+
+///|
 /// Send one sample and retain it in the reliable writer history.
 pub async fn ReliableDataWriter::write(
   self : ReliableDataWriter,
@@ -322,7 +334,9 @@ async fn ReliableDataWriter::write_data(
       for destination in self.destinations {
         match
           self.socket.send_message(
-            fragment.to_message(self.guid_prefix, self.vendor_id),
+            self.message_for_reader(
+              fragment.to_message(self.guid_prefix, self.vendor_id),
+            ),
             destination,
           ) {
           Ok(_) => ()
@@ -340,10 +354,8 @@ async fn ReliableDataWriter::write_data(
   }
   for destination in self.destinations {
     match
-      self.socket.send_data(
-        data,
-        self.guid_prefix,
-        self.vendor_id,
+      self.socket.send_message(
+        self.message_for_reader(data.to_message(self.guid_prefix, self.vendor_id)),
         destination,
       ) {
       Ok(_) => ()
@@ -381,10 +393,10 @@ pub async fn ReliableDataWriter::send_heartbeat(
   }
   for destination in self.destinations {
     match
-      self.socket.send_heartbeat(
-        heartbeat,
-        self.guid_prefix,
-        self.vendor_id,
+      self.socket.send_message(
+        self.message_for_reader(
+          heartbeat.to_message(self.guid_prefix, self.vendor_id),
+        ),
         destination,
       ) {
       Ok(_) => ()
@@ -405,10 +417,10 @@ pub async fn ReliableDataWriter::send_heartbeat(
     }
     for destination in self.destinations {
       match
-        self.socket.send_heartbeat_frag(
-          heartbeat_frag,
-          self.guid_prefix,
-          self.vendor_id,
+        self.socket.send_message(
+          self.message_for_reader(
+            heartbeat_frag.to_message(self.guid_prefix, self.vendor_id),
+          ),
           destination,
         ) {
         Ok(_) => ()
@@ -457,7 +469,9 @@ pub async fn ReliableDataWriter::handle_acknack(
         for destination in self.destinations {
           match
             self.socket.send_message(
-              fragment.to_message(self.guid_prefix, self.vendor_id),
+              self.message_for_reader(
+                fragment.to_message(self.guid_prefix, self.vendor_id),
+              ),
               destination,
             ) {
             Ok(_) => ()
@@ -475,10 +489,10 @@ pub async fn ReliableDataWriter::handle_acknack(
       }
       for destination in self.destinations {
         match
-          self.socket.send_data(
-            sample,
-            self.guid_prefix,
-            self.vendor_id,
+          self.socket.send_message(
+            self.message_for_reader(
+              sample.to_message(self.guid_prefix, self.vendor_id),
+            ),
             destination,
           ) {
           Ok(_) => ()
@@ -520,7 +534,9 @@ pub async fn ReliableDataWriter::handle_nackfrag(
       for destination in self.destinations {
         match
           self.socket.send_message(
-            fragment.to_message(self.guid_prefix, self.vendor_id),
+            self.message_for_reader(
+              fragment.to_message(self.guid_prefix, self.vendor_id),
+            ),
             destination,
           ) {
           Ok(_) => ()

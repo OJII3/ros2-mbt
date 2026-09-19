@@ -399,10 +399,11 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
       acknacks[index]
     }
     match
-      socket.send_acknack(
-        acknack,
-        self.participant.participant_guid().prefix(),
-        self.participant.vendor_id(),
+      socket.send_message(
+        acknack.to_message(
+          self.participant.participant_guid().prefix(),
+          self.participant.vendor_id(),
+        ).with_destination_guid_prefix(writer_prefix),
         source,
       ) {
       Ok(_) => ()

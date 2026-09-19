@@ -480,9 +480,17 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
     Err(message) => return Err(message)
   }
   for destination in destinations {
+    let endpoint_message = match
+      endpoint.to_message(vendor_id, reader_id, writer_id, writer_sequence_number) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
     match
-      self.send_sedp(
-        endpoint, vendor_id, reader_id, writer_id, writer_sequence_number, destination,
+      self.send_message(
+        endpoint_message.with_destination_guid_prefix(
+          remote_participant.participant_guid().prefix(),
+        ),
+        destination,
       ) {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -495,10 +503,13 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
       Err(message) => return Err(message)
     }
     match
-      self.send_heartbeat(
-        heartbeat,
-        endpoint.participant_guid().prefix(),
-        vendor_id,
+      self.send_message(
+        heartbeat.to_message(
+          endpoint.participant_guid().prefix(),
+          vendor_id,
+        ).with_destination_guid_prefix(
+          remote_participant.participant_guid().prefix(),
+        ),
         destination,
       ) {
       Ok(_) => ()

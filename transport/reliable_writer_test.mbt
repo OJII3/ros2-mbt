@@ -85,6 +85,51 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
 }
 
 ///|
+async test "reliable writer directs discovered endpoint traffic" {
+  let local_prefix = @rtps.GuidPrefix::from_array(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  ).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array(
+    [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = @rtps.Locator::udp_v4(
+    b"\x7F\x00\x00\x01",
+    receiver.local_addr().port().reinterpret_as_uint(),
+  ).unwrap()
+  let subscription = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Subscription,
+    @rtps.Guid::new(remote_prefix, reader_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  subscription.add_unicast_locator(locator)
+  let writer = ReliableDataWriter::new_for_subscription(
+    sender,
+    local_prefix,
+    @rtps.VendorId::new(1, 15),
+    writer_id,
+    subscription,
+    1L,
+  ).unwrap()
+  match writer.write(b"payload") {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (message, _) = receiver.receive_message().unwrap()
+  assert_eq(message.destination_guid_prefix(), Ok(Some(remote_prefix)))
+  let data = @rtps.DataSubmessage::from_submessage(
+    message.submessages()[1],
+  ).unwrap()
+  assert_eq(data.serialized_payload(), b"payload")
+  writer.close()
+  receiver.close()
+}
+
+///|
 async test "reliable writer receives ACKNACK from its socket" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

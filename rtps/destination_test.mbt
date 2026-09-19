@@ -42,3 +42,22 @@ test "RTPS message exposes its optional INFO_DST prefix" {
     Ok(None),
   )
 }
+
+///|
+test "RTPS message prepends INFO_DST before existing submessages" {
+  let source = GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).unwrap()
+  let destination = GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap()
+  let message = Message::new(Header::new(source, VendorId::new(1, 15)))
+  message.add(
+    DataSubmessage::new(
+      EntityId::unknown(),
+      EntityId::new(b"pub", 0xC2).unwrap(),
+      1L,
+      b"payload",
+    ).to_submessage(),
+  )
+  let directed = message.with_destination_guid_prefix(destination)
+  assert_eq(directed.submessages().length(), 2)
+  assert_eq(directed.destination_guid_prefix(), Ok(Some(destination)))
+  assert_eq(directed.submessages()[1].id(), SubmessageId::Data)
+}
