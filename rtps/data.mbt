@@ -19,6 +19,10 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 pub const DATA_FIXED_BODY_LENGTH : Int = 20
 
 ///|
+/// The DATA offset from the octetsToInlineQos field to the next body element.
+pub const DATA_INLINE_QOS_OFFSET : Int = DATA_FIXED_BODY_LENGTH - 4
+
+///|
 /// The RTPS DATA submessage body used by discovery and user data.
 pub struct DataSubmessage {
   flags : Byte
@@ -42,7 +46,7 @@ pub fn DataSubmessage::new(
   {
     flags: DATA_FLAG_LITTLE_ENDIAN | DATA_FLAG_DATA,
     extra_flags: 0,
-    octets_to_inline_qos: 0,
+    octets_to_inline_qos: DATA_INLINE_QOS_OFFSET.to_uint16(),
     reader_id,
     writer_id,
     writer_sequence_number,
@@ -60,7 +64,7 @@ pub fn DataSubmessage::with_inline_qos(
   {
     ..self,
     flags: self.flags | DATA_FLAG_INLINE_QOS,
-    octets_to_inline_qos: DATA_FIXED_BODY_LENGTH.to_uint16(),
+    octets_to_inline_qos: DATA_INLINE_QOS_OFFSET.to_uint16(),
     inline_qos,
   }
 }
@@ -191,8 +195,8 @@ fn read_u64_le(input : Bytes, offset : Int) -> UInt64 {
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
-  data_append_u16_le(bytes, self.octets_to_inline_qos)
   data_append_u16_le(bytes, self.extra_flags)
+  data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
   for i in 0..<4 {
@@ -243,8 +247,8 @@ pub fn DataSubmessage::from_submessage(
   if submessage.payload.length() < DATA_FIXED_BODY_LENGTH {
     return Err("an RTPS DATA body is shorter than its fixed fields")
   }
-  let octets_to_inline_qos = data_read_u16_le(submessage.payload, 0)
-  let extra_flags = data_read_u16_le(submessage.payload, 2)
+  let extra_flags = data_read_u16_le(submessage.payload, 0)
+  let octets_to_inline_qos = data_read_u16_le(submessage.payload, 2)
   let reader_id = match
     EntityId::from_bytes(bytes_from(submessage.payload, 4, 4)) {
     Ok(value) => value
@@ -258,26 +262,32 @@ pub fn DataSubmessage::from_submessage(
   let sequence_number = read_u64_le(submessage.payload, 12).reinterpret_as_int64()
   let mut inline_qos = b""
   let mut payload_offset = DATA_FIXED_BODY_LENGTH
+  let inline_qos_offset = 4 + octets_to_inline_qos.to_int()
+  if octets_to_inline_qos.to_int() < DATA_INLINE_QOS_OFFSET ||
+    inline_qos_offset > submessage.payload.length() {
+    return Err("RTPS DATA octetsToInlineQos points outside the DATA body")
+  }
   if (submessage.flags & DATA_FLAG_INLINE_QOS) != 0 {
-    if octets_to_inline_qos.to_int() != DATA_FIXED_BODY_LENGTH {
-      return Err("unsupported RTPS DATA inline QoS offset")
-    }
     let remaining = bytes_from(
       submessage.payload,
-      DATA_FIXED_BODY_LENGTH,
-      submessage.payload.length() - DATA_FIXED_BODY_LENGTH,
+      inline_qos_offset,
+      submessage.payload.length() - inline_qos_offset,
     )
     let consumed = match ParameterList::from_bytes(remaining) {
       Ok((_, consumed)) => consumed
       Err(message) => return Err(message)
     }
     inline_qos = bytes_from(remaining, 0, consumed)
-    payload_offset += consumed
-  } else if octets_to_inline_qos != 0 {
-    return Err("RTPS DATA octetsToInlineQos must be zero without inline QoS")
+    payload_offset = inline_qos_offset + consumed
+  } else {
+    payload_offset = inline_qos_offset
   }
-  if (submessage.flags & (DATA_FLAG_DATA | DATA_FLAG_KEY)) == 0 {
+  let data_and_key_flags = submessage.flags & (DATA_FLAG_DATA | DATA_FLAG_KEY)
+  if data_and_key_flags == 0 {
     return Err("RTPS DATA must contain data or a key")
+  }
+  if data_and_key_flags == (DATA_FLAG_DATA | DATA_FLAG_KEY) {
+    return Err("RTPS DATA cannot contain both data and key")
   }
   Ok({
     flags: submessage.flags,

@@ -19,7 +19,7 @@ test "RTPS DATA submessage round trip" {
     Err(message) => fail(message)
   }
   assert_eq(
-    encoded, b"\x15\x05\x18\x00\x00\x00\x00\x00abc\xC7abc\xC2\x07\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00",
+    encoded, b"\x15\x05\x18\x00\x00\x00\x10\x00abc\xC7abc\xC2\x07\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00",
   )
   let submessage = match Submessage::from_bytes(encoded) {
     Ok((value, _)) => value
@@ -63,6 +63,33 @@ test "RTPS DATA supports inline QoS" {
   }
   assert_eq(decoded.inline_qos(), inline_qos.to_bytes())
   assert_eq(decoded.serialized_payload(), b"payload")
+}
+
+///|
+test "RTPS DATA preserves extra flags and inline QoS offset wire order" {
+  let reader_id = match test_entity_id(0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match test_entity_id(0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"payload")
+  let payload = data.to_payload()
+  assert_eq(payload[0], 0)
+  assert_eq(payload[1], 0)
+  assert_eq(payload[2], 16)
+  assert_eq(payload[3], 0)
+  let decoded = match
+    DataSubmessage::from_submessage(
+      Submessage::new(SubmessageId::Data, data.flags(), payload),
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.extra_flags.to_int(), 0)
+  assert_eq(decoded.octets_to_inline_qos.to_int(), 16)
 }
 
 ///|
@@ -134,6 +161,12 @@ test "RTPS DATA rejects malformed flags and body" {
   assert_true(
     DataSubmessage::from_submessage(
       Submessage::new(SubmessageId::Heartbeat, 0x01, payload),
+    )
+    is Err(_),
+  )
+  assert_true(
+    DataSubmessage::from_submessage(
+      Submessage::new(SubmessageId::Data, 0x0D, data.to_payload()),
     )
     is Err(_),
   )
