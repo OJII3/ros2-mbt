@@ -85,6 +85,9 @@ pub fn RosTopic::to_sedp_with_qos(
     endpoint.add_parameter(@rtps.qos_reliability(qos.reliability(), 0, 0))
     endpoint.add_parameter(@rtps.qos_durability(qos.durability()))
     endpoint.add_parameter(@rtps.qos_history(qos.history(), qos.depth()))
+    endpoint.add_parameter(
+      @rtps.qos_data_representation([@rtps.DATA_REPRESENTATION_XCDR1]),
+    )
     endpoint
   })
 }

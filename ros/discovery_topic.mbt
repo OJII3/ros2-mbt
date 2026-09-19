@@ -49,6 +49,9 @@ pub fn ros_discovery_info_to_sedp(
     @rtps.qos_reliability(@rtps.RELIABILITY_RELIABLE, 0, 0),
   )
   endpoint.add_parameter(@rtps.qos_durability(@rtps.DURABILITY_TRANSIENT_LOCAL))
+  endpoint.add_parameter(
+    @rtps.qos_data_representation([@rtps.DATA_REPRESENTATION_XCDR1]),
+  )
   match kind {
     @rtps.SedpEndpointKind::Publication =>
       endpoint.add_parameter(@rtps.qos_history(@rtps.HISTORY_KEEP_LAST, 1))

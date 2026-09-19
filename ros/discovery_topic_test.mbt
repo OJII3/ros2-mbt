@@ -47,6 +47,10 @@ test "ROS discovery topic uses the standard DDS identity and writer QoS" {
     discovery_topic_test_parameter(endpoint, @rtps.PID_HISTORY).value(),
     b"\x00\x00\x00\x00\x01\x00\x00\x00",
   )
+  assert_eq(
+    discovery_topic_test_parameter(endpoint, @rtps.PID_DATA_REPRESENTATION).value(),
+    b"\x01\x00\x00\x00\x00\x00",
+  )
 }
 
 ///|

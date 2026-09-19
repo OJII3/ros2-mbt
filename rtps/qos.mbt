@@ -50,6 +50,14 @@ pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
 pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
 
 ///|
+/// DDS XCDR1 data-representation identifier.
+pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
+
+///|
+/// DDS XCDR2 data-representation identifier.
+pub const DATA_REPRESENTATION_XCDR2 : UInt16 = 2
+
+///|
 fn qos_u32_le(value : UInt) -> Bytes {
   Bytes::from_array([
     value.to_byte(),
