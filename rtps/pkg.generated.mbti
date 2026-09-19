@@ -6,6 +6,18 @@ import {
 }
 
 // Values
+pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
+
+pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
+
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt = 0x00000004
+
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt = 0x00000008
+
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt = 0x00000010
+
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt = 0x00000020
+
 pub const DATA_FIXED_BODY_LENGTH : Int = 20
 
 pub const DATA_FLAG_DATA : Byte = 0x04
@@ -15,6 +27,10 @@ pub const DATA_FLAG_INLINE_QOS : Byte = 0x02
 pub const DATA_FLAG_KEY : Byte = 0x08
 
 pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
+pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
+
+pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
 pub const HEADER_LENGTH : Int = 20
 
@@ -29,6 +45,8 @@ pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
 
 pub const PID_DEFAULT_UNICAST_LOCATOR : UInt16 = 0x003c
+
+pub const PID_DOMAIN_ID : UInt16 = 0x000F
 
 pub const PID_METATRAFFIC_MULTICAST_LOCATOR : UInt16 = 0x0032
 
@@ -148,6 +166,28 @@ pub struct ProtocolVersion {
   minor : Byte
 } derive(Eq, @debug.Debug)
 pub fn ProtocolVersion::new(Byte, Byte) -> Self
+
+pub struct SpdpParticipantData {
+  protocol_version : ProtocolVersion
+  vendor_id : VendorId
+  participant_guid : Guid
+  domain_id : UInt
+  lease_seconds : Int
+  lease_nanoseconds : UInt
+  builtin_endpoint_set : UInt
+  metatraffic_unicast_locators : Array[Locator]
+  metatraffic_multicast_locators : Array[Locator]
+  default_unicast_locators : Array[Locator]
+  default_multicast_locators : Array[Locator]
+}
+pub fn SpdpParticipantData::add_default_multicast(Self, Locator) -> Unit
+pub fn SpdpParticipantData::add_default_unicast(Self, Locator) -> Unit
+pub fn SpdpParticipantData::add_metatraffic_multicast(Self, Locator) -> Unit
+pub fn SpdpParticipantData::add_metatraffic_unicast(Self, Locator) -> Unit
+pub fn SpdpParticipantData::new(Guid, VendorId, UInt, Int, UInt, UInt) -> Self
+pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes
+pub fn SpdpParticipantData::to_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
+pub fn SpdpParticipantData::to_parameter_list(Self) -> ParameterList
 
 pub struct Submessage {
   id : SubmessageId

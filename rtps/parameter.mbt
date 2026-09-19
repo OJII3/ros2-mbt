@@ -6,6 +6,9 @@ pub const PID_SENTINEL : UInt16 = 0x0001
 pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
 
 ///|
+pub const PID_DOMAIN_ID : UInt16 = 0x000F
+
+///|
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
 ///|
