@@ -36,17 +36,27 @@ pub fn DataReader::new_for_publication(
 pub async fn DataReader::receive(
   self : DataReader,
 ) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
-  let (data, source) = match self.socket.receive_data() {
-    Ok(value) => value
-    Err(message) => return Err(message)
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for submessage in message.submessages() {
+      if submessage.id() != @rtps.SubmessageId::Data {
+        continue
+      }
+      let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      if data.reader_id() != self.reader_id ||
+        data.writer_id() != self.writer_id {
+        continue
+      }
+      return Ok((data, source))
+    }
   }
-  if data.reader_id() != self.reader_id {
-    return Err("the received DATA targets a different RTPS reader")
-  }
-  if data.writer_id() != self.writer_id {
-    return Err("the received DATA comes from a different RTPS writer")
-  }
-  Ok((data, source))
+  Err("best-effort reader stopped")
 }
 
 ///|

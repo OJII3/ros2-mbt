@@ -32,6 +32,37 @@ async test "best-effort reader accepts its discovered publication" {
   }
   let data = @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"payload")
   match
+    sender.send_heartbeat(
+      match @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
+        Ok(value) => value
+        Err(message) => fail(message)
+      },
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match
+    sender.send_data(
+      @rtps.DataSubmessage::new(
+        reader_id,
+        match @rtps.EntityId::new(b"oth", 0xC2) {
+          Ok(value) => value
+          Err(message) => fail(message)
+        },
+        1L,
+        b"unrelated",
+      ),
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match
     sender.send_data(
       data,
       prefix,
