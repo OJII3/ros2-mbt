@@ -9,6 +9,7 @@ pub struct RosParticipant {
   user_socket : Udp
   user_locator : @rtps.Locator
   local_endpoints : Array[@rtps.SedpEndpointData]
+  mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
   graph_publishers : Array[ReliableRosDiscoveryPublisher]
@@ -67,6 +68,7 @@ pub fn RosParticipant::from_discovery_session(
     user_socket,
     user_locator,
     local_endpoints: [],
+    spdp_socket: None,
     graph_publication_id: None,
     graph_subscription_id: None,
     graph_publishers: [],
@@ -99,12 +101,14 @@ pub async fn RosParticipant::new_ddsi(
     Err(message) => return Err(message)
   }
   let discovery_send_socket = Udp::bind(@socket.Addr::new(0, 0))
+  let spdp_send_socket = Udp::bind(@socket.Addr::new(0, 0))
   let metatraffic_socket = match
     Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
       discovery_receive_socket.close()
       discovery_send_socket.close()
+      spdp_send_socket.close()
       return Err(message)
     }
   }
@@ -114,6 +118,7 @@ pub async fn RosParticipant::new_ddsi(
     Err(message) => {
       discovery_receive_socket.close()
       discovery_send_socket.close()
+      spdp_send_socket.close()
       metatraffic_socket.close()
       return Err(message)
     }
@@ -130,12 +135,21 @@ pub async fn RosParticipant::new_ddsi(
     Err(message) => {
       discovery_receive_socket.close()
       discovery_send_socket.close()
+      spdp_send_socket.close()
       metatraffic_socket.close()
       user_socket.close()
       return Err(message)
     }
   }
-  RosParticipant::from_discovery_session(session, user_socket)
+  let result = match RosParticipant::from_discovery_session(session, user_socket) {
+    Ok(value) => value
+    Err(message) => {
+      spdp_send_socket.close()
+      return Err(message)
+    }
+  }
+  result.spdp_socket = Some(spdp_send_socket)
+  Ok(result)
 }
 
 ///|
@@ -434,7 +448,10 @@ pub async fn RosParticipant::receive_ros_discovery_acknack(
 pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,
 ) -> Result[Unit, String] {
-  self.discovery.announce_once()
+  match self.spdp_socket {
+    Some(socket) => self.discovery.session.announce_once_on(socket)
+    None => self.discovery.announce_once()
+  }
 }
 
 ///|
@@ -443,33 +460,17 @@ pub async fn RosParticipant::announce_spdp_forever(
   self : RosParticipant,
   interval_ms : Int,
 ) -> Result[Unit, String] {
-  self.discovery.session.announce_forever(interval_ms)
-}
-
-///|
-/// Receive one discovery event while periodically announcing this participant.
-///
-/// This keeps discovery robust when a peer starts after the first SPDP packet
-/// was sent. The first announcement is left to `announce_spdp_once`; the
-/// background task starts after one interval and is cancelled when the event
-/// arrives.
-pub async fn RosParticipant::receive_discovery_once_with_spdp(
-  self : RosParticipant,
-  interval_ms : Int,
-) -> Result[(@socket.Addr, DiscoveryEvent), String] {
   if interval_ms <= 0 {
     return Err("the discovery announcement interval must be positive")
   }
-  @async.with_task_group() <| group => {
-    group.spawn_bg(no_wait=true) <| () => {
-      @async.sleep(interval_ms)
-      match self.announce_spdp_forever(interval_ms) {
-        Ok(_) => ()
-        Err(message) => fail(message)
-      }
+  while true {
+    match self.announce_spdp_once() {
+      Ok(_) => ()
+      Err(message) => return Err(message)
     }
-    self.receive_discovery_once()
+    @async.sleep(interval_ms)
   }
+  Ok(())
 }
 
 ///|
@@ -565,6 +566,10 @@ pub async fn RosParticipant::receive_discovery_once(
 pub fn RosParticipant::into_parts(
   self : RosParticipant,
 ) -> (DiscoveryService, Udp) {
+  match self.spdp_socket {
+    Some(socket) => socket.close()
+    None => ()
+  }
   (self.discovery, self.user_socket)
 }
 
@@ -572,5 +577,9 @@ pub fn RosParticipant::into_parts(
 /// Close both discovery and user-data sockets.
 pub fn RosParticipant::close(self : RosParticipant) -> Unit {
   self.discovery.close()
+  match self.spdp_socket {
+    Some(socket) => socket.close()
+    None => ()
+  }
   self.user_socket.close()
 }

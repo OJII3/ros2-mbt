@@ -162,9 +162,17 @@ pub fn DiscoverySession::next_sequence_number(self : DiscoverySession) -> Int64 
 pub async fn DiscoverySession::announce_once(
   self : DiscoverySession,
 ) -> Result[Unit, String] {
+  self.announce_once_on(self.socket)
+}
+
+///| Send one SPDP announcement through a caller-provided socket.
+async fn DiscoverySession::announce_once_on(
+  self : DiscoverySession,
+  socket : Udp,
+) -> Result[Unit, String] {
   let sequence_number = self.next_sequence_number
   match
-    self.socket.send_spdp(
+    socket.send_spdp(
       self.participant,
       self.reader_id,
       self.writer_id,

@@ -1,4 +1,42 @@
 ///|
+/// Discover the remote publication and publish the local graph information.
+async fn discover_publication(
+  participant : @transport.RosParticipant,
+  topic : @ros.RosTopic,
+  graph_info : @ros.ParticipantEntitiesInfo,
+) -> Result[@rtps.SedpEndpointData, String] {
+  let mut remote_publication : @rtps.SedpEndpointData? = None
+  let mut graph_info_published = false
+  while remote_publication is None {
+    match participant.receive_discovery_once() {
+      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
+        if publication.topic_name() == topic.dds_name() &&
+          publication.type_name() == topic.dds_type_name() {
+          remote_publication = Some(publication)
+        }
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+      match participant.publish_ros_discovery_info(graph_info) {
+        Ok(_) => graph_info_published = true
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => graph_info_published = true
+      Err(message) => return Err(message)
+    }
+  }
+  match remote_publication {
+    Some(value) => Ok(value)
+    None => Err("discovery ended without a matching publication")
+  }
+}
+
+///|
 /// Receive a small number of reliable String samples after discovering a ROS 2
 /// publication on `/chatter`.
 async fn main {
@@ -92,54 +130,22 @@ async fn main {
       return
     }
   }
-  match participant.announce_spdp_once() {
-    Ok(_) => ()
+  let discovered_publication = @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match participant.announce_spdp_forever(1000) {
+        Ok(_) => ()
+        Err(message) => fail(message)
+      }
+    }
+    discover_publication(participant, topic, graph_info)
+  }
+  let publication = match discovered_publication {
+    Ok(value) => value
     Err(message) => {
       println(message)
       participant.close()
       return
     }
-  }
-  let mut remote_publication : @rtps.SedpEndpointData? = None
-  let mut graph_info_published = false
-  while remote_publication is None {
-    match participant.receive_discovery_once_with_spdp(1000) {
-      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
-        if publication.topic_name() == topic.dds_name() &&
-          publication.type_name() == topic.dds_type_name() {
-          remote_publication = Some(publication)
-        }
-      Ok(_) => ()
-      Err(message) => {
-        println(message)
-        participant.close()
-        return
-      }
-    }
-    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-      match participant.publish_ros_discovery_info(graph_info) {
-        Ok(_) => graph_info_published = true
-        Err(message) => {
-          println(message)
-          participant.close()
-          return
-        }
-      }
-    }
-  }
-  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => graph_info_published = true
-      Err(message) => {
-        println(message)
-        participant.close()
-        return
-      }
-    }
-  }
-  let publication = match remote_publication {
-    Some(value) => value
-    None => return
   }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()

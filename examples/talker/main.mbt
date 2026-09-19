@@ -1,4 +1,42 @@
 ///|
+/// Discover the remote subscription and publish the local graph information.
+async fn discover_subscription(
+  participant : @transport.RosParticipant,
+  topic : @ros.RosTopic,
+  graph_info : @ros.ParticipantEntitiesInfo,
+) -> Result[@rtps.SedpEndpointData, String] {
+  let mut remote_subscription : @rtps.SedpEndpointData? = None
+  let mut graph_info_published = false
+  while remote_subscription is None {
+    match participant.receive_discovery_once() {
+      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
+        if subscription.topic_name() == topic.dds_name() &&
+          subscription.type_name() == topic.dds_type_name() {
+          remote_subscription = Some(subscription)
+        }
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+      match participant.publish_ros_discovery_info(graph_info) {
+        Ok(_) => graph_info_published = true
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => graph_info_published = true
+      Err(message) => return Err(message)
+    }
+  }
+  match remote_subscription {
+    Some(value) => Ok(value)
+    None => Err("discovery ended without a matching subscription")
+  }
+}
+
+///|
 /// Publish a small number of reliable String samples after discovering a ROS 2
 /// subscription on `/chatter`.
 async fn main {
@@ -92,54 +130,22 @@ async fn main {
       return
     }
   }
-  match participant.announce_spdp_once() {
-    Ok(_) => ()
+  let discovered_subscription = @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match participant.announce_spdp_forever(1000) {
+        Ok(_) => ()
+        Err(message) => fail(message)
+      }
+    }
+    discover_subscription(participant, topic, graph_info)
+  }
+  let subscription = match discovered_subscription {
+    Ok(value) => value
     Err(message) => {
       println(message)
       participant.close()
       return
     }
-  }
-  let mut remote_subscription : @rtps.SedpEndpointData? = None
-  let mut graph_info_published = false
-  while remote_subscription is None {
-    match participant.receive_discovery_once_with_spdp(1000) {
-      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
-        if subscription.topic_name() == topic.dds_name() &&
-          subscription.type_name() == topic.dds_type_name() {
-          remote_subscription = Some(subscription)
-        }
-      Ok(_) => ()
-      Err(message) => {
-        println(message)
-        participant.close()
-        return
-      }
-    }
-    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-      match participant.publish_ros_discovery_info(graph_info) {
-        Ok(_) => graph_info_published = true
-        Err(message) => {
-          println(message)
-          participant.close()
-          return
-        }
-      }
-    }
-  }
-  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => graph_info_published = true
-      Err(message) => {
-        println(message)
-        participant.close()
-        return
-      }
-    }
-  }
-  let subscription = match remote_subscription {
-    Some(value) => value
-    None => return
   }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()

@@ -290,6 +290,7 @@ pub struct RosParticipant {
   user_socket : Udp
   user_locator : @rtps.Locator
   local_endpoints : Array[@rtps.SedpEndpointData]
+  mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
   graph_publishers : Array[ReliableRosDiscoveryPublisher]
@@ -310,7 +311,6 @@ pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
 pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@ros.ParticipantEntitiesInfo, String]
 pub async fn RosParticipant::publish_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
-pub async fn RosParticipant::receive_discovery_once_with_spdp(Self, Int) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
