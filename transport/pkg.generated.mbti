@@ -7,7 +7,25 @@ import {
 }
 
 // Values
+pub const DDSI_DEFAULT_MULTICAST_IP : UInt = 0xEFFF0001
+
+pub const DDSI_DOMAIN_ID_GAIN : Int = 250
+
+pub const DDSI_PARTICIPANT_ID_GAIN : Int = 2
+
+pub const DDSI_PORT_BASE : Int = 7400
+
+pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
+
+pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
+
 pub const MAX_DATAGRAM_SIZE : Int = 65535
+
+pub fn ddsi_default_spdp_multicast_addr(UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_spdp_multicast_port(UInt) -> Result[Int, String]
+
+pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
 
 // Errors
 
@@ -31,6 +49,7 @@ pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String
 pub async fn DiscoverySession::announce_once(Self) -> Result[Unit, String]
 pub fn DiscoverySession::close(Self) -> Unit
 pub fn DiscoverySession::new(Udp, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn DiscoverySession::new_default(Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn DiscoverySession::next_sequence_number(Self) -> Int64
 pub async fn DiscoverySession::receive_once(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
 

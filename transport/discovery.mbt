@@ -33,6 +33,39 @@ pub fn DiscoverySession::new(
 }
 
 ///|
+/// Create an SPDP session using the DDSI-RTPS default multicast destination.
+pub fn DiscoverySession::new_default(
+  socket : Udp,
+  participant : @rtps.SpdpParticipantData,
+  domain_id : UInt,
+  first_sequence_number : Int64,
+) -> Result[DiscoverySession, String] {
+  let destination = match ddsi_default_spdp_multicast_addr(domain_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let writer_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  DiscoverySession::new(
+    socket, participant, reader_id, writer_id, destination, first_sequence_number,
+  )
+}
+
+///|
 /// Return the sequence number that will be used by the next announcement.
 pub fn DiscoverySession::next_sequence_number(self : DiscoverySession) -> Int64 {
   self.next_sequence_number
