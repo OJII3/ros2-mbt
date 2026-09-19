@@ -1,4 +1,8 @@
 ///|
+/// The RTPS SequenceNumber_t value used by DDS for an unknown sequence.
+pub const SAMPLE_IDENTITY_UNKNOWN_SEQUENCE : Int64 = -4294967296L
+
+///|
 /// The RTPS sample identity used to correlate a DDS-RPC reply with a request.
 pub struct SampleIdentity {
   writer_guid : Guid
@@ -10,7 +14,9 @@ pub fn SampleIdentity::new(
   writer_guid : Guid,
   sequence_number : Int64,
 ) -> Result[SampleIdentity, String] {
-  if sequence_number == 0L || sequence_number < -1L {
+  if sequence_number == 0L ||
+    (sequence_number < 0L &&
+      sequence_number != SAMPLE_IDENTITY_UNKNOWN_SEQUENCE) {
     return Err("an RTPS sample identity sequence number is invalid")
   }
   Ok({ writer_guid, sequence_number, })
@@ -19,7 +25,10 @@ pub fn SampleIdentity::new(
 ///|
 /// Create the unknown-sequence identity used by ROS 2 service requests.
 pub fn SampleIdentity::unknown_sequence(writer_guid : Guid) -> SampleIdentity {
-  { writer_guid, sequence_number: -1L, }
+  {
+    writer_guid,
+    sequence_number: SAMPLE_IDENTITY_UNKNOWN_SEQUENCE,
+  }
 }
 
 ///|
