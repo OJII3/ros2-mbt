@@ -204,6 +204,145 @@ async test "ROS participant registers service client endpoints" {
 }
 
 ///|
+async test "ROS participants discover service endpoints before request reply" {
+  let client_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let server_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let service = @ros.RosService::new(
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
+  ).unwrap()
+  let participant_id = @rtps.EntityId::new(b"prt", 0xC1).unwrap()
+  let spdp_reader = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let spdp_writer = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let client_discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_discovery_locator = client_discovery_socket
+    .local_unicast_locator()
+    .unwrap()
+  let server_discovery_locator = server_discovery_socket
+    .local_unicast_locator()
+    .unwrap()
+  let client_data = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(client_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    0,
+  )
+  let server_data = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(server_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    0,
+  )
+  client_data.add_metatraffic_unicast(client_discovery_locator)
+  server_data.add_metatraffic_unicast(server_discovery_locator)
+  let client_session = DiscoverySession::new(
+    client_discovery_socket,
+    client_data,
+    spdp_reader,
+    spdp_writer,
+    @socket.Addr::new(
+      0x7F000001U,
+      server_discovery_locator.port().reinterpret_as_int(),
+    ),
+    1L,
+  ).unwrap()
+  let server_session = DiscoverySession::new(
+    server_discovery_socket,
+    server_data,
+    spdp_reader,
+    spdp_writer,
+    @socket.Addr::new(
+      0x7F000001U,
+      client_discovery_locator.port().reinterpret_as_int(),
+    ),
+    1L,
+  ).unwrap()
+  let client = RosParticipant::from_discovery_session(
+    client_session, client_user_socket,
+  ).unwrap()
+  let server = RosParticipant::from_discovery_session(
+    server_session, server_user_socket,
+  ).unwrap()
+  let client_request_id = @rtps.EntityId::new(b"crq", 0xC2).unwrap()
+  let client_response_id = @rtps.EntityId::new(b"crs", 0xC7).unwrap()
+  let server_request_id = @rtps.EntityId::new(b"srq", 0xC7).unwrap()
+  let server_response_id = @rtps.EntityId::new(b"srs", 0xC2).unwrap()
+  client
+  .register_service_client(service, client_request_id, client_response_id)
+  .unwrap()
+  server
+  .register_service_server(service, server_request_id, server_response_id)
+  .unwrap()
+  client.announce_spdp_once().unwrap()
+  server.announce_spdp_once().unwrap()
+  ignore(client.receive_discovery_once().unwrap())
+  ignore(server.receive_discovery_once().unwrap())
+  for _ in 0..<2 {
+    ignore(client.receive_discovery_once().unwrap())
+    ignore(server.receive_discovery_once().unwrap())
+  }
+  assert_eq(client.graph().publications().length(), 1)
+  assert_eq(client.graph().subscriptions().length(), 1)
+  assert_eq(server.graph().publications().length(), 1)
+  assert_eq(server.graph().subscriptions().length(), 1)
+  let client_request_publication = server.graph().publications()[0]
+  let client_response_subscription = server.graph().subscriptions()[0]
+  let server_request_subscription = client.graph().subscriptions()[0]
+  let server_response_publication = client.graph().publications()[0]
+  let (client_discovery, client_socket) = client.into_parts()
+  let (server_discovery, server_socket) = server.into_parts()
+  client_discovery.close()
+  server_discovery.close()
+  let client_facade = RosServiceClient::new_with_shared_socket(
+    service,
+    client_socket,
+    client_prefix,
+    @rtps.VendorId::new(1, 15),
+    client_request_id,
+    server_request_subscription,
+    client_response_id,
+    server_response_publication,
+    1L,
+  ).unwrap()
+  let server_facade = RosServiceServer::new_with_shared_socket(
+    service,
+    server_socket,
+    server_prefix,
+    @rtps.VendorId::new(1, 15),
+    server_request_id,
+    client_request_publication,
+    server_response_id,
+    client_response_subscription,
+    1L,
+  ).unwrap()
+  let request_identity = client_facade.request(b"discovered request").unwrap()
+  let (request, received_identity, _) = server_facade.receive_request().unwrap()
+  assert_eq(request, b"discovered request")
+  assert_eq(received_identity, request_identity)
+  server_facade.respond(request_identity, b"discovered response").unwrap()
+  let (response, _) = client_facade.receive_response(request_identity).unwrap()
+  assert_eq(response, b"discovered response")
+  client_facade.close()
+  server_facade.close()
+}
+
+///|
 async test "ROS participant automatically announces endpoints after SPDP" {
   let publisher_prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
