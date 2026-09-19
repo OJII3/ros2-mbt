@@ -115,6 +115,27 @@ pub fn SedpEndpointData::type_name(self : SedpEndpointData) -> String {
 }
 
 ///|
+pub fn SedpEndpointData::unicast_locators(
+  self : SedpEndpointData,
+) -> Array[Locator] {
+  self.unicast_locators
+}
+
+///|
+pub fn SedpEndpointData::multicast_locators(
+  self : SedpEndpointData,
+) -> Array[Locator] {
+  self.multicast_locators
+}
+
+///|
+pub fn SedpEndpointData::extra_parameters(
+  self : SedpEndpointData,
+) -> Array[Parameter] {
+  self.extra_parameters
+}
+
+///|
 pub fn SedpEndpointData::add_unicast_locator(
   self : SedpEndpointData,
   locator : Locator,

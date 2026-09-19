@@ -50,6 +50,22 @@ pub(all) enum DiscoveryEvent {
   Subscription(@rtps.SedpEndpointData)
 }
 
+pub struct DiscoveryGraph {
+  participants : Array[@rtps.SpdpParticipantData]
+  publications : Array[@rtps.SedpEndpointData]
+  subscriptions : Array[@rtps.SedpEndpointData]
+}
+pub fn DiscoveryGraph::find_publications(Self, String, String) -> Array[@rtps.SedpEndpointData]
+pub fn DiscoveryGraph::find_subscriptions(Self, String, String) -> Array[@rtps.SedpEndpointData]
+pub fn DiscoveryGraph::ingest(Self, DiscoveryEvent) -> Unit
+pub fn DiscoveryGraph::new() -> Self
+pub fn DiscoveryGraph::participant_count(Self) -> Int
+pub fn DiscoveryGraph::participants(Self) -> Array[@rtps.SpdpParticipantData]
+pub fn DiscoveryGraph::publication_count(Self) -> Int
+pub fn DiscoveryGraph::publications(Self) -> Array[@rtps.SedpEndpointData]
+pub fn DiscoveryGraph::subscription_count(Self) -> Int
+pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
+
 pub struct DiscoverySession {
   socket : Udp
   participant : @rtps.SpdpParticipantData

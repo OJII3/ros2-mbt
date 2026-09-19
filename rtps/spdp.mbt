@@ -107,6 +107,70 @@ pub fn SpdpParticipantData::add_default_multicast(
 }
 
 ///|
+pub fn SpdpParticipantData::participant_guid(
+  self : SpdpParticipantData,
+) -> Guid {
+  self.participant_guid
+}
+
+///|
+pub fn SpdpParticipantData::vendor_id(self : SpdpParticipantData) -> VendorId {
+  self.vendor_id
+}
+
+///|
+pub fn SpdpParticipantData::domain_id(self : SpdpParticipantData) -> UInt {
+  self.domain_id
+}
+
+///|
+pub fn SpdpParticipantData::lease_seconds(self : SpdpParticipantData) -> Int {
+  self.lease_seconds
+}
+
+///|
+pub fn SpdpParticipantData::lease_nanoseconds(
+  self : SpdpParticipantData,
+) -> UInt {
+  self.lease_nanoseconds
+}
+
+///|
+pub fn SpdpParticipantData::builtin_endpoint_set(
+  self : SpdpParticipantData,
+) -> UInt {
+  self.builtin_endpoint_set
+}
+
+///|
+pub fn SpdpParticipantData::metatraffic_unicast_locators(
+  self : SpdpParticipantData,
+) -> Array[Locator] {
+  self.metatraffic_unicast_locators
+}
+
+///|
+pub fn SpdpParticipantData::metatraffic_multicast_locators(
+  self : SpdpParticipantData,
+) -> Array[Locator] {
+  self.metatraffic_multicast_locators
+}
+
+///|
+pub fn SpdpParticipantData::default_unicast_locators(
+  self : SpdpParticipantData,
+) -> Array[Locator] {
+  self.default_unicast_locators
+}
+
+///|
+pub fn SpdpParticipantData::default_multicast_locators(
+  self : SpdpParticipantData,
+) -> Array[Locator] {
+  self.default_multicast_locators
+}
+
+///|
 fn spdp_u32_le(value : UInt) -> Bytes {
   Bytes::from_array([
     value.to_byte(),
