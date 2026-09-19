@@ -15,6 +15,18 @@ pub const DATA_FLAG_DATA : Byte = 0x04
 pub const DATA_FLAG_KEY : Byte = 0x08
 
 ///|
+/// RTPS STATUS_INFO value for a live instance.
+pub const STATUS_INFO_ALIVE : UInt = 0x00000000U
+
+///|
+/// RTPS STATUS_INFO bit for a disposed instance.
+pub const STATUS_INFO_DISPOSED : UInt = 0x00000001U
+
+///|
+/// RTPS STATUS_INFO bit for an unregistered instance.
+pub const STATUS_INFO_UNREGISTERED : UInt = 0x00000002U
+
+///|
 /// The fixed DATA submessage body before inline QoS or serialized data.
 pub const DATA_FIXED_BODY_LENGTH : Int = 20
 
@@ -70,25 +82,44 @@ pub fn DataSubmessage::with_inline_qos(
 }
 
 ///|
-/// Return a copy carrying the DDS-RPC related request identity.
-pub fn DataSubmessage::with_related_sample_identity(
+fn DataSubmessage::with_inline_parameter(
   self : DataSubmessage,
-  identity : SampleIdentity,
+  parameter : Parameter,
 ) -> DataSubmessage {
   let parameters = ParameterList::new()
   if self.inline_qos.length() > 0 {
     match ParameterList::from_bytes(self.inline_qos) {
       Ok((existing, _)) =>
-        for parameter in existing.values() {
-          parameters.add(parameter)
+        for existing_parameter in existing.values() {
+          parameters.add(existing_parameter)
         }
       Err(_) => ()
     }
   }
-  parameters.add(
+  parameters.add(parameter)
+  self.with_inline_qos(parameters.to_bytes())
+}
+
+///|
+/// Return a copy carrying the DDS-RPC related request identity.
+pub fn DataSubmessage::with_related_sample_identity(
+  self : DataSubmessage,
+  identity : SampleIdentity,
+) -> DataSubmessage {
+  self.with_inline_parameter(
     Parameter::new(PID_RELATED_SAMPLE_IDENTITY, identity.to_bytes()),
   )
-  self.with_inline_qos(parameters.to_bytes())
+}
+
+///|
+/// Return a copy carrying an RTPS instance lifecycle state.
+pub fn DataSubmessage::with_status_info(
+  self : DataSubmessage,
+  status : UInt,
+) -> DataSubmessage {
+  self.with_inline_parameter(
+    Parameter::new(PID_STATUS_INFO, data_u32_le(status)),
+  )
 }
 
 ///|
@@ -147,6 +178,31 @@ pub fn DataSubmessage::related_sample_identity(
 }
 
 ///|
+/// Decode the optional RTPS instance lifecycle state from inline QoS.
+pub fn DataSubmessage::status_info(
+  self : DataSubmessage,
+) -> Result[UInt?, String] {
+  if self.inline_qos.length() == 0 {
+    return Ok(None)
+  }
+  let parameters = match ParameterList::from_bytes(self.inline_qos) {
+    Ok((value, _)) => value
+    Err(message) => return Err(message)
+  }
+  for parameter in parameters.values() {
+    if parameter.id() != PID_STATUS_INFO {
+      continue
+    }
+    let value = parameter.value()
+    if value.length() != 4 {
+      return Err("RTPS PID_STATUS_INFO must contain 4 bytes")
+    }
+    return Ok(Some(data_read_u32_le(value, 0)))
+  }
+  Ok(None)
+}
+
+///|
 /// Return the identity of this DATA sample using the RTPS message prefix.
 pub fn DataSubmessage::sample_identity(
   self : DataSubmessage,
@@ -171,6 +227,13 @@ fn data_append_u32_le(bytes : Array[Byte], value : UInt) -> Unit {
   bytes.push((value >> 8).to_byte())
   bytes.push((value >> 16).to_byte())
   bytes.push((value >> 24).to_byte())
+}
+
+///|
+fn data_u32_le(value : UInt) -> Bytes {
+  let bytes : Array[Byte] = []
+  data_append_u32_le(bytes, value)
+  Bytes::from_array(bytes)
 }
 
 ///|

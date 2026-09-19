@@ -135,6 +135,20 @@ test "RTPS DATA carries a related sample identity" {
 }
 
 ///|
+test "RTPS DATA carries status info" {
+  let reader_id = test_entity_id(0xC7).unwrap()
+  let writer_id = test_entity_id(0xC2).unwrap()
+  let status = STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key")
+    .with_status_info(status)
+  let decoded = DataSubmessage::from_submessage(
+    Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
+  ).unwrap()
+  assert_eq(decoded.status_info(), Ok(Some(status)))
+  assert_eq(decoded.related_sample_identity(), Ok(None))
+}
+
+///|
 test "RTPS DATA rejects malformed flags and body" {
   let reader_id = match test_entity_id(0xC7) {
     Ok(value) => value

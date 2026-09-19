@@ -166,6 +166,8 @@ pub const PID_SENTINEL : UInt16 = 0x0001
 
 pub const PID_SERVICE_INSTANCE_NAME : UInt16 = 0x0080
 
+pub const PID_STATUS_INFO : UInt16 = 0x0071
+
 pub const PID_TOPIC_ALIASES : UInt16 = 0x0082
 
 pub const PID_TOPIC_NAME : UInt16 = 0x0005
@@ -189,6 +191,12 @@ pub const RELIABILITY_BEST_EFFORT : UInt = 1
 pub const RELIABILITY_RELIABLE : UInt = 2
 
 pub const SAMPLE_IDENTITY_UNKNOWN_SEQUENCE : Int64 = -4294967296
+
+pub const STATUS_INFO_ALIVE : UInt = 0x00000000
+
+pub const STATUS_INFO_DISPOSED : UInt = 0x00000001
+
+pub const STATUS_INFO_UNREGISTERED : UInt = 0x00000002
 
 pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
@@ -301,11 +309,13 @@ pub fn DataSubmessage::reader_id(Self) -> EntityId
 pub fn DataSubmessage::related_sample_identity(Self) -> Result[SampleIdentity?, String]
 pub fn DataSubmessage::sample_identity(Self, GuidPrefix) -> Result[SampleIdentity, String]
 pub fn DataSubmessage::serialized_payload(Self) -> Bytes
+pub fn DataSubmessage::status_info(Self) -> Result[UInt?, String]
 pub fn DataSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataSubmessage::to_payload(Self) -> Bytes
 pub fn DataSubmessage::to_submessage(Self) -> Submessage
 pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self
 pub fn DataSubmessage::with_related_sample_identity(Self, SampleIdentity) -> Self
+pub fn DataSubmessage::with_status_info(Self, UInt) -> Self
 pub fn DataSubmessage::writer_id(Self) -> EntityId
 pub fn DataSubmessage::writer_sequence_number(Self) -> Int64
 

@@ -93,6 +93,10 @@ pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
 pub const PID_KEY_HASH : UInt16 = 0x0070
 
 ///|
+/// Entity lifecycle state carried in an RTPS DATA inline-QoS list.
+pub const PID_STATUS_INFO : UInt16 = 0x0071
+
+///|
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
 ///|
