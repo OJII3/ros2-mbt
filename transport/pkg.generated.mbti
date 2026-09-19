@@ -251,6 +251,12 @@ pub struct RosParticipant {
   user_socket : Udp
   user_locator : @rtps.Locator
   local_endpoints : Array[@rtps.SedpEndpointData]
+  mut graph_publication_id : @rtps.EntityId?
+  mut graph_subscription_id : @rtps.EntityId?
+  graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  graph_publisher_guids : Array[@rtps.Guid]
+  graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  graph_subscription_guids : Array[@rtps.Guid]
 }
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
@@ -262,10 +268,16 @@ pub fn RosParticipant::local_endpoints(Self) -> Array[@rtps.SedpEndpointData]
 pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64) -> Result[Self, String]
 pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
 pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@ros.ParticipantEntitiesInfo, String]
+pub async fn RosParticipant::publish_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
 pub async fn RosParticipant::register_endpoint(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub async fn RosParticipant::register_ros_discovery_info(Self, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
 pub async fn RosParticipant::register_topic_endpoint(Self, @ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos) -> Result[Unit, String]
+pub fn RosParticipant::ros_discovery_publisher_count(Self) -> Int
+pub fn RosParticipant::ros_discovery_subscription_count(Self) -> Int
 pub fn RosParticipant::user_locator(Self) -> @rtps.Locator
 
 pub struct RosPublisher {

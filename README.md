@@ -24,6 +24,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - topic・entity ID・QoSからuser locator付きSEDP endpointを登録するparticipant API
 - 登録済みendpointから`ParticipantEntitiesInfo`を生成するROS graph metadata API
 - reliable `ros_discovery_info` endpointをparticipantへ登録するAPI
+- 発見したgraph endpointに対応するreliable reader/writerの自動生成とgraph metadata送受信
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`

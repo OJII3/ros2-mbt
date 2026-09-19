@@ -9,6 +9,12 @@ pub struct RosParticipant {
   user_socket : Udp
   user_locator : @rtps.Locator
   local_endpoints : Array[@rtps.SedpEndpointData]
+  mut graph_publication_id : @rtps.EntityId?
+  mut graph_subscription_id : @rtps.EntityId?
+  graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  graph_publisher_guids : Array[@rtps.Guid]
+  graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  graph_subscription_guids : Array[@rtps.Guid]
 }
 
 ///|
@@ -61,6 +67,12 @@ pub fn RosParticipant::from_discovery_session(
     user_socket,
     user_locator,
     local_endpoints: [],
+    graph_publication_id: None,
+    graph_subscription_id: None,
+    graph_publishers: [],
+    graph_publisher_guids: [],
+    graph_subscriptions: [],
+    graph_subscription_guids: [],
   })
 }
 
@@ -229,7 +241,89 @@ pub async fn RosParticipant::register_ros_discovery_info(
     Err(message) => return Err(message)
   }
   subscription.add_unicast_locator(self.user_locator)
-  self.register_endpoint(subscription)
+  match self.register_endpoint(subscription) {
+    Ok(_) => {
+      self.graph_publication_id = Some(publication_id)
+      self.graph_subscription_id = Some(subscription_id)
+      Ok(())
+    }
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Return the number of remote ROS graph publishers discovered so far.
+pub fn RosParticipant::ros_discovery_publisher_count(
+  self : RosParticipant,
+) -> Int {
+  self.graph_publishers.length()
+}
+
+///|
+/// Return the number of remote ROS graph subscriptions discovered so far.
+pub fn RosParticipant::ros_discovery_subscription_count(
+  self : RosParticipant,
+) -> Int {
+  self.graph_subscriptions.length()
+}
+
+///|
+/// Publish one local graph-discovery sample to every discovered subscription.
+pub async fn RosParticipant::publish_ros_discovery_info(
+  self : RosParticipant,
+  info : @ros.ParticipantEntitiesInfo,
+) -> Result[Unit, String] {
+  if self.graph_publishers.length() == 0 {
+    return Err("no remote ROS graph subscriptions have been discovered")
+  }
+  for publisher in self.graph_publishers {
+    match publisher.announce_once(info) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Receive one graph-discovery sample from a discovered publication.
+pub async fn RosParticipant::receive_ros_discovery_info(
+  self : RosParticipant,
+  index : Int,
+) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String] {
+  if index < 0 || index >= self.graph_subscriptions.length() {
+    return Err("ROS graph subscription index is out of range")
+  }
+  let (info, source) = match self.graph_subscriptions[index].receive() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.discovery.ingest_ros_discovery_info(info)
+  Ok((info, source))
+}
+
+///|
+/// Receive and acknowledge one graph-discovery HEARTBEAT.
+pub async fn RosParticipant::receive_ros_discovery_heartbeat(
+  self : RosParticipant,
+  index : Int,
+) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
+  if index < 0 || index >= self.graph_subscriptions.length() {
+    return Err("ROS graph subscription index is out of range")
+  }
+  self.graph_subscriptions[index].receive_heartbeat()
+}
+
+///|
+/// Receive an ACKNACK for one graph publisher and retransmit requested data.
+pub async fn RosParticipant::receive_ros_discovery_acknack(
+  self : RosParticipant,
+  index : Int,
+) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  if index < 0 || index >= self.graph_publishers.length() {
+    return Err("ROS graph publisher index is out of range")
+  }
+  self.graph_publishers[index].receive_acknack()
 }
 
 ///|
@@ -261,8 +355,69 @@ pub async fn RosParticipant::receive_discovery_once(
           }
         }
       }
-    DiscoveryEvent::Publication(_) => ()
-    DiscoveryEvent::Subscription(_) => ()
+    DiscoveryEvent::Publication(publication) =>
+      match self.graph_subscription_id {
+        None => ()
+        Some(reader_id) =>
+          if publication.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME &&
+            publication.type_name() == @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+            let endpoint_guid = publication.endpoint_guid()
+            let mut known = false
+            for guid in self.graph_subscription_guids {
+              if guid == endpoint_guid {
+                known = true
+                break
+              }
+            }
+            if !known {
+              let reader = match
+                ReliableRosDiscoverySubscription::new_for_publication(
+                  self.user_socket,
+                  self.participant.participant_guid().prefix(),
+                  self.participant.vendor_id(),
+                  reader_id,
+                  publication,
+                ) {
+                Ok(value) => value
+                Err(message) => return Err(message)
+              }
+              self.graph_subscriptions.push(reader)
+              self.graph_subscription_guids.push(endpoint_guid)
+            }
+          }
+      }
+    DiscoveryEvent::Subscription(subscription) =>
+      match self.graph_publication_id {
+        None => ()
+        Some(writer_id) =>
+          if subscription.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME &&
+            subscription.type_name() == @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+            let endpoint_guid = subscription.endpoint_guid()
+            let mut known = false
+            for guid in self.graph_publisher_guids {
+              if guid == endpoint_guid {
+                known = true
+                break
+              }
+            }
+            if !known {
+              let publisher = match
+                ReliableRosDiscoveryPublisher::new_for_subscription(
+                  self.user_socket,
+                  self.participant.participant_guid().prefix(),
+                  self.participant.vendor_id(),
+                  writer_id,
+                  subscription,
+                  1L,
+                ) {
+                Ok(value) => value
+                Err(message) => return Err(message)
+              }
+              self.graph_publishers.push(publisher)
+              self.graph_publisher_guids.push(endpoint_guid)
+            }
+          }
+      }
   }
   Ok((source, event))
 }

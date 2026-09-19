@@ -277,6 +277,28 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
+  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    publisher.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match
+    subscriber.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
   match publisher.announce_spdp_once() {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -293,12 +315,48 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match subscriber.receive_discovery_once() {
+  for _ in 0..<3 {
+    match subscriber.receive_discovery_once() {
+      Ok(_) => ()
+      Err(message) => fail(message)
+    }
+  }
+  for _ in 0..<2 {
+    match publisher.receive_discovery_once() {
+      Ok(_) => ()
+      Err(message) => fail(message)
+    }
+  }
+  assert_eq(subscriber.graph().participant_count(), 1)
+  assert_eq(subscriber.graph().publication_count(), 2)
+  assert_eq(publisher.ros_discovery_publisher_count(), 1)
+  assert_eq(publisher.ros_discovery_subscription_count(), 1)
+  assert_eq(subscriber.ros_discovery_publisher_count(), 1)
+  assert_eq(subscriber.ros_discovery_subscription_count(), 1)
+  let info = match publisher.participant_entities_info("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match publisher.publish_ros_discovery_info(info) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  assert_eq(subscriber.graph().participant_count(), 1)
-  assert_eq(subscriber.graph().publication_count(), 1)
+  let (decoded, _) = match subscriber.receive_ros_discovery_info(0) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (heartbeat, _) = match subscriber.receive_ros_discovery_heartbeat(0) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (acknack, _) = match publisher.receive_ros_discovery_acknack(0) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.to_cdr_bytes(), info.to_cdr_bytes())
+  assert_eq(heartbeat.last_sequence_number(), 1L)
+  assert_eq(acknack.bitmap(), [0U])
+  assert_eq(subscriber.graph().ros_participant_count(), 1)
   publisher.close()
   subscriber.close()
 }
