@@ -257,6 +257,31 @@ pub async fn RosParticipant::register_topic_endpoint(
 }
 
 ///|
+/// Create, locate, register, and announce a ROS topic endpoint with its
+/// RIHS01 type hash in the SEDP USER_DATA parameter.
+pub async fn RosParticipant::register_topic_endpoint_with_type_hash(
+  self : RosParticipant,
+  topic : @ros.RosTopic,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_id : @rtps.EntityId,
+  qos : @rtps.SedpQos,
+  type_hash : String,
+) -> Result[Unit, String] {
+  let endpoint = match
+    topic.to_sedp_with_qos_and_type_hash(
+      kind,
+      @rtps.Guid::new(self.participant.participant_guid().prefix(), endpoint_id),
+      qos,
+      type_hash,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  endpoint.add_unicast_locator(self.user_locator)
+  self.register_endpoint(endpoint)
+}
+
+///|
 /// Register the request reader and response writer for a ROS service server.
 pub async fn RosParticipant::register_service_server(
   self : RosParticipant,

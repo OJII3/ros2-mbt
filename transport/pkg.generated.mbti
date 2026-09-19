@@ -328,6 +328,7 @@ pub async fn RosParticipant::register_ros_discovery_info(Self, @rtps.EntityId, @
 pub async fn RosParticipant::register_service_client(Self, @ros.RosService, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
 pub async fn RosParticipant::register_service_server(Self, @ros.RosService, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
 pub async fn RosParticipant::register_topic_endpoint(Self, @ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos) -> Result[Unit, String]
+pub async fn RosParticipant::register_topic_endpoint_with_type_hash(Self, @ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos, String) -> Result[Unit, String]
 pub fn RosParticipant::ros_discovery_publisher_count(Self) -> Int
 pub fn RosParticipant::ros_discovery_subscription_count(Self) -> Int
 pub fn RosParticipant::user_locator(Self) -> @rtps.Locator

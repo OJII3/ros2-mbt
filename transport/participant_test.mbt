@@ -175,6 +175,56 @@ async test "ROS participant registers and retains local SEDP endpoints" {
 }
 
 ///|
+async test "ROS participant registers a topic endpoint with its type hash" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let participant = new_ddsi_participant(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let node = RosParticipant::from_sockets(
+    discovery_socket, user_socket, participant, 0, 1L,
+  ).unwrap()
+  let topic = @ros.RosTopic::new(
+    "/chatter", "std_msgs", "msg", "String",
+  ).unwrap()
+  let writer_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
+  let type_hash =
+    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  match
+    node.register_topic_endpoint_with_type_hash(
+      topic,
+      @rtps.SedpEndpointKind::Publication,
+      writer_id,
+      @rtps.SedpQos::default(),
+      type_hash,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_eq(node.local_endpoints().length(), 1)
+  let mut found = false
+  for parameter in node.local_endpoints()[0].extra_parameters() {
+    if parameter.id() == @rtps.PID_USER_DATA {
+      found = true
+      assert_eq(
+        parameter,
+        @rtps.qos_user_data_type_hash(type_hash),
+      )
+    }
+  }
+  assert_true(found)
+  node.close()
+}
+
+///|
 async test "ROS participant registers service client endpoints" {
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
