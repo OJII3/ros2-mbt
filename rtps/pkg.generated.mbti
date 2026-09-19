@@ -239,12 +239,14 @@ pub fn SedpEndpointData::add_parameter(Self, Parameter) -> Unit
 pub fn SedpEndpointData::add_unicast_locator(Self, Locator) -> Unit
 pub fn SedpEndpointData::endpoint_guid(Self) -> Guid
 pub fn SedpEndpointData::from_cdr_bytes(SedpEndpointKind, Bytes) -> Result[Self, String]
+pub fn SedpEndpointData::from_data_submessage(SedpEndpointKind, DataSubmessage) -> Result[Self, String]
 pub fn SedpEndpointData::from_parameter_list(SedpEndpointKind, ParameterList) -> Result[Self, String]
 pub fn SedpEndpointData::kind(Self) -> SedpEndpointKind
 pub fn SedpEndpointData::new(SedpEndpointKind, Guid, String, String) -> Result[Self, String]
 pub fn SedpEndpointData::participant_guid(Self) -> Guid
 pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn SedpEndpointData::to_data_submessage(Self, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
+pub fn SedpEndpointData::to_message(Self, VendorId, EntityId, EntityId, Int64) -> Result[Message, String]
 pub fn SedpEndpointData::to_parameter_list(Self) -> Result[ParameterList, String]
 pub fn SedpEndpointData::topic_name(Self) -> String
 pub fn SedpEndpointData::type_name(Self) -> String

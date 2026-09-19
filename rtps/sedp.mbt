@@ -262,6 +262,36 @@ pub fn SedpEndpointData::to_data_submessage(
 }
 
 ///|
+/// Parse an SEDP endpoint sample from a DATA submessage.
+pub fn SedpEndpointData::from_data_submessage(
+  kind : SedpEndpointKind,
+  data : DataSubmessage,
+) -> Result[SedpEndpointData, String] {
+  SedpEndpointData::from_cdr_bytes(kind, data.serialized_payload())
+}
+
+///|
+/// Build an RTPS message containing this SEDP endpoint announcement.
+pub fn SedpEndpointData::to_message(
+  self : SedpEndpointData,
+  vendor_id : VendorId,
+  reader_id : EntityId,
+  writer_id : EntityId,
+  writer_sequence_number : Int64,
+) -> Result[Message, String] {
+  let data = match
+    self.to_data_submessage(reader_id, writer_id, writer_sequence_number) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let message = Message::new(
+    Header::new(self.participant_guid.prefix(), vendor_id),
+  )
+  message.add(data.to_submessage())
+  Ok(message)
+}
+
+///|
 /// Parse an SEDP endpoint sample from a parameter list.
 pub fn SedpEndpointData::from_parameter_list(
   kind : SedpEndpointKind,

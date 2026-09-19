@@ -60,6 +60,30 @@ test "SEDP endpoint data round trips required fields and locators" {
     Err(message) => fail(message)
   }
   assert_eq(reencoded, encoded)
+  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let data = match endpoint.to_data_submessage(reader_id, writer_id, 1L) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let parsed = match
+    SedpEndpointData::from_data_submessage(SedpEndpointKind::Publication, data) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(parsed.topic_name(), endpoint.topic_name())
+  let message = match
+    endpoint.to_message(VendorId::new(1, 15), reader_id, writer_id, 1L) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(message.submessages().length(), 1)
 }
 
 ///|
