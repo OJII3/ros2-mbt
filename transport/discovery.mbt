@@ -475,6 +475,13 @@ async fn DiscoverySession::decode_message(
   source : @socket.Addr,
   socket_index : Int,
 ) -> Result[DiscoveryEvent?, String] {
+  match message.destination_guid_prefix() {
+    Ok(Some(destination)) if
+      destination != self.participant.participant_guid().prefix() =>
+      return Ok(None)
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
   let mut event : DiscoveryEvent? = None
   for submessage in message.submessages() {
     match submessage.id() {

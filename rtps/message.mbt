@@ -26,6 +26,25 @@ pub fn Message::submessages(self : Message) -> Array[Submessage] {
 }
 
 ///|
+/// Return the optional INFO_DST participant prefix carried by this message.
+pub fn Message::destination_guid_prefix(
+  self : Message,
+) -> Result[GuidPrefix?, String] {
+  let mut destination : GuidPrefix? = None
+  for submessage in self.submessages {
+    if submessage.id() != SubmessageId::InfoDestination {
+      continue
+    }
+    let info = match InfoDestinationSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    destination = Some(info.guid_prefix())
+  }
+  Ok(destination)
+}
+
+///|
 /// Serialize the RTPS header followed by all submessages.
 pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
   let bytes : Array[Byte] = []

@@ -23,3 +23,22 @@ test "RTPS INFO_DST rejects non-prefix bodies" {
     is Err(_),
   )
 }
+
+///|
+test "RTPS message exposes its optional INFO_DST prefix" {
+  let prefix = GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap()
+  let message = Message::new(
+    Header::new(
+      GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).unwrap(),
+      VendorId::new(1, 15),
+    ),
+  )
+  message.add(InfoDestinationSubmessage::new(prefix).to_submessage())
+  assert_eq(message.destination_guid_prefix(), Ok(Some(prefix)))
+  assert_eq(
+    Message::new(
+      Header::new(prefix, VendorId::new(1, 15)),
+    ).destination_guid_prefix(),
+    Ok(None),
+  )
+}

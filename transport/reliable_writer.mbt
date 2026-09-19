@@ -542,6 +542,11 @@ pub async fn ReliableDataWriter::receive_acknack(
       Ok(value) => value
       Err(message) => return Err(message)
     }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(_) => ()
+      Err(_) => continue
+    }
     for submessage in message.submessages() {
       if submessage.id() != @rtps.SubmessageId::AckNack {
         continue
@@ -577,6 +582,11 @@ pub async fn ReliableDataWriter::receive_nackfrag(
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
+    }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(_) => ()
+      Err(_) => continue
     }
     for submessage in message.submessages() {
       if submessage.id() != @rtps.SubmessageId::NackFrag {
@@ -616,6 +626,11 @@ pub async fn ReliableDataWriter::receive_control(
     let (message, _) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
+    }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(_) => ()
+      Err(_) => continue
     }
     for submessage in message.submessages() {
       match submessage.id() {

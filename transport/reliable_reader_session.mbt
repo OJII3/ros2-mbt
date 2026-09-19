@@ -87,6 +87,11 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
       Ok(value) => value
       Err(message) => return Err(message)
     }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(_) => ()
+      Err(_) => continue
+    }
     for submessage in message.submessages() {
       match submessage.id() {
         @rtps.SubmessageId::AckNack => {
@@ -272,6 +277,11 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
+    }
+    match message.destination_guid_prefix() {
+      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(_) => ()
+      Err(_) => continue
     }
     for submessage in message.submessages() {
       match submessage.id() {
