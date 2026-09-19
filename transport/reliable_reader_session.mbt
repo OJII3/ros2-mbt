@@ -68,6 +68,15 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
 }
 
 ///|
+/// Receive DATA while servicing a reliable writer on the same socket.
+pub async fn ReliableDataReaderSession::receive_data_with_writer(
+  self : ReliableDataReaderSession,
+  writer : ReliableDataWriter,
+) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String] {
+  self.receive_data_with_optional_writer(Some(writer))
+}
+
+///|
 /// Receive DATA while optionally servicing a reliable writer on the same socket.
 async fn ReliableDataReaderSession::receive_data_with_optional_writer(
   self : ReliableDataReaderSession,

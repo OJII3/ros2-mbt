@@ -340,7 +340,11 @@ pub async fn RosServiceServer::receive_request(
   self : RosServiceServer,
 ) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String] {
   let (data, identity, source) = match
-    self.request_reader.receive_data_with_identity() {
+    (if self.shared_socket {
+      self.request_reader.receive_data_with_writer(self.response_writer)
+    } else {
+      self.request_reader.receive_data_with_identity()
+    }) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

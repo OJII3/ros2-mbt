@@ -184,6 +184,7 @@ pub fn ReliableDataReaderSession::close(Self) -> Unit
 pub fn ReliableDataReaderSession::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_data_with_identity(Self) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_data_with_writer(Self, ReliableDataWriter) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_related_data(Self, @rtps.SampleIdentity) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_related_data_with_writer(Self, @rtps.SampleIdentity, ReliableDataWriter) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
