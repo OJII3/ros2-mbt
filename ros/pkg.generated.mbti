@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn ros_name_to_dds(String, DdsTopicKind) -> Result[String, String]
+
+pub fn ros_service_request_to_dds(String) -> Result[String, String]
+
+pub fn ros_service_response_to_dds(String) -> Result[String, String]
+
+pub fn ros_topic_to_dds(String) -> Result[String, String]
+
+pub fn ros_type_path_to_dds(String) -> Result[String, String]
+
+pub fn ros_type_to_dds(String, String, String) -> Result[String, String]
+
+// Errors
+
+// Types and methods
+pub(all) enum DdsTopicKind {
+  Topic
+  ServiceRequest
+  ServiceResponse
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
