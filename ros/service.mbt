@@ -74,15 +74,18 @@ pub fn RosService::request_to_sedp(
   kind : @rtps.SedpEndpointKind,
   endpoint_guid : @rtps.Guid,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.request_to_sedp_with_qos(
+  service_endpoint_to_sedp(
     kind,
     endpoint_guid,
+    self.dds_request_name,
+    self.dds_request_type_name,
     @rtps.SedpQos::new(
       @rtps.RELIABILITY_RELIABLE,
       @rtps.DURABILITY_VOLATILE,
       @rtps.HISTORY_KEEP_LAST,
       10,
     ),
+    None,
   )
 }
 
@@ -100,6 +103,30 @@ pub fn RosService::request_to_sedp_with_qos(
     self.dds_request_name,
     self.dds_request_type_name,
     qos,
+    None,
+  )
+}
+
+///|
+/// Build a service request SEDP endpoint linked to its response endpoint.
+pub fn RosService::request_to_sedp_with_related_endpoint(
+  self : RosService,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  related_endpoint_guid : @rtps.Guid,
+) -> Result[@rtps.SedpEndpointData, String] {
+  service_endpoint_to_sedp(
+    kind,
+    endpoint_guid,
+    self.dds_request_name,
+    self.dds_request_type_name,
+    @rtps.SedpQos::new(
+      @rtps.RELIABILITY_RELIABLE,
+      @rtps.DURABILITY_VOLATILE,
+      @rtps.HISTORY_KEEP_LAST,
+      10,
+    ),
+    Some(related_endpoint_guid),
   )
 }
 
@@ -110,15 +137,18 @@ pub fn RosService::response_to_sedp(
   kind : @rtps.SedpEndpointKind,
   endpoint_guid : @rtps.Guid,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.response_to_sedp_with_qos(
+  service_endpoint_to_sedp(
     kind,
     endpoint_guid,
+    self.dds_response_name,
+    self.dds_response_type_name,
     @rtps.SedpQos::new(
       @rtps.RELIABILITY_RELIABLE,
       @rtps.DURABILITY_VOLATILE,
       @rtps.HISTORY_KEEP_LAST,
       10,
     ),
+    None,
   )
 }
 
@@ -136,6 +166,30 @@ pub fn RosService::response_to_sedp_with_qos(
     self.dds_response_name,
     self.dds_response_type_name,
     qos,
+    None,
+  )
+}
+
+///|
+/// Build a service response SEDP endpoint linked to its request endpoint.
+pub fn RosService::response_to_sedp_with_related_endpoint(
+  self : RosService,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  related_endpoint_guid : @rtps.Guid,
+) -> Result[@rtps.SedpEndpointData, String] {
+  service_endpoint_to_sedp(
+    kind,
+    endpoint_guid,
+    self.dds_response_name,
+    self.dds_response_type_name,
+    @rtps.SedpQos::new(
+      @rtps.RELIABILITY_RELIABLE,
+      @rtps.DURABILITY_VOLATILE,
+      @rtps.HISTORY_KEEP_LAST,
+      10,
+    ),
+    Some(related_endpoint_guid),
   )
 }
 
@@ -146,6 +200,7 @@ fn service_endpoint_to_sedp(
   topic_name : String,
   type_name : String,
   qos : @rtps.SedpQos,
+  related_endpoint_guid : @rtps.Guid?,
 ) -> Result[@rtps.SedpEndpointData, String] {
   if qos.reliability() != @rtps.RELIABILITY_RELIABLE {
     return Err("ROS service reliability QoS must be reliable")
@@ -165,6 +220,13 @@ fn service_endpoint_to_sedp(
     endpoint.add_parameter(
       @rtps.qos_data_representation([@rtps.DATA_REPRESENTATION_XCDR1]),
     )
+    match related_endpoint_guid {
+      Some(guid) =>
+        endpoint.add_parameter(
+          @rtps.Parameter::new(@rtps.PID_RELATED_ENTITY_GUID, guid.to_bytes()),
+        )
+      None => ()
+    }
     endpoint
   })
 }

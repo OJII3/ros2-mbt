@@ -88,3 +88,47 @@ test "ROS service rejects incompatible QoS" {
     is Err(_),
   )
 }
+
+///|
+test "ROS service SEDP links request and response endpoints" {
+  let service = RosService::new(
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
+  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let request_id = @rtps.EntityId::new(b"req", 0xC2).unwrap()
+  let response_id = @rtps.EntityId::new(b"res", 0xC7).unwrap()
+  let request_guid = @rtps.Guid::new(prefix, request_id)
+  let response_guid = @rtps.Guid::new(prefix, response_id)
+  let request = service
+    .request_to_sedp_with_related_endpoint(
+      @rtps.SedpEndpointKind::Publication,
+      request_guid,
+      response_guid,
+    )
+    .unwrap()
+  let response = service
+    .response_to_sedp_with_related_endpoint(
+      @rtps.SedpEndpointKind::Subscription,
+      response_guid,
+      request_guid,
+    )
+    .unwrap()
+  let request_parameters = request.to_parameter_list().unwrap().values()
+  let response_parameters = response.to_parameter_list().unwrap().values()
+  let mut request_related : Bytes? = None
+  let mut response_related : Bytes? = None
+  for parameter in request_parameters {
+    if parameter.id() == @rtps.PID_RELATED_ENTITY_GUID {
+      request_related = Some(parameter.value())
+    }
+  }
+  for parameter in response_parameters {
+    if parameter.id() == @rtps.PID_RELATED_ENTITY_GUID {
+      response_related = Some(parameter.value())
+    }
+  }
+  assert_eq(request_related, Some(response_guid.to_bytes()))
+  assert_eq(response_related, Some(request_guid.to_bytes()))
+}

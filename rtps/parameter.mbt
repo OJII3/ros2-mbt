@@ -66,6 +66,18 @@ pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
 pub const PID_DATA_REPRESENTATION : UInt16 = 0x0073
 
 ///|
+/// DDS-RPC service instance name used by enhanced service discovery.
+pub const PID_SERVICE_INSTANCE_NAME : UInt16 = 0x0080
+
+///|
+/// GUID of the related request or response endpoint in DDS-RPC discovery.
+pub const PID_RELATED_ENTITY_GUID : UInt16 = 0x0081
+
+///|
+/// Alternate topic names used by enhanced DDS-RPC service discovery.
+pub const PID_TOPIC_ALIASES : UInt16 = 0x0082
+
+///|
 /// Related request identity carried by DDS-RPC reply samples.
 pub const PID_RELATED_SAMPLE_IDENTITY : UInt16 = 0x0083
 

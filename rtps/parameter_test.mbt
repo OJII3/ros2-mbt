@@ -35,3 +35,11 @@ test "RTPS discovery locator parameter identifiers match the wire standard" {
   assert_eq(PID_METATRAFFIC_MULTICAST_LOCATOR, 0x0033)
   assert_eq(PID_DEFAULT_MULTICAST_LOCATOR, 0x0048)
 }
+
+///|
+test "DDS-RPC service discovery parameter identifiers match the wire standard" {
+  assert_eq(PID_SERVICE_INSTANCE_NAME, 0x0080)
+  assert_eq(PID_RELATED_ENTITY_GUID, 0x0081)
+  assert_eq(PID_TOPIC_ALIASES, 0x0082)
+  assert_eq(PID_RELATED_SAMPLE_IDENTITY, 0x0083)
+}

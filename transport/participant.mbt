@@ -243,10 +243,13 @@ pub async fn RosParticipant::register_service_server(
   response_writer_id : @rtps.EntityId,
 ) -> Result[Unit, String] {
   let prefix = self.participant.participant_guid().prefix()
+  let request_guid = @rtps.Guid::new(prefix, request_reader_id)
+  let response_guid = @rtps.Guid::new(prefix, response_writer_id)
   let request = match
-    service.request_to_sedp(
+    service.request_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(prefix, request_reader_id),
+      request_guid,
+      response_guid,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -257,9 +260,10 @@ pub async fn RosParticipant::register_service_server(
     Err(message) => return Err(message)
   }
   let response = match
-    service.response_to_sedp(
+    service.response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, response_writer_id),
+      response_guid,
+      request_guid,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -277,10 +281,13 @@ pub async fn RosParticipant::register_service_client(
   response_reader_id : @rtps.EntityId,
 ) -> Result[Unit, String] {
   let prefix = self.participant.participant_guid().prefix()
+  let request_guid = @rtps.Guid::new(prefix, request_writer_id)
+  let response_guid = @rtps.Guid::new(prefix, response_reader_id)
   let request = match
-    service.request_to_sedp(
+    service.request_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, request_writer_id),
+      request_guid,
+      response_guid,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -291,9 +298,10 @@ pub async fn RosParticipant::register_service_client(
     Err(message) => return Err(message)
   }
   let response = match
-    service.response_to_sedp(
+    service.response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(prefix, response_reader_id),
+      response_guid,
+      request_guid,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
