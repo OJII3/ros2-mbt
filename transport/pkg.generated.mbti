@@ -186,6 +186,27 @@ pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@rtps.AckNackS
 pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
 
+pub struct ReliableRosDiscoveryPublisher {
+  writer : ReliableDataWriter
+}
+pub async fn ReliableRosDiscoveryPublisher::announce_once(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
+pub fn ReliableRosDiscoveryPublisher::close(Self) -> Unit
+pub async fn ReliableRosDiscoveryPublisher::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub fn ReliableRosDiscoveryPublisher::history_length(Self) -> Int
+pub fn ReliableRosDiscoveryPublisher::new_for_subscription(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn ReliableRosDiscoveryPublisher::next_sequence_number(Self) -> Int64
+pub async fn ReliableRosDiscoveryPublisher::publish(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+
+pub struct ReliableRosDiscoverySubscription {
+  reader : ReliableDataReaderSession
+}
+pub fn ReliableRosDiscoverySubscription::close(Self) -> Unit
+pub fn ReliableRosDiscoverySubscription::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub async fn ReliableRosDiscoverySubscription::receive(Self) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
+pub async fn ReliableRosDiscoverySubscription::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub fn ReliableRosDiscoverySubscription::sample_count(Self) -> Int
+
 pub struct ReliableRosPublisher {
   topic : @ros.RosTopic
   writer : ReliableDataWriter

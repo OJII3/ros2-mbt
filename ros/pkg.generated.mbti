@@ -25,6 +25,8 @@ pub fn ros_type_path_to_dds(String) -> Result[String, String]
 
 pub fn ros_type_to_dds(String, String, String) -> Result[String, String]
 
+pub fn validate_ros_discovery_info_endpoint(@rtps.SedpEndpointData, @rtps.SedpEndpointKind) -> Result[Unit, String]
+
 // Errors
 
 // Types and methods

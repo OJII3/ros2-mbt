@@ -7,6 +7,29 @@ pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
 
 ///|
+/// Validate an endpoint used for ROS graph discovery data.
+pub fn validate_ros_discovery_info_endpoint(
+  endpoint : @rtps.SedpEndpointData,
+  kind : @rtps.SedpEndpointKind,
+) -> Result[Unit, String] {
+  if endpoint.kind() != kind {
+    return Err("the ROS discovery endpoint has the wrong SEDP kind")
+  }
+  if endpoint.topic_name() != ROS_DISCOVERY_INFO_TOPIC_NAME ||
+    endpoint.type_name() != ROS_DISCOVERY_INFO_TYPE_NAME {
+    return Err("the endpoint is not ros_discovery_info")
+  }
+  let qos = match endpoint.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if qos.reliability() != @rtps.RELIABILITY_RELIABLE {
+    return Err("the ROS discovery endpoint is not reliable")
+  }
+  Ok(())
+}
+
+///|
 /// Create the SEDP identity and QoS for the ROS graph-discovery endpoint.
 pub fn ros_discovery_info_to_sedp(
   kind : @rtps.SedpEndpointKind,
