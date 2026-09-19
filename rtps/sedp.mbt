@@ -83,6 +83,7 @@ pub struct SedpQos {
   durability : UInt
   history : UInt
   depth : Int
+  data_representation : Array[UInt16]
 } derive(Eq, Debug)
 
 ///|
@@ -92,7 +93,22 @@ pub fn SedpQos::new(
   history : UInt,
   depth : Int,
 ) -> SedpQos {
-  { reliability, durability, history, depth, }
+  {
+    reliability,
+    durability,
+    history,
+    depth,
+    data_representation: [DATA_REPRESENTATION_XCDR1],
+  }
+}
+
+///|
+/// Create a QoS value with an explicit offered/requested data representation set.
+pub fn SedpQos::with_data_representation(
+  self : SedpQos,
+  representations : Array[UInt16],
+) -> SedpQos {
+  { ..self, data_representation: representations, }
 }
 
 ///|
@@ -113,6 +129,12 @@ pub fn SedpQos::history(self : SedpQos) -> UInt {
 ///|
 pub fn SedpQos::depth(self : SedpQos) -> Int {
   self.depth
+}
+
+///|
+/// Return the CDR data representations supported by this endpoint.
+pub fn SedpQos::data_representation(self : SedpQos) -> Array[UInt16] {
+  self.data_representation
 }
 
 ///|
@@ -227,6 +249,31 @@ fn sedp_qos_i32(value : Bytes, label : String) -> Result[Int, String] {
 }
 
 ///|
+fn sedp_qos_data_representation(value : Bytes) -> Result[Array[UInt16], String] {
+  if value.length() < 4 {
+    return Err("SEDP data representation parameter is truncated")
+  }
+  let length = match value[0:4] {
+    [u32le(result)] => result.reinterpret_as_int()
+    _ => return Err("invalid SEDP data representation parameter")
+  }
+  if length < 0 || 4 + length * 2 > value.length() {
+    return Err("invalid SEDP data representation sequence length")
+  }
+  let representations : Array[UInt16] = []
+  for index in 0..<length {
+    let offset = 4 + index * 2
+    let representation = (value[offset].to_int() |
+    (value[offset + 1].to_int() << 8)).to_uint16()
+    representations.push(representation)
+  }
+  if representations.length() == 0 {
+    return Err("SEDP data representation sequence must not be empty")
+  }
+  Ok(representations)
+}
+
+///|
 /// Read the reliability, durability, and history policies from SEDP.
 pub fn SedpEndpointData::qos(
   self : SedpEndpointData,
@@ -236,6 +283,7 @@ pub fn SedpEndpointData::qos(
   let mut durability = defaults.durability
   let mut history = defaults.history
   let mut depth = defaults.depth
+  let mut data_representation = defaults.data_representation
   for parameter in self.extra_parameters {
     match parameter.id() {
       PID_RELIABILITY =>
@@ -268,10 +316,35 @@ pub fn SedpEndpointData::qos(
           Err(message) => return Err(message)
         }
       }
+      PID_DATA_REPRESENTATION =>
+        data_representation = match
+          sedp_qos_data_representation(parameter.value()) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
       _ => ()
     }
   }
-  Ok(SedpQos::new(reliability, durability, history, depth))
+  Ok(
+    SedpQos::new(reliability, durability, history, depth).with_data_representation(
+      data_representation,
+    ),
+  )
+}
+
+///|
+fn sedp_data_representation_intersects(
+  offered : Array[UInt16],
+  requested : Array[UInt16],
+) -> Bool {
+  for offered_value in offered {
+    for requested_value in requested {
+      if offered_value == requested_value {
+        return true
+      }
+    }
+  }
+  false
 }
 
 ///|
@@ -296,7 +369,11 @@ pub fn SedpEndpointData::qos_compatible_with(
   }
   Ok(
     offered.reliability >= requested.reliability &&
-    offered.durability >= requested.durability,
+    offered.durability >= requested.durability &&
+    sedp_data_representation_intersects(
+      offered.data_representation,
+      requested.data_representation,
+    ),
   )
 }
 

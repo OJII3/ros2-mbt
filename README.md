@@ -19,6 +19,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
+- SEDPの`PID_DATA_REPRESENTATION`解析と、XCDR1/XCDR2集合によるendpoint互換性判定
 - SEDP endpoint GUIDに対応する`PID_KEY_HASH`の広告・解析
 - SEDP publication/subscription向け標準パラメータ（型サイズ、inline QoS期待値）の広告
 - reliable SEDP HEARTBEAT の受信履歴管理と ACKNACK 応答

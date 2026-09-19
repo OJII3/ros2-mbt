@@ -551,13 +551,16 @@ pub struct SedpQos {
   durability : UInt
   history : UInt
   depth : Int
+  data_representation : Array[UInt16]
 } derive(Eq, @debug.Debug)
+pub fn SedpQos::data_representation(Self) -> Array[UInt16]
 pub fn SedpQos::default() -> Self
 pub fn SedpQos::depth(Self) -> Int
 pub fn SedpQos::durability(Self) -> UInt
 pub fn SedpQos::history(Self) -> UInt
 pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
 pub fn SedpQos::reliability(Self) -> UInt
+pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
 
 pub struct SpdpParticipantData {
   protocol_version : ProtocolVersion

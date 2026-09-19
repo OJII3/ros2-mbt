@@ -240,6 +240,54 @@ test "SEDP reads basic QoS and checks offered compatibility" {
 }
 
 ///|
+test "SEDP matches endpoints only when data representations overlap" {
+  let publication = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_parameter(
+    qos_data_representation([DATA_REPRESENTATION_XCDR2]),
+  )
+  let subscription_xcdr2 = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  subscription_xcdr2.add_parameter(
+    qos_data_representation([DATA_REPRESENTATION_XCDR2]),
+  )
+  assert_true(publication.qos_compatible_with(subscription_xcdr2).unwrap())
+
+  let subscription_xcdr1 = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  subscription_xcdr1.add_parameter(
+    qos_data_representation([DATA_REPRESENTATION_XCDR1]),
+  )
+  assert_false(publication.qos_compatible_with(subscription_xcdr1).unwrap())
+}
+
+///|
+test "SEDP rejects malformed data representation sequences" {
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  endpoint.add_parameter(
+    Parameter::new(PID_DATA_REPRESENTATION, b"\x02\x00\x00\x00\x00\x00"),
+  )
+  assert_true(endpoint.qos() is Err(_))
+}
+
+///|
 test "SEDP subscription advertises that it does not expect inline QoS" {
   let endpoint_guid = match sedp_test_guid(0xC7) {
     Ok(value) => value
