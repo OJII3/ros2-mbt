@@ -76,12 +76,16 @@ pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub async fn Udp::multicast(@socket.Addr) -> Self
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
+pub async fn Udp::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_discovery(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
+pub async fn Udp::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_message(Self) -> Result[(@rtps.Message, @socket.Addr), String]
 pub async fn Udp::receive_sedp(Self, @rtps.SedpEndpointKind) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String]
 pub async fn Udp::receive_spdp(Self) -> Result[(@rtps.SpdpParticipantData, @socket.Addr), String]
+pub async fn Udp::send_acknack(Self, @rtps.AckNackSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_data(Self, @rtps.DataSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_heartbeat(Self, @rtps.HeartbeatSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]

@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub const ACKNACK_FLAG_FINAL : Byte = 0x02
+
+pub const ACKNACK_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
 
 pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
@@ -53,6 +57,12 @@ pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
 pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
 pub const HEADER_LENGTH : Int = 20
+
+pub const HEARTBEAT_BODY_LENGTH : Int = 28
+
+pub const HEARTBEAT_FLAG_FINAL : Byte = 0x02
+
+pub const HEARTBEAT_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 pub const HISTORY_KEEP_ALL : UInt = 1
 
@@ -177,6 +187,29 @@ pub fn qos_type_max_size_serialized(UInt) -> Parameter
 // Errors
 
 // Types and methods
+pub struct AckNackSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  bitmap_base : Int64
+  num_bits : UInt
+  bitmap : Array[UInt]
+  count : UInt
+} derive(Eq, @debug.Debug)
+pub fn AckNackSubmessage::bitmap(Self) -> Array[UInt]
+pub fn AckNackSubmessage::bitmap_base(Self) -> Int64
+pub fn AckNackSubmessage::count(Self) -> UInt
+pub fn AckNackSubmessage::flags(Self) -> Byte
+pub fn AckNackSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn AckNackSubmessage::new(EntityId, EntityId, Int64, UInt, Array[UInt], UInt) -> Result[Self, String]
+pub fn AckNackSubmessage::num_bits(Self) -> UInt
+pub fn AckNackSubmessage::reader_id(Self) -> EntityId
+pub fn AckNackSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn AckNackSubmessage::to_payload(Self) -> Bytes
+pub fn AckNackSubmessage::to_submessage(Self) -> Submessage
+pub fn AckNackSubmessage::with_final(Self) -> Self
+pub fn AckNackSubmessage::writer_id(Self) -> EntityId
+
 pub struct DataSubmessage {
   flags : Byte
   extra_flags : UInt16
@@ -235,6 +268,27 @@ pub struct Header {
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
+
+pub struct HeartbeatSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  first_sequence_number : Int64
+  last_sequence_number : Int64
+  count : UInt
+} derive(Eq, @debug.Debug)
+pub fn HeartbeatSubmessage::count(Self) -> UInt
+pub fn HeartbeatSubmessage::first_sequence_number(Self) -> Int64
+pub fn HeartbeatSubmessage::flags(Self) -> Byte
+pub fn HeartbeatSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn HeartbeatSubmessage::last_sequence_number(Self) -> Int64
+pub fn HeartbeatSubmessage::new(EntityId, EntityId, Int64, Int64, UInt) -> Result[Self, String]
+pub fn HeartbeatSubmessage::reader_id(Self) -> EntityId
+pub fn HeartbeatSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn HeartbeatSubmessage::to_payload(Self) -> Bytes
+pub fn HeartbeatSubmessage::to_submessage(Self) -> Submessage
+pub fn HeartbeatSubmessage::with_final(Self) -> Self
+pub fn HeartbeatSubmessage::writer_id(Self) -> EntityId
 
 pub struct Locator {
   kind : Int

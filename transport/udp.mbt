@@ -77,6 +77,30 @@ pub async fn Udp::send_data(
 }
 
 ///|
+/// Serialize and send one RTPS HEARTBEAT submessage.
+pub async fn Udp::send_heartbeat(
+  self : Udp,
+  heartbeat : @rtps.HeartbeatSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(heartbeat.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
+/// Serialize and send one RTPS ACKNACK submessage.
+pub async fn Udp::send_acknack(
+  self : Udp,
+  acknack : @rtps.AckNackSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(acknack.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
 /// Serialize and send one SPDP participant announcement.
 pub async fn Udp::send_spdp(
   self : Udp,
@@ -133,6 +157,51 @@ pub async fn Udp::receive_data(
     return Ok((data, source))
   }
   Err("RTPS datagram does not contain a DATA submessage")
+}
+
+///|
+/// Receive and parse the first HEARTBEAT submessage in a UDP datagram.
+pub async fn Udp::receive_heartbeat(
+  self : Udp,
+) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::Heartbeat {
+      continue
+    }
+    let heartbeat = match
+      @rtps.HeartbeatSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((heartbeat, source))
+  }
+  Err("RTPS datagram does not contain a HEARTBEAT submessage")
+}
+
+///|
+/// Receive and parse the first ACKNACK submessage in a UDP datagram.
+pub async fn Udp::receive_acknack(
+  self : Udp,
+) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::AckNack {
+      continue
+    }
+    let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((acknack, source))
+  }
+  Err("RTPS datagram does not contain an ACKNACK submessage")
 }
 
 ///|
