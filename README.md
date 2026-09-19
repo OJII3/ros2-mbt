@@ -7,6 +7,8 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 
 - RTPS message header (`RTPS` magic、protocol version、vendor ID、GUID prefix)
 - RTPS submessage header（ID、flags、payload length、little-endian flag）
+- RTPS `PAD`、未知/ベンダーsubmessageの透過的な解析
+- RTPS submessageの4バイト境界配置と末尾submessageのzero-length解析
 - RTPS `EntityId` / `Guid` の16バイトwire format
 - RTPS `Locator_t` と UDP/IPv4 locator のwire format
 - RTPS parameter list（SPDP/SEDP向けのPID、4バイト境界、sentinel）
