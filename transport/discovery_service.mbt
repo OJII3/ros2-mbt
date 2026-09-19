@@ -5,6 +5,8 @@ pub struct DiscoveryService {
   graph : DiscoveryGraph
   mut next_publication_sequence_number : Int64
   mut next_subscription_sequence_number : Int64
+  mut next_publication_heartbeat_count : UInt
+  mut next_subscription_heartbeat_count : UInt
 }
 
 ///|
@@ -14,6 +16,8 @@ pub fn DiscoveryService::new(session : DiscoverySession) -> DiscoveryService {
     graph: DiscoveryGraph::new(),
     next_publication_sequence_number: 1L,
     next_subscription_sequence_number: 1L,
+    next_publication_heartbeat_count: 1U,
+    next_subscription_heartbeat_count: 1U,
   }
 }
 
@@ -37,19 +41,29 @@ pub async fn DiscoveryService::announce_sedp_once(
     @rtps.SedpEndpointKind::Subscription =>
       self.next_subscription_sequence_number
   }
+  let heartbeat_count = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_heartbeat_count
+  }
   match
-    self.session.socket.send_sedp_to_participant(
+    self.session.socket.send_sedp_to_participant_with_heartbeat_count(
       endpoint,
       self.session.participant.vendor_id(),
       remote_participant,
       sequence_number,
+      heartbeat_count,
     ) {
     Ok(_) => {
       match endpoint.kind() {
-        @rtps.SedpEndpointKind::Publication =>
+        @rtps.SedpEndpointKind::Publication => {
           self.next_publication_sequence_number = sequence_number + 1L
-        @rtps.SedpEndpointKind::Subscription =>
+          self.next_publication_heartbeat_count = heartbeat_count + 1U
+        }
+        @rtps.SedpEndpointKind::Subscription => {
           self.next_subscription_sequence_number = sequence_number + 1L
+          self.next_subscription_heartbeat_count = heartbeat_count + 1U
+        }
       }
       Ok(())
     }

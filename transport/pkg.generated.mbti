@@ -104,6 +104,8 @@ pub struct DiscoveryService {
   graph : DiscoveryGraph
   mut next_publication_sequence_number : Int64
   mut next_subscription_sequence_number : Int64
+  mut next_publication_heartbeat_count : UInt
+  mut next_subscription_heartbeat_count : UInt
 }
 pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_forever(Self, @rtps.SedpEndpointData, Int) -> Result[Unit, String]
@@ -331,6 +333,7 @@ pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit
 pub async fn Udp::send_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp_to_participant(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64) -> Result[Unit, String]
+pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
 

@@ -367,6 +367,21 @@ pub async fn Udp::send_sedp_to_participant(
   remote_participant : @rtps.SpdpParticipantData,
   writer_sequence_number : Int64,
 ) -> Result[Unit, String] {
+  self.send_sedp_to_participant_with_heartbeat_count(
+    endpoint, vendor_id, remote_participant, writer_sequence_number, 1U,
+  )
+}
+
+///|
+/// Send an SEDP announcement with an explicit reliable HEARTBEAT count.
+pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
+  self : Udp,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  remote_participant : @rtps.SpdpParticipantData,
+  writer_sequence_number : Int64,
+  heartbeat_count : UInt,
+) -> Result[Unit, String] {
   let kind = endpoint.kind()
   let reader_id = kind.builtin_reader_id()
   let writer_id = kind.builtin_writer_id()
@@ -393,7 +408,7 @@ pub async fn Udp::send_sedp_to_participant(
     }
     let heartbeat = match
       @rtps.HeartbeatSubmessage::new(
-        reader_id, writer_id, writer_sequence_number, writer_sequence_number, 1U,
+        reader_id, writer_id, writer_sequence_number, writer_sequence_number, heartbeat_count,
       ) {
       Ok(value) => value
       Err(message) => return Err(message)

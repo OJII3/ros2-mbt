@@ -306,13 +306,23 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let (first_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   let (second, _) = match
     remote_receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let (second_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(second.topic_name(), "rt/chatter")
+  assert_eq(first_heartbeat.count(), 1U)
+  assert_eq(second_heartbeat.count(), 2U)
   assert_eq(
     service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
     3L,
