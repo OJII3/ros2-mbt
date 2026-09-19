@@ -60,6 +60,28 @@ pub(all) enum MessageFieldCollection {
   BoundedSequence(Int)
 } derive(Eq, @debug.Debug)
 
+pub struct MessageImport {
+  ros_package_name : String
+  moon_package_path : String
+  moon_alias : String
+} derive(Eq, @debug.Debug)
+pub fn MessageImport::moon_alias(Self) -> String
+pub fn MessageImport::moon_package_path(Self) -> String
+pub fn MessageImport::new(String, String, String) -> Result[Self, String]
+pub fn MessageImport::ros_package_name(Self) -> String
+
+pub struct MessageSource {
+  package_name : String
+  interface_namespace : String
+  type_name : String
+  source : String
+} derive(Eq, @debug.Debug)
+pub fn MessageSource::interface_namespace(Self) -> String
+pub fn MessageSource::new(String, String, String, String) -> Result[Self, String]
+pub fn MessageSource::package_name(Self) -> String
+pub fn MessageSource::source(Self) -> String
+pub fn MessageSource::type_name(Self) -> String
+
 pub struct MessageTypeReference {
   ros_name : String
   moon_name : String
@@ -67,6 +89,20 @@ pub struct MessageTypeReference {
 pub fn MessageTypeReference::moon_name(Self) -> String
 pub fn MessageTypeReference::new(String, String) -> Self
 pub fn MessageTypeReference::ros_name(Self) -> String
+
+pub struct MessageWorkspace {
+  sources : Array[MessageSource]
+  imports : Array[MessageImport]
+}
+pub fn MessageWorkspace::add_import(Self, MessageImport) -> Result[Unit, String]
+pub fn MessageWorkspace::add_source(Self, MessageSource) -> Result[Unit, String]
+pub fn MessageWorkspace::dependency_order(Self, String, String) -> Result[Array[MessageSource], String]
+pub fn MessageWorkspace::generate_message_moonbit(Self, String, String, String) -> Result[String, String]
+pub fn MessageWorkspace::generate_moonbit(Self, String, String) -> Result[String, String]
+pub fn MessageWorkspace::import_count(Self) -> Int
+pub fn MessageWorkspace::new() -> Self
+pub fn MessageWorkspace::resolve(Self, String, String, String) -> Result[MessageDefinition, String]
+pub fn MessageWorkspace::source_count(Self) -> Int
 
 // Type aliases
 

@@ -155,8 +155,10 @@ pub fn MessageDefinition::new_with_types(
     if !rosidl_type_reference_name(nested_type.ros_name) {
       return Err("ROS nested message type names must be identifiers or paths")
     }
-    if !rosidl_identifier(nested_type.moon_name) {
-      return Err("MoonBit nested message type names must be identifiers")
+    if !rosidl_moon_type_reference_name(nested_type.moon_name) {
+      return Err(
+        "MoonBit nested message type names must be identifiers or qualified references",
+      )
     }
   }
   for field in fields {
@@ -856,12 +858,33 @@ fn rosidl_type_reference_name(value : String) -> Bool {
   if parts.length() == 1 {
     return rosidl_identifier(value)
   }
+  if parts.length() == 2 {
+    return rosidl_identifier(parts[0].to_owned()) &&
+      rosidl_identifier(parts[1].to_owned())
+  }
   if parts.length() != 3 || parts[1] != "msg" {
     return false
   }
   rosidl_identifier(parts[0].to_owned()) &&
   rosidl_identifier(parts[1].to_owned()) &&
   rosidl_identifier(parts[2].to_owned())
+}
+
+///|
+fn rosidl_moon_type_reference_name(value : String) -> Bool {
+  if rosidl_identifier(value) {
+    return true
+  }
+  let parts = value.split(".").collect()
+  if parts.length() != 2 {
+    return false
+  }
+  let package_alias = parts[0].to_owned()
+  if package_alias.length() <= 1 || package_alias[0] != '@' {
+    return false
+  }
+  rosidl_identifier(package_alias[1:].to_owned()) &&
+  rosidl_identifier(parts[1].to_owned())
 }
 
 ///|
@@ -894,13 +917,33 @@ fn rosidl_moon_type_for_field(
     Ok(value) => Ok(value)
     Err(message) => {
       for nested_type in nested_types {
-        if nested_type.ros_name == type_name {
+        if rosidl_type_names_match(nested_type.ros_name, type_name) {
           return Ok(nested_type.moon_name)
         }
       }
       Err(message)
     }
   }
+}
+
+///|
+fn rosidl_type_names_match(left : String, right : String) -> Bool {
+  if left == right {
+    return true
+  }
+  let left_parts = left.split("/").collect()
+  let right_parts = right.split("/").collect()
+  if left_parts.length() == 2 {
+    if right_parts.length() == 3 && right_parts[1] == "msg" {
+      return left_parts[0] == right_parts[0] && left_parts[1] == right_parts[2]
+    }
+  }
+  if right_parts.length() == 2 {
+    if left_parts.length() == 3 && left_parts[1] == "msg" {
+      return right_parts[0] == left_parts[0] && right_parts[1] == left_parts[2]
+    }
+  }
+  false
 }
 
 ///|

@@ -101,6 +101,122 @@ test "ROS message generator handles nested message fields" {
 }
 
 ///|
+test "ROS message workspace resolves local dependencies in dependency order" {
+  let vector = match
+    MessageSource::new(
+      "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z\n",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let pose = match
+    MessageSource::new(
+      "demo_msgs", "msg", "Pose", "Vector3 position\nVector3[] history\n",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let workspace = MessageWorkspace::new()
+  match workspace.add_source(pose) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match workspace.add_source(vector) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let ordered = match workspace.dependency_order("demo_msgs", "msg") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(ordered.length(), 2)
+  assert_eq(ordered[0].type_name(), "Vector3")
+  assert_eq(ordered[1].type_name(), "Pose")
+  let generated = match workspace.generate_moonbit("demo_msgs", "msg") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_true(generated.contains("pub struct Vector3"))
+  assert_true(generated.contains("pub struct Pose"))
+  assert_true(generated.contains("position : Vector3"))
+  assert_true(generated.contains("Vector3::read_cdr(reader)"))
+}
+
+///|
+test "ROS message workspace generates qualified external imports" {
+  let mapping = match
+    MessageImport::new("geometry_msgs", "vendor/geometry_msgs/msg", "geometry") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let pose = match
+    MessageSource::new(
+      "demo_msgs", "msg", "Pose", "geometry_msgs/Vector3 position\n",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let workspace = MessageWorkspace::new()
+  match workspace.add_import(mapping) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match workspace.add_source(pose) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let generated = match
+    workspace.generate_message_moonbit("demo_msgs", "msg", "Pose") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_true(generated.contains("\"vendor/geometry_msgs/msg\" @geometry"))
+  assert_true(generated.contains("position : @geometry.Vector3"))
+  assert_true(generated.contains("@geometry.Vector3::read_cdr(reader)"))
+}
+
+///|
+test "ROS message workspace rejects missing imports and cycles" {
+  let missing = match
+    MessageSource::new(
+      "demo_msgs", "msg", "Pose", "geometry_msgs/Vector3 position\n",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let missing_workspace = MessageWorkspace::new()
+  match missing_workspace.add_source(missing) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_true(
+    missing_workspace.generate_message_moonbit("demo_msgs", "msg", "Pose")
+    is Err(_),
+  )
+
+  let first = match
+    MessageSource::new("demo_msgs", "msg", "First", "Second value\n") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let second = match
+    MessageSource::new("demo_msgs", "msg", "Second", "First value\n") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let cyclic_workspace = MessageWorkspace::new()
+  match cyclic_workspace.add_source(first) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match cyclic_workspace.add_source(second) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_true(cyclic_workspace.dependency_order("demo_msgs", "msg") is Err(_))
+}
+
+///|
 test "ROS message parser rejects unsupported definitions" {
   assert_true(parse_message("demo", "msg", "Bad", "int32[<3] values") is Err(_))
   assert_true(
