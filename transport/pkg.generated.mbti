@@ -141,6 +141,7 @@ pub fn ReliableDataWriter::new(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.Enti
 pub fn ReliableDataWriter::new_for_subscription(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableDataWriter::next_heartbeat_count(Self) -> UInt
 pub fn ReliableDataWriter::next_sequence_number(Self) -> Int64
+pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
 

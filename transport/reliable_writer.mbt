@@ -212,6 +212,21 @@ pub async fn ReliableDataWriter::handle_acknack(
 }
 
 ///|
+/// Receive one ACKNACK from the socket and retransmit its requested samples.
+pub async fn ReliableDataWriter::receive_acknack(
+  self : ReliableDataWriter,
+) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  let (acknack, source) = match self.socket.receive_acknack() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match self.handle_acknack(acknack) {
+    Ok(_) => Ok((acknack, source))
+    Err(message) => Err(message)
+  }
+}
+
+///|
 /// Close the reliable writer's underlying UDP socket.
 pub fn ReliableDataWriter::close(self : ReliableDataWriter) -> Unit {
   self.socket.close()
