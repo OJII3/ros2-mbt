@@ -81,6 +81,43 @@ pub fn ReliableDataWriter::new_for_subscription(
 }
 
 ///|
+/// Create a reliable writer for one SEDP endpoint announcement.
+///
+/// The returned writer uses the local endpoint participant prefix and the
+/// builtin SEDP reader/writer IDs selected by the endpoint kind.
+pub fn ReliableDataWriter::new_for_sedp(
+  socket : Udp,
+  vendor_id : @rtps.VendorId,
+  endpoint : @rtps.SedpEndpointData,
+  remote_participant : @rtps.SpdpParticipantData,
+  first_sequence_number : Int64,
+) -> Result[ReliableDataWriter, String] {
+  let unicast_locators = remote_participant.metatraffic_unicast_locators()
+  let locators = if unicast_locators.length() > 0 {
+    unicast_locators
+  } else {
+    remote_participant.metatraffic_multicast_locators()
+  }
+  if locators.length() == 0 {
+    return Err("the remote participant has no metatraffic locators")
+  }
+  let destination = match udp_locator_to_addr(locators[0]) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let kind = endpoint.kind()
+  ReliableDataWriter::new(
+    socket,
+    endpoint.participant_guid().prefix(),
+    vendor_id,
+    kind.builtin_reader_id(),
+    kind.builtin_writer_id(),
+    destination,
+    first_sequence_number,
+  )
+}
+
+///|
 pub fn ReliableDataWriter::next_sequence_number(
   self : ReliableDataWriter,
 ) -> Int64 {

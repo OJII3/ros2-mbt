@@ -156,3 +156,85 @@ async test "reliable writer receives ACKNACK from its socket" {
   ack_sender.close()
   receiver.close()
 }
+
+///|
+async test "reliable writer builds an SEDP builtin endpoint writer" {
+  let prefix = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint_id = match @rtps.EntityId::new(b"ep1", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint = match
+    @rtps.SedpEndpointData::new(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, endpoint_id),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = match
+    @rtps.Locator::udp_v4(
+      b"\x7F\x00\x00\x01",
+      receiver.local_addr().port().reinterpret_as_uint(),
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let remote_id = match @rtps.EntityId::new(b"rm1", 0xC1) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let remote = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(prefix, remote_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
+  )
+  remote.add_metatraffic_unicast(locator)
+  let writer = match
+    ReliableDataWriter::new_for_sedp(
+      sender,
+      @rtps.VendorId::new(1, 15),
+      endpoint,
+      remote,
+      1L,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let payload = match endpoint.to_cdr_bytes() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match writer.write(payload) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match writer.send_heartbeat() {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (data, _) = match receiver.receive_data() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (heartbeat, _) = match receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(data.reader_id().key(), b"\x00\x00\x03")
+  assert_eq(data.writer_id().key(), b"\x00\x00\x03")
+  assert_eq(heartbeat.first_sequence_number(), 1L)
+  writer.close()
+  receiver.close()
+}
