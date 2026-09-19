@@ -199,6 +199,25 @@ pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtp
 pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 
+pub struct RosPublisher {
+  topic : @ros.RosTopic
+  writer : DataWriter
+}
+pub fn RosPublisher::close(Self) -> Unit
+pub fn RosPublisher::new_for_subscription(@ros.RosTopic, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosPublisher::next_sequence_number(Self) -> Int64
+pub async fn RosPublisher::publish(Self, Bytes) -> Result[Unit, String]
+pub fn RosPublisher::topic(Self) -> @ros.RosTopic
+
+pub struct RosSubscription {
+  topic : @ros.RosTopic
+  reader : DataReader
+}
+pub fn RosSubscription::close(Self) -> Unit
+pub fn RosSubscription::new_for_publication(@ros.RosTopic, Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub async fn RosSubscription::receive(Self) -> Result[(Bytes, @socket.Addr), String]
+pub fn RosSubscription::topic(Self) -> @ros.RosTopic
+
 pub struct Udp {
   server : @socket.UdpServer
 }
