@@ -393,6 +393,8 @@ fn sedp_is_identity_parameter(id : UInt16) -> Bool {
   id == PID_ENDPOINT_GUID ||
   id == PID_PARTICIPANT_GUID ||
   id == PID_KEY_HASH ||
+  id == PID_PROTOCOL_VERSION ||
+  id == PID_VENDOR_ID ||
   id == PID_TOPIC_NAME ||
   id == PID_TYPE_NAME ||
   id == PID_UNICAST_LOCATOR ||
@@ -443,11 +445,50 @@ pub fn SedpEndpointData::to_parameter_list(
 }
 
 ///|
+/// Serialize an endpoint with the protocol and vendor parameters emitted by
+/// the local RTPS implementation.
+pub fn SedpEndpointData::to_parameter_list_with_vendor(
+  self : SedpEndpointData,
+  vendor_id : VendorId,
+) -> Result[ParameterList, String] {
+  let parameters = match self.to_parameter_list() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  parameters.add(
+    Parameter::new(
+      PID_PROTOCOL_VERSION,
+      Bytes::from_array([PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR, 0, 0]),
+    ),
+  )
+  parameters.add(
+    Parameter::new(
+      PID_VENDOR_ID,
+      Bytes::from_array([vendor_id.major, vendor_id.minor, 0, 0]),
+    ),
+  )
+  Ok(parameters)
+}
+
+///|
 /// Serialize this endpoint sample as a CDR little-endian payload.
 pub fn SedpEndpointData::to_cdr_bytes(
   self : SedpEndpointData,
 ) -> Result[Bytes, String] {
   let parameters = match self.to_parameter_list() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(parameters.to_cdr_bytes())
+}
+
+///|
+/// Serialize an endpoint payload including its protocol and vendor identity.
+pub fn SedpEndpointData::to_cdr_bytes_with_vendor(
+  self : SedpEndpointData,
+  vendor_id : VendorId,
+) -> Result[Bytes, String] {
+  let parameters = match self.to_parameter_list_with_vendor(vendor_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -463,6 +504,22 @@ pub fn SedpEndpointData::to_data_submessage(
   writer_sequence_number : Int64,
 ) -> Result[DataSubmessage, String] {
   let payload = match self.to_cdr_bytes() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(DataSubmessage::new(reader_id, writer_id, writer_sequence_number, payload))
+}
+
+///|
+/// Build an SEDP DATA submessage with protocol and vendor identity parameters.
+pub fn SedpEndpointData::to_data_submessage_with_vendor(
+  self : SedpEndpointData,
+  vendor_id : VendorId,
+  reader_id : EntityId,
+  writer_id : EntityId,
+  writer_sequence_number : Int64,
+) -> Result[DataSubmessage, String] {
+  let payload = match self.to_cdr_bytes_with_vendor(vendor_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -488,7 +545,9 @@ pub fn SedpEndpointData::to_message(
   writer_sequence_number : Int64,
 ) -> Result[Message, String] {
   let data = match
-    self.to_data_submessage(reader_id, writer_id, writer_sequence_number) {
+    self.to_data_submessage_with_vendor(
+      vendor_id, reader_id, writer_id, writer_sequence_number,
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

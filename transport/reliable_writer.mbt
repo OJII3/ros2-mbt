@@ -125,6 +125,14 @@ pub fn ReliableDataWriter::next_sequence_number(
 }
 
 ///|
+/// Return the vendor ID used in outgoing RTPS message headers.
+pub fn ReliableDataWriter::vendor_id(
+  self : ReliableDataWriter,
+) -> @rtps.VendorId {
+  self.vendor_id
+}
+
+///|
 pub fn ReliableDataWriter::next_heartbeat_count(
   self : ReliableDataWriter,
 ) -> UInt {

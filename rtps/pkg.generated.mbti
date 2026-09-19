@@ -387,9 +387,12 @@ pub fn SedpEndpointData::participant_guid(Self) -> Guid
 pub fn SedpEndpointData::qos(Self) -> Result[SedpQos, String]
 pub fn SedpEndpointData::qos_compatible_with(Self, Self) -> Result[Bool, String]
 pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn SedpEndpointData::to_cdr_bytes_with_vendor(Self, VendorId) -> Result[Bytes, String]
 pub fn SedpEndpointData::to_data_submessage(Self, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
+pub fn SedpEndpointData::to_data_submessage_with_vendor(Self, VendorId, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
 pub fn SedpEndpointData::to_message(Self, VendorId, EntityId, EntityId, Int64) -> Result[Message, String]
 pub fn SedpEndpointData::to_parameter_list(Self) -> Result[ParameterList, String]
+pub fn SedpEndpointData::to_parameter_list_with_vendor(Self, VendorId) -> Result[ParameterList, String]
 pub fn SedpEndpointData::topic_name(Self) -> String
 pub fn SedpEndpointData::type_name(Self) -> String
 pub fn SedpEndpointData::unicast_locators(Self) -> Array[Locator]

@@ -54,7 +54,8 @@ pub fn ReliableSedpWriter::history_length(self : ReliableSedpWriter) -> Int {
 pub async fn ReliableSedpWriter::announce_once(
   self : ReliableSedpWriter,
 ) -> Result[Unit, String] {
-  let payload = match self.endpoint.to_cdr_bytes() {
+  let payload = match
+    self.endpoint.to_cdr_bytes_with_vendor(self.writer.vendor_id()) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

@@ -72,6 +72,29 @@ test "SEDP endpoint data round trips required fields and locators" {
     Err(message) => fail(message)
   }
   assert_eq(reencoded, encoded)
+  let vendor_encoded = match
+    endpoint.to_cdr_bytes_with_vendor(VendorId::new(1, 15)) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let vendor_parameters = match ParameterList::from_cdr_bytes(vendor_encoded) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let mut protocol_found = false
+  let mut vendor_found = false
+  for parameter in vendor_parameters.values() {
+    if parameter.id() == PID_PROTOCOL_VERSION {
+      protocol_found = true
+      assert_eq(parameter.value(), b"\x02\x03\x00\x00")
+    }
+    if parameter.id() == PID_VENDOR_ID {
+      vendor_found = true
+      assert_eq(parameter.value(), b"\x01\x0F\x00\x00")
+    }
+  }
+  assert_true(protocol_found)
+  assert_true(vendor_found)
   let reader_id = match EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
