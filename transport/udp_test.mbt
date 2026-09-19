@@ -294,6 +294,21 @@ async test "UDP classifies discovery samples by builtin writer" {
   }
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let heartbeat = match
+    @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    sender.send_heartbeat(
+      heartbeat,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
   match
     sender.send_sedp(
       endpoint,
@@ -383,6 +398,11 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
   }
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
+  let (heartbeat, _) = match receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(heartbeat.last_sequence_number(), 1L)
   sender.close()
   receiver.close()
 }

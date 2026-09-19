@@ -17,6 +17,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
 - 発見済み participant の metatraffic locator へ送る SEDP helper
+- SEDP DATA後のHEARTBEAT送信と共有metatraffic socketの非discovery datagram処理
 - DDSI-RTPS default port mapping、SPDP/user-data address helper
 - DDSI discoveryのSPDP multicastとmetatraffic unicast両受信
 - DDSI 標準 locator と builtin endpoint を設定する participant helper

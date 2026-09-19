@@ -391,6 +391,23 @@ pub async fn Udp::send_sedp_to_participant(
       Ok(_) => ()
       Err(message) => return Err(message)
     }
+    let heartbeat = match
+      @rtps.HeartbeatSubmessage::new(
+        reader_id, writer_id, writer_sequence_number, writer_sequence_number, 1U,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match
+      self.send_heartbeat(
+        heartbeat,
+        endpoint.participant_guid().prefix(),
+        vendor_id,
+        destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
   }
   Ok(())
 }
@@ -401,26 +418,28 @@ pub async fn Udp::receive_sedp(
   self : Udp,
   kind : @rtps.SedpEndpointKind,
 ) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String] {
-  let (message, source) = match self.receive_message() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
-      continue
-    }
-    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+  while true {
+    let (message, source) = match self.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let endpoint = match
-      @rtps.SedpEndpointData::from_data_submessage(kind, data) {
-      Ok(value) => value
-      Err(message) => return Err(message)
+    for submessage in message.submessages() {
+      if submessage.id() != @rtps.SubmessageId::Data {
+        continue
+      }
+      let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(_) => continue
+      }
+      let endpoint = match
+        @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+        Ok(value) => value
+        Err(_) => continue
+      }
+      return Ok((endpoint, source))
     }
-    return Ok((endpoint, source))
   }
-  Err("RTPS datagram does not contain an SEDP DATA submessage")
+  Err("SEDP receive loop stopped")
 }
 
 ///|
@@ -440,41 +459,43 @@ pub(all) enum DiscoveryEvent {
 pub async fn Udp::receive_discovery(
   self : Udp,
 ) -> Result[(DiscoveryEvent, @socket.Addr), String] {
-  let (message, source) = match self.receive_message() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
-      continue
-    }
-    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+  while true {
+    let (message, source) = match self.receive_message() {
       Ok(value) => value
-      Err(_) => continue
+      Err(message) => return Err(message)
     }
-    match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
-      Ok(kind) => {
-        let endpoint = match
-          @rtps.SedpEndpointData::from_data_submessage(kind, data) {
-          Ok(value) => value
-          Err(_) => continue
-        }
-        match kind {
-          @rtps.SedpEndpointKind::Publication =>
-            return Ok((DiscoveryEvent::Publication(endpoint), source))
-          @rtps.SedpEndpointKind::Subscription =>
-            return Ok((DiscoveryEvent::Subscription(endpoint), source))
-        }
+    for submessage in message.submessages() {
+      if submessage.id() != @rtps.SubmessageId::Data {
+        continue
       }
-      Err(_) => ()
-    }
-    match @rtps.SpdpParticipantData::from_data_submessage(data) {
-      Ok(participant) =>
-        return Ok((DiscoveryEvent::Participant(participant), source))
-      Err(_) => continue
+      let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(_) => continue
+      }
+      match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
+        Ok(kind) => {
+          let endpoint = match
+            @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          match kind {
+            @rtps.SedpEndpointKind::Publication =>
+              return Ok((DiscoveryEvent::Publication(endpoint), source))
+            @rtps.SedpEndpointKind::Subscription =>
+              return Ok((DiscoveryEvent::Subscription(endpoint), source))
+          }
+        }
+        Err(_) => ()
+      }
+      match @rtps.SpdpParticipantData::from_data_submessage(data) {
+        Ok(participant) =>
+          return Ok((DiscoveryEvent::Participant(participant), source))
+        Err(_) => continue
+      }
     }
   }
-  Err("RTPS datagram does not contain a recognized discovery DATA submessage")
+  Err("discovery receive loop stopped")
 }
 
 ///|
