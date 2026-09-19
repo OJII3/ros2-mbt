@@ -65,6 +65,22 @@ pub async fn Udp::send_message(
 }
 
 ///|
+/// Serialize and send one SPDP participant announcement.
+pub async fn Udp::send_spdp(
+  self : Udp,
+  participant : @rtps.SpdpParticipantData,
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+  writer_sequence_number : Int64,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  let message = participant.to_message(
+    reader_id, writer_id, writer_sequence_number,
+  )
+  self.send_message(message, destination)
+}
+
+///|
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
   let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
@@ -83,6 +99,33 @@ pub async fn Udp::receive_message(
     Err(message) => return Err(message)
   }
   Ok((message, source))
+}
+
+///|
+/// Receive the first SPDP DATA submessage in a UDP datagram.
+pub async fn Udp::receive_spdp(
+  self : Udp,
+) -> Result[(@rtps.SpdpParticipantData, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::Data {
+      continue
+    }
+    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let participant = match
+      @rtps.SpdpParticipantData::from_data_submessage(data) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((participant, source))
+  }
+  Err("RTPS datagram does not contain an SPDP DATA submessage")
 }
 
 ///|

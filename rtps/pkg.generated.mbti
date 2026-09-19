@@ -348,7 +348,9 @@ pub struct Submessage {
   flags : Byte
   payload : Bytes
 } derive(Eq, @debug.Debug)
+pub fn Submessage::flags(Self) -> Byte
 pub fn Submessage::from_bytes(Bytes) -> Result[(Self, Int), String]
+pub fn Submessage::id(Self) -> SubmessageId
 pub fn Submessage::little_endian(Self) -> Self
 pub fn Submessage::new(SubmessageId, Byte, Bytes) -> Self
 pub fn Submessage::to_bytes(Self) -> Result[Bytes, String]

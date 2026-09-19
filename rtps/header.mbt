@@ -202,6 +202,16 @@ pub fn Submessage::little_endian(self : Submessage) -> Submessage {
 }
 
 ///|
+pub fn Submessage::id(self : Submessage) -> SubmessageId {
+  self.id
+}
+
+///|
+pub fn Submessage::flags(self : Submessage) -> Byte {
+  self.flags
+}
+
+///|
 /// Serialize an RTPS submessage header followed by its opaque payload.
 pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
   if self.payload.length() > 0xFFFF {
