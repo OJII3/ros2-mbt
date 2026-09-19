@@ -3,11 +3,18 @@
 pub struct DiscoveryService {
   session : DiscoverySession
   graph : DiscoveryGraph
+  mut next_publication_sequence_number : Int64
+  mut next_subscription_sequence_number : Int64
 }
 
 ///|
 pub fn DiscoveryService::new(session : DiscoverySession) -> DiscoveryService {
-  { session, graph: DiscoveryGraph::new(), }
+  {
+    session,
+    graph: DiscoveryGraph::new(),
+    next_publication_sequence_number: 1L,
+    next_subscription_sequence_number: 1L,
+  }
 }
 
 ///|
@@ -16,6 +23,51 @@ pub async fn DiscoveryService::announce_once(
   self : DiscoveryService,
 ) -> Result[Unit, String] {
   self.session.announce_once()
+}
+
+///|
+/// Send one local SEDP endpoint announcement to a discovered participant.
+pub async fn DiscoveryService::announce_sedp_once(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  remote_participant : @rtps.SpdpParticipantData,
+) -> Result[Unit, String] {
+  let sequence_number = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_sequence_number
+  }
+  match
+    self.session.socket.send_sedp_to_participant(
+      endpoint,
+      self.session.participant.vendor_id(),
+      remote_participant,
+      sequence_number,
+    ) {
+    Ok(_) => {
+      match endpoint.kind() {
+        @rtps.SedpEndpointKind::Publication =>
+          self.next_publication_sequence_number = sequence_number + 1L
+        @rtps.SedpEndpointKind::Subscription =>
+          self.next_subscription_sequence_number = sequence_number + 1L
+      }
+      Ok(())
+    }
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Return the next sequence number for a local SEDP endpoint kind.
+pub fn DiscoveryService::next_sedp_sequence_number(
+  self : DiscoveryService,
+  kind : @rtps.SedpEndpointKind,
+) -> Int64 {
+  match kind {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_sequence_number
+  }
 }
 
 ///|

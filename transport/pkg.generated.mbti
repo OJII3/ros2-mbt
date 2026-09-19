@@ -100,11 +100,15 @@ pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
 pub struct DiscoveryService {
   session : DiscoverySession
   graph : DiscoveryGraph
+  mut next_publication_sequence_number : Int64
+  mut next_subscription_sequence_number : Int64
 }
 pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_once(Self, @rtps.SedpEndpointData, @rtps.SpdpParticipantData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
 pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
 pub fn DiscoveryService::new(DiscoverySession) -> Self
+pub fn DiscoveryService::next_sedp_sequence_number(Self, @rtps.SedpEndpointKind) -> Int64
 pub async fn DiscoveryService::receive_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn DiscoveryService::receive_ros_discovery_info(Self) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String]
 
