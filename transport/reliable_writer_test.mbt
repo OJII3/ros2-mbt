@@ -193,6 +193,7 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
   }
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender_address = sender.local_addr()
   let locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
@@ -215,7 +216,7 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
   )
   remote.add_metatraffic_unicast(locator)
   let writer = match
-    ReliableDataWriter::new_for_sedp(
+    ReliableSedpWriter::new(
       sender,
       @rtps.VendorId::new(1, 15),
       endpoint,
@@ -225,15 +226,7 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let payload = match endpoint.to_cdr_bytes() {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  match writer.write(payload) {
-    Ok(_) => ()
-    Err(message) => fail(message)
-  }
-  match writer.send_heartbeat() {
+  match writer.announce_once() {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -248,6 +241,34 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
   assert_eq(data.reader_id().key(), b"\x00\x00\x03")
   assert_eq(data.writer_id().key(), b"\x00\x00\x03")
   assert_eq(heartbeat.first_sequence_number(), 1L)
+  let acknack = match
+    @rtps.AckNackSubmessage::new(
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      1L,
+      1U,
+      [0U],
+      1U,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    receiver.send_acknack(
+      acknack,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      sender_address,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (decoded_acknack, _) = match writer.receive_acknack() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded_acknack.count(), 1U)
+  assert_eq(writer.history_length(), 1)
   writer.close()
   receiver.close()
 }

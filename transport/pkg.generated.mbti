@@ -180,6 +180,19 @@ pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@rtps.AckNackS
 pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
 
+pub struct ReliableSedpWriter {
+  endpoint : @rtps.SedpEndpointData
+  writer : ReliableDataWriter
+}
+pub async fn ReliableSedpWriter::announce_once(Self) -> Result[Unit, String]
+pub fn ReliableSedpWriter::close(Self) -> Unit
+pub fn ReliableSedpWriter::endpoint(Self) -> @rtps.SedpEndpointData
+pub async fn ReliableSedpWriter::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub fn ReliableSedpWriter::history_length(Self) -> Int
+pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtps.SpdpParticipantData, Int64) -> Result[Self, String]
+pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
+pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+
 pub struct Udp {
   server : @socket.UdpServer
 }
