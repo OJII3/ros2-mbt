@@ -134,6 +134,18 @@ pub async fn Udp::send_data(
 }
 
 ///|
+/// Serialize and send one RTPS DATA_FRAG submessage.
+pub async fn Udp::send_data_frag(
+  self : Udp,
+  data : @rtps.DataFragSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(data.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
 /// Serialize and send one RTPS HEARTBEAT submessage.
 pub async fn Udp::send_heartbeat(
   self : Udp,

@@ -94,13 +94,33 @@ pub async fn DataWriter::write(
     sequence_number,
     serialized_payload,
   )
-  match
+  let result = if reliable_writer_data_fits_datagram(data) {
     self.socket.send_data(
       data,
       self.guid_prefix,
       self.vendor_id,
       self.destination,
-    ) {
+    )
+  } else {
+    let fragments = match reliable_writer_fragment_data(data) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for fragment in fragments {
+      match
+        self.socket.send_data_frag(
+          fragment,
+          self.guid_prefix,
+          self.vendor_id,
+          self.destination,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+    Ok(())
+  }
+  match result {
     Ok(_) => {
       self.next_sequence_number = sequence_number + 1L
       Ok(())
