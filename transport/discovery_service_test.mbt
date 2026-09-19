@@ -147,7 +147,12 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  match service.announce_sedp_once(endpoint, remote_participant) {
+  let reliable_writer = match
+    service.new_reliable_sedp_writer(endpoint, remote_participant, 1L) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match reliable_writer.announce_once() {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -159,9 +164,42 @@ async test "discovery service announces SEDP endpoints to a participant" {
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
   assert_eq(source.ip(), 0x7F000001U)
+  let (heartbeat, _) = match receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(heartbeat.last_sequence_number(), 1L)
+  let acknack = match
+    @rtps.AckNackSubmessage::new(
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      1L,
+      1U,
+      [0U],
+      1U,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    receiver.send_acknack(
+      acknack,
+      local_prefix,
+      @rtps.VendorId::new(1, 15),
+      sender.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (decoded_acknack, _) = match reliable_writer.receive_acknack() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded_acknack.count(), 1U)
+  assert_eq(reliable_writer.history_length(), 1)
   assert_eq(
     service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
-    2L,
+    1L,
   )
   assert_eq(
     service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Subscription),

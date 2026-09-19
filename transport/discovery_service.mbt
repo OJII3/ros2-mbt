@@ -58,6 +58,27 @@ pub async fn DiscoveryService::announce_sedp_once(
 }
 
 ///|
+/// Create a reliable SEDP writer on the discovery session's UDP socket.
+///
+/// The returned writer shares that socket with this service. While it is
+/// receiving ACKNACKs, callers must not run another receive loop on the same
+/// service socket.
+pub fn DiscoveryService::new_reliable_sedp_writer(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  remote_participant : @rtps.SpdpParticipantData,
+  first_sequence_number : Int64,
+) -> Result[ReliableSedpWriter, String] {
+  ReliableSedpWriter::new(
+    self.session.socket,
+    self.session.participant.vendor_id(),
+    endpoint,
+    remote_participant,
+    first_sequence_number,
+  )
+}
+
+///|
 /// Send one local SEDP endpoint announcement to every discovered participant.
 pub async fn DiscoveryService::announce_sedp_to_all(
   self : DiscoveryService,
