@@ -13,6 +13,26 @@ pub const ENCAPSULATION_LENGTH : Int = 4
 // Errors
 
 // Types and methods
+pub struct Reader {
+  bytes : Bytes
+  mut offset : Int
+}
+pub fn Reader::from_bytes(Bytes) -> Result[Self, String]
+pub fn Reader::read_bool(Self) -> Result[Bool, String]
+pub fn Reader::read_byte_array(Self, Int) -> Result[Bytes, String]
+pub fn Reader::read_byte_sequence(Self) -> Result[Bytes, String]
+pub fn Reader::read_f32(Self) -> Result[Float, String]
+pub fn Reader::read_f64(Self) -> Result[Double, String]
+pub fn Reader::read_i16(Self) -> Result[Int, String]
+pub fn Reader::read_i32(Self) -> Result[Int, String]
+pub fn Reader::read_i64(Self) -> Result[Int64, String]
+pub fn Reader::read_string(Self) -> Result[String, String]
+pub fn Reader::read_u16(Self) -> Result[UInt, String]
+pub fn Reader::read_u32(Self) -> Result[UInt, String]
+pub fn Reader::read_u64(Self) -> Result[UInt64, String]
+pub fn Reader::read_u8(Self) -> Result[Byte, String]
+pub fn Reader::remaining(Self) -> Int
+
 pub struct Writer {
   buffer : @buffer.Buffer
 }
