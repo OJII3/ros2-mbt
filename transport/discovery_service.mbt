@@ -30,6 +30,42 @@ pub async fn DiscoveryService::announce_once(
 }
 
 ///|
+/// Advance the sequence and HEARTBEAT counters for one SEDP writer.
+fn DiscoveryService::advance_sedp_counters(
+  self : DiscoveryService,
+  kind : @rtps.SedpEndpointKind,
+) -> Unit {
+  match kind {
+    @rtps.SedpEndpointKind::Publication => {
+      self.next_publication_sequence_number += 1L
+      self.next_publication_heartbeat_count += 1U
+    }
+    @rtps.SedpEndpointKind::Subscription => {
+      self.next_subscription_sequence_number += 1L
+      self.next_subscription_heartbeat_count += 1U
+    }
+  }
+}
+
+///|
+/// Send one SEDP sample to a participant using already selected counters.
+async fn DiscoveryService::send_sedp_to_participant(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  remote_participant : @rtps.SpdpParticipantData,
+  sequence_number : Int64,
+  heartbeat_count : UInt,
+) -> Result[Unit, String] {
+  self.session.socket.send_sedp_to_participant_with_heartbeat_count(
+    endpoint,
+    self.session.participant.vendor_id(),
+    remote_participant,
+    sequence_number,
+    heartbeat_count,
+  )
+}
+
+///|
 /// Send one local SEDP endpoint announcement to a discovered participant.
 pub async fn DiscoveryService::announce_sedp_once(
   self : DiscoveryService,
@@ -47,27 +83,17 @@ pub async fn DiscoveryService::announce_sedp_once(
       self.next_subscription_heartbeat_count
   }
   match
-    self.session.socket.send_sedp_to_participant_with_heartbeat_count(
-      endpoint,
-      self.session.participant.vendor_id(),
-      remote_participant,
-      sequence_number,
-      heartbeat_count,
+    self.send_sedp_to_participant(
+      endpoint, remote_participant, sequence_number, heartbeat_count,
     ) {
     Ok(_) => {
-      match endpoint.kind() {
-        @rtps.SedpEndpointKind::Publication => {
-          self.next_publication_sequence_number = sequence_number + 1L
-          self.next_publication_heartbeat_count = heartbeat_count + 1U
-        }
-        @rtps.SedpEndpointKind::Subscription => {
-          self.next_subscription_sequence_number = sequence_number + 1L
-          self.next_subscription_heartbeat_count = heartbeat_count + 1U
-        }
-      }
+      self.advance_sedp_counters(endpoint.kind())
       Ok(())
     }
-    Err(message) => Err(message)
+    Err(message) => {
+      self.advance_sedp_counters(endpoint.kind())
+      Err(message)
+    }
   }
 }
 
@@ -99,14 +125,35 @@ pub async fn DiscoveryService::announce_sedp_to_all(
   endpoint : @rtps.SedpEndpointData,
 ) -> Result[Unit, String] {
   let local_guid = self.session.participant.participant_guid()
+  let sequence_number = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_sequence_number
+  }
+  let heartbeat_count = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_heartbeat_count
+  }
+  let mut sent = false
   for remote_participant in self.graph.participants() {
     if remote_participant.participant_guid() == local_guid {
       continue
     }
-    match self.announce_sedp_once(endpoint, remote_participant) {
+    sent = true
+    match
+      self.send_sedp_to_participant(
+        endpoint, remote_participant, sequence_number, heartbeat_count,
+      ) {
       Ok(_) => ()
-      Err(message) => return Err(message)
+      Err(message) => {
+        self.advance_sedp_counters(endpoint.kind())
+        return Err(message)
+      }
     }
+  }
+  if sent {
+    self.advance_sedp_counters(endpoint.kind())
   }
   Ok(())
 }
