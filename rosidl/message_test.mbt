@@ -24,6 +24,36 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
 }
 
 ///|
+test "ROS service parser generates request and response codecs" {
+  let definition = match
+    parse_service(
+      "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum\n",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(definition.package_name(), "example_interfaces")
+  assert_eq(definition.service_name(), "AddTwoInts")
+  assert_eq(definition.request().type_name(), "AddTwoInts_Request")
+  assert_eq(definition.request().fields().length(), 2)
+  assert_eq(definition.response().type_name(), "AddTwoInts_Response")
+  assert_eq(definition.response().fields().length(), 1)
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub struct AddTwoInts_Request"))
+  assert_true(generated.contains("pub struct AddTwoInts_Response"))
+  assert_true(generated.contains("writer.write_i64(self.a)"))
+  assert_true(generated.contains("writer.write_i64(self.sum)"))
+}
+
+///|
+test "ROS service parser requires exactly one separator" {
+  assert_true(parse_service("demo", "Empty", "int32 value") is Err(_))
+  assert_true(
+    parse_service("demo", "Empty", "int32 value\n---\n---\n") is Err(_),
+  )
+}
+
+///|
 test "ROS message parser and generator handle scalar constants" {
   let definition = match
     parse_message(

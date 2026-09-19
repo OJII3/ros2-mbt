@@ -42,6 +42,15 @@ pub struct MessageDefinition {
 } derive(Eq, Debug)
 
 ///|
+/// A parsed ROS service definition containing request and response messages.
+pub struct ServiceDefinition {
+  package_name : String
+  service_name : String
+  request : MessageDefinition
+  response : MessageDefinition
+} derive(Eq, Debug)
+
+///|
 /// Create a message field descriptor.
 pub fn MessageField::new(type_name : String, name : String) -> MessageField {
   { type_name, name, collection: MessageFieldCollection::Scalar, }
@@ -255,6 +264,60 @@ pub fn MessageDefinition::constants(
 }
 
 ///|
+/// Create a service definition from its request and response messages.
+pub fn ServiceDefinition::new(
+  package_name : String,
+  service_name : String,
+  request : MessageDefinition,
+  response : MessageDefinition,
+) -> Result[ServiceDefinition, String] {
+  if !rosidl_identifier(package_name) || !rosidl_identifier(service_name) {
+    return Err("ROS service package and type must be identifiers")
+  }
+  if request.package_name() != package_name ||
+    request.interface_namespace() != "srv" ||
+    request.type_name() != service_name + "_Request" {
+    return Err("ROS service request definition has the wrong identity")
+  }
+  if response.package_name() != package_name ||
+    response.interface_namespace() != "srv" ||
+    response.type_name() != service_name + "_Response" {
+    return Err("ROS service response definition has the wrong identity")
+  }
+  Ok({ package_name, service_name, request, response, })
+}
+
+///|
+pub fn ServiceDefinition::package_name(self : ServiceDefinition) -> String {
+  self.package_name
+}
+
+///|
+pub fn ServiceDefinition::service_name(self : ServiceDefinition) -> String {
+  self.service_name
+}
+
+///|
+pub fn ServiceDefinition::request(
+  self : ServiceDefinition,
+) -> MessageDefinition {
+  self.request
+}
+
+///|
+pub fn ServiceDefinition::response(
+  self : ServiceDefinition,
+) -> MessageDefinition {
+  self.response
+}
+
+///|
+/// Generate request and response MoonBit CDR codecs for a ROS service.
+pub fn ServiceDefinition::generate_moonbit(self : ServiceDefinition) -> String {
+  self.request.generate_moonbit() + "\n" + self.response.generate_moonbit()
+}
+
+///|
 /// Parse the primitive-field subset of a ROS `.msg` definition.
 ///
 /// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
@@ -331,6 +394,53 @@ pub fn parse_message_with_types(
     Err(message) => return Err(message)
   }
   definition.with_constants(constants)
+}
+
+///|
+/// Parse a ROS service definition into request and response message codecs.
+pub fn parse_service(
+  package_name : String,
+  service_name : String,
+  source : String,
+) -> Result[ServiceDefinition, String] {
+  parse_service_with_types(package_name, service_name, source, [])
+}
+
+///|
+/// Parse a ROS service definition with explicit nested message references.
+pub fn parse_service_with_types(
+  package_name : String,
+  service_name : String,
+  source : String,
+  nested_types : Array[MessageTypeReference],
+) -> Result[ServiceDefinition, String] {
+  let sections = source.split("---").collect()
+  if sections.length() != 2 {
+    return Err("ROS service definitions must contain one --- separator")
+  }
+  let request = match
+    parse_message_with_types(
+      package_name,
+      "srv",
+      service_name + "_Request",
+      sections[0].to_owned(),
+      nested_types,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let response = match
+    parse_message_with_types(
+      package_name,
+      "srv",
+      service_name + "_Response",
+      sections[1].to_owned(),
+      nested_types,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  ServiceDefinition::new(package_name, service_name, request, response)
 }
 
 ///|

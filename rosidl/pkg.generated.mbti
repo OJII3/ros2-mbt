@@ -10,6 +10,10 @@ pub fn parse_message(String, String, String, String) -> Result[MessageDefinition
 
 pub fn parse_message_with_types(String, String, String, String, Array[MessageTypeReference]) -> Result[MessageDefinition, String]
 
+pub fn parse_service(String, String, String) -> Result[ServiceDefinition, String]
+
+pub fn parse_service_with_types(String, String, String, Array[MessageTypeReference]) -> Result[ServiceDefinition, String]
+
 // Errors
 
 // Types and methods
@@ -103,6 +107,19 @@ pub fn MessageWorkspace::import_count(Self) -> Int
 pub fn MessageWorkspace::new() -> Self
 pub fn MessageWorkspace::resolve(Self, String, String, String) -> Result[MessageDefinition, String]
 pub fn MessageWorkspace::source_count(Self) -> Int
+
+pub struct ServiceDefinition {
+  package_name : String
+  service_name : String
+  request : MessageDefinition
+  response : MessageDefinition
+} derive(Eq, @debug.Debug)
+pub fn ServiceDefinition::generate_moonbit(Self) -> String
+pub fn ServiceDefinition::new(String, String, MessageDefinition, MessageDefinition) -> Result[Self, String]
+pub fn ServiceDefinition::package_name(Self) -> String
+pub fn ServiceDefinition::request(Self) -> MessageDefinition
+pub fn ServiceDefinition::response(Self) -> MessageDefinition
+pub fn ServiceDefinition::service_name(Self) -> String
 
 // Type aliases
 
