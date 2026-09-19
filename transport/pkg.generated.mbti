@@ -67,6 +67,18 @@ pub fn DiscoverySession::new_default(Udp, @rtps.SpdpParticipantData, UInt, Int64
 pub fn DiscoverySession::next_sequence_number(Self) -> Int64
 pub async fn DiscoverySession::receive_once(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
 
+pub struct ReliableDataReader {
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  mut next_acknack_count : UInt
+  samples : Array[@rtps.DataSubmessage]
+}
+pub fn ReliableDataReader::accept_data(Self, @rtps.DataSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::acknack_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[@rtps.AckNackSubmessage, String]
+pub fn ReliableDataReader::new(@rtps.EntityId, @rtps.EntityId) -> Self
+pub fn ReliableDataReader::next_acknack_count(Self) -> UInt
+pub fn ReliableDataReader::sample_count(Self) -> Int
+
 pub struct ReliableDataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
