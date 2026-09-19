@@ -218,7 +218,7 @@ fn service_endpoint_to_sedp(
     endpoint.add_parameter(@rtps.qos_durability(qos.durability()))
     endpoint.add_parameter(@rtps.qos_history(qos.history(), qos.depth()))
     endpoint.add_parameter(
-      @rtps.qos_data_representation([@rtps.DATA_REPRESENTATION_XCDR1]),
+      @rtps.qos_data_representation(qos.data_representation()),
     )
     match related_endpoint_guid {
       Some(guid) =>

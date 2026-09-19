@@ -79,3 +79,28 @@ test "ROS topic descriptor applies explicit reliable QoS" {
     is Err(_),
   )
 }
+
+///|
+test "ROS topic descriptor advertises the configured data representations" {
+  let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let entity_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
+  let qos = @rtps.SedpQos::new(
+    @rtps.RELIABILITY_RELIABLE,
+    @rtps.DURABILITY_VOLATILE,
+    @rtps.HISTORY_KEEP_LAST,
+    10,
+  ).with_data_representation([@rtps.DATA_REPRESENTATION_XCDR2])
+  let endpoint = topic.to_sedp_with_qos(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, entity_id),
+    qos,
+  ).unwrap()
+  let decoded_qos = endpoint.qos().unwrap()
+  assert_eq(
+    decoded_qos.data_representation(),
+    [@rtps.DATA_REPRESENTATION_XCDR2],
+  )
+}
