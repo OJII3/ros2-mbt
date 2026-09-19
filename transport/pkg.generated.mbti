@@ -105,6 +105,7 @@ pub fn DiscoveryService::close(Self) -> Unit
 pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
 pub fn DiscoveryService::new(DiscoverySession) -> Self
 pub async fn DiscoveryService::receive_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+pub async fn DiscoveryService::receive_ros_discovery_info(Self) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String]
 
 pub struct DiscoverySession {
   socket : Udp

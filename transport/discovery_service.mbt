@@ -32,6 +32,19 @@ pub async fn DiscoveryService::receive_once(
 }
 
 ///|
+/// Receive one `ros_discovery_info` sample and upsert its participant graph.
+pub async fn DiscoveryService::receive_ros_discovery_info(
+  self : DiscoveryService,
+) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
+  let (info, source) = match self.session.socket.receive_ros_discovery_info() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.graph.ingest_ros_discovery_info(info)
+  Ok((source, info))
+}
+
+///|
 pub fn DiscoveryService::graph(self : DiscoveryService) -> DiscoveryGraph {
   self.graph
 }
