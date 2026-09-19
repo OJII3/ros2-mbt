@@ -52,6 +52,7 @@ pub struct DataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   writer_prefix : @rtps.GuidPrefix?
+  state : ReliableDataReader
 }
 pub fn DataReader::close(Self) -> Unit
 pub fn DataReader::new(Udp, @rtps.EntityId, @rtps.EntityId) -> Self

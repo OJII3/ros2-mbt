@@ -5,6 +5,7 @@ pub struct DataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   writer_prefix : @rtps.GuidPrefix?
+  state : ReliableDataReader
 }
 
 ///|
@@ -14,7 +15,13 @@ pub fn DataReader::new(
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
 ) -> DataReader {
-  { socket, reader_id, writer_id, writer_prefix: None, }
+  {
+    socket,
+    reader_id,
+    writer_id,
+    writer_prefix: None,
+    state: ReliableDataReader::new(reader_id, writer_id),
+  }
 }
 
 ///|
@@ -32,6 +39,10 @@ pub fn DataReader::new_for_publication(
     reader_id,
     writer_id: publication.endpoint_guid().entity_id(),
     writer_prefix: Some(publication.endpoint_guid().prefix()),
+    state: ReliableDataReader::new(
+      reader_id,
+      publication.endpoint_guid().entity_id(),
+    ),
   })
 }
 
@@ -46,26 +57,53 @@ pub async fn DataReader::receive(
       Err(message) => return Err(message)
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::Data {
-        continue
+      match submessage.id() {
+        @rtps.SubmessageId::Data => {
+          let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(message) => return Err(message)
+          }
+          let prefix_matches = match self.writer_prefix {
+            Some(prefix) => message.header().guid_prefix() == prefix
+            None => true
+          }
+          if (
+              data.reader_id() != self.reader_id &&
+              data.reader_id() != @rtps.EntityId::unknown()
+            ) ||
+            data.writer_id() != self.writer_id ||
+            !prefix_matches {
+            continue
+          }
+          match self.state.accept_data(data) {
+            Ok(_) => return Ok((data, source))
+            Err(_) => continue
+          }
+        }
+        @rtps.SubmessageId::DataFrag => {
+          let fragment = match
+            @rtps.DataFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          let prefix_matches = match self.writer_prefix {
+            Some(prefix) => message.header().guid_prefix() == prefix
+            None => true
+          }
+          if !prefix_matches {
+            continue
+          }
+          let data = match self.state.accept_data_frag(fragment) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          match data {
+            Some(value) => return Ok((value, source))
+            None => continue
+          }
+        }
+        _ => continue
       }
-      let data = match @rtps.DataSubmessage::from_submessage(submessage) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      let prefix_matches = match self.writer_prefix {
-        Some(prefix) => message.header().guid_prefix() == prefix
-        None => true
-      }
-      if (
-          data.reader_id() != self.reader_id &&
-          data.reader_id() != @rtps.EntityId::unknown()
-        ) ||
-        data.writer_id() != self.writer_id ||
-        !prefix_matches {
-        continue
-      }
-      return Ok((data, source))
     }
   }
   Err("best-effort reader stopped")
