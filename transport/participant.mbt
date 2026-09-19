@@ -235,6 +235,74 @@ pub async fn RosParticipant::register_topic_endpoint(
 }
 
 ///|
+/// Register the request reader and response writer for a ROS service server.
+pub async fn RosParticipant::register_service_server(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_reader_id : @rtps.EntityId,
+  response_writer_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  let prefix = self.participant.participant_guid().prefix()
+  let request = match
+    service.request_to_sedp(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, request_reader_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  request.add_unicast_locator(self.user_locator)
+  match self.register_endpoint(request) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let response = match
+    service.response_to_sedp(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, response_writer_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  response.add_unicast_locator(self.user_locator)
+  self.register_endpoint(response)
+}
+
+///|
+/// Register the request writer and response reader for a ROS service client.
+pub async fn RosParticipant::register_service_client(
+  self : RosParticipant,
+  service : @ros.RosService,
+  request_writer_id : @rtps.EntityId,
+  response_reader_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  let prefix = self.participant.participant_guid().prefix()
+  let request = match
+    service.request_to_sedp(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, request_writer_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  request.add_unicast_locator(self.user_locator)
+  match self.register_endpoint(request) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let response = match
+    service.response_to_sedp(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, response_reader_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  response.add_unicast_locator(self.user_locator)
+  self.register_endpoint(response)
+}
+
+///|
 /// Register the reliable ROS graph-discovery publication and subscription.
 pub async fn RosParticipant::register_ros_discovery_info(
   self : RosParticipant,

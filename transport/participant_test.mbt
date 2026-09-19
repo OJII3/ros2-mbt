@@ -157,6 +157,53 @@ async test "ROS participant registers and retains local SEDP endpoints" {
 }
 
 ///|
+async test "ROS participant registers service client endpoints" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let participant = new_ddsi_participant(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let node = RosParticipant::from_sockets(
+    discovery_socket, user_socket, participant, 0, 1L,
+  ).unwrap()
+  let service = @ros.RosService::new(
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
+  ).unwrap()
+  let request_writer_id = @rtps.EntityId::new(b"crq", 0xC2).unwrap()
+  let response_reader_id = @rtps.EntityId::new(b"crs", 0xC7).unwrap()
+  match
+    node.register_service_client(service, request_writer_id, response_reader_id) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_eq(node.local_endpoints().length(), 2)
+  assert_eq(node.local_endpoints()[0].topic_name(), "rq/add_two_ints")
+  assert_eq(
+    node.local_endpoints()[0].kind(),
+    @rtps.SedpEndpointKind::Publication,
+  )
+  assert_eq(node.local_endpoints()[1].topic_name(), "rr/add_two_ints")
+  assert_eq(
+    node.local_endpoints()[1].kind(),
+    @rtps.SedpEndpointKind::Subscription,
+  )
+  let request_qos = node.local_endpoints()[0].qos().unwrap()
+  assert_eq(request_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
+  let info = node.participant_entities_info("/demo", "client").unwrap()
+  assert_eq(info.node_entities_info_seq()[0].writer_gid_seq().length(), 1)
+  assert_eq(info.node_entities_info_seq()[0].reader_gid_seq().length(), 1)
+  node.close()
+}
+
+///|
 async test "ROS participant automatically announces endpoints after SPDP" {
   let publisher_prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
