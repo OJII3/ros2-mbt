@@ -28,6 +28,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
 - SPDP/SEDP discovery event を保持する `DiscoveryGraph` と topic/type matching
 - SPDP/SEDP と `ros_discovery_info` を graph に集約する `DiscoveryService`
+- 発見済み participant 全体への SEDP endpoint の単発・有限回・継続 announcement
 - `rmw_dds_common` の `Gid` / `NodeEntitiesInfo` / `ParticipantEntitiesInfo` CDR codec
 - `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
 - ROS topic descriptor から SEDP topic/type identity への bridge
@@ -48,13 +49,13 @@ moon check
 moon test --target native
 ```
 
-周期的なSEDP multicast discovery loop、ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
+ROS message codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 
 ## Roadmap
 
 1. UDP multicast/unicast transport（基本送受信、SPDP multicast helper、単発 discovery packet は実装済み）
 2. SPDP participant discovery（packet codec、受信 dispatch、周期 announcement は実装済み）
-3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への送信は実装済み）
+3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` submessage と ROS topic mapping（best-effort reader/writer adapter まで実装済み）
 5. `geometry_msgs/Twist`などの最小ROS message codec（手書きの最小 codec は実装済み、codegen は未実装）
 6. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト
