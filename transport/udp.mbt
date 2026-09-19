@@ -129,6 +129,53 @@ pub async fn Udp::receive_spdp(
 }
 
 ///|
+/// Serialize and send one SEDP endpoint announcement.
+pub async fn Udp::send_sedp(
+  self : Udp,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+  writer_sequence_number : Int64,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  let message = match
+    endpoint.to_message(vendor_id, reader_id, writer_id, writer_sequence_number) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.send_message(message, destination)
+}
+
+///|
+/// Receive the first SEDP endpoint DATA submessage in a UDP datagram.
+pub async fn Udp::receive_sedp(
+  self : Udp,
+  kind : @rtps.SedpEndpointKind,
+) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::Data {
+      continue
+    }
+    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let endpoint = match
+      @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((endpoint, source))
+  }
+  Err("RTPS datagram does not contain an SEDP DATA submessage")
+}
+
+///|
 /// Close the underlying socket.
 pub fn Udp::close(self : Udp) -> Unit {
   self.server.close()

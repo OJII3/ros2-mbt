@@ -96,3 +96,61 @@ async test "UDP sends and receives one SPDP announcement" {
   sender.close()
   receiver.close()
 }
+
+///|
+async test "UDP sends and receives one SEDP announcement" {
+  let endpoint_guid = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(prefix) =>
+      match @rtps.EntityId::new(b"abc", 0xC2) {
+        Ok(entity_id) => @rtps.Guid::new(prefix, entity_id)
+        Err(message) => fail(message)
+      }
+    Err(message) => fail(message)
+  }
+  let endpoint = match
+    @rtps.SedpEndpointData::new(
+      @rtps.SedpEndpointKind::Publication,
+      endpoint_guid,
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  endpoint.add_parameter(
+    @rtps.qos_reliability(@rtps.RELIABILITY_RELIABLE, 0, 0),
+  )
+  let reader_id = match @rtps.EntityId::new(b"rdr", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match @rtps.EntityId::new(b"wrt", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  match
+    sender.send_sedp(
+      endpoint,
+      @rtps.VendorId::new(1, 15),
+      reader_id,
+      writer_id,
+      1L,
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (decoded, source) = match
+    receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.topic_name(), endpoint.topic_name())
+  assert_eq(decoded.type_name(), endpoint.type_name())
+  assert_eq(source.ip(), 0x7F000001U)
+  sender.close()
+  receiver.close()
+}
