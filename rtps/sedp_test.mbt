@@ -50,13 +50,19 @@ test "SEDP endpoint data round trips required fields and locators" {
     Err(message) => fail(message)
   }
   let mut key_hash_found = false
+  let mut type_max_size_found = false
   for parameter in encoded_parameters.values() {
     if parameter.id() == PID_KEY_HASH {
       key_hash_found = true
       assert_eq(parameter.value(), endpoint_guid.to_bytes())
     }
+    if parameter.id() == PID_TYPE_MAX_SIZE_SERIALIZED {
+      type_max_size_found = true
+      assert_eq(parameter.value(), b"\x00\x00\x00\x00")
+    }
   }
   assert_true(key_hash_found)
+  assert_true(type_max_size_found)
   let decoded = match
     SedpEndpointData::from_cdr_bytes(SedpEndpointKind::Publication, encoded) {
     Ok(value) => value
@@ -231,4 +237,65 @@ test "SEDP reads basic QoS and checks offered compatibility" {
     },
   )
   assert_true(subscription.qos_compatible_with(publication) is Err(_))
+}
+
+///|
+test "SEDP subscription advertises that it does not expect inline QoS" {
+  let endpoint_guid = match sedp_test_guid(0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint = match
+    SedpEndpointData::new(
+      SedpEndpointKind::Subscription,
+      endpoint_guid,
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let parameters = match endpoint.to_parameter_list() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let mut expects_inline_qos_found = false
+  for parameter in parameters.values() {
+    if parameter.id() == PID_EXPECTS_INLINE_QOS {
+      expects_inline_qos_found = true
+      assert_eq(parameter.value(), b"\x00\x00\x00\x00")
+    }
+  }
+  assert_true(expects_inline_qos_found)
+}
+
+///|
+test "SEDP does not duplicate direction-specific standard parameters" {
+  let endpoint_guid = match sedp_test_guid(0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint = match
+    SedpEndpointData::new(
+      SedpEndpointKind::Publication,
+      endpoint_guid,
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  endpoint.add_parameter(qos_type_max_size_serialized(1024))
+  let parameters = match endpoint.to_parameter_list() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let mut count = 0
+  for parameter in parameters.values() {
+    if parameter.id() == PID_TYPE_MAX_SIZE_SERIALIZED {
+      count += 1
+      assert_eq(parameter.value(), b"\x00\x04\x00\x00")
+    }
+  }
+  assert_eq(count, 1)
 }

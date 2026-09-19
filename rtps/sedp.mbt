@@ -402,6 +402,16 @@ fn sedp_is_identity_parameter(id : UInt16) -> Bool {
 }
 
 ///|
+fn sedp_has_parameter(parameters : Array[Parameter], id : UInt16) -> Bool {
+  for parameter in parameters {
+    if parameter.id() == id {
+      return true
+    }
+  }
+  false
+}
+
+///|
 /// Serialize this endpoint sample as a discovery parameter list.
 pub fn SedpEndpointData::to_parameter_list(
   self : SedpEndpointData,
@@ -437,6 +447,14 @@ pub fn SedpEndpointData::to_parameter_list(
   }
   for locator in self.multicast_locators {
     parameters.add(Parameter::new(PID_MULTICAST_LOCATOR, locator.to_bytes()))
+  }
+  if self.kind == SedpEndpointKind::Publication &&
+    !sedp_has_parameter(self.extra_parameters, PID_TYPE_MAX_SIZE_SERIALIZED) {
+    parameters.add(qos_type_max_size_serialized(0))
+  }
+  if self.kind == SedpEndpointKind::Subscription &&
+    !sedp_has_parameter(self.extra_parameters, PID_EXPECTS_INLINE_QOS) {
+    parameters.add(qos_expects_inline_qos(false))
   }
   for parameter in self.extra_parameters {
     parameters.add(parameter)
