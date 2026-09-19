@@ -243,26 +243,18 @@ pub fn ReliableDataReader::accept_data_frag(
 }
 
 ///|
-/// Build a NACK_FRAG for fragments missing from a HEARTBEAT_FRAG range.
-pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(
+/// Build NACK_FRAG windows for fragments missing from a HEARTBEAT_FRAG range.
+/// FragmentNumberSet has the same 256-bit limit as SequenceNumberSet.
+pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(
   self : ReliableDataReader,
   heartbeat : @rtps.HeartbeatFragSubmessage,
-) -> Result[@rtps.NackFragSubmessage, String] {
+) -> Result[Array[@rtps.NackFragSubmessage], String] {
   if heartbeat.reader_id() != self.reader_id &&
     heartbeat.reader_id() != @rtps.EntityId::unknown() {
     return Err("the HEARTBEAT_FRAG targets a different RTPS reader")
   }
   if heartbeat.writer_id() != self.writer_id {
     return Err("the HEARTBEAT_FRAG comes from a different RTPS writer")
-  }
-  let num_bits = heartbeat.last_fragment_number()
-  if num_bits == 0U || num_bits > 256U {
-    return Err("the HEARTBEAT_FRAG range is outside NACK_FRAG bitmap limits")
-  }
-  let word_count = (num_bits.reinterpret_as_int() + 31) / 32
-  let bitmap : Array[UInt] = []
-  for _ in 0..<word_count {
-    bitmap.push(0U)
   }
   let mut fragmented_sample : ReliableFragmentedSample? = None
   for fragment in self.fragments {
@@ -271,33 +263,68 @@ pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(
       break
     }
   }
-  for offset in 0..<num_bits.reinterpret_as_int() {
-    let received = match fragmented_sample {
-      Some(sample) if offset < sample.received.length() => sample.received[offset]
-      _ => false
+  let result : Array[@rtps.NackFragSubmessage] = []
+  let mut bitmap_base = 1U
+  while bitmap_base <= heartbeat.last_fragment_number() {
+    let remaining =
+      (heartbeat.last_fragment_number() - bitmap_base + 1U).reinterpret_as_int()
+    let num_bits = if remaining > 256 { 256 } else { remaining }
+    let word_count = (num_bits + 31) / 32
+    let bitmap : Array[UInt] = []
+    for _ in 0..<word_count {
+      bitmap.push(0U)
     }
-    if received {
-      continue
+    for offset in 0..<num_bits {
+      let fragment_index = bitmap_base.reinterpret_as_int() - 1 + offset
+      let received = match fragmented_sample {
+        Some(sample) if fragment_index < sample.received.length() =>
+          sample.received[fragment_index]
+        _ => false
+      }
+      if received {
+        continue
+      }
+      let word_index = offset / 32
+      let bit_index = offset % 32
+      bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
     }
-    let word_index = offset / 32
-    let bit_index = offset % 32
-    bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
+    let nackfrag = match
+      @rtps.NackFragSubmessage::new(
+        self.reader_id,
+        self.writer_id,
+        heartbeat.writer_sequence_number(),
+        bitmap_base,
+        num_bits.reinterpret_as_uint(),
+        bitmap,
+        self.next_nackfrag_count,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    result.push(nackfrag)
+    self.next_nackfrag_count += 1U
+    bitmap_base += num_bits.reinterpret_as_uint()
   }
-  let result = match
-    @rtps.NackFragSubmessage::new(
-      self.reader_id,
-      self.writer_id,
-      heartbeat.writer_sequence_number(),
-      1U,
-      num_bits,
-      bitmap,
-      self.next_nackfrag_count,
-    ) {
+  Ok(result)
+}
+
+///|
+/// Build one NACK_FRAG for the first window of a HEARTBEAT_FRAG range.
+pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(
+  self : ReliableDataReader,
+  heartbeat : @rtps.HeartbeatFragSubmessage,
+) -> Result[@rtps.NackFragSubmessage, String] {
+  let nackfrags = match self.nackfrags_for_heartbeat_frag(heartbeat) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.next_nackfrag_count += 1U
-  Ok(result)
+  if nackfrags.length() == 0 {
+    return Err("the HEARTBEAT_FRAG fragment range is empty")
+  }
+  if nackfrags.length() > 1 {
+    self.next_nackfrag_count -= (nackfrags.length() - 1).reinterpret_as_uint()
+  }
+  Ok(nackfrags[0])
 }
 
 ///|
@@ -393,6 +420,9 @@ pub fn ReliableDataReader::acknack_for_heartbeat(
   }
   if acknacks.length() == 0 {
     return Err("the HEARTBEAT sequence range is empty")
+  }
+  if acknacks.length() > 1 {
+    self.next_acknack_count -= (acknacks.length() - 1).reinterpret_as_uint()
   }
   Ok(acknacks[0])
 }

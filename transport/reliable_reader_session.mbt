@@ -297,16 +297,23 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
   self : ReliableDataReaderSession,
   heartbeat : @rtps.HeartbeatFragSubmessage,
 ) -> Result[Unit, String] {
-  let nackfrag = match self.state.nackfrag_for_heartbeat_frag(heartbeat) {
+  let nackfrags = match self.state.nackfrags_for_heartbeat_frag(heartbeat) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.socket.send_nack_frag(
-    nackfrag,
-    self.guid_prefix,
-    self.vendor_id,
-    self.destination,
-  )
+  for nackfrag in nackfrags {
+    match
+      self.socket.send_nack_frag(
+        nackfrag,
+        self.guid_prefix,
+        self.vendor_id,
+        self.destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
 }
 
 ///|

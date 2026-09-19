@@ -252,6 +252,67 @@ async test "reliable reader session sends ACKNACK windows for a large HEARTBEAT"
 }
 
 ///|
+async test "reliable reader session sends NACK_FRAG windows for a large sample" {
+  let prefix = @rtps.GuidPrefix::from_array(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = @rtps.Locator::udp_v4(
+    b"\x7F\x00\x00\x01",
+    sender.local_addr().port().reinterpret_as_uint(),
+  ).unwrap()
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, writer_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_unicast_locator(locator)
+  let reader = ReliableDataReaderSession::new_for_publication(
+    receiver,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    publication,
+  ).unwrap()
+  sender
+  .send_heartbeat_frag(
+    @rtps.HeartbeatFragSubmessage::new(
+      reader_id,
+      writer_id,
+      10L,
+      300U,
+      1U,
+    ).unwrap(),
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    receiver.local_addr(),
+  )
+  .unwrap()
+  sender
+  .send_heartbeat(
+    @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U).unwrap(),
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    receiver.local_addr(),
+  )
+  .unwrap()
+  let (_, _) = reader.receive_heartbeat().unwrap()
+  let (first, _) = sender.receive_nack_frag().unwrap()
+  let (second, _) = sender.receive_nack_frag().unwrap()
+  let (_, _) = sender.receive_acknack().unwrap()
+  assert_eq(first.bitmap_base(), 1U)
+  assert_eq(first.num_bits(), 256U)
+  assert_eq(second.bitmap_base(), 257U)
+  assert_eq(second.num_bits(), 44U)
+  reader.close()
+  sender.close()
+}
+
+///|
 async test "reliable reader session reassembles DATA_FRAG over UDP" {
   let prefix = @rtps.GuidPrefix::from_array(
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],

@@ -166,6 +166,7 @@ pub fn ReliableDataReader::accept_gap(Self, @rtps.GapSubmessage) -> Result[Unit,
 pub fn ReliableDataReader::acknack_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[@rtps.AckNackSubmessage, String]
 pub fn ReliableDataReader::acknacks_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[Array[@rtps.AckNackSubmessage], String]
 pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(Self, @rtps.HeartbeatFragSubmessage) -> Result[@rtps.NackFragSubmessage, String]
+pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(Self, @rtps.HeartbeatFragSubmessage) -> Result[Array[@rtps.NackFragSubmessage], String]
 pub fn ReliableDataReader::new(@rtps.EntityId, @rtps.EntityId) -> Self
 pub fn ReliableDataReader::next_acknack_count(Self) -> UInt
 pub fn ReliableDataReader::next_nackfrag_count(Self) -> UInt

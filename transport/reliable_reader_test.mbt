@@ -191,3 +191,26 @@ test "reliable reader requests missing DATA_FRAGs" {
   assert_eq(nackfrag.count(), 1U)
   assert_eq(reader.next_nackfrag_count(), 2U)
 }
+
+///|
+test "reliable reader splits a large HEARTBEAT_FRAG into NACK_FRAG windows" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let heartbeat = @rtps.HeartbeatFragSubmessage::new(
+    reader_id,
+    writer_id,
+    10L,
+    300U,
+    1U,
+  ).unwrap()
+  let nackfrags = reader.nackfrags_for_heartbeat_frag(heartbeat).unwrap()
+  assert_eq(nackfrags.length(), 2)
+  assert_eq(nackfrags[0].bitmap_base(), 1U)
+  assert_eq(nackfrags[0].num_bits(), 256U)
+  assert_eq(nackfrags[0].count(), 1U)
+  assert_eq(nackfrags[1].bitmap_base(), 257U)
+  assert_eq(nackfrags[1].num_bits(), 44U)
+  assert_eq(nackfrags[1].count(), 2U)
+  assert_eq(reader.next_nackfrag_count(), 3U)
+}
