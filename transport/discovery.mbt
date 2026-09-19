@@ -504,9 +504,10 @@ async fn DiscoverySession::decode_message(
           Err(_) =>
             if event is None {
               match @rtps.SpdpParticipantData::from_data_submessage(data) {
-                Ok(participant) =>
+                Ok(participant) if participant.domain_id() == self.participant.domain_id() =>
                   event = Some(DiscoveryEvent::Participant(participant))
                 Err(_) => ()
+                _ => ()
               }
             }
         }

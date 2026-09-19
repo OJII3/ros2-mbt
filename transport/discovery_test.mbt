@@ -83,6 +83,80 @@ async test "discovery session repeats SPDP announcements" {
 }
 
 ///|
+async test "discovery session ignores SPDP from another domain" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let participant_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = participant_id
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    0U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let other_domain = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    1U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let session = DiscoverySession::new(
+    receiver,
+    local_participant,
+    reader_id,
+    writer_id,
+    @socket.Addr::new(0x7F000001U, 0),
+    1L,
+  ).unwrap()
+  sender
+    .send_spdp(
+      other_domain,
+      reader_id,
+      writer_id,
+      1L,
+      session.socket.local_addr(),
+    )
+    .unwrap()
+  sender
+    .send_spdp(
+      local_participant,
+      reader_id,
+      writer_id,
+      2L,
+      session.socket.local_addr(),
+    )
+    .unwrap()
+  let (event, _) = session.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::Participant(participant) =>
+      assert_eq(participant.domain_id(), 0U)
+    DiscoveryEvent::Publication(_) => fail("expected a participant event")
+    DiscoveryEvent::Subscription(_) => fail("expected a participant event")
+  }
+  sender.close()
+  session.close()
+}
+
+///|
 async test "discovery session receives from an additional metatraffic socket" {
   let prefix = match
     @rtps.GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]) {
