@@ -197,6 +197,39 @@ pub async fn RosParticipant::register_topic_endpoint(
 }
 
 ///|
+/// Register the reliable ROS graph-discovery publication and subscription.
+pub async fn RosParticipant::register_ros_discovery_info(
+  self : RosParticipant,
+  publication_id : @rtps.EntityId,
+  subscription_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  let prefix = self.participant.participant_guid().prefix()
+  let publication = match
+    @ros.ros_discovery_info_to_sedp(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, publication_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  publication.add_unicast_locator(self.user_locator)
+  match self.register_endpoint(publication) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let subscription = match
+    @ros.ros_discovery_info_to_sedp(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, subscription_id),
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  subscription.add_unicast_locator(self.user_locator)
+  self.register_endpoint(subscription)
+}
+
+///|
 /// Send one SPDP participant announcement.
 pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,

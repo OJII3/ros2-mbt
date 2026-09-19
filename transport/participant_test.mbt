@@ -120,6 +120,27 @@ async test "ROS participant registers and retains local SEDP endpoints" {
   assert_eq(info.node_entities_info_seq().length(), 1)
   assert_eq(info.node_entities_info_seq()[0].writer_gid_seq().length(), 1)
   assert_eq(info.node_entities_info_seq()[0].reader_gid_seq().length(), 0)
+  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  match
+    node.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_eq(node.local_endpoints().length(), 3)
+  let graph_qos = match node.local_endpoints()[1].qos() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(graph_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
   assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
   node.close()
 }
