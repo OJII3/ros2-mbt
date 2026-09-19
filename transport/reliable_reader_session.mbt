@@ -139,6 +139,17 @@ pub async fn ReliableDataReaderSession::receive_data_with_identity(
           }
           ignore(self.state.accept_gap(gap))
         }
+        @rtps.SubmessageId::HeartbeatFrag => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let heartbeat = match
+            @rtps.HeartbeatFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          ignore(self.acknowledge_heartbeat_frag(heartbeat))
+        }
         _ => ()
       }
     }
@@ -236,6 +247,20 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
           }
           ignore(self.state.accept_gap(gap))
         }
+        @rtps.SubmessageId::HeartbeatFrag => {
+          if message.header().guid_prefix() != self.writer_prefix {
+            continue
+          }
+          let heartbeat = match
+            @rtps.HeartbeatFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          match self.acknowledge_heartbeat_frag(heartbeat) {
+            Ok(_) => ()
+            Err(_) => continue
+          }
+        }
         _ => ()
       }
     }
@@ -254,6 +279,23 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat(
   }
   self.socket.send_acknack(
     acknack,
+    self.guid_prefix,
+    self.vendor_id,
+    self.destination,
+  )
+}
+
+///|
+async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
+  self : ReliableDataReaderSession,
+  heartbeat : @rtps.HeartbeatFragSubmessage,
+) -> Result[Unit, String] {
+  let nackfrag = match self.state.nackfrag_for_heartbeat_frag(heartbeat) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.socket.send_nack_frag(
+    nackfrag,
     self.guid_prefix,
     self.vendor_id,
     self.destination,

@@ -146,6 +146,18 @@ pub async fn Udp::send_heartbeat(
 }
 
 ///|
+/// Serialize and send one RTPS HEARTBEAT_FRAG submessage.
+pub async fn Udp::send_heartbeat_frag(
+  self : Udp,
+  heartbeat : @rtps.HeartbeatFragSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(heartbeat.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
 /// Serialize and send one RTPS ACKNACK submessage.
 pub async fn Udp::send_acknack(
   self : Udp,
@@ -155,6 +167,18 @@ pub async fn Udp::send_acknack(
   destination : @socket.Addr,
 ) -> Result[Unit, String] {
   self.send_message(acknack.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
+/// Serialize and send one RTPS NACK_FRAG submessage.
+pub async fn Udp::send_nack_frag(
+  self : Udp,
+  nackfrag : @rtps.NackFragSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(nackfrag.to_message(guid_prefix, vendor_id), destination)
 }
 
 ///|
@@ -297,6 +321,28 @@ pub async fn Udp::receive_acknack(
     return Ok((acknack, source))
   }
   Err("RTPS datagram does not contain an ACKNACK submessage")
+}
+
+///|
+/// Receive and parse the first NACK_FRAG submessage in a UDP datagram.
+pub async fn Udp::receive_nack_frag(
+  self : Udp,
+) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::NackFrag {
+      continue
+    }
+    let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((nackfrag, source))
+  }
+  Err("RTPS datagram does not contain a NACK_FRAG submessage")
 }
 
 ///|

@@ -224,7 +224,42 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
     reader_id,
     publication,
   ).unwrap()
-  let fragments = [
+  let first_fragment = @rtps.DataFragSubmessage::new(
+      reader_id,
+      writer_id,
+      4L,
+      1U,
+      (1 : Int).to_uint16(),
+      (4 : Int).to_uint16(),
+      10U,
+      b"abcd",
+    ).unwrap()
+  match
+    sender.send_message(
+      first_fragment.to_message(prefix, @rtps.VendorId::new(1, 15)),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let heartbeat = @rtps.HeartbeatFragSubmessage::new(
+    reader_id,
+    writer_id,
+    4L,
+    3U,
+    1U,
+  ).unwrap()
+  match
+    sender.send_heartbeat_frag(
+      heartbeat,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let remaining_fragments = [
     @rtps.DataFragSubmessage::new(
       reader_id,
       writer_id,
@@ -239,16 +274,6 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
       reader_id,
       writer_id,
       4L,
-      1U,
-      (1 : Int).to_uint16(),
-      (4 : Int).to_uint16(),
-      10U,
-      b"abcd",
-    ).unwrap(),
-    @rtps.DataFragSubmessage::new(
-      reader_id,
-      writer_id,
-      4L,
       2U,
       (1 : Int).to_uint16(),
       (4 : Int).to_uint16(),
@@ -256,7 +281,7 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
       b"efgh",
     ).unwrap(),
   ]
-  for fragment in fragments {
+  for fragment in remaining_fragments {
     match
       sender.send_message(
         fragment.to_message(prefix, @rtps.VendorId::new(1, 15)),
@@ -270,6 +295,11 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
   assert_eq(data.writer_sequence_number(), 4L)
   assert_eq(data.serialized_payload(), b"abcdefghij")
   assert_eq(identity.sequence_number(), 4L)
+  let (nackfrag, _) = sender.receive_nack_frag().unwrap()
+  assert_eq(nackfrag.writer_sequence_number(), 4L)
+  assert_eq(nackfrag.bitmap_base(), 1U)
+  assert_eq(nackfrag.num_bits(), 3U)
+  assert_eq(nackfrag.bitmap(), [0x60000000U])
   sender.close()
   reader.close()
 }

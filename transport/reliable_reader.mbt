@@ -114,6 +114,7 @@ pub struct ReliableDataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   mut next_acknack_count : UInt
+  mut next_nackfrag_count : UInt
   samples : Array[@rtps.DataSubmessage]
   gaps : Array[@rtps.GapSubmessage]
   fragments : Array[ReliableFragmentedSample]
@@ -129,6 +130,7 @@ pub fn ReliableDataReader::new(
     reader_id,
     writer_id,
     next_acknack_count: 1U,
+    next_nackfrag_count: 1U,
     samples: [],
     gaps: [],
     fragments: [],
@@ -140,6 +142,13 @@ pub fn ReliableDataReader::next_acknack_count(
   self : ReliableDataReader,
 ) -> UInt {
   self.next_acknack_count
+}
+
+///|
+pub fn ReliableDataReader::next_nackfrag_count(
+  self : ReliableDataReader,
+) -> UInt {
+  self.next_nackfrag_count
 }
 
 ///|
@@ -231,6 +240,64 @@ pub fn ReliableDataReader::accept_data_frag(
   let data = self.fragments[index].to_data()
   self.samples.push(data)
   Ok(Some(data))
+}
+
+///|
+/// Build a NACK_FRAG for fragments missing from a HEARTBEAT_FRAG range.
+pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(
+  self : ReliableDataReader,
+  heartbeat : @rtps.HeartbeatFragSubmessage,
+) -> Result[@rtps.NackFragSubmessage, String] {
+  if heartbeat.reader_id() != self.reader_id &&
+    heartbeat.reader_id() != @rtps.EntityId::unknown() {
+    return Err("the HEARTBEAT_FRAG targets a different RTPS reader")
+  }
+  if heartbeat.writer_id() != self.writer_id {
+    return Err("the HEARTBEAT_FRAG comes from a different RTPS writer")
+  }
+  let num_bits = heartbeat.last_fragment_number()
+  if num_bits == 0U || num_bits > 256U {
+    return Err("the HEARTBEAT_FRAG range is outside NACK_FRAG bitmap limits")
+  }
+  let word_count = (num_bits.reinterpret_as_int() + 31) / 32
+  let bitmap : Array[UInt] = []
+  for _ in 0..<word_count {
+    bitmap.push(0U)
+  }
+  let mut fragmented_sample : ReliableFragmentedSample? = None
+  for fragment in self.fragments {
+    if fragment.sequence_number == heartbeat.writer_sequence_number() {
+      fragmented_sample = Some(fragment)
+      break
+    }
+  }
+  for offset in 0..<num_bits.reinterpret_as_int() {
+    let received = match fragmented_sample {
+      Some(sample) if offset < sample.received.length() => sample.received[offset]
+      _ => false
+    }
+    if received {
+      continue
+    }
+    let word_index = offset / 32
+    let bit_index = offset % 32
+    bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
+  }
+  let result = match
+    @rtps.NackFragSubmessage::new(
+      self.reader_id,
+      self.writer_id,
+      heartbeat.writer_sequence_number(),
+      1U,
+      num_bits,
+      bitmap,
+      self.next_nackfrag_count,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.next_nackfrag_count += 1U
+  Ok(result)
 }
 
 ///|
