@@ -28,6 +28,40 @@ pub(all) enum DdsTopicKind {
   ServiceResponse
 } derive(Eq, @debug.Debug)
 
+pub struct Gid {
+  data : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Gid::data(Self) -> Bytes
+pub fn Gid::from_guid(@rtps.Guid) -> Self
+pub fn Gid::new(Bytes) -> Result[Self, String]
+
+pub struct NodeEntitiesInfo {
+  node_namespace : String
+  node_name : String
+  reader_gid_seq : Array[Gid]
+  writer_gid_seq : Array[Gid]
+} derive(Eq, @debug.Debug)
+pub fn NodeEntitiesInfo::add_reader_gid(Self, Gid) -> Unit
+pub fn NodeEntitiesInfo::add_writer_gid(Self, Gid) -> Unit
+pub fn NodeEntitiesInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn NodeEntitiesInfo::new(String, String) -> Result[Self, String]
+pub fn NodeEntitiesInfo::node_name(Self) -> String
+pub fn NodeEntitiesInfo::node_namespace(Self) -> String
+pub fn NodeEntitiesInfo::reader_gid_seq(Self) -> Array[Gid]
+pub fn NodeEntitiesInfo::to_cdr_bytes(Self) -> Bytes
+pub fn NodeEntitiesInfo::writer_gid_seq(Self) -> Array[Gid]
+
+pub struct ParticipantEntitiesInfo {
+  gid : Gid
+  node_entities_info_seq : Array[NodeEntitiesInfo]
+} derive(Eq, @debug.Debug)
+pub fn ParticipantEntitiesInfo::add_node(Self, NodeEntitiesInfo) -> Unit
+pub fn ParticipantEntitiesInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn ParticipantEntitiesInfo::gid(Self) -> Gid
+pub fn ParticipantEntitiesInfo::new(Gid) -> Self
+pub fn ParticipantEntitiesInfo::node_entities_info_seq(Self) -> Array[NodeEntitiesInfo]
+pub fn ParticipantEntitiesInfo::to_cdr_bytes(Self) -> Bytes
+
 pub struct RosTopic {
   ros_name : String
   dds_name : String
