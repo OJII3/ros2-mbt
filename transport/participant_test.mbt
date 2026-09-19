@@ -55,9 +55,27 @@ async test "ROS participant rejects an invalid DDSI domain before binding" {
       0x7F000001U,
       60,
       1L,
-    )
-    is Err(_),
   )
+  is Err(_),
+  )
+}
+
+///|
+async test "ROS participant can send SPDP with DDSI multicast discovery" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let participant = RosParticipant::new_ddsi(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0U,
+    0U,
+    0x7F000001U,
+    60,
+    1L,
+  ).unwrap()
+  participant.announce_spdp_once().unwrap()
+  participant.close()
 }
 
 ///|

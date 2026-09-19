@@ -94,15 +94,17 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let discovery_socket = match Udp::ddsi_spdp_multicast(domain_id) {
+  let discovery_receive_socket = match Udp::ddsi_spdp_multicast(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let discovery_send_socket = Udp::bind(@socket.Addr::new(0, 0))
   let metatraffic_socket = match
     Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
-      discovery_socket.close()
+      discovery_receive_socket.close()
+      discovery_send_socket.close()
       return Err(message)
     }
   }
@@ -110,22 +112,24 @@ pub async fn RosParticipant::new_ddsi(
     Udp::ddsi_user_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
-      discovery_socket.close()
+      discovery_receive_socket.close()
+      discovery_send_socket.close()
       metatraffic_socket.close()
       return Err(message)
     }
   }
   let session = match
     DiscoverySession::new_default_with_receive_sockets(
-      discovery_socket,
-      [metatraffic_socket],
+      discovery_send_socket,
+      [discovery_receive_socket, metatraffic_socket],
       participant,
       domain_id,
       first_sequence_number,
     ) {
     Ok(value) => value
     Err(message) => {
-      discovery_socket.close()
+      discovery_receive_socket.close()
+      discovery_send_socket.close()
       metatraffic_socket.close()
       user_socket.close()
       return Err(message)
