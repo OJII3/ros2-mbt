@@ -428,6 +428,7 @@ fn discovery_acknack_bitmap_contains(
 async fn DiscoverySession::retransmit_sedp_acknack(
   self : DiscoverySession,
   socket_index : Int,
+  reader_prefix : @rtps.GuidPrefix,
   acknack : @rtps.AckNackSubmessage,
   source : @socket.Addr,
 ) -> Result[Unit, String] {
@@ -454,10 +455,11 @@ async fn DiscoverySession::retransmit_sedp_acknack(
         continue
       }
       match
-        socket.send_data(
-          sample,
-          self.participant.participant_guid().prefix(),
-          self.participant.vendor_id(),
+        socket.send_message(
+          sample.to_message(
+            self.participant.participant_guid().prefix(),
+            self.participant.vendor_id(),
+          ).with_destination_guid_prefix(reader_prefix),
           source,
         ) {
         Ok(_) => ()
@@ -556,7 +558,13 @@ async fn DiscoverySession::decode_message(
           Ok(value) => value
           Err(_) => continue
         }
-        match self.retransmit_sedp_acknack(socket_index, acknack, source) {
+        match
+          self.retransmit_sedp_acknack(
+            socket_index,
+            message.header().guid_prefix(),
+            acknack,
+            source,
+          ) {
           Ok(_) => ()
           Err(message) => return Err(message)
         }

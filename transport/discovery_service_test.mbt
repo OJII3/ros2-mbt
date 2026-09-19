@@ -509,7 +509,14 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
     DiscoveryEvent::Publication(_) => fail("expected the follow-up SPDP event")
     DiscoveryEvent::Subscription(_) => fail("expected the follow-up SPDP event")
   }
-  let (retransmitted, _) = receiver.receive_data().unwrap()
+  let (retransmitted_message, _) = receiver.receive_message().unwrap()
+  assert_eq(
+    retransmitted_message.destination_guid_prefix(),
+    Ok(Some(remote_prefix)),
+  )
+  let retransmitted = @rtps.DataSubmessage::from_submessage(
+    retransmitted_message.submessages()[1],
+  ).unwrap()
   assert_eq(retransmitted.writer_sequence_number(), 1L)
   let decoded = @rtps.SedpEndpointData::from_data_submessage(
     @rtps.SedpEndpointKind::Publication,
