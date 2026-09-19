@@ -10,6 +10,7 @@ pub struct DataWriter {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   destinations : Array[@socket.Addr]
+  reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
 }
 
@@ -34,6 +35,7 @@ pub fn DataWriter::new(
     reader_id,
     writer_id,
     destinations: [destination],
+    reader_prefix: None,
     next_sequence_number: first_sequence_number,
   })
 }
@@ -76,7 +78,23 @@ pub fn DataWriter::new_for_subscription(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..writer, destinations, })
+  Ok({
+    ..writer,
+    destinations,
+    reader_prefix: Some(subscription.endpoint_guid().prefix()),
+  })
+}
+
+///|
+/// Add the remote participant destination when this writer targets a discovered endpoint.
+fn DataWriter::message_for_reader(
+  self : DataWriter,
+  message : @rtps.Message,
+) -> @rtps.Message {
+  match self.reader_prefix {
+    Some(prefix) => message.with_destination_guid_prefix(prefix)
+    None => message
+  }
 }
 
 ///|
@@ -101,10 +119,8 @@ pub async fn DataWriter::write(
   let result = if reliable_writer_data_fits_datagram(data) {
     for destination in self.destinations {
       match
-        self.socket.send_data(
-          data,
-          self.guid_prefix,
-          self.vendor_id,
+        self.socket.send_message(
+          self.message_for_reader(data.to_message(self.guid_prefix, self.vendor_id)),
           destination,
         ) {
         Ok(_) => ()
@@ -120,10 +136,10 @@ pub async fn DataWriter::write(
     for fragment in fragments {
       for destination in self.destinations {
         match
-          self.socket.send_data_frag(
-            fragment,
-            self.guid_prefix,
-            self.vendor_id,
+          self.socket.send_message(
+            self.message_for_reader(
+              fragment.to_message(self.guid_prefix, self.vendor_id),
+            ),
             destination,
           ) {
           Ok(_) => ()

@@ -68,6 +68,7 @@ pub struct DataWriter {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   destinations : Array[@socket.Addr]
+  reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
 }
 pub fn DataWriter::close(Self) -> Unit

@@ -99,7 +99,11 @@ async test "best-effort data writer uses all supported endpoint locators" {
     1L,
   ).unwrap()
   writer.write(b"payload").unwrap()
-  let (data, _) = receiver.receive_data().unwrap()
+  let (message, _) = receiver.receive_message().unwrap()
+  assert_eq(message.destination_guid_prefix(), Ok(Some(prefix)))
+  let data = @rtps.DataSubmessage::from_submessage(
+    message.submessages()[1],
+  ).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
   let (second_data, _) = second_receiver.receive_data().unwrap()
   assert_eq(second_data.serialized_payload(), b"payload")
