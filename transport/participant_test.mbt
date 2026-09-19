@@ -185,12 +185,12 @@ async test "ROS participant registers service client endpoints" {
     Err(message) => fail(message)
   }
   assert_eq(node.local_endpoints().length(), 2)
-  assert_eq(node.local_endpoints()[0].topic_name(), "rq/add_two_ints")
+  assert_eq(node.local_endpoints()[0].topic_name(), "rq/add_two_intsRequest")
   assert_eq(
     node.local_endpoints()[0].kind(),
     @rtps.SedpEndpointKind::Publication,
   )
-  assert_eq(node.local_endpoints()[1].topic_name(), "rr/add_two_ints")
+  assert_eq(node.local_endpoints()[1].topic_name(), "rr/add_two_intsReply")
   assert_eq(
     node.local_endpoints()[1].kind(),
     @rtps.SedpEndpointKind::Subscription,

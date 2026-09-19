@@ -2,8 +2,14 @@
 test "ROS names map to DDS topic prefixes" {
   assert_eq(ros_topic_to_dds("/chatter"), Ok("rt/chatter"))
   assert_eq(ros_topic_to_dds("status"), Ok("rt/status"))
-  assert_eq(ros_service_request_to_dds("/add_two_ints"), Ok("rq/add_two_ints"))
-  assert_eq(ros_service_response_to_dds("/add_two_ints"), Ok("rr/add_two_ints"))
+  assert_eq(
+    ros_service_request_to_dds("/add_two_ints"),
+    Ok("rq/add_two_intsRequest"),
+  )
+  assert_eq(
+    ros_service_response_to_dds("/add_two_ints"),
+    Ok("rr/add_two_intsReply"),
+  )
 }
 
 ///|

@@ -46,13 +46,17 @@ pub fn ros_topic_to_dds(name : String) -> Result[String, String] {
 ///|
 /// Convert a ROS service name to its DDS request topic name.
 pub fn ros_service_request_to_dds(name : String) -> Result[String, String] {
-  ros_name_to_dds(name, DdsTopicKind::ServiceRequest)
+  ros_name_to_dds(name, DdsTopicKind::ServiceRequest).map(fn(value) {
+    value + "Request"
+  })
 }
 
 ///|
 /// Convert a ROS service name to its DDS response topic name.
 pub fn ros_service_response_to_dds(name : String) -> Result[String, String] {
-  ros_name_to_dds(name, DdsTopicKind::ServiceResponse)
+  ros_name_to_dds(name, DdsTopicKind::ServiceResponse).map(fn(value) {
+    value + "Reply"
+  })
 }
 
 ///|

@@ -6,8 +6,8 @@ test "ROS service descriptor maps request and response endpoints" {
     Err(message) => fail(message)
   }
   assert_eq(service.ros_name(), "/add_two_ints")
-  assert_eq(service.dds_request_name(), "rq/add_two_ints")
-  assert_eq(service.dds_response_name(), "rr/add_two_ints")
+  assert_eq(service.dds_request_name(), "rq/add_two_intsRequest")
+  assert_eq(service.dds_response_name(), "rr/add_two_intsReply")
   assert_eq(
     service.dds_request_type_name(),
     "example_interfaces::srv::dds_::AddTwoInts_Request_",
@@ -33,7 +33,7 @@ test "ROS service descriptor maps request and response endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(request.topic_name(), "rq/add_two_ints")
+  assert_eq(request.topic_name(), "rq/add_two_intsRequest")
   assert_eq(
     request.type_name(),
     "example_interfaces::srv::dds_::AddTwoInts_Request_",
@@ -52,7 +52,7 @@ test "ROS service descriptor maps request and response endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(response.topic_name(), "rr/add_two_ints")
+  assert_eq(response.topic_name(), "rr/add_two_intsReply")
   assert_eq(
     response.type_name(),
     "example_interfaces::srv::dds_::AddTwoInts_Response_",
