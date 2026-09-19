@@ -8,6 +8,20 @@ async test "UDP binds an ephemeral loopback port" {
 }
 
 ///|
+async test "UDP exposes its bound address as an RTPS locator" {
+  let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = match socket.local_unicast_locator() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(locator.kind(), @rtps.LOCATOR_KIND_UDP_V4)
+  assert_eq(locator.port(), socket.local_addr().port().reinterpret_as_uint())
+  assert_eq(locator.address()[12], 0x7F)
+  assert_eq(locator.address()[15], 0x01)
+  socket.close()
+}
+
+///|
 async test "UDP DDSI constructors reject invalid domains before binding" {
   assert_true(Udp::ddsi_spdp_unicast(300, 0, 0x7F000001U) is Err(_))
   assert_true(Udp::ddsi_user_unicast(300, 0, 0x7F000001U) is Err(_))

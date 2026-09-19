@@ -210,6 +210,7 @@ pub async fn Udp::ddsi_user_multicast(UInt) -> Result[Self, String]
 pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
+pub fn Udp::local_unicast_locator(Self) -> Result[@rtps.Locator, String]
 pub async fn Udp::multicast(@socket.Addr) -> Self
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
 pub async fn Udp::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]

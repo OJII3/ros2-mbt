@@ -81,6 +81,13 @@ pub fn Udp::local_addr(self : Udp) -> @socket.Addr {
 }
 
 ///|
+/// Return the bound IPv4 address as an RTPS UDP locator.
+pub fn Udp::local_unicast_locator(self : Udp) -> Result[@rtps.Locator, String] {
+  let address = self.local_addr()
+  ddsi_udp_locator(address.ip(), address.port())
+}
+
+///|
 /// Join a multicast group on a regular UDP server.
 pub fn Udp::join_multicast_group(
   self : Udp,
