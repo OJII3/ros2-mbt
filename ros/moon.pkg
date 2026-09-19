@@ -1,3 +1,7 @@
+import {
+  "kainaproject/ros2_mbt/cdr",
+}
+
 options(
   "is-main": false,
 )
