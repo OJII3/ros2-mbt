@@ -259,7 +259,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  match service.announce_sedp_to_all(endpoint) {
+  match service.announce_sedp_n(endpoint, 1, 2) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -268,10 +268,16 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let (second, _) = match
+    remote_receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   assert_eq(decoded.topic_name(), "rt/chatter")
+  assert_eq(second.topic_name(), "rt/chatter")
   assert_eq(
     service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
-    2L,
+    3L,
   )
   service.close()
   remote_receiver.close()

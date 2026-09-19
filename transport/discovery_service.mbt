@@ -77,6 +77,52 @@ pub async fn DiscoveryService::announce_sedp_to_all(
 }
 
 ///|
+/// Send a local SEDP endpoint announcement a finite number of times.
+pub async fn DiscoveryService::announce_sedp_n(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  interval_ms : Int,
+  count : Int,
+) -> Result[Unit, String] {
+  if interval_ms <= 0 {
+    return Err("the SEDP announcement interval must be positive")
+  }
+  if count < 0 {
+    return Err("the SEDP announcement count must not be negative")
+  }
+  for index in 0..<count {
+    if index > 0 {
+      @async.sleep(interval_ms)
+    }
+    match self.announce_sedp_to_all(endpoint) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Announce a local SEDP endpoint until the surrounding async task is stopped.
+pub async fn DiscoveryService::announce_sedp_forever(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  interval_ms : Int,
+) -> Result[Unit, String] {
+  if interval_ms <= 0 {
+    return Err("the SEDP announcement interval must be positive")
+  }
+  while true {
+    match self.announce_sedp_to_all(endpoint) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    @async.sleep(interval_ms)
+  }
+  Ok(())
+}
+
+///|
 /// Return the next sequence number for a local SEDP endpoint kind.
 pub fn DiscoveryService::next_sedp_sequence_number(
   self : DiscoveryService,

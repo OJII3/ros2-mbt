@@ -104,6 +104,8 @@ pub struct DiscoveryService {
   mut next_subscription_sequence_number : Int64
 }
 pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_forever(Self, @rtps.SedpEndpointData, Int) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_n(Self, @rtps.SedpEndpointData, Int, Int) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_once(Self, @rtps.SedpEndpointData, @rtps.SpdpParticipantData) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_to_all(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
