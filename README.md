@@ -55,6 +55,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、明示的な型参照に対応、`rosidl`）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
+- `std_msgs/msg/String` を外部ROS 2 subscriptionへ送る実行可能な `examples/talker`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -68,7 +69,14 @@ moon check
 moon test --target native
 ```
 
-Cyclone DDS/Fast DDSとの実通信試験は未実装です。
+外部ROS 2との最小通信を試す場合は、別の端末で購読者を起動してから talker を実行します。
+
+```sh
+ros2 topic echo /chatter std_msgs/msg/String
+direnv exec . moon run examples/talker
+```
+
+`examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、reliableな `std_msgs/msg/String` を5件送信します。ROS 2側のDDS実装と同一ホストまたは到達可能なネットワークで実行してください。外部ROS 2実装との実通信試験は、この環境では未実施です。
 
 ## Roadmap
 
