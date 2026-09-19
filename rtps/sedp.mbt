@@ -635,6 +635,24 @@ pub fn SedpEndpointData::to_data_submessage(
 }
 
 ///|
+/// Build a key-only SEDP DATA sample that removes this endpoint.
+pub fn SedpEndpointData::to_dispose_data_submessage(
+  self : SedpEndpointData,
+  reader_id : EntityId,
+  writer_id : EntityId,
+  writer_sequence_number : Int64,
+) -> DataSubmessage {
+  DataSubmessage::new(
+    reader_id,
+    writer_id,
+    writer_sequence_number,
+    b"",
+  )
+  .with_key(self.endpoint_guid.to_bytes())
+  .with_status_info(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)
+}
+
+///|
 /// Build an SEDP DATA submessage with protocol and vendor identity parameters.
 pub fn SedpEndpointData::to_data_submessage_with_vendor(
   self : SedpEndpointData,

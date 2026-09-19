@@ -105,6 +105,20 @@ async test "discovery session repeats SPDP announcements" {
     DiscoveryEvent::Subscription(_) => fail("expected an SPDP removal event")
     DiscoveryEvent::EndpointRemoved(_, _) => fail("expected an SPDP removal event")
   }
+  match session.dispose_once() {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (outgoing_removed, _) = receiver.receive_discovery().unwrap()
+  match outgoing_removed {
+    DiscoveryEvent::ParticipantRemoved(removed_guid) =>
+      assert_eq(removed_guid, participant_guid)
+    DiscoveryEvent::Participant(_) => fail("expected an outgoing SPDP removal")
+    DiscoveryEvent::Publication(_) => fail("expected an outgoing SPDP removal")
+    DiscoveryEvent::Subscription(_) => fail("expected an outgoing SPDP removal")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an outgoing SPDP removal")
+  }
   session.close()
   receiver.close()
 }

@@ -165,6 +165,32 @@ pub async fn DiscoverySession::announce_once(
   self.announce_once_on(self.socket)
 }
 
+///| Send a key-only SPDP dispose sample for the local participant.
+pub async fn DiscoverySession::dispose_once(
+  self : DiscoverySession,
+) -> Result[Unit, String] {
+  let sequence_number = self.next_sequence_number
+  let data = self.participant.to_dispose_data_submessage(
+    self.reader_id,
+    self.writer_id,
+    sequence_number,
+  )
+  match
+    self.socket.send_message(
+      data.to_message(
+        self.participant.participant_guid().prefix(),
+        self.participant.vendor_id(),
+      ),
+      self.destination,
+    ) {
+    Ok(_) => {
+      self.next_sequence_number = sequence_number + 1L
+      Ok(())
+    }
+    Err(message) => Err(message)
+  }
+}
+
 ///| Send one SPDP announcement through a caller-provided socket.
 async fn DiscoverySession::announce_once_on(
   self : DiscoverySession,

@@ -566,6 +566,7 @@ pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn SedpEndpointData::to_cdr_bytes_with_vendor(Self, VendorId) -> Result[Bytes, String]
 pub fn SedpEndpointData::to_data_submessage(Self, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
 pub fn SedpEndpointData::to_data_submessage_with_vendor(Self, VendorId, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
+pub fn SedpEndpointData::to_dispose_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
 pub fn SedpEndpointData::to_message(Self, VendorId, EntityId, EntityId, Int64) -> Result[Message, String]
 pub fn SedpEndpointData::to_parameter_list(Self) -> Result[ParameterList, String]
 pub fn SedpEndpointData::to_parameter_list_with_vendor(Self, VendorId) -> Result[ParameterList, String]
@@ -632,6 +633,7 @@ pub fn SpdpParticipantData::participant_guid(Self) -> Guid
 pub fn SpdpParticipantData::participant_guid_from_key_data(DataSubmessage) -> Result[Guid, String]
 pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes
 pub fn SpdpParticipantData::to_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
+pub fn SpdpParticipantData::to_dispose_data_submessage(Self, EntityId, EntityId, Int64) -> DataSubmessage
 pub fn SpdpParticipantData::to_message(Self, EntityId, EntityId, Int64) -> Message
 pub fn SpdpParticipantData::to_parameter_list(Self) -> ParameterList
 pub fn SpdpParticipantData::vendor_id(Self) -> VendorId

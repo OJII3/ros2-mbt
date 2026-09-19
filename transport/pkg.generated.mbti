@@ -149,6 +149,7 @@ pub async fn DiscoverySession::announce_forever(Self, Int) -> Result[Unit, Strin
 pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String]
 pub async fn DiscoverySession::announce_once(Self) -> Result[Unit, String]
 pub fn DiscoverySession::close(Self) -> Unit
+pub async fn DiscoverySession::dispose_once(Self) -> Result[Unit, String]
 pub fn DiscoverySession::new(Udp, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
 pub fn DiscoverySession::new_default(Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn DiscoverySession::new_default_with_receive_sockets(Udp, Array[Udp], @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]

@@ -477,6 +477,24 @@ pub fn SpdpParticipantData::to_data_submessage(
 }
 
 ///|
+/// Build a key-only SPDP DATA sample that removes this participant.
+pub fn SpdpParticipantData::to_dispose_data_submessage(
+  self : SpdpParticipantData,
+  reader_id : EntityId,
+  writer_id : EntityId,
+  writer_sequence_number : Int64,
+) -> DataSubmessage {
+  DataSubmessage::new(
+    reader_id,
+    writer_id,
+    writer_sequence_number,
+    b"",
+  )
+  .with_key(self.participant_guid.to_bytes())
+  .with_status_info(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)
+}
+
+///|
 /// Build an RTPS message containing one SPDP participant announcement.
 pub fn SpdpParticipantData::to_message(
   self : SpdpParticipantData,

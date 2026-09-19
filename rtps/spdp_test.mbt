@@ -115,3 +115,28 @@ test "SPDP extracts a participant GUID from key-only data" {
     guid,
   )
 }
+
+///|
+test "SPDP builds a participant dispose DATA sample" {
+  let guid = spdp_test_guid().unwrap()
+  let participant = SpdpParticipantData::new(
+    guid,
+    VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
+  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
+  let data = participant.to_dispose_data_submessage(reader_id, writer_id, 3L)
+  assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
+  assert_eq(
+    data.status_info(),
+    Ok(Some(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)),
+  )
+  assert_eq(
+    SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
+    guid,
+  )
+}

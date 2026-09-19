@@ -165,6 +165,29 @@ test "SEDP extracts an endpoint GUID from key-only data" {
 }
 
 ///|
+test "SEDP builds an endpoint dispose DATA sample" {
+  let endpoint_guid = sedp_test_guid(0xC2).unwrap()
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    endpoint_guid,
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let reader_id = EntityId::new(b"rea", 0xC7).unwrap()
+  let writer_id = EntityId::new(b"wri", 0xC2).unwrap()
+  let data = endpoint.to_dispose_data_submessage(reader_id, writer_id, 4L)
+  assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
+  assert_eq(
+    data.status_info(),
+    Ok(Some(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)),
+  )
+  assert_eq(
+    SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
+    endpoint_guid,
+  )
+}
+
+///|
 test "SEDP endpoint type hash is optional and validates malformed user data" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let endpoint = SedpEndpointData::new(
