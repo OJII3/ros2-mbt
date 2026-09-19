@@ -450,7 +450,9 @@ pub async fn RosParticipant::announce_spdp_forever(
 /// Receive one discovery event while periodically announcing this participant.
 ///
 /// This keeps discovery robust when a peer starts after the first SPDP packet
-/// was sent. The announcement task is cancelled as soon as the event arrives.
+/// was sent. The first announcement is left to `announce_spdp_once`; the
+/// background task starts after one interval and is cancelled when the event
+/// arrives.
 pub async fn RosParticipant::receive_discovery_once_with_spdp(
   self : RosParticipant,
   interval_ms : Int,
@@ -460,6 +462,7 @@ pub async fn RosParticipant::receive_discovery_once_with_spdp(
   }
   @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
+      @async.sleep(interval_ms)
       match self.announce_spdp_forever(interval_ms) {
         Ok(_) => ()
         Err(message) => fail(message)
