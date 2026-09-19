@@ -50,7 +50,7 @@ pub fn SedpEndpointData::new(
     endpoint_guid,
     participant_guid: Guid::new(
       endpoint_guid.prefix(),
-      EntityId::new(b"\x00\x00\x00", 0x01).unwrap(),
+      EntityId::new(b"\x00\x01\x00", 0xC1).unwrap(),
     ),
     topic_name,
     type_name,
@@ -339,7 +339,7 @@ pub fn SedpEndpointData::from_parameter_list(
     Err(_) =>
       Guid::new(
         endpoint_guid.prefix(),
-        EntityId::new(b"\x00\x00\x00", 0x01).unwrap(),
+        EntityId::new(b"\x00\x01\x00", 0xC1).unwrap(),
       )
   }
   let result = match

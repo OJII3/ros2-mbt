@@ -27,3 +27,11 @@ test "RTPS parameter list rejects malformed input" {
   assert_true(ParameterList::from_bytes(b"\x15\x00\x00\x00") is Err(_))
   assert_true(ParameterList::from_cdr_bytes(b"\x00\x00\x00\x00") is Err(_))
 }
+
+///|
+test "RTPS discovery locator parameter identifiers match the wire standard" {
+  assert_eq(PID_DEFAULT_UNICAST_LOCATOR, 0x0031)
+  assert_eq(PID_METATRAFFIC_UNICAST_LOCATOR, 0x0032)
+  assert_eq(PID_METATRAFFIC_MULTICAST_LOCATOR, 0x0033)
+  assert_eq(PID_DEFAULT_MULTICAST_LOCATOR, 0x0048)
+}
