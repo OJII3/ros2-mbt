@@ -10,7 +10,7 @@ pub fn SampleIdentity::new(
   writer_guid : Guid,
   sequence_number : Int64,
 ) -> Result[SampleIdentity, String] {
-  if sequence_number < -1L {
+  if sequence_number == 0L || sequence_number < -1L {
     return Err("an RTPS sample identity sequence number is invalid")
   }
   Ok({ writer_guid, sequence_number, })
