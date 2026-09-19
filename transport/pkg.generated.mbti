@@ -297,6 +297,7 @@ pub struct RosParticipant {
   graph_subscriptions : Array[ReliableRosDiscoverySubscription]
   graph_subscription_guids : Array[@rtps.Guid]
 }
+pub async fn RosParticipant::announce_spdp_forever(Self, Int) -> Result[Unit, String]
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
 pub fn RosParticipant::from_discovery_session(DiscoverySession, Udp) -> Result[Self, String]
@@ -309,6 +310,7 @@ pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
 pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@ros.ParticipantEntitiesInfo, String]
 pub async fn RosParticipant::publish_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
+pub async fn RosParticipant::receive_discovery_once_with_spdp(Self, Int) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]

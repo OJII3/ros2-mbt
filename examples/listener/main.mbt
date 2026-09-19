@@ -103,7 +103,7 @@ async fn main {
   let mut remote_publication : @rtps.SedpEndpointData? = None
   let mut graph_info_published = false
   while remote_publication is None {
-    match participant.receive_discovery_once() {
+    match participant.receive_discovery_once_with_spdp(1000) {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
         if publication.topic_name() == topic.dds_name() &&
           publication.type_name() == topic.dds_type_name() {

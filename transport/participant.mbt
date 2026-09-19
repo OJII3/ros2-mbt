@@ -438,6 +438,38 @@ pub async fn RosParticipant::announce_spdp_once(
 }
 
 ///|
+/// Announce the local participant until the surrounding async task is stopped.
+pub async fn RosParticipant::announce_spdp_forever(
+  self : RosParticipant,
+  interval_ms : Int,
+) -> Result[Unit, String] {
+  self.discovery.session.announce_forever(interval_ms)
+}
+
+///|
+/// Receive one discovery event while periodically announcing this participant.
+///
+/// This keeps discovery robust when a peer starts after the first SPDP packet
+/// was sent. The announcement task is cancelled as soon as the event arrives.
+pub async fn RosParticipant::receive_discovery_once_with_spdp(
+  self : RosParticipant,
+  interval_ms : Int,
+) -> Result[(@socket.Addr, DiscoveryEvent), String] {
+  if interval_ms <= 0 {
+    return Err("the discovery announcement interval must be positive")
+  }
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match self.announce_spdp_forever(interval_ms) {
+        Ok(_) => ()
+        Err(message) => fail(message)
+      }
+    }
+    self.receive_discovery_once()
+  }
+}
+
+///|
 /// Receive one SPDP or SEDP event and ingest it into the graph.
 pub async fn RosParticipant::receive_discovery_once(
   self : RosParticipant,
