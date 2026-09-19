@@ -237,6 +237,8 @@ pub fn ReliableRosDiscoveryPublisher::new_for_subscription(Udp, @rtps.GuidPrefix
 pub fn ReliableRosDiscoveryPublisher::next_sequence_number(Self) -> Int64
 pub async fn ReliableRosDiscoveryPublisher::publish(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn ReliableRosDiscoveryPublisher::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn ReliableRosDiscoveryPublisher::receive_control(Self) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
 
 pub struct ReliableRosDiscoverySubscription {
   reader : ReliableDataReaderSession
@@ -317,8 +319,10 @@ pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result
 pub async fn RosParticipant::publish_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_control(Self, Int) -> Result[Unit, String]
 pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_nackfrag(Self, Int) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::register_endpoint(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub async fn RosParticipant::register_ros_discovery_info(Self, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
 pub async fn RosParticipant::register_service_client(Self, @ros.RosService, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]

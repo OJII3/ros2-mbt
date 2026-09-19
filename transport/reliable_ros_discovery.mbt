@@ -78,6 +78,22 @@ pub async fn ReliableRosDiscoveryPublisher::receive_acknack(
 }
 
 ///|
+/// Receive a matching NACK_FRAG and retransmit requested graph fragments.
+pub async fn ReliableRosDiscoveryPublisher::receive_nackfrag(
+  self : ReliableRosDiscoveryPublisher,
+) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
+  self.writer.receive_nackfrag()
+}
+
+///|
+/// Receive either ACKNACK or NACK_FRAG and retransmit requested graph data.
+pub async fn ReliableRosDiscoveryPublisher::receive_control(
+  self : ReliableRosDiscoveryPublisher,
+) -> Result[Unit, String] {
+  self.writer.receive_control()
+}
+
+///|
 /// Apply an ACKNACK directly and retransmit requested graph samples.
 pub async fn ReliableRosDiscoveryPublisher::handle_acknack(
   self : ReliableRosDiscoveryPublisher,

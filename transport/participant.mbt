@@ -449,6 +449,30 @@ pub async fn RosParticipant::receive_ros_discovery_acknack(
 }
 
 ///|
+/// Receive a NACK_FRAG for one graph publisher and retransmit its fragments.
+pub async fn RosParticipant::receive_ros_discovery_nackfrag(
+  self : RosParticipant,
+  index : Int,
+) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
+  if index < 0 || index >= self.graph_publishers.length() {
+    return Err("ROS graph publisher index is out of range")
+  }
+  self.graph_publishers[index].receive_nackfrag()
+}
+
+///|
+/// Receive either reliable control message for one graph publisher.
+pub async fn RosParticipant::receive_ros_discovery_control(
+  self : RosParticipant,
+  index : Int,
+) -> Result[Unit, String] {
+  if index < 0 || index >= self.graph_publishers.length() {
+    return Err("ROS graph publisher index is out of range")
+  }
+  self.graph_publishers[index].receive_control()
+}
+
+///|
 /// Send one SPDP participant announcement.
 pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,
