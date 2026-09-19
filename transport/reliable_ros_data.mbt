@@ -102,6 +102,14 @@ pub async fn ReliableRosPublisher::receive_nackfrag(
 }
 
 ///|
+/// Receive either ACKNACK or NACK_FRAG and retransmit the requested samples.
+pub async fn ReliableRosPublisher::receive_control(
+  self : ReliableRosPublisher,
+) -> Result[Unit, String] {
+  self.writer.receive_control()
+}
+
+///|
 /// Apply a NACK_FRAG directly and retransmit requested fragments.
 pub async fn ReliableRosPublisher::handle_nackfrag(
   self : ReliableRosPublisher,

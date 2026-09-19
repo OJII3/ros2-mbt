@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/examples/config"
+
+// Values
+pub fn load() -> Result[Config, String]
+
+// Errors
+
+// Types and methods
+pub struct Config {
+  ip : UInt
+  domain_id : UInt
+}
+
+// Type aliases
+
+// Traits

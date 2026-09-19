@@ -605,6 +605,66 @@ pub async fn ReliableDataWriter::receive_nackfrag(
 }
 
 ///|
+/// Receive either reliable-reader control message and retransmit its requests.
+///
+/// This is useful for an application task that shares one socket with the
+/// writer: a fragmented sample may require both ACKNACK and NACK_FRAG handling.
+pub async fn ReliableDataWriter::receive_control(
+  self : ReliableDataWriter,
+) -> Result[Unit, String] {
+  while true {
+    let (message, _) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for submessage in message.submessages() {
+      match submessage.id() {
+        @rtps.SubmessageId::AckNack => {
+          let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(message) => return Err(message)
+          }
+          let prefix_matches = match self.reader_prefix {
+            Some(prefix) => message.header().guid_prefix() == prefix
+            None => true
+          }
+          if acknack.writer_id() != self.writer_id ||
+            acknack.reader_id() != self.reader_id ||
+            !prefix_matches {
+            continue
+          }
+          match self.handle_acknack(acknack) {
+            Ok(_) => return Ok(())
+            Err(message) => return Err(message)
+          }
+        }
+        @rtps.SubmessageId::NackFrag => {
+          let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
+            Ok(value) => value
+            Err(message) => return Err(message)
+          }
+          let prefix_matches = match self.reader_prefix {
+            Some(prefix) => message.header().guid_prefix() == prefix
+            None => true
+          }
+          if nackfrag.writer_id() != self.writer_id ||
+            nackfrag.reader_id() != self.reader_id ||
+            !prefix_matches {
+            continue
+          }
+          match self.handle_nackfrag(nackfrag) {
+            Ok(_) => return Ok(())
+            Err(message) => return Err(message)
+          }
+        }
+        _ => continue
+      }
+    }
+  }
+  Err("reliable writer stopped")
+}
+
+///|
 /// Close the reliable writer's underlying UDP socket.
 pub fn ReliableDataWriter::close(self : ReliableDataWriter) -> Unit {
   self.socket.close()

@@ -58,7 +58,7 @@ async fn publish_reliable(
   @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       while true {
-        match publisher.receive_acknack() {
+        match publisher.receive_control() {
           Ok(_) => ()
           Err(_) => return
         }

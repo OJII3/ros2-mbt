@@ -235,7 +235,17 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
     [0x40000000U],
     1U,
   ).unwrap()
-  match writer.handle_nackfrag(nackfrag) {
+  match
+    receiver.send_nack_frag(
+      nackfrag,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      sender.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match writer.receive_control() {
     Ok(_) => ()
     Err(message) => fail(message)
   }
