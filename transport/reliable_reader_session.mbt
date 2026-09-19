@@ -273,16 +273,23 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat(
   self : ReliableDataReaderSession,
   heartbeat : @rtps.HeartbeatSubmessage,
 ) -> Result[Unit, String] {
-  let acknack = match self.state.acknack_for_heartbeat(heartbeat) {
+  let acknacks = match self.state.acknacks_for_heartbeat(heartbeat) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.socket.send_acknack(
-    acknack,
-    self.guid_prefix,
-    self.vendor_id,
-    self.destination,
-  )
+  for acknack in acknacks {
+    match
+      self.socket.send_acknack(
+        acknack,
+        self.guid_prefix,
+        self.vendor_id,
+        self.destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
 }
 
 ///|

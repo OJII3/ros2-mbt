@@ -32,6 +32,29 @@ test "reliable reader creates an ACKNACK for missing samples" {
 }
 
 ///|
+test "reliable reader splits a large HEARTBEAT into ACKNACK windows" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    300L,
+    1U,
+  ).unwrap()
+  let acknacks = reader.acknacks_for_heartbeat(heartbeat).unwrap()
+  assert_eq(acknacks.length(), 2)
+  assert_eq(acknacks[0].bitmap_base(), 1L)
+  assert_eq(acknacks[0].num_bits(), 256U)
+  assert_eq(acknacks[0].count(), 1U)
+  assert_eq(acknacks[1].bitmap_base(), 257L)
+  assert_eq(acknacks[1].num_bits(), 44U)
+  assert_eq(acknacks[1].count(), 2U)
+  assert_eq(reader.next_acknack_count(), 3U)
+}
+
+///|
 test "reliable reader accepts a multicast HEARTBEAT with unknown reader" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()

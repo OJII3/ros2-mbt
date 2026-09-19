@@ -327,11 +327,13 @@ fn reliable_reader_gap_contains_sequence(
 }
 
 ///|
-/// Build an ACKNACK whose set bits identify samples missing from a heartbeat.
-pub fn ReliableDataReader::acknack_for_heartbeat(
+/// Build ACKNACK windows whose set bits identify samples missing from a
+/// heartbeat. RTPS SequenceNumberSet carries at most 256 bits, so a large
+/// HEARTBEAT range is represented by multiple ACKNACK submessages.
+pub fn ReliableDataReader::acknacks_for_heartbeat(
   self : ReliableDataReader,
   heartbeat : @rtps.HeartbeatSubmessage,
-) -> Result[@rtps.AckNackSubmessage, String] {
+) -> Result[Array[@rtps.AckNackSubmessage], String] {
   if heartbeat.reader_id() != self.reader_id &&
     heartbeat.reader_id() != @rtps.EntityId::unknown() {
     return Err("the HEARTBEAT targets a different RTPS reader")
@@ -339,39 +341,58 @@ pub fn ReliableDataReader::acknack_for_heartbeat(
   if heartbeat.writer_id() != self.writer_id {
     return Err("the HEARTBEAT comes from a different RTPS writer")
   }
-  let range = (heartbeat.last_sequence_number() -
-  heartbeat.first_sequence_number() +
-  1L).to_int()
-  if range <= 0 || range > 256 {
-    return Err("the HEARTBEAT sequence range is outside ACKNACK bitmap limits")
-  }
-  let word_count = (range + 31) / 32
-  let bitmap : Array[UInt] = []
-  for _ in 0..<word_count {
-    bitmap.push(0U)
-  }
-  for offset in 0..<range {
-    let sequence_number = heartbeat.first_sequence_number() + offset.to_int64()
-    if reliable_reader_has_sequence(self.samples, sequence_number) ||
-      reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
-      continue
+  let result : Array[@rtps.AckNackSubmessage] = []
+  let mut bitmap_base = heartbeat.first_sequence_number()
+  while bitmap_base <= heartbeat.last_sequence_number() {
+    let remaining =
+      (heartbeat.last_sequence_number() - bitmap_base + 1L).to_int()
+    let range = if remaining > 256 { 256 } else { remaining }
+    let word_count = (range + 31) / 32
+    let bitmap : Array[UInt] = []
+    for _ in 0..<word_count {
+      bitmap.push(0U)
     }
-    let word_index = offset / 32
-    let bit_index = offset % 32
-    bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
+    for offset in 0..<range {
+      let sequence_number = bitmap_base + offset.to_int64()
+      if reliable_reader_has_sequence(self.samples, sequence_number) ||
+        reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
+        continue
+      }
+      let word_index = offset / 32
+      let bit_index = offset % 32
+      bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
+    }
+    let acknack = match
+      @rtps.AckNackSubmessage::new(
+        self.reader_id,
+        self.writer_id,
+        bitmap_base,
+        range.reinterpret_as_uint(),
+        bitmap,
+        self.next_acknack_count,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    result.push(acknack)
+    self.next_acknack_count += 1U
+    bitmap_base += range.to_int64()
   }
-  let result = match
-    @rtps.AckNackSubmessage::new(
-      self.reader_id,
-      self.writer_id,
-      heartbeat.first_sequence_number(),
-      range.reinterpret_as_uint(),
-      bitmap,
-      self.next_acknack_count,
-    ) {
+  Ok(result)
+}
+
+///|
+/// Build one ACKNACK for the first window of a HEARTBEAT range.
+pub fn ReliableDataReader::acknack_for_heartbeat(
+  self : ReliableDataReader,
+  heartbeat : @rtps.HeartbeatSubmessage,
+) -> Result[@rtps.AckNackSubmessage, String] {
+  let acknacks = match self.acknacks_for_heartbeat(heartbeat) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.next_acknack_count += 1U
-  Ok(result)
+  if acknacks.length() == 0 {
+    return Err("the HEARTBEAT sequence range is empty")
+  }
+  Ok(acknacks[0])
 }

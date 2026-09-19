@@ -374,9 +374,9 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let acknack = match
-    self.sedp_readers[index].reader.acknack_for_heartbeat(heartbeat) {
-    Ok(value) => value.with_final()
+  let acknacks = match
+    self.sedp_readers[index].reader.acknacks_for_heartbeat(heartbeat) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
   let socket = if socket_index == 0 {
@@ -384,12 +384,24 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
   } else {
     self.receive_sockets[socket_index - 1]
   }
-  socket.send_acknack(
-    acknack,
-    self.participant.participant_guid().prefix(),
-    self.participant.vendor_id(),
-    source,
-  )
+  for index in 0..<acknacks.length() {
+    let acknack = if index + 1 == acknacks.length() {
+      acknacks[index].with_final()
+    } else {
+      acknacks[index]
+    }
+    match
+      socket.send_acknack(
+        acknack,
+        self.participant.participant_guid().prefix(),
+        self.participant.vendor_id(),
+        source,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
 }
 
 ///|

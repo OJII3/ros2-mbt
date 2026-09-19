@@ -198,6 +198,60 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
 }
 
 ///|
+async test "reliable reader session sends ACKNACK windows for a large HEARTBEAT" {
+  let prefix = @rtps.GuidPrefix::from_array(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = @rtps.Locator::udp_v4(
+    b"\x7F\x00\x00\x01",
+    sender.local_addr().port().reinterpret_as_uint(),
+  ).unwrap()
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(prefix, writer_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_unicast_locator(locator)
+  let reader = ReliableDataReaderSession::new_for_publication(
+    receiver,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    publication,
+  ).unwrap()
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    300L,
+    1U,
+  ).unwrap()
+  sender
+  .send_heartbeat(
+    heartbeat,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    receiver.local_addr(),
+  )
+  .unwrap()
+  let (received, _) = reader.receive_heartbeat().unwrap()
+  let (first, _) = sender.receive_acknack().unwrap()
+  let (second, _) = sender.receive_acknack().unwrap()
+  assert_eq(received.last_sequence_number(), 300L)
+  assert_eq(first.bitmap_base(), 1L)
+  assert_eq(first.num_bits(), 256U)
+  assert_eq(second.bitmap_base(), 257L)
+  assert_eq(second.num_bits(), 44U)
+  reader.close()
+  sender.close()
+}
+
+///|
 async test "reliable reader session reassembles DATA_FRAG over UDP" {
   let prefix = @rtps.GuidPrefix::from_array(
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
