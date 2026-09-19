@@ -231,6 +231,20 @@ pub async fn RosServiceClient::receive_response(
 }
 
 ///|
+/// Receive request-writer control traffic when request and response use
+/// separate sockets.
+pub async fn RosServiceClient::receive_request_control(
+  self : RosServiceClient,
+) -> Result[Unit, String] {
+  if self.shared_socket {
+    return Err(
+      "shared service sockets handle request controls in receive_response",
+    )
+  }
+  self.request_writer.receive_control()
+}
+
+///|
 pub fn RosServiceClient::close(self : RosServiceClient) -> Unit {
   self.request_writer.close()
   if !self.shared_socket {
@@ -379,6 +393,20 @@ pub async fn RosServiceServer::respond(
     Err(message) => return Err(message)
   }
   self.response_writer.send_heartbeat()
+}
+
+///|
+/// Receive response-writer control traffic when request and response use
+/// separate sockets.
+pub async fn RosServiceServer::receive_response_control(
+  self : RosServiceServer,
+) -> Result[Unit, String] {
+  if self.shared_socket {
+    return Err(
+      "shared service sockets handle response controls in receive_request",
+    )
+  }
+  self.response_writer.receive_control()
 }
 
 ///|
