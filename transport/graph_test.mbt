@@ -79,3 +79,53 @@ test "discovery graph upserts ROS participant entities" {
     "listener",
   )
 }
+
+///|
+test "discovery graph filters publications by basic QoS" {
+  let graph = DiscoveryGraph::new()
+  let prefix = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let publication_id = match @rtps.EntityId::new(b"pub", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let subscription_id = match @rtps.EntityId::new(b"sub", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let publication = match
+    @rtps.SedpEndpointData::new(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, publication_id),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  publication.add_parameter(
+    @rtps.qos_reliability(@rtps.RELIABILITY_RELIABLE, 0, 0),
+  )
+  let subscription = match
+    @rtps.SedpEndpointData::new(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, subscription_id),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  subscription.add_parameter(
+    @rtps.qos_reliability(@rtps.RELIABILITY_RELIABLE, 0, 0),
+  )
+  graph.ingest(DiscoveryEvent::Publication(publication))
+  let matched = match graph.find_compatible_publications(subscription) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(matched.length(), 1)
+}

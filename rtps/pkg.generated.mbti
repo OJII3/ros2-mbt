@@ -361,6 +361,8 @@ pub fn SedpEndpointData::kind(Self) -> SedpEndpointKind
 pub fn SedpEndpointData::multicast_locators(Self) -> Array[Locator]
 pub fn SedpEndpointData::new(SedpEndpointKind, Guid, String, String) -> Result[Self, String]
 pub fn SedpEndpointData::participant_guid(Self) -> Guid
+pub fn SedpEndpointData::qos(Self) -> Result[SedpQos, String]
+pub fn SedpEndpointData::qos_compatible_with(Self, Self) -> Result[Bool, String]
 pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn SedpEndpointData::to_data_submessage(Self, EntityId, EntityId, Int64) -> Result[DataSubmessage, String]
 pub fn SedpEndpointData::to_message(Self, VendorId, EntityId, EntityId, Int64) -> Result[Message, String]
@@ -377,6 +379,19 @@ pub(all) enum SedpEndpointKind {
 pub fn SedpEndpointKind::builtin_reader_id(Self) -> EntityId
 pub fn SedpEndpointKind::builtin_writer_id(Self) -> EntityId
 pub fn SedpEndpointKind::from_builtin_writer_id(EntityId) -> Result[Self, String]
+
+pub struct SedpQos {
+  reliability : UInt
+  durability : UInt
+  history : UInt
+  depth : Int
+} derive(Eq, @debug.Debug)
+pub fn SedpQos::default() -> Self
+pub fn SedpQos::depth(Self) -> Int
+pub fn SedpQos::durability(Self) -> UInt
+pub fn SedpQos::history(Self) -> UInt
+pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
+pub fn SedpQos::reliability(Self) -> UInt
 
 pub struct SpdpParticipantData {
   protocol_version : ProtocolVersion

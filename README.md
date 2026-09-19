@@ -17,12 +17,13 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
 - 発見済み participant の metatraffic locator へ送る SEDP helper
-- DDSI-RTPS default port mapping と SPDP multicast address helper
+- DDSI-RTPS default port mapping、SPDP/user-data address helper
 - user DATA submessage の RTPS message/UDP helper
 - best-effort `DataWriter`（sequence number 管理付き）
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
 - reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
+- reliable SEDP writer と UDP-backed reliable reader session
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成
 - SPDP/SEDP discovery event を保持する `DiscoveryGraph` と topic/type matching
 - SPDP/SEDP と `ros_discovery_info` を graph に集約する `DiscoveryService`

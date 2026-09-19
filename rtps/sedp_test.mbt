@@ -141,3 +141,59 @@ test "SEDP resolves builtin reader and writer IDs by endpoint kind" {
   assert_eq(subscription_writer.key(), b"\x00\x00\x04")
   assert_eq(subscription_writer.kind(), 0xC2)
 }
+
+///|
+test "SEDP reads basic QoS and checks offered compatibility" {
+  let prefix = match
+    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match EntityId::new(b"pub", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let reader_id = match EntityId::new(b"sub", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let publication = match
+    SedpEndpointData::new(
+      SedpEndpointKind::Publication,
+      Guid::new(prefix, writer_id),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  publication.add_parameter(qos_reliability(RELIABILITY_RELIABLE, 0, 0))
+  publication.add_parameter(qos_durability(DURABILITY_TRANSIENT_LOCAL))
+  publication.add_parameter(qos_history(HISTORY_KEEP_LAST, 1))
+  let subscription = match
+    SedpEndpointData::new(
+      SedpEndpointKind::Subscription,
+      Guid::new(prefix, reader_id),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  subscription.add_parameter(qos_reliability(RELIABILITY_BEST_EFFORT, 0, 0))
+  subscription.add_parameter(qos_durability(DURABILITY_VOLATILE))
+  subscription.add_parameter(qos_history(HISTORY_KEEP_LAST, 1))
+  let qos = match publication.qos() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(qos.reliability(), RELIABILITY_RELIABLE)
+  assert_eq(qos.durability(), DURABILITY_TRANSIENT_LOCAL)
+  assert_true(
+    match publication.qos_compatible_with(subscription) {
+      Ok(value) => value
+      Err(message) => fail(message)
+    },
+  )
+  assert_true(subscription.qos_compatible_with(publication) is Err(_))
+}

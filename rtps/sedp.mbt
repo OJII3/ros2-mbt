@@ -77,6 +77,56 @@ pub struct SedpEndpointData {
 } derive(Eq, Debug)
 
 ///|
+/// The QoS policies needed for basic DDS endpoint compatibility.
+pub struct SedpQos {
+  reliability : UInt
+  durability : UInt
+  history : UInt
+  depth : Int
+} derive(Eq, Debug)
+
+///|
+pub fn SedpQos::new(
+  reliability : UInt,
+  durability : UInt,
+  history : UInt,
+  depth : Int,
+) -> SedpQos {
+  { reliability, durability, history, depth, }
+}
+
+///|
+pub fn SedpQos::reliability(self : SedpQos) -> UInt {
+  self.reliability
+}
+
+///|
+pub fn SedpQos::durability(self : SedpQos) -> UInt {
+  self.durability
+}
+
+///|
+pub fn SedpQos::history(self : SedpQos) -> UInt {
+  self.history
+}
+
+///|
+pub fn SedpQos::depth(self : SedpQos) -> Int {
+  self.depth
+}
+
+///|
+/// DDS defaults used when an SEDP endpoint omits a recognized QoS policy.
+pub fn SedpQos::default() -> SedpQos {
+  SedpQos::new(
+    RELIABILITY_BEST_EFFORT,
+    DURABILITY_VOLATILE,
+    HISTORY_KEEP_LAST,
+    1,
+  )
+}
+
+///|
 /// Create an SEDP endpoint sample with the three required identity fields.
 pub fn SedpEndpointData::new(
   kind : SedpEndpointKind,
@@ -155,6 +205,99 @@ pub fn SedpEndpointData::extra_parameters(
   self : SedpEndpointData,
 ) -> Array[Parameter] {
   self.extra_parameters
+}
+
+///|
+fn sedp_qos_u32(value : Bytes, label : String) -> Result[UInt, String] {
+  if value.length() < 4 {
+    return Err("SEDP " + label + " parameter is truncated")
+  }
+  match value[0:4] {
+    [u32le(result)] => Ok(result)
+    _ => Err("invalid SEDP " + label + " parameter")
+  }
+}
+
+///|
+fn sedp_qos_i32(value : Bytes, label : String) -> Result[Int, String] {
+  match sedp_qos_u32(value, label) {
+    Ok(result) => Ok(result.reinterpret_as_int())
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Read the reliability, durability, and history policies from SEDP.
+pub fn SedpEndpointData::qos(
+  self : SedpEndpointData,
+) -> Result[SedpQos, String] {
+  let defaults = SedpQos::default()
+  let mut reliability = defaults.reliability
+  let mut durability = defaults.durability
+  let mut history = defaults.history
+  let mut depth = defaults.depth
+  for parameter in self.extra_parameters {
+    match parameter.id() {
+      PID_RELIABILITY =>
+        reliability = match sedp_qos_u32(parameter.value(), "reliability") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+      PID_DURABILITY =>
+        durability = match sedp_qos_u32(parameter.value(), "durability") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+      PID_HISTORY => {
+        if parameter.value().length() < 8 {
+          return Err("SEDP history parameter is truncated")
+        }
+        history = match sedp_qos_u32(parameter.value(), "history") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        let value = parameter.value()
+        let depth_bytes = Bytes::from_array([
+          value[4],
+          value[5],
+          value[6],
+          value[7],
+        ])
+        depth = match sedp_qos_i32(depth_bytes, "history depth") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+      }
+      _ => ()
+    }
+  }
+  Ok(SedpQos::new(reliability, durability, history, depth))
+}
+
+///|
+/// Check the basic offered/requested QoS compatibility of a writer and reader.
+pub fn SedpEndpointData::qos_compatible_with(
+  self : SedpEndpointData,
+  reader : SedpEndpointData,
+) -> Result[Bool, String] {
+  if self.kind != SedpEndpointKind::Publication {
+    return Err("the offered endpoint must be an SEDP publication")
+  }
+  if reader.kind != SedpEndpointKind::Subscription {
+    return Err("the requested endpoint must be an SEDP subscription")
+  }
+  let offered = match self.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let requested = match reader.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok(
+    offered.reliability >= requested.reliability &&
+    offered.durability >= requested.durability,
+  )
 }
 
 ///|

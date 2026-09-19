@@ -153,3 +153,26 @@ pub fn DiscoveryGraph::find_subscriptions(
   }
   result
 }
+
+///|
+/// Return publications matching a subscription's topic, type, and basic QoS.
+pub fn DiscoveryGraph::find_compatible_publications(
+  self : DiscoveryGraph,
+  subscription : @rtps.SedpEndpointData,
+) -> Result[Array[@rtps.SedpEndpointData], String] {
+  let result : Array[@rtps.SedpEndpointData] = []
+  for publication in self.publications {
+    if publication.topic_name() != subscription.topic_name() ||
+      publication.type_name() != subscription.type_name() {
+      continue
+    }
+    let compatible = match publication.qos_compatible_with(subscription) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    if compatible {
+      result.push(publication)
+    }
+  }
+  Ok(result)
+}
