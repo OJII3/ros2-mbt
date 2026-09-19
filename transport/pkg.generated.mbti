@@ -112,11 +112,14 @@ pub async fn DiscoveryService::announce_sedp_once(Self, @rtps.SedpEndpointData, 
 pub async fn DiscoveryService::announce_sedp_to_all(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
 pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
+pub fn DiscoveryService::ingest_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Unit
 pub fn DiscoveryService::new(DiscoverySession) -> Self
 pub fn DiscoveryService::new_reliable_sedp_writer(Self, @rtps.SedpEndpointData, @rtps.SpdpParticipantData, Int64) -> Result[ReliableSedpWriter, String]
 pub fn DiscoveryService::next_sedp_sequence_number(Self, @rtps.SedpEndpointKind) -> Int64
 pub async fn DiscoveryService::receive_once(Self) -> Result[(@socket.Addr, DiscoveryEvent), String]
 pub async fn DiscoveryService::receive_ros_discovery_info(Self) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String]
+pub async fn DiscoveryService::receive_ros_discovery_info_from(Self, Udp) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String]
+pub async fn DiscoveryService::receive_ros_discovery_info_reliable(Self, ReliableDataReaderSession) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String]
 
 pub struct DiscoverySession {
   socket : Udp

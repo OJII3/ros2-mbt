@@ -174,12 +174,52 @@ pub async fn DiscoveryService::receive_once(
 pub async fn DiscoveryService::receive_ros_discovery_info(
   self : DiscoveryService,
 ) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
-  let (info, source) = match self.session.socket.receive_ros_discovery_info() {
+  self.receive_ros_discovery_info_from(self.session.socket)
+}
+
+///|
+/// Receive one graph sample from an explicitly supplied user-data socket.
+///
+/// This is the preferred form when SPDP/SEDP and user DATA use separate DDSI
+/// sockets or ports.
+pub async fn DiscoveryService::receive_ros_discovery_info_from(
+  self : DiscoveryService,
+  socket : Udp,
+) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
+  let (info, source) = match socket.receive_ros_discovery_info() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.graph.ingest_ros_discovery_info(info)
+  self.ingest_ros_discovery_info(info)
   Ok((source, info))
+}
+
+///|
+/// Receive one graph sample from a reliable discovered publication.
+pub async fn DiscoveryService::receive_ros_discovery_info_reliable(
+  self : DiscoveryService,
+  reader : ReliableDataReaderSession,
+) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
+  let (data, source) = match reader.receive_data() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let info = match
+    @ros.ParticipantEntitiesInfo::from_cdr_bytes(data.serialized_payload()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.ingest_ros_discovery_info(info)
+  Ok((source, info))
+}
+
+///|
+/// Insert one decoded ROS graph sample into the discovery graph.
+pub fn DiscoveryService::ingest_ros_discovery_info(
+  self : DiscoveryService,
+  info : @ros.ParticipantEntitiesInfo,
+) -> Unit {
+  self.graph.ingest_ros_discovery_info(info)
 }
 
 ///|

@@ -59,7 +59,8 @@ async test "discovery service ingests ros_discovery_info samples" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (source, decoded) = match service.receive_ros_discovery_info() {
+  let (source, decoded) = match
+    service.receive_ros_discovery_info_from(receiver) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -126,6 +127,45 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   publication.add_unicast_locator(publisher_locator)
   subscription.add_unicast_locator(subscriber_locator)
+  let service_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let service_address = service_socket.local_addr()
+  let service_participant_id = match @rtps.EntityId::new(b"gph", 0xC1) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let service_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(subscriber_prefix, service_participant_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    0,
+  )
+  let service_reader_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let service_writer_id = match
+    @rtps.EntityId::new(
+      b"\x00\x01\x00",
+      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let service_session = match
+    DiscoverySession::new(
+      service_socket, service_participant, service_reader_id, service_writer_id,
+      service_address, 1L,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let service = DiscoveryService::new(service_session)
   let reader = match
     ReliableDataReaderSession::new_for_publication(
       subscriber_socket,
@@ -171,7 +211,8 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (data, source) = match reader.receive_data() {
+  let (source, decoded) = match
+    service.receive_ros_discovery_info_reliable(reader) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -183,11 +224,6 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let decoded = match
-    @ros.ParticipantEntitiesInfo::from_cdr_bytes(data.serialized_payload()) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
   assert_eq(decoded.to_cdr_bytes(), info.to_cdr_bytes())
   assert_eq(decoded.node_entities_info_seq().length(), 1)
   assert_eq(heartbeat.last_sequence_number(), 1L)
@@ -195,4 +231,5 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   assert_eq(source.ip(), 0x7F000001U)
   writer.close()
   reader.close()
+  service.close()
 }
