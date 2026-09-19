@@ -76,6 +76,10 @@ pub const HEARTBEAT_FLAG_FINAL : Byte = 0x02
 
 pub const HEARTBEAT_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
+pub const HEARTBEAT_FRAG_BODY_LENGTH : Int = 24
+
+pub const HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const HISTORY_KEEP_ALL : UInt = 1
 
 pub const HISTORY_KEEP_LAST : UInt = 0
@@ -95,6 +99,8 @@ pub const LOCATOR_KIND_UDP_V4 : Int = 1
 pub const LOCATOR_KIND_UDP_V6 : Int = 2
 
 pub const LOCATOR_LENGTH : Int = 24
+
+pub const NACK_FRAG_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 pub const OWNERSHIP_EXCLUSIVE : UInt = 1
 
@@ -354,6 +360,26 @@ pub fn Header::guid_prefix(Self) -> GuidPrefix
 pub fn Header::new(GuidPrefix, VendorId) -> Self
 pub fn Header::to_bytes(Self) -> Bytes
 
+pub struct HeartbeatFragSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  writer_sequence_number : Int64
+  last_fragment_number : UInt
+  count : UInt
+} derive(Eq, @debug.Debug)
+pub fn HeartbeatFragSubmessage::count(Self) -> UInt
+pub fn HeartbeatFragSubmessage::flags(Self) -> Byte
+pub fn HeartbeatFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn HeartbeatFragSubmessage::last_fragment_number(Self) -> UInt
+pub fn HeartbeatFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt) -> Result[Self, String]
+pub fn HeartbeatFragSubmessage::reader_id(Self) -> EntityId
+pub fn HeartbeatFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn HeartbeatFragSubmessage::to_payload(Self) -> Bytes
+pub fn HeartbeatFragSubmessage::to_submessage(Self) -> Submessage
+pub fn HeartbeatFragSubmessage::writer_id(Self) -> EntityId
+pub fn HeartbeatFragSubmessage::writer_sequence_number(Self) -> Int64
+
 pub struct HeartbeatSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -415,6 +441,30 @@ pub fn Message::header(Self) -> Header
 pub fn Message::new(Header) -> Self
 pub fn Message::submessages(Self) -> Array[Submessage]
 pub fn Message::to_bytes(Self) -> Result[Bytes, String]
+
+pub struct NackFragSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  writer_sequence_number : Int64
+  bitmap_base : UInt
+  num_bits : UInt
+  bitmap : Array[UInt]
+  count : UInt
+} derive(Eq, @debug.Debug)
+pub fn NackFragSubmessage::bitmap(Self) -> Array[UInt]
+pub fn NackFragSubmessage::bitmap_base(Self) -> UInt
+pub fn NackFragSubmessage::count(Self) -> UInt
+pub fn NackFragSubmessage::flags(Self) -> Byte
+pub fn NackFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn NackFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt, Array[UInt], UInt) -> Result[Self, String]
+pub fn NackFragSubmessage::num_bits(Self) -> UInt
+pub fn NackFragSubmessage::reader_id(Self) -> EntityId
+pub fn NackFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn NackFragSubmessage::to_payload(Self) -> Bytes
+pub fn NackFragSubmessage::to_submessage(Self) -> Submessage
+pub fn NackFragSubmessage::writer_id(Self) -> EntityId
+pub fn NackFragSubmessage::writer_sequence_number(Self) -> Int64
 
 pub struct Parameter {
   id : UInt16

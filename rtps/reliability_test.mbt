@@ -142,3 +142,43 @@ test "RTPS reliability codecs reject invalid ranges" {
     GapSubmessage::new(reader_id, writer_id, 1L, 1L, 33U, []) is Err(_),
   )
 }
+
+///|
+test "RTPS fragment reliability codecs round trip" {
+  let (reader_id, writer_id) = reliability_test_ids().unwrap()
+  let heartbeat = HeartbeatFragSubmessage::new(
+    reader_id,
+    writer_id,
+    9L,
+    7U,
+    3U,
+  ).unwrap()
+  let heartbeat_submessage = Submessage::from_bytes(
+    heartbeat.to_submessage().to_bytes().unwrap(),
+  ).unwrap().0
+  let decoded_heartbeat = HeartbeatFragSubmessage::from_submessage(
+    heartbeat_submessage,
+  ).unwrap()
+  assert_eq(decoded_heartbeat.writer_sequence_number(), 9L)
+  assert_eq(decoded_heartbeat.last_fragment_number(), 7U)
+  assert_eq(decoded_heartbeat.count(), 3U)
+
+  let nack = NackFragSubmessage::new(
+    reader_id,
+    writer_id,
+    9L,
+    1U,
+    7U,
+    [0xA0000000U],
+    4U,
+  ).unwrap()
+  let nack_submessage = Submessage::from_bytes(
+    nack.to_submessage().to_bytes().unwrap(),
+  ).unwrap().0
+  let decoded_nack = NackFragSubmessage::from_submessage(nack_submessage).unwrap()
+  assert_eq(decoded_nack.writer_sequence_number(), 9L)
+  assert_eq(decoded_nack.bitmap_base(), 1U)
+  assert_eq(decoded_nack.num_bits(), 7U)
+  assert_eq(decoded_nack.bitmap(), [0xA0000000U])
+  assert_eq(decoded_nack.count(), 4U)
+}
