@@ -47,6 +47,27 @@ test "ROS service parser generates request and response codecs" {
 }
 
 ///|
+test "ROS service request and response hashes match RIHS01 vectors" {
+  let definition = parse_service(
+    "example_interfaces",
+    "AddTwoInts",
+    "int64 a\nint64 b\n---\nint64 sum",
+  ).unwrap()
+  assert_eq(
+    definition.request().type_hash(),
+    Ok(
+      "RIHS01_000c5fd92d6b2e1a05949348f584d6d652adea1e92d691792011ac2273508302",
+    ),
+  )
+  assert_eq(
+    definition.response().type_hash(),
+    Ok(
+      "RIHS01_de5c030d4af33cba2749310b249737b631594703f9300495f48bffb2b44dcc2f",
+    ),
+  )
+}
+
+///|
 test "ROS service parser requires exactly one separator" {
   assert_true(parse_service("demo", "Empty", "int32 value") is Err(_))
   assert_true(
