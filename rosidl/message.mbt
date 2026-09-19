@@ -16,6 +16,13 @@ pub struct MessageField {
 } derive(Eq, Debug)
 
 ///|
+/// A nested message type available to the code generator.
+pub struct MessageTypeReference {
+  ros_name : String
+  moon_name : String
+} derive(Eq, Debug)
+
+///|
 /// A scalar constant declared in a ROS `.msg` definition.
 pub struct MessageConstant {
   type_name : String
@@ -31,6 +38,7 @@ pub struct MessageDefinition {
   type_name : String
   fields : Array[MessageField]
   constants : Array[MessageConstant]
+  nested_types : Array[MessageTypeReference]
 } derive(Eq, Debug)
 
 ///|
@@ -64,6 +72,27 @@ pub fn MessageField::name(self : MessageField) -> String {
 /// Return whether the field is scalar, fixed-size, or a sequence.
 pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
   self.collection
+}
+
+///|
+/// Create a nested message type reference for the code generator.
+pub fn MessageTypeReference::new(
+  ros_name : String,
+  moon_name : String,
+) -> MessageTypeReference {
+  { ros_name, moon_name, }
+}
+
+///|
+/// Return the ROS spelling of a nested message type.
+pub fn MessageTypeReference::ros_name(self : MessageTypeReference) -> String {
+  self.ros_name
+}
+
+///|
+/// Return the MoonBit type name used in generated code.
+pub fn MessageTypeReference::moon_name(self : MessageTypeReference) -> String {
+  self.moon_name
 }
 
 ///|
@@ -102,16 +131,39 @@ pub fn MessageDefinition::new(
   type_name : String,
   fields : Array[MessageField],
 ) -> Result[MessageDefinition, String] {
+  let nested_types : Array[MessageTypeReference] = []
+  MessageDefinition::new_with_types(
+    package_name, interface_namespace, type_name, fields, nested_types,
+  )
+}
+
+///|
+/// Create a validated message definition with nested message type references.
+pub fn MessageDefinition::new_with_types(
+  package_name : String,
+  interface_namespace : String,
+  type_name : String,
+  fields : Array[MessageField],
+  nested_types : Array[MessageTypeReference],
+) -> Result[MessageDefinition, String] {
   if !rosidl_identifier(package_name) ||
     !rosidl_identifier(interface_namespace) ||
     !rosidl_identifier(type_name) {
     return Err("ROS message package, namespace, and type must be identifiers")
   }
+  for nested_type in nested_types {
+    if !rosidl_type_reference_name(nested_type.ros_name) {
+      return Err("ROS nested message type names must be identifiers or paths")
+    }
+    if !rosidl_identifier(nested_type.moon_name) {
+      return Err("MoonBit nested message type names must be identifiers")
+    }
+  }
   for field in fields {
     if !rosidl_identifier(field.name) {
       return Err("ROS message field names must be identifiers")
     }
-    match rosidl_moon_type(field.type_name) {
+    match rosidl_moon_type_for_field(field.type_name, nested_types) {
       Ok(_) => ()
       Err(message) => return Err(message)
     }
@@ -128,7 +180,14 @@ pub fn MessageDefinition::new(
         }
     }
   }
-  Ok({ package_name, interface_namespace, type_name, fields, constants: [], })
+  Ok({
+    package_name,
+    interface_namespace,
+    type_name,
+    fields,
+    constants: [],
+    nested_types,
+  })
 }
 
 ///|
@@ -147,6 +206,14 @@ pub fn MessageDefinition::with_constants(
     }
   }
   Ok({ ..self, constants, })
+}
+
+///|
+/// Return the nested type references used by this definition.
+pub fn MessageDefinition::nested_types(
+  self : MessageDefinition,
+) -> Array[MessageTypeReference] {
+  self.nested_types
 }
 
 ///|
@@ -190,13 +257,28 @@ pub fn MessageDefinition::constants(
 ///
 /// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
 /// unbounded sequences (`type[]`), bounded sequences (`type[<=N]`), and scalar
-/// constants are supported. Nested message fields are rejected until their
-/// generated CDR representation is implemented.
+/// constants are supported. Nested message fields can be enabled with
+/// `parse_message_with_types`.
 pub fn parse_message(
   package_name : String,
   interface_namespace : String,
   type_name : String,
   source : String,
+) -> Result[MessageDefinition, String] {
+  let nested_types : Array[MessageTypeReference] = []
+  parse_message_with_types(
+    package_name, interface_namespace, type_name, source, nested_types,
+  )
+}
+
+///|
+/// Parse a ROS `.msg` definition with explicitly supplied nested message types.
+pub fn parse_message_with_types(
+  package_name : String,
+  interface_namespace : String,
+  type_name : String,
+  source : String,
+  nested_types : Array[MessageTypeReference],
 ) -> Result[MessageDefinition, String] {
   let fields : Array[MessageField] = []
   let constants : Array[MessageConstant] = []
@@ -240,7 +322,9 @@ pub fn parse_message(
     )
   }
   let definition = match
-    MessageDefinition::new(package_name, interface_namespace, type_name, fields) {
+    MessageDefinition::new_with_types(
+      package_name, interface_namespace, type_name, fields, nested_types,
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -265,10 +349,7 @@ fn rosidl_parse_field_type(
 ) -> Result[(String, MessageFieldCollection), String] {
   let parts = type_spec.split("[").collect()
   if parts.length() == 1 {
-    match rosidl_moon_type(parts[0].to_owned()) {
-      Ok(_) => Ok((parts[0].to_owned(), MessageFieldCollection::Scalar))
-      Err(message) => Err(message)
-    }
+    Ok((parts[0].to_owned(), MessageFieldCollection::Scalar))
   } else if parts.length() != 2 {
     Err("ROS message field type has an invalid collection suffix")
   } else {
@@ -276,10 +357,6 @@ fn rosidl_parse_field_type(
     let suffix = parts[1].to_owned()
     if suffix.length() == 0 || suffix[suffix.length() - 1] != ']' {
       return Err("ROS message collection type must end with ]")
-    }
-    match rosidl_moon_type(base_type) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
     }
     let inner = suffix[0:suffix.length() - 1].to_owned()
     if inner.length() == 0 {
@@ -340,7 +417,11 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     " {\n"
   for field in self.fields {
-    output += "  " + field.name + " : " + rosidl_field_moon_type(field) + "\n"
+    output += "  " +
+      field.name +
+      " : " +
+      rosidl_field_moon_type(field, self.nested_types) +
+      "\n"
   }
   output += "} derive(Eq, Debug)\n\n"
   for constant in self.constants {
@@ -356,7 +437,11 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   output += "///|\n"
   output += "pub fn " + self.type_name + "::new(\n"
   for field in self.fields {
-    output += "  " + field.name + " : " + rosidl_field_moon_type(field) + ",\n"
+    output += "  " +
+      field.name +
+      " : " +
+      rosidl_field_moon_type(field, self.nested_types) +
+      ",\n"
   }
   output += ") -> " + self.type_name + " {\n  {\n"
   for field in self.fields {
@@ -372,10 +457,34 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
       "(self : " +
       self.type_name +
       ") -> " +
-      rosidl_field_moon_type(field) +
+      rosidl_field_moon_type(field, self.nested_types) +
       " {\n"
     output += "  self." + field.name + "\n}\n\n"
   }
+  output += "///|\n"
+  output += "pub fn " +
+    self.type_name +
+    "::write_cdr(self : " +
+    self.type_name +
+    ", writer : @cdr.Writer) -> Unit {\n"
+  for field in self.fields {
+    output += rosidl_generate_writer(field)
+  }
+  output += "}\n\n"
+  output += "///|\n"
+  output += "pub fn " +
+    self.type_name +
+    "::read_cdr(reader : @cdr.Reader) -> Result[" +
+    self.type_name +
+    ", String] {\n"
+  for field in self.fields {
+    output += rosidl_generate_reader(field, self.nested_types)
+  }
+  output += "  Ok(" + self.type_name + "::new(\n"
+  for field in self.fields {
+    output += "    " + field.name + ",\n"
+  }
+  output += "  ))\n}\n\n"
   output += "///|\n"
   output += "pub fn " +
     self.type_name +
@@ -383,9 +492,7 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     ") -> Bytes {\n"
   output += "  let writer = @cdr.Writer::new()\n"
-  for field in self.fields {
-    output += rosidl_generate_writer(field)
-  }
+  output += "  self.write_cdr(writer)\n"
   output += "  writer.to_bytes()\n}\n\n"
   output += "///|\n"
   output += "pub fn " +
@@ -397,23 +504,23 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   output += "    Ok(value) => value\n"
   output += "    Err(message) => return Err(message)\n"
   output += "  }\n"
-  for field in self.fields {
-    output += rosidl_generate_reader(field)
-  }
+  output += "  let value = match " + self.type_name + "::read_cdr(reader) {\n"
+  output += "    Ok(value) => value\n"
+  output += "    Err(message) => return Err(message)\n"
+  output += "  }\n"
   output += "  if reader.remaining() != 0 {\n"
   output += "    return Err(\"trailing bytes after generated ROS message\")\n"
   output += "  }\n"
-  output += "  Ok(" + self.type_name + "::new(\n"
-  for field in self.fields {
-    output += "    " + field.name + ",\n"
-  }
-  output += "  ))\n}\n"
+  output += "  Ok(value)\n}\n"
   output
 }
 
 ///|
-fn rosidl_field_moon_type(field : MessageField) -> String {
-  let base = rosidl_moon_type(field.type_name).unwrap()
+fn rosidl_field_moon_type(
+  field : MessageField,
+  nested_types : Array[MessageTypeReference],
+) -> String {
+  let base = rosidl_moon_type_for_field(field.type_name, nested_types).unwrap()
   match field.collection {
     MessageFieldCollection::Scalar => base
     MessageFieldCollection::FixedArray(_) => "Array[" + base + "]"
@@ -425,6 +532,9 @@ fn rosidl_field_moon_type(field : MessageField) -> String {
 ///|
 fn rosidl_generate_writer(field : MessageField) -> String {
   let codec_method = rosidl_writer_method(field.type_name)
+  if rosidl_moon_type(field.type_name) is Err(_) {
+    return rosidl_generate_nested_writer(field)
+  }
   match field.collection {
     MessageFieldCollection::Scalar =>
       "  writer." + codec_method + "(self." + field.name + ")\n"
@@ -462,9 +572,15 @@ fn rosidl_generate_writer(field : MessageField) -> String {
 }
 
 ///|
-fn rosidl_generate_reader(field : MessageField) -> String {
+fn rosidl_generate_reader(
+  field : MessageField,
+  nested_types : Array[MessageTypeReference],
+) -> String {
   let codec_method = rosidl_reader_method(field.type_name)
-  let base = rosidl_moon_type(field.type_name).unwrap()
+  let base = rosidl_moon_type_for_field(field.type_name, nested_types).unwrap()
+  if rosidl_moon_type(field.type_name) is Err(_) {
+    return rosidl_generate_nested_reader(field, base)
+  }
   match field.collection {
     MessageFieldCollection::Scalar =>
       "  let " +
@@ -566,6 +682,125 @@ fn rosidl_generate_reader(field : MessageField) -> String {
 }
 
 ///|
+fn rosidl_generate_nested_writer(field : MessageField) -> String {
+  match field.collection {
+    MessageFieldCollection::Scalar =>
+      "  self." + field.name + ".write_cdr(writer)\n"
+    MessageFieldCollection::FixedArray(_) =>
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      "    value.write_cdr(writer)\n" +
+      "  }\n"
+    MessageFieldCollection::Sequence
+    | MessageFieldCollection::BoundedSequence(_) =>
+      "  writer.write_u32(self." +
+      field.name +
+      ".length().reinterpret_as_uint())\n" +
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      "    value.write_cdr(writer)\n" +
+      "  }\n"
+  }
+}
+
+///|
+fn rosidl_generate_nested_reader(
+  field : MessageField,
+  nested_type : String,
+) -> String {
+  match field.collection {
+    MessageFieldCollection::Scalar =>
+      "  let " +
+      field.name +
+      " = match " +
+      nested_type +
+      "::read_cdr(reader) {\n" +
+      "    Ok(value) => value\n" +
+      "    Err(message) => return Err(message)\n" +
+      "  }\n"
+    MessageFieldCollection::FixedArray(length) =>
+      "  let " +
+      field.name +
+      " : Array[" +
+      nested_type +
+      "] = []\n" +
+      "  for _ in 0..<" +
+      length.to_string() +
+      " {\n" +
+      "    " +
+      field.name +
+      ".push(match " +
+      nested_type +
+      "::read_cdr(reader) {\n" +
+      "      Ok(value) => value\n" +
+      "      Err(message) => return Err(message)\n" +
+      "    })\n" +
+      "  }\n"
+    MessageFieldCollection::Sequence =>
+      rosidl_generate_nested_sequence_reader(field, nested_type, None)
+    MessageFieldCollection::BoundedSequence(bound) =>
+      rosidl_generate_nested_sequence_reader(field, nested_type, Some(bound))
+  }
+}
+
+///|
+fn rosidl_generate_nested_sequence_reader(
+  field : MessageField,
+  nested_type : String,
+  bound : Int?,
+) -> String {
+  let mut output = "  let " +
+    field.name +
+    "_length = match reader.read_u32() {\n" +
+    "    Ok(value) => value.reinterpret_as_int()\n" +
+    "    Err(message) => return Err(message)\n" +
+    "  }\n"
+  match bound {
+    None =>
+      output += "  if " +
+        field.name +
+        "_length < 0 {\n" +
+        "    return Err(\"generated ROS sequence is truncated\")\n" +
+        "  }\n"
+    Some(value) =>
+      output += "  if " +
+        field.name +
+        "_length < 0 || " +
+        field.name +
+        "_length > " +
+        value.to_string() +
+        " {\n" +
+        "    return Err(\"generated ROS bounded sequence exceeds its bound\")\n" +
+        "  }\n"
+  }
+  output += "  if " +
+    field.name +
+    "_length > reader.remaining() {\n" +
+    "    return Err(\"generated ROS sequence is truncated\")\n" +
+    "  }\n" +
+    "  let " +
+    field.name +
+    " : Array[" +
+    nested_type +
+    "] = []\n" +
+    "  for _ in 0..<" +
+    field.name +
+    "_length {\n" +
+    "    " +
+    field.name +
+    ".push(match " +
+    nested_type +
+    "::read_cdr(reader) {\n" +
+    "      Ok(value) => value\n" +
+    "      Err(message) => return Err(message)\n" +
+    "    })\n" +
+    "  }\n"
+  output
+}
+
+///|
 fn rosidl_without_comment(line : String) -> String {
   let parts = line.split("#").collect()
   parts[0].to_owned()
@@ -616,6 +851,20 @@ fn rosidl_identifier(value : String) -> Bool {
 }
 
 ///|
+fn rosidl_type_reference_name(value : String) -> Bool {
+  let parts = value.split("/").collect()
+  if parts.length() == 1 {
+    return rosidl_identifier(value)
+  }
+  if parts.length() != 3 || parts[1] != "msg" {
+    return false
+  }
+  rosidl_identifier(parts[0].to_owned()) &&
+  rosidl_identifier(parts[1].to_owned()) &&
+  rosidl_identifier(parts[2].to_owned())
+}
+
+///|
 fn rosidl_moon_type(type_name : String) -> Result[String, String] {
   match type_name {
     "bool" => Ok("Bool")
@@ -633,6 +882,24 @@ fn rosidl_moon_type(type_name : String) -> Result[String, String] {
     "float64" => Ok("Double")
     "string" => Ok("String")
     _ => Err("unsupported ROS message field type: " + type_name)
+  }
+}
+
+///|
+fn rosidl_moon_type_for_field(
+  type_name : String,
+  nested_types : Array[MessageTypeReference],
+) -> Result[String, String] {
+  match rosidl_moon_type(type_name) {
+    Ok(value) => Ok(value)
+    Err(message) => {
+      for nested_type in nested_types {
+        if nested_type.ros_name == type_name {
+          return Ok(nested_type.moon_name)
+        }
+      }
+      Err(message)
+    }
   }
 }
 

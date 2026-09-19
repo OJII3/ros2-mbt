@@ -8,6 +8,8 @@ import {
 // Values
 pub fn parse_message(String, String, String, String) -> Result[MessageDefinition, String]
 
+pub fn parse_message_with_types(String, String, String, String, Array[MessageTypeReference]) -> Result[MessageDefinition, String]
+
 // Errors
 
 // Types and methods
@@ -27,12 +29,15 @@ pub struct MessageDefinition {
   type_name : String
   fields : Array[MessageField]
   constants : Array[MessageConstant]
+  nested_types : Array[MessageTypeReference]
 } derive(Eq, @debug.Debug)
 pub fn MessageDefinition::constants(Self) -> Array[MessageConstant]
 pub fn MessageDefinition::fields(Self) -> Array[MessageField]
 pub fn MessageDefinition::generate_moonbit(Self) -> String
 pub fn MessageDefinition::interface_namespace(Self) -> String
+pub fn MessageDefinition::nested_types(Self) -> Array[MessageTypeReference]
 pub fn MessageDefinition::new(String, String, String, Array[MessageField]) -> Result[Self, String]
+pub fn MessageDefinition::new_with_types(String, String, String, Array[MessageField], Array[MessageTypeReference]) -> Result[Self, String]
 pub fn MessageDefinition::package_name(Self) -> String
 pub fn MessageDefinition::type_name(Self) -> String
 pub fn MessageDefinition::with_constants(Self, Array[MessageConstant]) -> Result[Self, String]
@@ -54,6 +59,14 @@ pub(all) enum MessageFieldCollection {
   Sequence
   BoundedSequence(Int)
 } derive(Eq, @debug.Debug)
+
+pub struct MessageTypeReference {
+  ros_name : String
+  moon_name : String
+} derive(Eq, @debug.Debug)
+pub fn MessageTypeReference::moon_name(Self) -> String
+pub fn MessageTypeReference::new(String, String) -> Self
+pub fn MessageTypeReference::ros_name(Self) -> String
 
 // Type aliases
 

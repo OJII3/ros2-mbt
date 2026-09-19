@@ -41,7 +41,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
-- primitive / scalar constant `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、`rosidl`）
+- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、明示的な型参照に対応、`rosidl`）
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -55,7 +55,7 @@ moon check
 moon test --target native
 ```
 
-ROS message の nested type codegen、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
+ROS message の複数ファイル間の依存解決・import生成、Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 
 ## Roadmap
 
@@ -63,5 +63,5 @@ ROS message の nested type codegen、Cyclone DDS/Fast DDSとの実通信試験�
 2. SPDP participant discovery（packet codec、受信 dispatch、周期 announcement は実装済み）
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` submessage と ROS topic mapping（best-effort reader/writer adapter まで実装済み）
-5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence codegen は実装済み、nested type は未実装）
+5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・明示的なnested type codegen は実装済み、依存解決は未実装）
 6. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト

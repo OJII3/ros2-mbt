@@ -79,6 +79,28 @@ test "ROS message generator handles bounded sequences" {
 }
 
 ///|
+test "ROS message generator handles nested message fields" {
+  let nested_types : Array[MessageTypeReference] = [
+    MessageTypeReference::new("geometry_msgs/msg/Vector3", "Vector3"),
+  ]
+  let definition = match
+    parse_message_with_types(
+      "demo", "msg", "Pose", "geometry_msgs/msg/Vector3 position\ngeometry_msgs/msg/Vector3[] history\ngeometry_msgs/msg/Vector3[<=2] bounded",
+      nested_types,
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(definition.nested_types().length(), 1)
+  assert_eq(definition.fields()[0].type_name(), "geometry_msgs/msg/Vector3")
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("position : Vector3"))
+  assert_true(generated.contains("self.position.write_cdr(writer)"))
+  assert_true(generated.contains("Vector3::read_cdr(reader)"))
+  assert_true(generated.contains("bounded_length > 2"))
+}
+
+///|
 test "ROS message parser rejects unsupported definitions" {
   assert_true(parse_message("demo", "msg", "Bad", "int32[<3] values") is Err(_))
   assert_true(
@@ -90,5 +112,14 @@ test "ROS message parser rejects unsupported definitions" {
   )
   assert_true(
     parse_message("demo", "msg", "Bad", "int32 BAD=not_number") is Err(_),
+  )
+  let nested_types : Array[MessageTypeReference] = [
+    MessageTypeReference::new("Vector3", "Vector3"),
+  ]
+  assert_true(
+    parse_message_with_types(
+      "demo", "msg", "Bad", "Missing value", nested_types,
+    )
+    is Err(_),
   )
 }
