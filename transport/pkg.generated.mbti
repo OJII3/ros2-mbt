@@ -18,6 +18,22 @@ pub(all) enum DiscoveryEvent {
   Subscription(@rtps.SedpEndpointData)
 }
 
+pub struct DiscoverySession {
+  socket : Udp
+  participant : @rtps.SpdpParticipantData
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  destination : @socket.Addr
+  mut next_sequence_number : Int64
+}
+pub async fn DiscoverySession::announce_forever(Self, Int) -> Result[Unit, String]
+pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String]
+pub async fn DiscoverySession::announce_once(Self) -> Result[Unit, String]
+pub fn DiscoverySession::close(Self) -> Unit
+pub fn DiscoverySession::new(Udp, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn DiscoverySession::next_sequence_number(Self) -> Int64
+pub async fn DiscoverySession::receive_once(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
+
 pub struct Udp {
   server : @socket.UdpServer
 }
