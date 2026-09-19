@@ -1,0 +1,11 @@
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros",
+  "kainaproject/ros2_mbt/rtps",
+  "kainaproject/ros2_mbt/transport",
+  "moonbitlang/async",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

@@ -1,0 +1,203 @@
+///|
+/// Serve one `example_interfaces/srv/AddTwoInts` request over ROS 2 DDS.
+async fn main {
+  let prefix = match
+    @rtps.GuidPrefix::from_array([
+      0x4D, 0x42, 0x54, 0x52, 0x50, 0x53, 0, 0, 0, 0, 0, 44,
+    ]) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let service = match
+    @ros.RosService::new("/add_two_ints", "example_interfaces", "AddTwoInts") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let request_reader_id = match @rtps.EntityId::new(b"\x00\x00\x2C", 0xC7) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let response_writer_id = match @rtps.EntityId::new(b"\x00\x00\x2D", 0xC2) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0xC2) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0xC7) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let participant = match
+    @transport.RosParticipant::new_ddsi(
+      prefix, vendor_id, 0U, 44U, 0x7F000001U, 60, 1L,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  match
+    participant.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  match
+    participant.register_service_server(
+      service, request_reader_id, response_writer_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  let graph_info = match
+    participant.participant_entities_info("/demo", "moon_add_two_ints_server") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  match participant.announce_spdp_once() {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  let mut request_publication : @rtps.SedpEndpointData? = None
+  let mut response_subscription : @rtps.SedpEndpointData? = None
+  let mut graph_info_published = false
+  while request_publication is None || response_subscription is None {
+    match participant.receive_discovery_once() {
+      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
+        if publication.topic_name() == service.dds_request_name() &&
+          publication.type_name() == service.dds_request_type_name() {
+          request_publication = Some(publication)
+        }
+      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
+        if subscription.topic_name() == service.dds_response_name() &&
+          subscription.type_name() == service.dds_response_type_name() {
+          response_subscription = Some(subscription)
+        }
+      Ok(_) => ()
+      Err(message) => {
+        println(message)
+        participant.close()
+        return
+      }
+    }
+    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+      match participant.publish_ros_discovery_info(graph_info) {
+        Ok(_) => graph_info_published = true
+        Err(message) => {
+          println(message)
+          participant.close()
+          return
+        }
+      }
+    }
+  }
+  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => graph_info_published = true
+      Err(message) => {
+        println(message)
+        participant.close()
+        return
+      }
+    }
+  }
+  let request_publication = match request_publication {
+    Some(value) => value
+    None => return
+  }
+  let response_subscription = match response_subscription {
+    Some(value) => value
+    None => return
+  }
+  let (discovery, user_socket) = participant.into_parts()
+  discovery.close()
+  let server = match
+    @transport.RosServiceServer::new(
+      service, user_socket, user_socket, prefix, vendor_id, request_reader_id, request_publication,
+      response_writer_id, response_subscription, 1L,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let (request_payload, request_identity, _) = match server.receive_request() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      server.close()
+      return
+    }
+  }
+  let request_reader = match @cdr.Reader::from_bytes(request_payload) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      server.close()
+      return
+    }
+  }
+  let a = match request_reader.read_i64() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      server.close()
+      return
+    }
+  }
+  let b = match request_reader.read_i64() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      server.close()
+      return
+    }
+  }
+  let response_writer = @cdr.Writer::new()
+  response_writer.write_i64(a + b)
+  match server.respond(request_identity, response_writer.to_bytes()) {
+    Ok(_) => println("served AddTwoInts request")
+    Err(message) => println(message)
+  }
+  server.close()
+}

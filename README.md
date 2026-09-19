@@ -56,6 +56,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - `std_msgs/msg/String` を外部ROS 2と送受信する実行可能な `examples/talker` / `examples/listener`
+- `example_interfaces/srv/AddTwoInts` を外部ROS 2と呼び出す実行可能な `examples/service_server` / `examples/service_client`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -84,6 +85,18 @@ direnv exec . moon run examples/listener
 ```
 
 `examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、reliableな `std_msgs/msg/String` を5件送信します。`examples/listener` は同じ手順でpublicationを発見し、5件受信してCDRを復号します。ROS 2側のDDS実装と同一ホストまたは到達可能なネットワークで実行してください。外部ROS 2実装との実通信試験は、この環境では未実施です。
+
+serviceの動作確認は、MoonBit serverに対してROS 2 CLIから呼び出すか、ROS 2 serverを起動してMoonBit clientから呼び出します。
+
+```sh
+direnv exec . moon run examples/service_server
+ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 2, b: 3}"
+
+ros2 run demo_nodes_cpp add_two_ints_server
+direnv exec . moon run examples/service_client
+```
+
+service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
 
 ## Roadmap
 
