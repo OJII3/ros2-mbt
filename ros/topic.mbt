@@ -51,10 +51,40 @@ pub fn RosTopic::to_sedp(
   kind : @rtps.SedpEndpointKind,
   endpoint_guid : @rtps.Guid,
 ) -> Result[@rtps.SedpEndpointData, String] {
+  self.to_sedp_with_qos(kind, endpoint_guid, @rtps.SedpQos::default())
+}
+
+///|
+/// Build an SEDP endpoint identity with explicit basic DDS QoS.
+pub fn RosTopic::to_sedp_with_qos(
+  self : RosTopic,
+  kind : @rtps.SedpEndpointKind,
+  endpoint_guid : @rtps.Guid,
+  qos : @rtps.SedpQos,
+) -> Result[@rtps.SedpEndpointData, String] {
+  if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT &&
+    qos.reliability() != @rtps.RELIABILITY_RELIABLE {
+    return Err("ROS topic reliability QoS is invalid")
+  }
+  if qos.durability() > @rtps.DURABILITY_PERSISTENT {
+    return Err("ROS topic durability QoS is invalid")
+  }
+  if qos.history() != @rtps.HISTORY_KEEP_LAST &&
+    qos.history() != @rtps.HISTORY_KEEP_ALL {
+    return Err("ROS topic history QoS is invalid")
+  }
+  if qos.depth() <= 0 {
+    return Err("ROS topic history depth must be positive")
+  }
   @rtps.SedpEndpointData::new(
     kind,
     endpoint_guid,
     self.dds_name,
     self.dds_type_name,
-  )
+  ).map(fn(endpoint) {
+    endpoint.add_parameter(@rtps.qos_reliability(qos.reliability(), 0, 0))
+    endpoint.add_parameter(@rtps.qos_durability(qos.durability()))
+    endpoint.add_parameter(@rtps.qos_history(qos.history(), qos.depth()))
+    endpoint
+  })
 }

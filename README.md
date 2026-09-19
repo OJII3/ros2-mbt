@@ -37,7 +37,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - 発見済み participant 全体への SEDP endpoint の単発・有限回・継続 announcement
 - `rmw_dds_common` の `Gid` / `NodeEntitiesInfo` / `ParticipantEntitiesInfo` CDR codec
 - `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
-- ROS topic descriptor から SEDP topic/type identity への bridge
+- ROS topic descriptor から QoS付きSEDP topic/type identity への bridge
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper

@@ -80,6 +80,7 @@ pub fn RosTopic::dds_type_name(Self) -> String
 pub fn RosTopic::new(String, String, String, String) -> Result[Self, String]
 pub fn RosTopic::ros_name(Self) -> String
 pub fn RosTopic::to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
+pub fn RosTopic::to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
 
 pub struct StringMessage {
   data : String
