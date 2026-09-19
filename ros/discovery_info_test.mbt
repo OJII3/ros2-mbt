@@ -21,6 +21,9 @@ test "ROS discovery info round trips participant and node entities" {
   let participant = ParticipantEntitiesInfo::new(gid)
   participant.add_node(node)
   let encoded = participant.to_cdr_bytes()
+  assert_eq(
+    encoded, b"\x00\x01\x00\x000123456789abcdef\x01\x00\x00\x00\x06\x00\x00\x00/demo\x00\x00\x00\x07\x00\x00\x00talker\x00\x00\x01\x00\x00\x00reader-entity-01\x01\x00\x00\x00writer-entity-01",
+  )
   let decoded = match ParticipantEntitiesInfo::from_cdr_bytes(encoded) {
     Ok(value) => value
     Err(message) => fail(message)
