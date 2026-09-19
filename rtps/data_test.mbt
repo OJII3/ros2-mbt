@@ -96,3 +96,29 @@ test "RTPS DATA rejects malformed flags and body" {
     is Err(_),
   )
 }
+
+///|
+test "DATA builds an RTPS message" {
+  let prefix = match
+    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let data = DataSubmessage::new(reader_id, writer_id, 4L, b"payload")
+  let message = data.to_message(prefix, VendorId::new(1, 15))
+  assert_eq(message.submessages().length(), 1)
+  let decoded = match
+    DataSubmessage::from_submessage(message.submessages()[0]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded, data)
+}

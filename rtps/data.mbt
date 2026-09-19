@@ -159,6 +159,18 @@ pub fn DataSubmessage::to_submessage(self : DataSubmessage) -> Submessage {
 }
 
 ///|
+/// Build an RTPS message containing this DATA submessage.
+pub fn DataSubmessage::to_message(
+  self : DataSubmessage,
+  guid_prefix : GuidPrefix,
+  vendor_id : VendorId,
+) -> Message {
+  let message = Message::new(Header::new(guid_prefix, vendor_id))
+  message.add(self.to_submessage())
+  message
+}
+
+///|
 /// Parse a DATA submessage from an RTPS submessage.
 pub fn DataSubmessage::from_submessage(
   submessage : Submessage,

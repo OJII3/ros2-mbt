@@ -65,6 +65,18 @@ pub async fn Udp::send_message(
 }
 
 ///|
+/// Serialize and send one user DATA submessage.
+pub async fn Udp::send_data(
+  self : Udp,
+  data : @rtps.DataSubmessage,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  self.send_message(data.to_message(guid_prefix, vendor_id), destination)
+}
+
+///|
 /// Serialize and send one SPDP participant announcement.
 pub async fn Udp::send_spdp(
   self : Udp,
@@ -99,6 +111,28 @@ pub async fn Udp::receive_message(
     Err(message) => return Err(message)
   }
   Ok((message, source))
+}
+
+///|
+/// Receive and parse the first DATA submessage in a UDP datagram.
+pub async fn Udp::receive_data(
+  self : Udp,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  let (message, source) = match self.receive_message() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for submessage in message.submessages() {
+    if submessage.id() != @rtps.SubmessageId::Data {
+      continue
+    }
+    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    return Ok((data, source))
+  }
+  Err("RTPS datagram does not contain a DATA submessage")
 }
 
 ///|

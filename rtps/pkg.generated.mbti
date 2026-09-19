@@ -193,6 +193,7 @@ pub fn DataSubmessage::inline_qos(Self) -> Bytes
 pub fn DataSubmessage::new(EntityId, EntityId, Int64, Bytes) -> Self
 pub fn DataSubmessage::reader_id(Self) -> EntityId
 pub fn DataSubmessage::serialized_payload(Self) -> Bytes
+pub fn DataSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataSubmessage::to_payload(Self) -> Bytes
 pub fn DataSubmessage::to_submessage(Self) -> Submessage
 pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self

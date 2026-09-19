@@ -17,6 +17,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
 - DDSI-RTPS default port mapping と SPDP multicast address helper
+- user DATA submessage の RTPS message/UDP helper
 - ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
