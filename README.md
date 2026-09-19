@@ -32,6 +32,9 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - 発見済み SEDP endpoint から作る best-effort `DataReader` / `DataWriter`
 - `RosTopic` と発見済み endpoint を結ぶ `RosPublisher` / `RosSubscription` facade
 - reliable QoS向けの `ReliableRosPublisher` / `ReliableRosSubscription` facade
+- ROS service の request/response DDS topic・type identity descriptor
+- RTPS DDS-RPC related sample identity と inline QoS
+- reliable ROS service client/server facade（request/reply 相関付き）
 - `ros_discovery_info` 向けの reliable graph publisher/subscription facade
 - `RosTopic` と `std_msgs/msg/String` を使った loopback publisher/listener test
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
@@ -49,6 +52,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
 - primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、明示的な型参照に対応、`rosidl`）
+- `.srv` の request/response 分割 parser と MoonBit CDR codec generator
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
@@ -72,4 +76,5 @@ Cyclone DDS/Fast DDSとの実通信試験は未実装です。
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` submessage と ROS topic mapping（best-effort reader/writer adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
-6. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト
+6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み）
+7. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト
