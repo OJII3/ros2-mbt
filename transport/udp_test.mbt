@@ -304,3 +304,65 @@ async test "UDP classifies discovery samples by builtin writer" {
   sender.close()
   receiver.close()
 }
+
+///|
+async test "UDP sends SEDP to a participant metatraffic locator" {
+  let prefix = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint_id = match @rtps.EntityId::new(b"abc", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let endpoint_guid = @rtps.Guid::new(prefix, endpoint_id)
+  let endpoint = match
+    @rtps.SedpEndpointData::new(
+      @rtps.SedpEndpointKind::Publication,
+      endpoint_guid,
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let locator = match
+    @rtps.Locator::udp_v4(
+      b"\x7F\x00\x00\x01",
+      receiver.local_addr().port().reinterpret_as_uint(),
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(prefix, endpoint_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
+  )
+  remote_participant.add_metatraffic_unicast(locator)
+  match
+    sender.send_sedp_to_participant(
+      endpoint,
+      @rtps.VendorId::new(1, 15),
+      remote_participant,
+      1L,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (decoded, _) = match
+    receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.topic_name(), "rt/chatter")
+  assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
+  sender.close()
+  receiver.close()
+}

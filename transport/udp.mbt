@@ -289,6 +289,56 @@ pub async fn Udp::send_sedp(
 }
 
 ///|
+fn udp_locator_to_addr(locator : @rtps.Locator) -> Result[@socket.Addr, String] {
+  if locator.kind() != @rtps.LOCATOR_KIND_UDP_V4 {
+    return Err("only UDP/IPv4 RTPS locators are supported")
+  }
+  let address = locator.address()
+  let ip : UInt = (address[12].to_int().reinterpret_as_uint() << 24) |
+    (address[13].to_int().reinterpret_as_uint() << 16) |
+    (address[14].to_int().reinterpret_as_uint() << 8) |
+    address[15].to_int().reinterpret_as_uint()
+  Ok(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
+}
+
+///|
+/// Send an SEDP announcement to all metatraffic locators in an SPDP sample.
+pub async fn Udp::send_sedp_to_participant(
+  self : Udp,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  remote_participant : @rtps.SpdpParticipantData,
+  writer_sequence_number : Int64,
+) -> Result[Unit, String] {
+  let kind = endpoint.kind()
+  let reader_id = kind.builtin_reader_id()
+  let writer_id = kind.builtin_writer_id()
+  let unicast_locators = remote_participant.metatraffic_unicast_locators()
+  let locators = if unicast_locators.length() > 0 {
+    unicast_locators
+  } else {
+    remote_participant.metatraffic_multicast_locators()
+  }
+  if locators.length() == 0 {
+    return Err("the remote participant has no metatraffic locators")
+  }
+  for locator in locators {
+    let destination = match udp_locator_to_addr(locator) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match
+      self.send_sedp(
+        endpoint, vendor_id, reader_id, writer_id, writer_sequence_number, destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Receive the first SEDP endpoint DATA submessage in a UDP datagram.
 pub async fn Udp::receive_sedp(
   self : Udp,

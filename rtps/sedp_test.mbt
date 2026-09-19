@@ -125,3 +125,19 @@ test "SEDP resolves predefined builtin writer entity IDs" {
     SedpEndpointKind::from_builtin_writer_id(unknown_writer) is Err(_),
   )
 }
+
+///|
+test "SEDP resolves builtin reader and writer IDs by endpoint kind" {
+  let publication_reader = SedpEndpointKind::Publication.builtin_reader_id()
+  let publication_writer = SedpEndpointKind::Publication.builtin_writer_id()
+  let subscription_reader = SedpEndpointKind::Subscription.builtin_reader_id()
+  let subscription_writer = SedpEndpointKind::Subscription.builtin_writer_id()
+  assert_eq(publication_reader.key(), b"\x00\x00\x03")
+  assert_eq(publication_reader.kind(), 0xC7)
+  assert_eq(publication_writer.key(), b"\x00\x00\x03")
+  assert_eq(publication_writer.kind(), 0xC2)
+  assert_eq(subscription_reader.key(), b"\x00\x00\x04")
+  assert_eq(subscription_reader.kind(), 0xC7)
+  assert_eq(subscription_writer.key(), b"\x00\x00\x04")
+  assert_eq(subscription_writer.kind(), 0xC2)
+}

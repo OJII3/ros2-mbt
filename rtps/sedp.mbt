@@ -22,6 +22,28 @@ pub const ENTITYID_SEDP_SUBSCRIPTIONS_WRITER : Byte = 0xC2
 pub const ENTITYID_SEDP_SUBSCRIPTIONS_READER : Byte = 0xC7
 
 ///|
+/// Return the builtin SEDP reader used by the remote participant.
+pub fn SedpEndpointKind::builtin_reader_id(self : SedpEndpointKind) -> EntityId {
+  match self {
+    SedpEndpointKind::Publication =>
+      EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap()
+    SedpEndpointKind::Subscription =>
+      EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_READER).unwrap()
+  }
+}
+
+///|
+/// Return the builtin SEDP writer used by the local participant.
+pub fn SedpEndpointKind::builtin_writer_id(self : SedpEndpointKind) -> EntityId {
+  match self {
+    SedpEndpointKind::Publication =>
+      EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap()
+    SedpEndpointKind::Subscription =>
+      EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_WRITER).unwrap()
+  }
+}
+
+///|
 /// Resolve the SEDP kind from a predefined builtin writer entity ID.
 ///
 /// The publications and subscriptions writers use entity keys 0x000003 and

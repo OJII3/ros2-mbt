@@ -374,6 +374,8 @@ pub(all) enum SedpEndpointKind {
   Publication
   Subscription
 } derive(Eq, @debug.Debug)
+pub fn SedpEndpointKind::builtin_reader_id(Self) -> EntityId
+pub fn SedpEndpointKind::builtin_writer_id(Self) -> EntityId
 pub fn SedpEndpointKind::from_builtin_writer_id(EntityId) -> Result[Self, String]
 
 pub struct SpdpParticipantData {
