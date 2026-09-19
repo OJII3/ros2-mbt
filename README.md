@@ -19,6 +19,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
 - SEDP endpoint GUIDに対応する`PID_KEY_HASH`の広告・解析
 - SEDP publication/subscription向け標準パラメータ（型サイズ、inline QoS期待値）の広告
+- reliable SEDP HEARTBEAT の受信履歴管理と ACKNACK 応答
 - UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
 - 発見済み participant の metatraffic locator へ送る SEDP helper
