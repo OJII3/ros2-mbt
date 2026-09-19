@@ -82,6 +82,45 @@ test "RTPS ACKNACK round trips a partial bitmap" {
 }
 
 ///|
+test "RTPS GAP round trips range and bitmap gaps" {
+  let (reader_id, writer_id) = match reliability_test_ids() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let gap = match
+    GapSubmessage::new(reader_id, writer_id, 2L, 4L, 5U, [0x90000000U]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let submessage = match
+    Submessage::from_bytes(
+      match gap.to_submessage().to_bytes() {
+        Ok(value) => value
+        Err(message) => fail(message)
+      },
+    ) {
+    Ok((value, _)) => value
+    Err(message) => fail(message)
+  }
+  let decoded = match GapSubmessage::from_submessage(submessage) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.gap_start(), 2L)
+  assert_eq(decoded.gap_list_base(), 4L)
+  assert_eq(decoded.gap_list_num_bits(), 5U)
+  assert_eq(decoded.gap_list_bitmap(), [0x90000000U])
+  assert_true(decoded.contains_sequence(2L))
+  assert_true(decoded.contains_sequence(3L))
+  assert_true(decoded.contains_sequence(4L))
+  assert_true(decoded.contains_sequence(7L))
+  assert_false(decoded.contains_sequence(1L))
+  assert_false(decoded.contains_sequence(5L))
+  assert_false(decoded.contains_sequence(8L))
+  assert_eq(decoded.flags(), gap.flags())
+}
+
+///|
 test "RTPS reliability codecs reject invalid ranges" {
   let (reader_id, writer_id) = match reliability_test_ids() {
     Ok(value) => value
@@ -95,5 +134,11 @@ test "RTPS reliability codecs reject invalid ranges" {
   )
   assert_true(
     AckNackSubmessage::new(reader_id, writer_id, 1L, 257U, [], 1U) is Err(_),
+  )
+  assert_true(
+    GapSubmessage::new(reader_id, writer_id, 3L, 2L, 0U, []) is Err(_),
+  )
+  assert_true(
+    GapSubmessage::new(reader_id, writer_id, 1L, 1L, 33U, []) is Err(_),
   )
 }

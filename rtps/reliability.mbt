@@ -15,6 +15,10 @@ pub const ACKNACK_FLAG_LITTLE_ENDIAN : Byte = 0x01
 pub const ACKNACK_FLAG_FINAL : Byte = 0x02
 
 ///|
+/// RTPS GAP submessage flag indicating little-endian fields.
+pub const GAP_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
+///|
 /// The RTPS HEARTBEAT body has two EntityIds, two SequenceNumbers, and Count.
 pub const HEARTBEAT_BODY_LENGTH : Int = 28
 
@@ -104,6 +108,108 @@ pub struct AckNackSubmessage {
   bitmap : Array[UInt]
   count : UInt
 } derive(Eq, Debug)
+
+///|
+/// A decoded RTPS GAP submessage and its irrelevant-sequence bitmap.
+pub struct GapSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  gap_start : Int64
+  gap_list_base : Int64
+  gap_list_num_bits : UInt
+  gap_list_bitmap : Array[UInt]
+} derive(Eq, Debug)
+
+///|
+/// Create a little-endian GAP with a valid SequenceNumberSet.
+pub fn GapSubmessage::new(
+  reader_id : EntityId,
+  writer_id : EntityId,
+  gap_start : Int64,
+  gap_list_base : Int64,
+  gap_list_num_bits : UInt,
+  gap_list_bitmap : Array[UInt],
+) -> Result[GapSubmessage, String] {
+  if gap_start < 1L || gap_list_base < 1L {
+    return Err("an RTPS GAP sequence number must be positive")
+  }
+  if gap_list_base < gap_start {
+    return Err("an RTPS GAP bitmap base cannot precede gapStart")
+  }
+  if gap_list_num_bits > 256U {
+    return Err("an RTPS GAP bitmap cannot exceed 256 bits")
+  }
+  let expected_words = (gap_list_num_bits.reinterpret_as_int() + 31) / 32
+  if gap_list_bitmap.length() != expected_words {
+    return Err("an RTPS GAP bitmap has the wrong number of words")
+  }
+  Ok({
+    flags: GAP_FLAG_LITTLE_ENDIAN,
+    reader_id,
+    writer_id,
+    gap_start,
+    gap_list_base,
+    gap_list_num_bits,
+    gap_list_bitmap,
+  })
+}
+
+///|
+pub fn GapSubmessage::flags(self : GapSubmessage) -> Byte {
+  self.flags
+}
+
+///|
+pub fn GapSubmessage::reader_id(self : GapSubmessage) -> EntityId {
+  self.reader_id
+}
+
+///|
+pub fn GapSubmessage::writer_id(self : GapSubmessage) -> EntityId {
+  self.writer_id
+}
+
+///|
+pub fn GapSubmessage::gap_start(self : GapSubmessage) -> Int64 {
+  self.gap_start
+}
+
+///|
+pub fn GapSubmessage::gap_list_base(self : GapSubmessage) -> Int64 {
+  self.gap_list_base
+}
+
+///|
+pub fn GapSubmessage::gap_list_num_bits(self : GapSubmessage) -> UInt {
+  self.gap_list_num_bits
+}
+
+///|
+pub fn GapSubmessage::gap_list_bitmap(self : GapSubmessage) -> Array[UInt] {
+  self.gap_list_bitmap
+}
+
+///|
+/// Return whether a sequence number is declared irrelevant by this GAP.
+pub fn GapSubmessage::contains_sequence(
+  self : GapSubmessage,
+  sequence_number : Int64,
+) -> Bool {
+  if sequence_number < self.gap_start {
+    return false
+  }
+  if sequence_number < self.gap_list_base {
+    return true
+  }
+  let offset = (sequence_number - self.gap_list_base).to_int()
+  if offset < 0 || offset >= self.gap_list_num_bits.reinterpret_as_int() {
+    return false
+  }
+  let word_index = offset / 32
+  let bit_index = offset % 32
+  (self.gap_list_bitmap[word_index] & (0x80000000U >> bit_index)) != 0U
+}
 
 ///|
 /// Create a little-endian ACKNACK with an RTPS SequenceNumberSet bitmap.
@@ -372,6 +478,99 @@ pub fn AckNackSubmessage::from_submessage(
   let result = match
     AckNackSubmessage::new(
       reader_id, writer_id, bitmap_base, num_bits, bitmap, count,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..result, flags: submessage.flags(), })
+}
+
+///|
+/// Serialize the GAP body without its four-byte submessage header.
+pub fn GapSubmessage::to_payload(self : GapSubmessage) -> Bytes {
+  let bytes : Array[Byte] = []
+  let reader_id = self.reader_id.to_bytes()
+  let writer_id = self.writer_id.to_bytes()
+  for i in 0..<4 {
+    bytes.push(reader_id[i])
+  }
+  for i in 0..<4 {
+    bytes.push(writer_id[i])
+  }
+  reliability_append_i64(bytes, self.gap_start)
+  reliability_append_i64(bytes, self.gap_list_base)
+  reliability_append_u32(bytes, self.gap_list_num_bits)
+  for word in self.gap_list_bitmap {
+    reliability_append_u32(bytes, word)
+  }
+  Bytes::from_array(bytes)
+}
+
+///|
+/// Wrap the GAP body in an RTPS submessage.
+pub fn GapSubmessage::to_submessage(self : GapSubmessage) -> Submessage {
+  Submessage::new(SubmessageId::Gap, self.flags, self.to_payload())
+}
+
+///|
+/// Build an RTPS message containing this GAP.
+pub fn GapSubmessage::to_message(
+  self : GapSubmessage,
+  guid_prefix : GuidPrefix,
+  vendor_id : VendorId,
+) -> Message {
+  let message = Message::new(Header::new(guid_prefix, vendor_id))
+  message.add(self.to_submessage())
+  message
+}
+
+///|
+/// Parse a GAP submessage.
+pub fn GapSubmessage::from_submessage(
+  submessage : Submessage,
+) -> Result[GapSubmessage, String] {
+  if submessage.id() != SubmessageId::Gap {
+    return Err("expected an RTPS GAP submessage")
+  }
+  if (submessage.flags() & GAP_FLAG_LITTLE_ENDIAN) == 0 {
+    return Err("only little-endian RTPS GAP is supported")
+  }
+  if submessage.payload.length() < 28 {
+    return Err("an RTPS GAP body is shorter than its fixed fields")
+  }
+  let reader_id = match
+    EntityId::from_bytes(bytes_from(submessage.payload, 0, 4)) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let writer_id = match
+    EntityId::from_bytes(bytes_from(submessage.payload, 4, 4)) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let gap_start = reliability_read_i64(submessage.payload, 8)
+  let gap_list_base = reliability_read_i64(submessage.payload, 16)
+  let gap_list_num_bits = reliability_read_u32(submessage.payload, 24)
+  if gap_list_num_bits > 256U {
+    return Err("an RTPS GAP bitmap cannot exceed 256 bits")
+  }
+  let word_count = (gap_list_num_bits.reinterpret_as_int() + 31) / 32
+  let expected_length = 28 + word_count * 4
+  if submessage.payload.length() != expected_length {
+    return Err("an RTPS GAP body has an invalid bitmap length")
+  }
+  let gap_list_bitmap : Array[UInt] = []
+  for i in 0..<word_count {
+    gap_list_bitmap.push(reliability_read_u32(submessage.payload, 28 + i * 4))
+  }
+  let result = match
+    GapSubmessage::new(
+      reader_id,
+      writer_id,
+      gap_start,
+      gap_list_base,
+      gap_list_num_bits,
+      gap_list_bitmap,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)

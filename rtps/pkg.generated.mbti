@@ -62,6 +62,8 @@ pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
 
 pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
+pub const GAP_FLAG_LITTLE_ENDIAN : Byte = 0x01
+
 pub const HEADER_LENGTH : Int = 20
 
 pub const HEARTBEAT_BODY_LENGTH : Int = 28
@@ -266,6 +268,29 @@ pub fn EntityId::kind(Self) -> Byte
 pub fn EntityId::new(Bytes, Byte) -> Result[Self, String]
 pub fn EntityId::to_bytes(Self) -> Bytes
 pub fn EntityId::unknown() -> Self
+
+pub struct GapSubmessage {
+  flags : Byte
+  reader_id : EntityId
+  writer_id : EntityId
+  gap_start : Int64
+  gap_list_base : Int64
+  gap_list_num_bits : UInt
+  gap_list_bitmap : Array[UInt]
+} derive(Eq, @debug.Debug)
+pub fn GapSubmessage::contains_sequence(Self, Int64) -> Bool
+pub fn GapSubmessage::flags(Self) -> Byte
+pub fn GapSubmessage::from_submessage(Submessage) -> Result[Self, String]
+pub fn GapSubmessage::gap_list_base(Self) -> Int64
+pub fn GapSubmessage::gap_list_bitmap(Self) -> Array[UInt]
+pub fn GapSubmessage::gap_list_num_bits(Self) -> UInt
+pub fn GapSubmessage::gap_start(Self) -> Int64
+pub fn GapSubmessage::new(EntityId, EntityId, Int64, Int64, UInt, Array[UInt]) -> Result[Self, String]
+pub fn GapSubmessage::reader_id(Self) -> EntityId
+pub fn GapSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
+pub fn GapSubmessage::to_payload(Self) -> Bytes
+pub fn GapSubmessage::to_submessage(Self) -> Submessage
+pub fn GapSubmessage::writer_id(Self) -> EntityId
 
 pub struct Guid {
   prefix : GuidPrefix

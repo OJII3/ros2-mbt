@@ -63,3 +63,30 @@ test "reliable reader accepts DATA with an unknown reader ID" {
   assert_true(reader.accept_data(data) is Ok(_))
   assert_eq(reader.sample_count(), 1)
 }
+
+///|
+test "reliable reader does not request sequences declared by GAP" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let gap = @rtps.GapSubmessage::new(
+    reader_id,
+    writer_id,
+    2L,
+    4L,
+    5U,
+    [0x90000000U],
+  ).unwrap()
+  reader.accept_gap(gap).unwrap()
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    5L,
+    1U,
+  ).unwrap()
+  let acknack = reader.acknack_for_heartbeat(heartbeat).unwrap()
+  assert_eq(acknack.bitmap_base(), 1L)
+  assert_eq(acknack.num_bits(), 5U)
+  assert_eq(acknack.bitmap(), [0x88000000U])
+}

@@ -9,6 +9,7 @@ pub struct ReliableDataReader {
   writer_id : @rtps.EntityId
   mut next_acknack_count : UInt
   samples : Array[@rtps.DataSubmessage]
+  gaps : Array[@rtps.GapSubmessage]
 }
 
 ///|
@@ -17,7 +18,13 @@ pub fn ReliableDataReader::new(
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
 ) -> ReliableDataReader {
-  { reader_id, writer_id, next_acknack_count: 1U, samples: [], }
+  {
+    reader_id,
+    writer_id,
+    next_acknack_count: 1U,
+    samples: [],
+    gaps: [],
+  }
 }
 
 ///|
@@ -56,12 +63,42 @@ pub fn ReliableDataReader::accept_data(
 }
 
 ///|
+/// Accept a GAP addressed to this reader and writer.
+pub fn ReliableDataReader::accept_gap(
+  self : ReliableDataReader,
+  gap : @rtps.GapSubmessage,
+) -> Result[Unit, String] {
+  if gap.reader_id() != self.reader_id &&
+    gap.reader_id() != @rtps.EntityId::unknown() {
+    return Err("the GAP targets a different RTPS reader")
+  }
+  if gap.writer_id() != self.writer_id {
+    return Err("the GAP comes from a different RTPS writer")
+  }
+  self.gaps.push(gap)
+  Ok(())
+}
+
+///|
 fn reliable_reader_has_sequence(
   samples : Array[@rtps.DataSubmessage],
   sequence_number : Int64,
 ) -> Bool {
   for sample in samples {
     if sample.writer_sequence_number() == sequence_number {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn reliable_reader_gap_contains_sequence(
+  gaps : Array[@rtps.GapSubmessage],
+  sequence_number : Int64,
+) -> Bool {
+  for gap in gaps {
+    if gap.contains_sequence(sequence_number) {
       return true
     }
   }
@@ -94,7 +131,8 @@ pub fn ReliableDataReader::acknack_for_heartbeat(
   }
   for offset in 0..<range {
     let sequence_number = heartbeat.first_sequence_number() + offset.to_int64()
-    if reliable_reader_has_sequence(self.samples, sequence_number) {
+    if reliable_reader_has_sequence(self.samples, sequence_number) ||
+      reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
       continue
     }
     let word_index = offset / 32
