@@ -160,6 +160,44 @@ pub async fn Udp::receive_data(
 }
 
 ///|
+/// Serialize and send one ROS graph-discovery sample as RTPS DATA.
+pub async fn Udp::send_ros_discovery_info(
+  self : Udp,
+  info : @ros.ParticipantEntitiesInfo,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+  writer_sequence_number : Int64,
+  destination : @socket.Addr,
+) -> Result[Unit, String] {
+  let data = @rtps.DataSubmessage::new(
+    reader_id,
+    writer_id,
+    writer_sequence_number,
+    info.to_cdr_bytes(),
+  )
+  self.send_data(data, guid_prefix, vendor_id, destination)
+}
+
+///|
+/// Receive and decode one ROS graph-discovery DATA sample.
+pub async fn Udp::receive_ros_discovery_info(
+  self : Udp,
+) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String] {
+  let (data, source) = match self.receive_data() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let info = match
+    @ros.ParticipantEntitiesInfo::from_cdr_bytes(data.serialized_payload()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok((info, source))
+}
+
+///|
 /// Receive and parse the first HEARTBEAT submessage in a UDP datagram.
 pub async fn Udp::receive_heartbeat(
   self : Udp,

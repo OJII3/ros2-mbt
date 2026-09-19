@@ -2,6 +2,7 @@
 package "kainaproject/ros2_mbt/transport"
 
 import {
+  "kainaproject/ros2_mbt/ros",
   "kainaproject/ros2_mbt/rtps",
   "moonbitlang/async/socket",
 }
@@ -54,15 +55,19 @@ pub struct DiscoveryGraph {
   participants : Array[@rtps.SpdpParticipantData]
   publications : Array[@rtps.SedpEndpointData]
   subscriptions : Array[@rtps.SedpEndpointData]
+  ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 pub fn DiscoveryGraph::find_publications(Self, String, String) -> Array[@rtps.SedpEndpointData]
 pub fn DiscoveryGraph::find_subscriptions(Self, String, String) -> Array[@rtps.SedpEndpointData]
 pub fn DiscoveryGraph::ingest(Self, DiscoveryEvent) -> Unit
+pub fn DiscoveryGraph::ingest_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Unit
 pub fn DiscoveryGraph::new() -> Self
 pub fn DiscoveryGraph::participant_count(Self) -> Int
 pub fn DiscoveryGraph::participants(Self) -> Array[@rtps.SpdpParticipantData]
 pub fn DiscoveryGraph::publication_count(Self) -> Int
 pub fn DiscoveryGraph::publications(Self) -> Array[@rtps.SedpEndpointData]
+pub fn DiscoveryGraph::ros_participant_count(Self) -> Int
+pub fn DiscoveryGraph::ros_participants(Self) -> Array[@ros.ParticipantEntitiesInfo]
 pub fn DiscoveryGraph::subscription_count(Self) -> Int
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
 
@@ -129,12 +134,14 @@ pub async fn Udp::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Ad
 pub async fn Udp::receive_discovery(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
 pub async fn Udp::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_message(Self) -> Result[(@rtps.Message, @socket.Addr), String]
+pub async fn Udp::receive_ros_discovery_info(Self) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
 pub async fn Udp::receive_sedp(Self, @rtps.SedpEndpointKind) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String]
 pub async fn Udp::receive_spdp(Self) -> Result[(@rtps.SpdpParticipantData, @socket.Addr), String]
 pub async fn Udp::send_acknack(Self, @rtps.AckNackSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_data(Self, @rtps.DataSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_heartbeat(Self, @rtps.HeartbeatSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit

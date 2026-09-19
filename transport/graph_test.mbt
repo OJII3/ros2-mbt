@@ -51,3 +51,31 @@ test "discovery graph upserts and matches endpoints" {
   assert_eq(matched[0].unicast_locators()[0].port(), 9000U)
   assert_eq(graph.find_subscriptions("rt/chatter", "missing").length(), 0)
 }
+
+///|
+test "discovery graph upserts ROS participant entities" {
+  let gid = match @ros.Gid::new(b"0123456789abcdef") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let first = @ros.ParticipantEntitiesInfo::new(gid)
+  let first_node = match @ros.NodeEntitiesInfo::new("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  first.add_node(first_node)
+  let second = @ros.ParticipantEntitiesInfo::new(gid)
+  let second_node = match @ros.NodeEntitiesInfo::new("/demo", "listener") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  second.add_node(second_node)
+  let graph = DiscoveryGraph::new()
+  graph.ingest_ros_discovery_info(first)
+  graph.ingest_ros_discovery_info(second)
+  assert_eq(graph.ros_participant_count(), 1)
+  assert_eq(
+    graph.ros_participants()[0].node_entities_info_seq()[0].node_name(),
+    "listener",
+  )
+}

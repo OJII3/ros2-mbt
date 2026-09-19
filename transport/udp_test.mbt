@@ -84,6 +84,56 @@ async test "UDP sends and receives one DATA sample" {
 }
 
 ///|
+async test "UDP sends and receives ROS graph-discovery info" {
+  let gid = match @ros.Gid::new(b"0123456789abcdef") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let info = @ros.ParticipantEntitiesInfo::new(gid)
+  let node = match @ros.NodeEntitiesInfo::new("/demo", "talker") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  info.add_node(node)
+  let prefix = match
+    @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let reader_id = match @rtps.EntityId::new(b"rdr", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let writer_id = match @rtps.EntityId::new(b"wrt", 0xC2) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  match
+    sender.send_ros_discovery_info(
+      info,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      reader_id,
+      writer_id,
+      1L,
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (decoded, source) = match receiver.receive_ros_discovery_info() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.to_cdr_bytes(), info.to_cdr_bytes())
+  assert_eq(source.ip(), 0x7F000001U)
+  sender.close()
+  receiver.close()
+}
+
+///|
 async test "UDP sends and receives one SPDP announcement" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

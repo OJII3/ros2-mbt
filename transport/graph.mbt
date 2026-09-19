@@ -4,11 +4,17 @@ pub struct DiscoveryGraph {
   participants : Array[@rtps.SpdpParticipantData]
   publications : Array[@rtps.SedpEndpointData]
   subscriptions : Array[@rtps.SedpEndpointData]
+  ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 
 ///|
 pub fn DiscoveryGraph::new() -> DiscoveryGraph {
-  { participants: [], publications: [], subscriptions: [], }
+  {
+    participants: [],
+    publications: [],
+    subscriptions: [],
+    ros_participants: [],
+  }
 }
 
 ///|
@@ -64,6 +70,33 @@ pub fn DiscoveryGraph::publication_count(self : DiscoveryGraph) -> Int {
 ///|
 pub fn DiscoveryGraph::subscription_count(self : DiscoveryGraph) -> Int {
   self.subscriptions.length()
+}
+
+///|
+/// Insert or replace one ROS graph-discovery sample by participant GID.
+pub fn DiscoveryGraph::ingest_ros_discovery_info(
+  self : DiscoveryGraph,
+  info : @ros.ParticipantEntitiesInfo,
+) -> Unit {
+  for index in 0..<self.ros_participants.length() {
+    if self.ros_participants[index].gid() == info.gid() {
+      self.ros_participants[index] = info
+      return
+    }
+  }
+  self.ros_participants.push(info)
+}
+
+///|
+pub fn DiscoveryGraph::ros_participant_count(self : DiscoveryGraph) -> Int {
+  self.ros_participants.length()
+}
+
+///|
+pub fn DiscoveryGraph::ros_participants(
+  self : DiscoveryGraph,
+) -> Array[@ros.ParticipantEntitiesInfo] {
+  self.ros_participants
 }
 
 ///|
