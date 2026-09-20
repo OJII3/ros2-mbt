@@ -110,6 +110,23 @@ async test "discovery service expires participants after the SPDP lease" {
   let (_, first_event) = service.receive_once().unwrap()
   assert_true(first_event is DiscoveryEvent::Participant(_))
   assert_eq(service.graph().participant_count(), 1)
+  let publication = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  sender.send_sedp(
+    publication,
+    @rtps.VendorId::new(1, 15),
+    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+    1L,
+    receiver_address,
+  ).unwrap()
+  let (_, publication_event) = service.receive_once().unwrap()
+  assert_true(publication_event is DiscoveryEvent::Publication(_))
+  assert_eq(service.graph().publication_count(), 1)
 
   @async.sleep(300)
   sender.send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
@@ -129,6 +146,7 @@ async test "discovery service expires participants after the SPDP lease" {
     _ => fail("expected the expired participant removal")
   }
   assert_eq(service.graph().participant_count(), 0)
+  assert_eq(service.graph().publication_count(), 0)
   service.close()
   sender.close()
 }
