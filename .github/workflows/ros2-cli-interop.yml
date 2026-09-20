@@ -16,23 +16,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up ROS 2 Jazzy
-        uses: ros-tooling/setup-ros@649ef6bcd696da05bc27ceb3fab69d810c0daeab # 0.7.19
-        with:
-          required-ros-distributions: jazzy
-
-      - name: Install ROS 2 service test packages
-        run: sudo apt-get update && sudo apt-get install -y ros-jazzy-demo-nodes-cpp ros-jazzy-example-interfaces
-
       - name: Set up Nix
-        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - name: Run native test suite
-        run: nix develop --command moon test --target native
+        run: nix develop .#ros2 --command moon test --target native
 
       - name: Verify ROS 2 CLI topic and service interoperability
         env:
           ROS_DOMAIN_ID: "42"
           ROS_LOCALHOST_ONLY: "1"
           ROS2_MBT_IP: 127.0.0.1
-        run: bash scripts/ros2_cli_interop.sh
+        run: nix develop .#ros2 --command bash scripts/ros2_cli_interop.sh

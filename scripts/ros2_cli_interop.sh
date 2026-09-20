@@ -29,27 +29,27 @@ moon_client_pid=""
 cleanup() {
   local exit_status=$?
   if [[ -n "$echo_pid" ]]; then
-    kill "$echo_pid" 2>/dev/null || true
+    kill -- "-$echo_pid" 2>/dev/null || true
     wait "$echo_pid" 2>/dev/null || true
   fi
   if [[ -n "$talker_pid" ]]; then
-    kill "$talker_pid" 2>/dev/null || true
+    kill -- "-$talker_pid" 2>/dev/null || true
     wait "$talker_pid" 2>/dev/null || true
   fi
   if [[ -n "$listener_pid" ]]; then
-    kill "$listener_pid" 2>/dev/null || true
+    kill -- "-$listener_pid" 2>/dev/null || true
     wait "$listener_pid" 2>/dev/null || true
   fi
   if [[ -n "$moon_service_pid" ]]; then
-    kill "$moon_service_pid" 2>/dev/null || true
+    kill -- "-$moon_service_pid" 2>/dev/null || true
     wait "$moon_service_pid" 2>/dev/null || true
   fi
   if [[ -n "$ros_service_pid" ]]; then
-    kill "$ros_service_pid" 2>/dev/null || true
+    kill -- "-$ros_service_pid" 2>/dev/null || true
     wait "$ros_service_pid" 2>/dev/null || true
   fi
   if [[ -n "$moon_client_pid" ]]; then
-    kill "$moon_client_pid" 2>/dev/null || true
+    kill -- "-$moon_client_pid" 2>/dev/null || true
     wait "$moon_client_pid" 2>/dev/null || true
   fi
   if [[ $exit_status -ne 0 ]]; then
@@ -66,7 +66,7 @@ wait_for_node() {
   local process_pid="$2"
   for _ in {1..20}; do
     local nodes
-    nodes=$(timeout 3s ros2 node list --spin-time 0.25 2>/dev/null || true)
+    nodes=$(timeout --kill-after=1s 3s ros2 node list --spin-time 0.25 2>/dev/null || true)
     if grep -Fxq "$node_name" <<<"$nodes"; then
       return 0
     fi
@@ -85,7 +85,7 @@ wait_for_node_endpoint() {
   local endpoint_name="$3"
   for _ in {1..20}; do
     local node_info
-    node_info=$(timeout 3s ros2 node info "$node_name" 2>/dev/null || true)
+    node_info=$(timeout --kill-after=1s 3s ros2 node info "$node_name" 2>/dev/null || true)
     if awk -v section="  $endpoint_section:" -v endpoint="    $endpoint_name:" '
       $0 == section { in_section = 1; next }
       /^  [[:alpha:] ]+:$/ { in_section = 0 }
@@ -100,15 +100,31 @@ wait_for_node_endpoint() {
   return 1
 }
 
-timeout --foreground 45s ros2 topic echo /chatter std_msgs/msg/String --once \
+wait_for_ros_endpoint() {
+  local node_name="$1"
+  local process_pid="$2"
+  local endpoint_section="$3"
+  local endpoint_name="$4"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    sleep 1
+    if [[ -n "$process_pid" ]] && ! kill -0 "$process_pid" 2>/dev/null; then
+      echo "ROS 2 test process exited before checking $endpoint_name"
+      return 1
+    fi
+    return 0
+  fi
+  wait_for_node "$node_name" "$process_pid"
+  wait_for_node_endpoint "$node_name" "$endpoint_section" "$endpoint_name"
+}
+
+timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$echo_log" 2>&1 &
 echo_pid=$!
-timeout --foreground 45s nix develop --command moon run examples/talker \
+timeout --kill-after=2s 45s nix develop --command moon run examples/talker \
   >"$talker_log" 2>&1 &
 talker_pid=$!
 
-wait_for_node "/demo/moon_talker" "$talker_pid"
-wait_for_node_endpoint "/demo/moon_talker" "Publishers" "/chatter"
+wait_for_ros_endpoint "/demo/moon_talker" "$talker_pid" "Publishers" "/chatter"
 
 wait "$talker_pid"
 talker_pid=""
@@ -120,14 +136,13 @@ if ! grep -Fq "hello from MoonBit #" "$echo_log"; then
   exit 1
 fi
 
-timeout --foreground 45s nix develop --command moon run examples/listener \
+timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
   >"$listener_log" 2>&1 &
 listener_pid=$!
 
-wait_for_node "/demo/moon_listener" "$listener_pid"
-wait_for_node_endpoint "/demo/moon_listener" "Subscribers" "/chatter"
+wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
 
-timeout --foreground 45s ros2 topic pub --times 5 --rate 10 \
+timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
   /chatter std_msgs/msg/String "{data: 'hello from ROS 2'}" \
   >"$publisher_log" 2>&1
 wait "$listener_pid"
@@ -139,12 +154,12 @@ if [[ "$received_count" -ne 5 ]]; then
   exit 1
 fi
 
-timeout --foreground 45s nix develop --command moon run examples/service_server \
+timeout --kill-after=2s 45s nix develop --command moon run examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
-wait_for_node "/demo/moon_add_two_ints_server" "$moon_service_pid"
-wait_for_node_endpoint "/demo/moon_add_two_ints_server" "Service Servers" "/add_two_ints"
-timeout --foreground 45s ros2 service call /add_two_ints \
+wait_for_ros_endpoint "/demo/moon_add_two_ints_server" "$moon_service_pid" \
+  "Service Servers" "/add_two_ints"
+timeout --kill-after=2s 45s ros2 service call /add_two_ints \
   example_interfaces/srv/AddTwoInts "{a: 2, b: 3}" \
   >"$service_call_log" 2>&1
 wait "$moon_service_pid"
@@ -157,9 +172,9 @@ fi
 
 ros2 run demo_nodes_cpp add_two_ints_server >"$ros_service_log" 2>&1 &
 ros_service_pid=$!
-wait_for_node "/add_two_ints_server" "$ros_service_pid"
-wait_for_node_endpoint "/add_two_ints_server" "Service Servers" "/add_two_ints"
-timeout --foreground 45s nix develop --command moon run examples/service_client \
+wait_for_ros_endpoint "/add_two_ints_server" "$ros_service_pid" \
+  "Service Servers" "/add_two_ints"
+timeout --kill-after=2s 45s nix develop --command moon run examples/service_client \
   >"$moon_client_log" 2>&1 &
 moon_client_pid=$!
 wait "$moon_client_pid"
