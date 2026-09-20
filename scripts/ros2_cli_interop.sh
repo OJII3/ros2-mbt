@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
 if ! command -v ros2 >/dev/null 2>&1 && [[ -f /opt/ros/jazzy/setup.bash ]]; then
   # shellcheck disable=SC1091
   source /opt/ros/jazzy/setup.bash
@@ -12,6 +14,7 @@ fi
 
 tmp_dir=$(mktemp -d)
 echo_log="$tmp_dir/topic-echo.log"
+graph_observer_log="$tmp_dir/ros-graph-observer.log"
 talker_log="$tmp_dir/moonbit-talker.log"
 listener_log="$tmp_dir/moonbit-listener.log"
 publisher_log="$tmp_dir/topic-pub.log"
@@ -24,6 +27,7 @@ service_call_log="$tmp_dir/ros2-service-call.log"
 ros_service_log="$tmp_dir/ros2-service-server.log"
 moon_client_log="$tmp_dir/moonbit-service-client.log"
 echo_pid=""
+graph_observer_pid=""
 talker_pid=""
 listener_pid=""
 moon_service_pid=""
@@ -35,6 +39,10 @@ cleanup() {
   if [[ -n "$echo_pid" ]]; then
     kill -- "-$echo_pid" 2>/dev/null || true
     wait "$echo_pid" 2>/dev/null || true
+  fi
+  if [[ -n "$graph_observer_pid" ]]; then
+    kill -- "-$graph_observer_pid" 2>/dev/null || true
+    wait "$graph_observer_pid" 2>/dev/null || true
   fi
   if [[ -n "$talker_pid" ]]; then
     kill -- "-$talker_pid" 2>/dev/null || true
@@ -57,7 +65,8 @@ cleanup() {
     wait "$moon_client_pid" 2>/dev/null || true
   fi
   if [[ $exit_status -ne 0 ]]; then
-    cat "$talker_log" "$echo_log" "$listener_log" "$publisher_log" \
+    cat "$talker_log" "$echo_log" "$graph_observer_log" \
+      "$listener_log" "$publisher_log" \
       "$wstring_talker_log" "$wstring_echo_log" \
       "$wstring_listener_log" "$wstring_publisher_log" \
       "$moon_service_log" "$service_call_log" "$ros_service_log" \
@@ -126,6 +135,11 @@ wait_for_ros_endpoint() {
 timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$echo_log" 2>&1 &
 echo_pid=$!
+if [[ "$(uname -s)" == "Linux" ]]; then
+  timeout --kill-after=2s 45s python3 -u \
+    "$script_dir/ros2_graph_interop_observer.py" >"$graph_observer_log" 2>&1 &
+  graph_observer_pid=$!
+fi
 timeout --kill-after=2s 45s nix develop --command moon run examples/talker \
   >"$talker_log" 2>&1 &
 talker_pid=$!
@@ -136,10 +150,18 @@ wait "$talker_pid"
 talker_pid=""
 wait "$echo_pid"
 echo_pid=""
-
 if ! grep -Fq "hello from MoonBit #" "$echo_log"; then
   echo "ROS 2 CLI did not receive a MoonBit String sample"
   exit 1
+fi
+if [[ -n "$graph_observer_pid" ]]; then
+  wait "$graph_observer_pid"
+  graph_observer_pid=""
+  if ! grep -Fq "ROS_DISCOVERY_INFO_MATCHED /demo/moon_talker /chatter" \
+    "$graph_observer_log"; then
+    echo "ROS 2 graph observer did not validate MoonBit participant metadata"
+    exit 1
+  fi
 fi
 
 timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
