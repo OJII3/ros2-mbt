@@ -92,10 +92,16 @@ test "discovery graph removes a participant and its endpoints" {
   graph.ingest(DiscoveryEvent::Participant(participant))
   graph.ingest(DiscoveryEvent::Publication(publication))
   graph.ingest(DiscoveryEvent::Subscription(subscription))
+  let info = @ros.ParticipantEntitiesInfo::new(
+    @ros.Gid::from_guid(participant_guid),
+  )
+  graph.ingest_ros_discovery_info(info)
+  assert_eq(graph.ros_participant_count(), 1)
   graph.ingest(DiscoveryEvent::ParticipantRemoved(participant_guid))
   assert_eq(graph.participant_count(), 0)
   assert_eq(graph.publication_count(), 0)
   assert_eq(graph.subscription_count(), 0)
+  assert_eq(graph.ros_participant_count(), 0)
 }
 
 ///|

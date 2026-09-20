@@ -4,7 +4,7 @@ pub struct DiscoveryGraph {
   mut participants : Array[@rtps.SpdpParticipantData]
   mut publications : Array[@rtps.SedpEndpointData]
   mut subscriptions : Array[@rtps.SedpEndpointData]
-  ros_participants : Array[@ros.ParticipantEntitiesInfo]
+  mut ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 
 ///|
@@ -97,6 +97,14 @@ pub fn DiscoveryGraph::ingest(
         }
       }
       self.subscriptions = remaining_subscriptions
+      let participant_gid = @ros.Gid::from_guid(participant_guid)
+      let remaining_ros_participants : Array[@ros.ParticipantEntitiesInfo] = []
+      for info in self.ros_participants {
+        if info.gid() != participant_gid {
+          remaining_ros_participants.push(info)
+        }
+      }
+      self.ros_participants = remaining_ros_participants
     }
   }
 }
