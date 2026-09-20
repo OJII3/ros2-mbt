@@ -19,8 +19,11 @@ jobs:
       - name: Set up Nix
         uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
+      - name: Update MoonBit package registry
+        run: nix develop . --command moon update
+
       - name: Run native test suite
-        run: nix develop .#ros2 --command moon test --target native
+        run: nix develop . --command moon test --target native
 
       - name: Verify ROS 2 CLI topic and service interoperability
         env:
