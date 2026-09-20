@@ -2,6 +2,9 @@
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# Keep reversed startup-order cases separate from the first participant leases.
+base_ros_domain_id=${ROS_DOMAIN_ID:-0}
+startup_order_ros_domain_id=$(((base_ros_domain_id + 1) % 233))
 
 if ! command -v ros2 >/dev/null 2>&1 && [[ -f /opt/ros/jazzy/setup.bash ]]; then
   # shellcheck disable=SC1091
@@ -15,9 +18,13 @@ fi
 tmp_dir=$(mktemp -d)
 echo_log="$tmp_dir/topic-echo.log"
 graph_observer_log="$tmp_dir/ros-graph-observer.log"
+publisher_first_echo_log="$tmp_dir/publisher-first-topic-echo.log"
+publisher_first_talker_log="$tmp_dir/publisher-first-moonbit-talker.log"
 talker_log="$tmp_dir/moonbit-talker.log"
 listener_log="$tmp_dir/moonbit-listener.log"
 publisher_log="$tmp_dir/topic-pub.log"
+publisher_first_listener_log="$tmp_dir/publisher-first-moonbit-listener.log"
+publisher_first_publisher_log="$tmp_dir/publisher-first-topic-pub.log"
 wstring_echo_log="$tmp_dir/wstring-topic-echo.log"
 wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
 wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
@@ -30,6 +37,7 @@ echo_pid=""
 graph_observer_pid=""
 talker_pid=""
 listener_pid=""
+publisher_pid=""
 moon_service_pid=""
 ros_service_pid=""
 moon_client_pid=""
@@ -52,6 +60,10 @@ cleanup() {
     kill -- "-$listener_pid" 2>/dev/null || true
     wait "$listener_pid" 2>/dev/null || true
   fi
+  if [[ -n "$publisher_pid" ]]; then
+    kill -- "-$publisher_pid" 2>/dev/null || true
+    wait "$publisher_pid" 2>/dev/null || true
+  fi
   if [[ -n "$moon_service_pid" ]]; then
     kill -- "-$moon_service_pid" 2>/dev/null || true
     wait "$moon_service_pid" 2>/dev/null || true
@@ -66,7 +78,9 @@ cleanup() {
   fi
   if [[ $exit_status -ne 0 ]]; then
     cat "$talker_log" "$echo_log" "$graph_observer_log" \
-      "$listener_log" "$publisher_log" \
+      "$listener_log" "$publisher_log" "$publisher_first_echo_log" \
+      "$publisher_first_talker_log" "$publisher_first_listener_log" \
+      "$publisher_first_publisher_log" \
       "$wstring_talker_log" "$wstring_echo_log" \
       "$wstring_listener_log" "$wstring_publisher_log" \
       "$moon_service_log" "$service_call_log" "$ros_service_log" \
@@ -165,6 +179,33 @@ if [[ -n "$graph_observer_pid" ]]; then
   fi
 fi
 
+# A publisher that starts before its subscriber must keep announcing until the
+# later subscriber is discovered, rather than relying on startup order.
+ROS_DOMAIN_ID="$startup_order_ros_domain_id"
+export ROS_DOMAIN_ID
+timeout --kill-after=2s 45s nix develop --command moon run examples/talker \
+  >"$publisher_first_talker_log" 2>&1 &
+talker_pid=$!
+sleep 1
+if ! kill -0 "$talker_pid" 2>/dev/null; then
+  echo "MoonBit talker exited before the later ROS 2 subscriber started"
+  exit 1
+fi
+timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
+  >"$publisher_first_echo_log" 2>&1 &
+echo_pid=$!
+wait_for_ros_endpoint "/demo/moon_talker" "$talker_pid" "Publishers" "/chatter"
+wait "$talker_pid"
+talker_pid=""
+wait "$echo_pid"
+echo_pid=""
+if ! grep -Fq "hello from MoonBit #" "$publisher_first_echo_log"; then
+  echo "ROS 2 CLI did not receive a sample from a publisher started first"
+  exit 1
+fi
+ROS_DOMAIN_ID="$base_ros_domain_id"
+export ROS_DOMAIN_ID
+
 timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
   >"$listener_log" 2>&1 &
 listener_pid=$!
@@ -182,6 +223,35 @@ if [[ "$received_count" -ne 5 ]]; then
   echo "MoonBit listener received $received_count of 5 ROS 2 String samples"
   exit 1
 fi
+
+# Keep the ROS 2 publisher alive while waiting for a MoonBit listener that
+# starts later, then verify all post-match samples arrive.
+ROS_DOMAIN_ID="$startup_order_ros_domain_id"
+export ROS_DOMAIN_ID
+timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
+  --wait-matching-subscriptions 1 /chatter std_msgs/msg/String \
+  "{data: 'hello from ROS 2'}" >"$publisher_first_publisher_log" 2>&1 &
+publisher_pid=$!
+sleep 1
+if ! kill -0 "$publisher_pid" 2>/dev/null; then
+  echo "ROS 2 publisher exited before the later MoonBit subscriber started"
+  exit 1
+fi
+timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
+  >"$publisher_first_listener_log" 2>&1 &
+listener_pid=$!
+wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
+wait "$publisher_pid"
+publisher_pid=""
+wait "$listener_pid"
+listener_pid=""
+received_count=$(grep -Fxc "hello from ROS 2" "$publisher_first_listener_log" || true)
+if [[ "$received_count" -ne 5 ]]; then
+  echo "MoonBit listener received $received_count of 5 publisher-first ROS 2 samples"
+  exit 1
+fi
+ROS_DOMAIN_ID="$base_ros_domain_id"
+export ROS_DOMAIN_ID
 
 timeout --kill-after=2s 45s ros2 topic echo /wide_chatter \
   example_interfaces/msg/WString --qos-reliability reliable --once \
