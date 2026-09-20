@@ -207,7 +207,9 @@ pub fn ParameterList::to_bytes(self : ParameterList) -> Bytes {
 /// Serialize the parameter list with a CDR little-endian encapsulation header.
 pub fn ParameterList::to_cdr_bytes(self : ParameterList) -> Bytes {
   let body = self.to_bytes()
-  let bytes : Array[Byte] = [0, 1, 0, 0]
+  // RTPS ParameterList CDR uses the PL_CDR_LE encapsulation identifier
+  // (0x0003), distinct from the regular CDR_LE identifier (0x0001).
+  let bytes : Array[Byte] = [0, 3, 0, 0]
   for i in 0..<body.length() {
     bytes.push(body[i])
   }
@@ -257,8 +259,8 @@ pub fn ParameterList::from_cdr_bytes(
   if input.length() < 4 {
     return Err("a CDR parameter list must have a 4-byte encapsulation header")
   }
-  if input[0] != 0 || input[1] != 1 || input[2] != 0 || input[3] != 0 {
-    return Err("only CDR little-endian parameter lists are supported")
+  if input[0] != 0 || input[1] != 3 || input[2] != 0 || input[3] != 0 {
+    return Err("only RTPS ParameterList CDR little-endian encoding is supported")
   }
   let body = bytes_from(input, 4, input.length() - 4)
   match ParameterList::from_bytes(body) {
