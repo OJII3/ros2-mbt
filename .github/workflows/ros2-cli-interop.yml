@@ -1,0 +1,35 @@
+name: ROS 2 CLI interoperability
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ros2-cli-interop:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up ROS 2 Jazzy
+        uses: ros-tooling/setup-ros@77bcad67a6cb15f6192d61464d99bbab658e4ca9 # 0.7.18
+        with:
+          required-ros-distributions: jazzy
+
+      - name: Set up Nix
+        uses: DeterminateSystems/nix-installer-action@129f07902485941992791c670de648dbe572a9ac # v3
+
+      - name: Run native test suite
+        run: nix develop --command moon test --target native
+
+      - name: Verify ROS 2 CLI discovery and topic receive
+        env:
+          ROS_DOMAIN_ID: "42"
+          ROS_LOCALHOST_ONLY: "1"
+          ROS2_MBT_IP: 127.0.0.1
+        run: bash scripts/ros2_cli_interop.sh
