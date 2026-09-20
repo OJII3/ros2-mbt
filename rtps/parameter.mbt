@@ -178,14 +178,14 @@ fn read_u16_le(input : Bytes, offset : Int) -> UInt16 {
 ///|
 fn append_parameter(bytes : Array[Byte], parameter : Parameter) -> Unit {
   let value = parameter.value
+  let padded_length = ((value.length() + 3) / 4) * 4
   append_u16_le(bytes, parameter.id)
-  append_u16_le(bytes, value.length().to_uint16())
+  append_u16_le(bytes, padded_length.to_uint16())
   for i in 0..<value.length() {
     bytes.push(value[i])
   }
-  let remainder = value.length() % 4
-  if remainder != 0 {
-    for _ in 0..<(4 - remainder) {
+  if padded_length != value.length() {
+    for _ in 0..<(padded_length - value.length()) {
       bytes.push(0)
     }
   }
@@ -233,20 +233,15 @@ pub fn ParameterList::from_bytes(
       }
       return Ok((result, offset))
     }
+    if length % 4 != 0 {
+      return Err("RTPS parameter length must be a multiple of four")
+    }
     if offset + length > input.length() {
       return Err("truncated RTPS parameter value")
     }
     let value = bytes_from(input, offset, length)
     result.add(Parameter::new(id, value))
     offset += length
-    let remainder = length % 4
-    if remainder != 0 {
-      let padding = 4 - remainder
-      if offset + padding > input.length() {
-        return Err("truncated RTPS parameter padding")
-      }
-      offset += padding
-    }
   }
   Err("RTPS parameter list has no PID_SENTINEL")
 }

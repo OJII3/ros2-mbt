@@ -18,7 +18,7 @@ test "RTPS parameter list round trip" {
 test "RTPS parameter list pads values to four bytes" {
   let parameters = ParameterList::new()
   parameters.add(Parameter::new(0x8000, b"abc"))
-  assert_eq(parameters.to_bytes(), b"\x00\x80\x03\x00abc\x00\x01\x00\x00\x00")
+  assert_eq(parameters.to_bytes(), b"\x00\x80\x04\x00abc\x00\x01\x00\x00\x00")
 }
 
 ///|
