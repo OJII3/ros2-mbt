@@ -58,6 +58,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS DDS-RPC related sample identity と inline QoS
 - reliable ROS service client/server facade（request/reply 相関付き）
 - `RosActionEndpoints::discover` によるActionの3 service request/responseとFeedback/Status topic endpoint発見
+- `RosActionClient` によるActionのSendGoal/GetResult/CancelGoal requestとgoal別Feedback/Status受信
 - `ros_discovery_info` 向けの reliable graph publisher/subscription facade
 - `RosTopic` と `std_msgs/msg/String` を使った loopback publisher/listener test
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
@@ -103,6 +104,7 @@ moon test --target native
 ```
 
 ROS 2 Jazzy CLIとの相互運用テストを行う場合は、専用devShellに入ります。
+ROS 2は相互運用テスト専用です。MoonBitの各packageと標準の`nix develop` shellにはROS 2 packageを含めません。
 `ros-core`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。`ros-core`から`rclpy`と`rcl_interfaces`も使えます。
 WString codecはNix devShellのROS 2 Jazzy/Fast DDSで実測したFast-CDR互換表現（UTF-16 code unitを32-bit wcharとして符号化）を使います。DDS-XTypesの標準wide-string表現とは異なる実装があるため、他DDSとの相互運用は別途確認が必要です。
 
@@ -166,4 +168,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Action endpoint発見API、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、整数parameterを設定・型取得・値取得・列挙するSetParameters/GetParameterTypes/GetParameters/ListParameters clientは実装済み。汎用goal lifecycle、他のParameter service/APIは未実装）
+8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Action endpoint発見API、汎用`RosActionClient` transport facade、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、整数parameterを設定・型取得・値取得・列挙するSetParameters/GetParameterTypes/GetParameters/ListParameters clientは実装済み。異なるAction型でのend-to-end確認、汎用goal lifecycle、他のParameter service/APIは未実装）

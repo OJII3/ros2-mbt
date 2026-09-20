@@ -299,6 +299,21 @@ pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtp
 pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 
+pub struct RosActionClient {
+  send_goal_client : RosServiceClient
+  get_result_client : RosServiceClient
+  cancel_goal_client : RosServiceClient
+  feedback_subscription : ReliableRosSubscription
+  status_subscription : ReliableRosSubscription
+}
+pub fn RosActionClient::close(Self) -> Unit
+pub fn RosActionClient::new(@ros.RosAction, RosServiceClient, RosServiceClient, RosServiceClient, ReliableRosSubscription, ReliableRosSubscription) -> Result[Self, String]
+pub async fn RosActionClient::receive_feedback(Self, Bytes) -> Result[Bytes, String]
+pub async fn RosActionClient::receive_goal_status(Self, Bytes, Int) -> Result[@ros.RosActionGoalStatus, String]
+pub async fn RosActionClient::request_cancel_goal(Self, Bytes) -> Result[@ros.RosCancelGoalResponse, String]
+pub async fn RosActionClient::request_get_result(Self, Bytes) -> Result[Bytes, String]
+pub async fn RosActionClient::request_send_goal(Self, Bytes) -> Result[Bytes, String]
+
 pub struct RosActionEndpoints {
   send_goal_request_subscription : @rtps.SedpEndpointData
   send_goal_response_publication : @rtps.SedpEndpointData

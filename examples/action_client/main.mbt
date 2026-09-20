@@ -14,40 +14,6 @@ fn action_service_wire_format(
 }
 
 ///|
-async fn request_goal_cancel(
-  client : @transport.RosServiceClient,
-  goal_id : Bytes,
-) -> Result[Int, String] {
-  let goal_info = match @ros.RosActionGoalInfo::new(goal_id, 0, 0U) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let request = @ros.RosCancelGoalRequest::new(goal_info)
-  let identity = match client.request(request.to_cdr_bytes()) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let (payload, _) = match client.receive_response(identity) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let response = match @ros.RosCancelGoalResponse::from_cdr_bytes(payload) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let mut found_goal = false
-  for canceled_goal in response.goals_canceling() {
-    if canceled_goal.goal_id() == goal_id {
-      found_goal = true
-    }
-  }
-  if !found_goal {
-    return Err("CancelGoal response did not include the requested goal")
-  }
-  Ok(response.return_code())
-}
-
-///|
 async fn register_action_topic_subscription(
   participant : @transport.RosParticipant,
   prefix : @rtps.GuidPrefix,
@@ -73,67 +39,36 @@ async fn register_action_topic_subscription(
 
 ///|
 async fn receive_fibonacci_feedback(
-  subscription : @transport.ReliableRosSubscription,
+  client : @transport.RosActionClient,
   goal_id : Bytes,
 ) -> Result[Array[Int], String] {
-  while true {
-    let (payload, _) = match subscription.receive() {
-      Ok(value) => value
+  let payload = match client.receive_feedback(goal_id) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match reader.read_byte_array(16) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let sequence_length = match reader.read_u32() {
+    Ok(value) => value.reinterpret_as_int()
+    Err(message) => return Err(message)
+  }
+  if sequence_length < 0 || sequence_length > reader.remaining() / 4 {
+    return Err("invalid Fibonacci feedback sequence length")
+  }
+  let sequence : Array[Int] = []
+  for _ in 0..<sequence_length {
+    match reader.read_i32() {
+      Ok(value) => sequence.push(value)
       Err(message) => return Err(message)
-    }
-    let reader = match @cdr.Reader::from_bytes(payload) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    let received_goal_id = match reader.read_byte_array(16) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    let sequence_length = match reader.read_u32() {
-      Ok(value) => value.reinterpret_as_int()
-      Err(message) => return Err(message)
-    }
-    if sequence_length < 0 || sequence_length > reader.remaining() / 4 {
-      return Err("invalid Fibonacci feedback sequence length")
-    }
-    let sequence : Array[Int] = []
-    for _ in 0..<sequence_length {
-      match reader.read_i32() {
-        Ok(value) => sequence.push(value)
-        Err(message) => return Err(message)
-      }
-    }
-    if received_goal_id == goal_id {
-      return Ok(sequence)
     }
   }
-  Err("Fibonacci feedback receive loop stopped")
-}
-
-///|
-async fn receive_goal_status(
-  subscription : @transport.ReliableRosSubscription,
-  goal_id : Bytes,
-  expected_status : Int,
-) -> Result[Int, String] {
-  while true {
-    let (payload, _) = match subscription.receive() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    let status_array = match
-      @ros.RosActionGoalStatusArray::from_cdr_bytes(payload) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    for goal_status in status_array.status_list() {
-      if goal_status.goal_info().goal_id() == goal_id &&
-        goal_status.status() == expected_status {
-        return Ok(goal_status.status())
-      }
-    }
-  }
-  Err("GoalStatusArray receive loop stopped")
+  Ok(sequence)
 }
 
 ///|
@@ -507,6 +442,20 @@ async fn main {
       return
     }
   }
+  let action_client = match
+    @transport.RosActionClient::new(
+      action, send_goal_client, get_result_client, cancel_goal_client, feedback_subscription,
+      status_subscription,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
+      return
+    }
+  }
 
   let goal_id = Bytes::from_array([
     1,
@@ -534,19 +483,8 @@ async fn main {
   let send_goal_writer = @cdr.Writer::new()
   send_goal_writer.write_byte_array(goal_id)
   send_goal_writer.write_i32(goal_order)
-  let send_goal_identity = match
-    send_goal_client.request(send_goal_writer.to_bytes()) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  let (send_goal_payload, _) = match
-    send_goal_client.receive_response(send_goal_identity) {
+  let send_goal_payload = match
+    action_client.request_send_goal(send_goal_writer.to_bytes()) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -595,7 +533,7 @@ async fn main {
   }
 
   let feedback_sequence = match
-    receive_fibonacci_feedback(feedback_subscription, goal_id) {
+    receive_fibonacci_feedback(action_client, goal_id) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -610,8 +548,7 @@ async fn main {
   )
 
   if cancel_requested {
-    let cancel_return_code = match
-      request_goal_cancel(cancel_goal_client, goal_id) {
+    let cancel_response = match action_client.request_cancel_goal(goal_id) {
       Ok(value) => value
       Err(message) => {
         println(message)
@@ -621,6 +558,20 @@ async fn main {
         return
       }
     }
+    let mut found_goal = false
+    for canceled_goal in cancel_response.goals_canceling() {
+      if canceled_goal.goal_id() == goal_id {
+        found_goal = true
+      }
+    }
+    if !found_goal {
+      println("CancelGoal response did not include the requested goal")
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
+      return
+    }
+    let cancel_return_code = cancel_response.return_code()
     println("Fibonacci cancel return code: " + cancel_return_code.to_string())
     if cancel_return_code != 0 {
       close_action_client_io(
@@ -632,19 +583,8 @@ async fn main {
 
   let get_result_writer = @cdr.Writer::new()
   get_result_writer.write_byte_array(goal_id)
-  let get_result_identity = match
-    get_result_client.request(get_result_writer.to_bytes()) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  let (get_result_payload, _) = match
-    get_result_client.receive_response(get_result_identity) {
+  let get_result_payload = match
+    action_client.request_get_result(get_result_writer.to_bytes()) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -706,8 +646,8 @@ async fn main {
   }
   println("Fibonacci result status: " + status.to_string())
   println("Fibonacci result: [" + format_int_sequence(sequence) + "]")
-  let status_topic_status = match
-    receive_goal_status(status_subscription, goal_id, status) {
+  let status_topic_goal_status = match
+    action_client.receive_goal_status(goal_id, status) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -717,8 +657,8 @@ async fn main {
       return
     }
   }
-  println("Fibonacci status topic: " + status_topic_status.to_string())
-  close_action_client_io(
-    send_goal_client, feedback_subscription, status_subscription,
+  println(
+    "Fibonacci status topic: " + status_topic_goal_status.status().to_string(),
   )
+  action_client.close()
 }
