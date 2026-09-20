@@ -749,13 +749,17 @@ fn DiscoverySession::dispatch_spdp_data(
       }
     }
     _ =>
-      match @rtps.SpdpParticipantData::from_data_submessage(data) {
-        Ok(participant) if participant.domain_id() ==
-          self.participant.domain_id() => {
-          self.remember_remote_participant(participant)
-          events.push(DiscoveryEvent::Participant(participant))
-        }
-        _ => ()
+      match
+        @rtps.SpdpParticipantData::from_data_submessage_with_default_domain(
+          data,
+          self.participant.domain_id(),
+        ) {
+        Ok(participant) =>
+          if participant.domain_id() == self.participant.domain_id() {
+            self.remember_remote_participant(participant)
+            events.push(DiscoveryEvent::Participant(participant))
+          }
+        Err(_) => ()
       }
   }
 }

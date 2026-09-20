@@ -362,6 +362,83 @@ async test "discovery session ignores SPDP from another domain" {
 }
 
 ///|
+async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, writer_id),
+    @rtps.VendorId::new(1, 15),
+    49U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, writer_id),
+    @rtps.VendorId::new(1, 15),
+    0U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let parameters = @rtps.ParameterList::new()
+  for parameter in remote_participant.to_parameter_list().values() {
+    if parameter.id() != @rtps.PID_DOMAIN_ID {
+      parameters.add(parameter)
+    }
+  }
+  let cdr_payload = parameters.to_cdr_bytes()
+  let data = @rtps.DataSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    cdr_payload[4:].to_owned(),
+  )
+  let message = @rtps.Message::new(
+    @rtps.Header::new(remote_prefix, @rtps.VendorId::new(1, 15)),
+  )
+  message.add(data.to_submessage())
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let session = DiscoverySession::new(
+    receiver,
+    local_participant,
+    reader_id,
+    writer_id,
+    sender.local_addr(),
+    1L,
+  ).unwrap()
+  sender.send_message(message, session.socket.local_addr()).unwrap()
+  let (event, _) = session.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::Participant(participant) =>
+      assert_eq(participant.domain_id(), 49U)
+    DiscoveryEvent::Publication(_) => fail("expected an SPDP participant")
+    DiscoveryEvent::Subscription(_) => fail("expected an SPDP participant")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an SPDP participant")
+    DiscoveryEvent::ParticipantRemoved(_) =>
+      fail("expected an SPDP participant")
+  }
+  session.close()
+  sender.close()
+}
+
+///|
 async test "discovery session receives from an additional metatraffic socket" {
   let prefix = match
     @rtps.GuidPrefix::from_array([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]) {

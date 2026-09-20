@@ -334,13 +334,23 @@ pub fn SpdpParticipantData::to_parameter_list(
 pub fn SpdpParticipantData::from_parameter_list(
   parameters : ParameterList,
 ) -> Result[SpdpParticipantData, String] {
+  SpdpParticipantData::from_parameter_list_with_default_domain(parameters, 0U)
+}
+
+///|
+/// Parse SPDP participant data, using the receiving domain when PID_DOMAIN_ID
+/// is omitted by the remote implementation.
+fn SpdpParticipantData::from_parameter_list_with_default_domain(
+  parameters : ParameterList,
+  default_domain_id : UInt,
+) -> Result[SpdpParticipantData, String] {
   let mut protocol_version = ProtocolVersion::new(
     PROTOCOL_VERSION_MAJOR,
     PROTOCOL_VERSION_MINOR,
   )
   let mut vendor_id = VendorId::new(0, 0)
   let mut participant_guid_bytes = b""
-  let mut domain_id : UInt = 0
+  let mut domain_id = default_domain_id
   let mut lease_seconds : Int = 0
   let mut lease_nanoseconds : UInt = 0
   let mut builtin_endpoint_set : UInt = 0
@@ -464,6 +474,23 @@ pub fn SpdpParticipantData::from_data_submessage(
     Err(message) => return Err(message)
   }
   SpdpParticipantData::from_parameter_list(parameters)
+}
+
+///|
+/// Parse an SPDP DATA submessage, defaulting an omitted domain ID to the
+/// domain on which the packet was received.
+pub fn SpdpParticipantData::from_data_submessage_with_default_domain(
+  data : DataSubmessage,
+  default_domain_id : UInt,
+) -> Result[SpdpParticipantData, String] {
+  let parameters = match
+    ParameterList::from_data_bytes(data.serialized_payload()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  SpdpParticipantData::from_parameter_list_with_default_domain(
+    parameters, default_domain_id,
+  )
 }
 
 ///|
