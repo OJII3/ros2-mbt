@@ -84,6 +84,19 @@ test "SPDP parser requires a participant GUID" {
 }
 
 ///|
+test "SPDP parser rejects invalid participant lease durations" {
+  let parameters = ParameterList::new()
+  parameters.add(Parameter::new(PID_PARTICIPANT_GUID, spdp_test_guid().unwrap().to_bytes()))
+  parameters.add(
+    Parameter::new(
+      PID_PARTICIPANT_LEASE_DURATION,
+      Bytes::from_array([0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0]),
+    ),
+  )
+  assert_true(SpdpParticipantData::from_parameter_list(parameters) is Err(_))
+}
+
+///|
 test "SPDP participant data creates a DATA submessage" {
   let guid = match spdp_test_guid() {
     Ok(value) => value

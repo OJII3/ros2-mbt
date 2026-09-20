@@ -14,6 +14,23 @@ struct DiscoverySedpWriter {
 }
 
 ///|
+struct DiscoveryRemoteParticipant {
+  mut participant : @rtps.SpdpParticipantData
+  mut lease_timer : @async.Timer?
+  mut lease_remaining_ms : Int64
+  mut lease_segment_ms : Int
+}
+
+///|
+priv enum DiscoveryReceiveOutcome {
+  Message(@rtps.Message, @socket.Addr, Int)
+  ParticipantLeaseExpired(@rtps.Guid)
+}
+
+///|
+const DISCOVERY_MAX_TIMER_MILLISECONDS : Int = 0x7FFFFFFF
+
+///|
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
   socket : Udp
@@ -26,7 +43,7 @@ pub struct DiscoverySession {
   mut sedp_readers : Array[DiscoveryRemoteDataReader]
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
-  mut remote_participants : Array[@rtps.SpdpParticipantData]
+  mut remote_participants : Array[DiscoveryRemoteParticipant]
   mut pending_events : Array[(DiscoveryEvent, @socket.Addr)]
   mut pending_event_index : Int
 }
@@ -316,6 +333,33 @@ async fn DiscoverySession::receive_message(
 }
 
 ///|
+async fn DiscoverySession::receive_message_or_lease_expiry(
+  self : DiscoverySession,
+) -> Result[DiscoveryReceiveOutcome, String] {
+  let tasks : Array[async () -> Result[DiscoveryReceiveOutcome, String]] = []
+  tasks.push(async fn() {
+    match self.receive_message() {
+      Ok((message, source, socket_index)) =>
+        Ok(DiscoveryReceiveOutcome::Message(message, source, socket_index))
+      Err(message) => Err(message)
+    }
+  })
+  for remote in self.remote_participants {
+    match remote.lease_timer {
+      Some(timer) => {
+        let participant_guid = remote.participant.participant_guid()
+        tasks.push(async fn() {
+          timer.wait()
+          Ok(DiscoveryReceiveOutcome::ParticipantLeaseExpired(participant_guid))
+        })
+      }
+      None => ()
+    }
+  }
+  @async.any(tasks, allow_failure=true)
+}
+
+///|
 /// Locate or create reliable receive state for one remote SEDP writer.
 fn DiscoverySession::sedp_reader_index(
   self : DiscoverySession,
@@ -364,14 +408,117 @@ fn DiscoverySession::remember_remote_participant(
   self : DiscoverySession,
   participant : @rtps.SpdpParticipantData,
 ) -> Unit {
+  if participant.participant_guid() == self.participant.participant_guid() {
+    return
+  }
+  let lease_remaining_ms = discovery_spdp_lease_milliseconds(participant)
   for index in 0..<self.remote_participants.length() {
-    if self.remote_participants[index].participant_guid() ==
+    if self.remote_participants[index].participant.participant_guid() ==
       participant.participant_guid() {
-      self.remote_participants[index] = participant
+      self.remote_participants[index].participant = participant
+      match (self.remote_participants[index].lease_timer, lease_remaining_ms) {
+        (Some(timer), Some(remaining_ms)) => {
+          let segment_ms = discovery_lease_timer_segment(remaining_ms)
+          self.remote_participants[index].lease_remaining_ms = remaining_ms
+          if segment_ms == self.remote_participants[index].lease_segment_ms {
+            timer.refresh()
+          } else {
+            timer.cancel()
+            self.remote_participants[index].lease_timer = Some(
+              @async.Timer::Timer(segment_ms),
+            )
+            self.remote_participants[index].lease_segment_ms = segment_ms
+          }
+        }
+        (Some(timer), None) => {
+          timer.cancel()
+          self.remote_participants[index].lease_timer = None
+          self.remote_participants[index].lease_remaining_ms = 0L
+          self.remote_participants[index].lease_segment_ms = 0
+        }
+        (None, Some(remaining_ms)) => {
+          let segment_ms = discovery_lease_timer_segment(remaining_ms)
+          self.remote_participants[index].lease_timer = Some(
+            @async.Timer::Timer(segment_ms),
+          )
+          self.remote_participants[index].lease_remaining_ms = remaining_ms
+          self.remote_participants[index].lease_segment_ms = segment_ms
+        }
+        (None, None) => ()
+      }
       return
     }
   }
-  self.remote_participants.push(participant)
+  let mut timer = None
+  let mut remaining_ms = 0L
+  let mut segment_ms = 0
+  match lease_remaining_ms {
+    Some(value) => {
+      remaining_ms = value
+      segment_ms = discovery_lease_timer_segment(value)
+      timer = Some(@async.Timer::Timer(segment_ms))
+    }
+    None => ()
+  }
+  self.remote_participants.push({
+    participant,
+    lease_timer: timer,
+    lease_remaining_ms: remaining_ms,
+    lease_segment_ms: segment_ms,
+  })
+}
+
+///|
+fn discovery_spdp_lease_milliseconds(
+  participant : @rtps.SpdpParticipantData,
+) -> Int64? {
+  let seconds = participant.lease_seconds()
+  let nanoseconds = participant.lease_nanoseconds()
+  if seconds == 0x7FFFFFFF && nanoseconds == 0xFFFFFFFFU {
+    return None
+  }
+  if seconds < 0 || nanoseconds >= 1_000_000_000U {
+    return None
+  }
+  let fractional_milliseconds = (
+    nanoseconds.to_uint64() + 999_999U.to_uint64()
+  ) / 1_000_000U.to_uint64()
+  Some(seconds.to_int64() * 1000L + fractional_milliseconds.reinterpret_as_int64())
+}
+
+///|
+fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int {
+  if remaining_ms > DISCOVERY_MAX_TIMER_MILLISECONDS.to_int64() {
+    DISCOVERY_MAX_TIMER_MILLISECONDS
+  } else {
+    remaining_ms.to_int()
+  }
+}
+
+///|
+fn DiscoverySession::advance_expired_participant_lease(
+  self : DiscoverySession,
+  participant_guid : @rtps.Guid,
+) -> Bool {
+  for remote in self.remote_participants {
+    if remote.participant.participant_guid() != participant_guid {
+      continue
+    }
+    if remote.lease_timer is None {
+      return false
+    }
+    if remote.lease_remaining_ms > remote.lease_segment_ms.to_int64() {
+      remote.lease_remaining_ms -= remote.lease_segment_ms.to_int64()
+      remote.lease_segment_ms =
+        discovery_lease_timer_segment(remote.lease_remaining_ms)
+      remote.lease_timer = Some(
+        @async.Timer::Timer(remote.lease_segment_ms),
+      )
+      return false
+    }
+    return true
+  }
+  false
 }
 
 ///|
@@ -380,10 +527,15 @@ fn DiscoverySession::forget_remote_participant(
   self : DiscoverySession,
   participant_guid : @rtps.Guid,
 ) -> Unit {
-  let remaining : Array[@rtps.SpdpParticipantData] = []
-  for participant in self.remote_participants {
-    if participant.participant_guid() != participant_guid {
-      remaining.push(participant)
+  let remaining : Array[DiscoveryRemoteParticipant] = []
+  for remote in self.remote_participants {
+    if remote.participant.participant_guid() != participant_guid {
+      remaining.push(remote)
+    } else {
+      match remote.lease_timer {
+        Some(timer) => timer.cancel()
+        None => ()
+      }
     }
   }
   self.remote_participants = remaining
@@ -410,7 +562,8 @@ fn DiscoverySession::acknowledgement_destination(
   participant_prefix : @rtps.GuidPrefix,
   source : @socket.Addr,
 ) -> @socket.Addr {
-  for participant in self.remote_participants {
+  for remote in self.remote_participants {
+    let participant = remote.participant
     if participant.participant_guid().prefix() != participant_prefix {
       continue
     }
@@ -973,6 +1126,7 @@ async fn DiscoverySession::decode_message(
 
 ///|
 /// Receive one discovery event and acknowledge reliable SEDP heartbeats.
+/// A participant-lease expiry has no packet source and uses `0.0.0.0:0`.
 pub async fn DiscoverySession::receive_once(
   self : DiscoverySession,
 ) -> Result[(DiscoveryEvent, @socket.Addr), String] {
@@ -986,16 +1140,25 @@ pub async fn DiscoverySession::receive_once(
       }
       return Ok(event)
     }
-    let (message, source, socket_index) = match self.receive_message() {
-      Ok(value) => value
+    match self.receive_message_or_lease_expiry() {
+      Ok(DiscoveryReceiveOutcome::Message(message, source, socket_index)) => {
+        let events = match self.decode_message(message, source, socket_index) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        for event in events {
+          self.pending_events.push((event, source))
+        }
+      }
+      Ok(DiscoveryReceiveOutcome::ParticipantLeaseExpired(participant_guid)) =>
+        if self.advance_expired_participant_lease(participant_guid) {
+          self.forget_remote_participant(participant_guid)
+          return Ok((
+            DiscoveryEvent::ParticipantRemoved(participant_guid),
+            @socket.Addr::new(0, 0),
+          ))
+        }
       Err(message) => return Err(message)
-    }
-    let events = match self.decode_message(message, source, socket_index) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    for event in events {
-      self.pending_events.push((event, source))
     }
   } nobreak {
     Err("discovery receive loop stopped")
@@ -1005,6 +1168,12 @@ pub async fn DiscoverySession::receive_once(
 ///|
 /// Close the session's underlying UDP socket.
 pub fn DiscoverySession::close(self : DiscoverySession) -> Unit {
+  for remote in self.remote_participants {
+    match remote.lease_timer {
+      Some(timer) => timer.cancel()
+      None => ()
+    }
+  }
   self.socket.close()
   for receive_socket in self.receive_sockets {
     receive_socket.close()

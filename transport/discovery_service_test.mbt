@@ -61,6 +61,79 @@ async test "discovery service ingests received participant events" {
 }
 
 ///|
+async test "discovery service expires participants after the SPDP lease" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let participant_entity = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, participant_entity),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, participant_entity),
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    500_000_000U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = participant_entity
+  let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver_address = socket.local_addr()
+  let session = DiscoverySession::new(
+    socket,
+    local_participant,
+    reader_id,
+    writer_id,
+    receiver_address,
+    1L,
+  ).unwrap()
+  let service = DiscoveryService::new(session)
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  sender.send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)
+    .unwrap()
+  let (_, first_event) = service.receive_once().unwrap()
+  assert_true(first_event is DiscoveryEvent::Participant(_))
+  assert_eq(service.graph().participant_count(), 1)
+
+  @async.sleep(300)
+  sender.send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
+    .unwrap()
+  let (_, refresh_event) = service.receive_once().unwrap()
+  assert_true(refresh_event is DiscoveryEvent::Participant(_))
+  let before_expiry = @async.with_timeout_opt(
+    300,
+    async fn() { service.receive_once() },
+  )
+  assert_true(before_expiry is None)
+
+  let (_, event) = service.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::ParticipantRemoved(guid) =>
+      assert_eq(guid, remote_participant.participant_guid())
+    _ => fail("expected the expired participant removal")
+  }
+  assert_eq(service.graph().participant_count(), 0)
+  service.close()
+  sender.close()
+}
+
+///|
 async test "discovery service announces SEDP endpoints to a participant" {
   let local_prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

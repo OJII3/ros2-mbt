@@ -416,6 +416,10 @@ pub fn SpdpParticipantData::from_parameter_list(
   if !has_participant_guid {
     return Err("SPDP participant data is missing PID_PARTICIPANT_GUID")
   }
+  if lease_seconds < 0 ||
+    (lease_nanoseconds == 0xFFFFFFFFU && lease_seconds != 0x7FFFFFFF) {
+    return Err("SPDP participant lease duration is invalid")
+  }
   let participant_guid = match Guid::from_bytes(participant_guid_bytes) {
     Ok(result) => result
     Err(message) => return Err(message)
