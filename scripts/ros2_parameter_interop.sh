@@ -54,7 +54,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if ! python3 -c 'import rclpy; from rcl_interfaces.srv import GetParameters, GetParameterTypes, SetParametersAtomically' \
+if ! python3 -c 'import rclpy; from rcl_interfaces.srv import DescribeParameters, GetParameters, GetParameterTypes, SetParametersAtomically' \
   >/dev/null 2>&1; then
   echo "Python ROS 2 environment unavailable; run this script with nix develop .#ros2" >&2
   exit 127
@@ -128,9 +128,10 @@ if ! grep -Fq 'SetParameters answer: true' "$client_log" || \
   ! grep -Fq 'SetParametersAtomically answer: true' "$client_log" || \
   ! grep -Fq 'GetParameterTypes answer: 2' "$client_log" || \
   ! grep -Fq 'GetParameters answer: 123' "$client_log" || \
-  ! grep -Fq 'ListParameters contains: answer' "$client_log"; then
-  echo "MoonBit client did not set, inspect, read, and list the expected parameter" >&2
+  ! grep -Fq 'ListParameters contains: answer' "$client_log" || \
+  ! grep -Fq 'DescribeParameters answer: integer' "$client_log"; then
+  echo "MoonBit client did not set, inspect, read, list, and describe the expected parameter" >&2
   exit 1
 fi
 
-echo "ROS 2 SetParameters/SetParametersAtomically/GetParameterTypes/GetParameters/ListParameters interoperability passed."
+echo "ROS 2 SetParameters/SetParametersAtomically/GetParameterTypes/GetParameters/ListParameters/DescribeParameters interoperability passed."

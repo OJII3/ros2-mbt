@@ -242,6 +242,30 @@ test "ROS parameter service request and response RIHS01 hashes" {
     MessageSource::new(
       "rcl_interfaces",
       "msg",
+      "FloatingPointRange",
+      "float64 from_value\nfloat64 to_value\nfloat64 step",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "rcl_interfaces",
+      "msg",
+      "IntegerRange",
+      "int64 from_value\nint64 to_value\nuint64 step",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "rcl_interfaces",
+      "msg",
+      "ParameterDescriptor",
+      "string name\nuint8 type\nstring description\nstring additional_constraints\nbool read_only false\nbool dynamic_typing false\nFloatingPointRange[<=1] floating_point_range\nIntegerRange[<=1] integer_range",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "rcl_interfaces",
+      "msg",
       "ListParametersResult",
       "string[] names\nstring[] prefixes",
     ).unwrap(),
@@ -306,6 +330,24 @@ test "ROS parameter service request and response RIHS01 hashes" {
     workspace.type_hash_for_definition(atomic_set_service.response()),
     Ok(
       "RIHS01_31b1a38c5b0b9d893ee24da45f69638f4561c78461d82d52750f429b534502b8",
+    ),
+  )
+  let describe_service = parse_service_with_types(
+    "rcl_interfaces",
+    "DescribeParameters",
+    "string[] names\n---\nParameterDescriptor[] descriptors",
+    [MessageTypeReference::new("ParameterDescriptor", "ParameterDescriptor")],
+  ).unwrap()
+  assert_eq(
+    workspace.type_hash_for_definition(describe_service.request()),
+    Ok(
+      "RIHS01_05dd1c2bc87dec2627105c8070d6f9725c781a4f2ab852975bf105462b82b644",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash_for_definition(describe_service.response()),
+    Ok(
+      "RIHS01_ad6747319613c6131589e062e095b469a46cc764f7d0f12a001a49e6cd893995",
     ),
   )
   let list_service = parse_service_with_types(

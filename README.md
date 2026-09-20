@@ -89,7 +89,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
 - `example_interfaces/srv/AddTwoInts` を外部ROS 2と呼び出す実行可能な `examples/service_server` / `examples/service_client`
 - `example_interfaces/action/Fibonacci` を外部ROS 2 ActionServerと呼び出す実行可能な `examples/action_client`
-- `rcl_interfaces/srv/SetParameters` / `SetParametersAtomically` / `GetParameterTypes` / `GetParameters` / `ListParameters` で整数parameterを設定・型取得・値取得・列挙する `examples/parameter_client`
+- `rcl_interfaces/srv/SetParameters` / `SetParametersAtomically` / `GetParameterTypes` / `GetParameters` / `ListParameters` / `DescribeParameters` で整数parameterを設定・型取得・値取得・列挙・descriptor取得する `examples/parameter_client`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -150,7 +150,7 @@ Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci Actio
 nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
 ```
 
-Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い、MoonBitから`SetParameters`と`SetParametersAtomically`で整数parameterを更新し、`GetParameterTypes`で型、`GetParameters`で値を取得し、`ListParameters`で列挙します。
+Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い、MoonBitから`SetParameters`と`SetParametersAtomically`で整数parameterを更新し、`GetParameterTypes`で型、`GetParameters`で値を取得し、`ListParameters`で列挙、`DescribeParameters`でdescriptorを取得します。
 
 ```sh
 nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
