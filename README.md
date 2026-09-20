@@ -19,6 +19,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `GAP`、`HEARTBEAT_FRAG`、`NACK_FRAG` の codec と reliable fragment再送要求
 - RTPS `INFO_TS` submessage（NTP timestamp、Invalidate flag、両エンディアン）
 - 対応済みRTPS submessageのE flagに応じたbig/little-endian受信（送信はlittle-endian）
+- SPDP/SEDP ParameterListの`PL_CDR_BE` / `PL_CDR_LE`受信（生成はlittle-endian）
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper

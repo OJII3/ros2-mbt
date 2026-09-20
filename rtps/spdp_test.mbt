@@ -58,6 +58,80 @@ test "SPDP participant data builds RTPS parameters" {
 }
 
 ///|
+test "SPDP decodes PL_CDR_BE participant fields and locators" {
+  let guid = spdp_test_guid().unwrap()
+  let locator = Locator::udp_v4(b"\x7F\x00\x00\x01", 7400U).unwrap()
+  let payload : Array[Byte] = [0, 2, 0, 0]
+  parameter_test_append_be_parameter(
+    payload,
+    PID_PROTOCOL_VERSION,
+    b"\x02\x03\x00\x00",
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_VENDOR_ID,
+    b"\x01\x0F\x00\x00",
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_PARTICIPANT_GUID,
+    guid.to_bytes(),
+  )
+  let lease : Array[Byte] = []
+  parameter_test_append_u32_be(lease, 60U)
+  parameter_test_append_u32_be(lease, 0U)
+  parameter_test_append_be_parameter(
+    payload,
+    PID_PARTICIPANT_LEASE_DURATION,
+    Bytes::from_array(lease),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_DOMAIN_ID,
+    parameter_test_be_u32(42U),
+  )
+  let locator_value : Array[Byte] = []
+  parameter_test_append_u32_be(
+    locator_value,
+    locator.kind().reinterpret_as_uint(),
+  )
+  parameter_test_append_u32_be(locator_value, locator.port())
+  for byte in locator.address() {
+    locator_value.push(byte)
+  }
+  parameter_test_append_be_parameter(
+    payload,
+    PID_METATRAFFIC_UNICAST_LOCATOR,
+    Bytes::from_array(locator_value),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_BUILTIN_ENDPOINT_SET,
+    parameter_test_be_u32(3U),
+  )
+  parameter_test_append_be_parameter(payload, PID_SENTINEL, b"")
+
+  let serialized_payload = Bytes::from_array(payload)
+  let decoded = SpdpParticipantData::from_cdr_bytes(serialized_payload).unwrap()
+  assert_eq(decoded.participant_guid(), guid)
+  assert_eq(decoded.vendor_id(), VendorId::new(1, 15))
+  assert_eq(decoded.domain_id(), 42U)
+  assert_eq(decoded.lease_seconds(), 60)
+  assert_eq(decoded.lease_nanoseconds(), 0U)
+  assert_eq(decoded.metatraffic_unicast_locators(), [locator])
+  let data = DataSubmessage::new(
+    EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap(),
+    EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap(),
+    1L,
+    serialized_payload,
+  )
+  assert_eq(
+    SpdpParticipantData::from_data_submessage(data).unwrap().domain_id(),
+    42U,
+  )
+}
+
+///|
 test "SPDP participant lease duration uses RTPS fractional seconds" {
   let participant = SpdpParticipantData::new(
     spdp_test_guid().unwrap(),

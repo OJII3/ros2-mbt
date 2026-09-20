@@ -334,24 +334,7 @@ fn data_inline_qos_from_bytes(
   if little_endian {
     return Ok((bytes_from(input, 0, consumed), consumed))
   }
-  let normalized = ParameterList::new()
-  for parameter in parameters.values() {
-    let value = parameter.value()
-    let normalized_value = if parameter.id() == PID_STATUS_INFO &&
-      value.length() == 4 {
-      data_u32_le(data_read_u32(value, 0, false))
-    } else if parameter.id() == PID_RELATED_SAMPLE_IDENTITY &&
-      value.length() == 24 {
-      match SampleIdentity::from_bytes_with_endianness(value, false) {
-        Ok(identity) => identity.to_bytes()
-        Err(_) => value
-      }
-    } else {
-      value
-    }
-    normalized.add(Parameter::new(parameter.id(), normalized_value))
-  }
-  Ok((normalized.to_bytes(), consumed))
+  Ok((parameters.to_bytes(), consumed))
 }
 
 ///|

@@ -11,6 +11,31 @@ fn sedp_test_guid(kind : Byte) -> Result[Guid, String] {
 }
 
 ///|
+fn sedp_test_string_be(value : String) -> Bytes {
+  let encoded = @utf8.encode(value)
+  let bytes : Array[Byte] = []
+  parameter_test_append_u32_be(
+    bytes,
+    (encoded.length() + 1).reinterpret_as_uint(),
+  )
+  for byte in encoded {
+    bytes.push(byte)
+  }
+  bytes.push(0)
+  Bytes::from_array(bytes)
+}
+
+///|
+fn sedp_test_octet_sequence_be(value : Bytes) -> Bytes {
+  let bytes : Array[Byte] = []
+  parameter_test_append_u32_be(bytes, value.length().reinterpret_as_uint())
+  for byte in value {
+    bytes.push(byte)
+  }
+  Bytes::from_array(bytes)
+}
+
+///|
 test "SEDP endpoint data round trips required fields and locators" {
   let endpoint_guid = match sedp_test_guid(0xC2) {
     Ok(value) => value
@@ -148,6 +173,95 @@ test "SEDP endpoint data round trips required fields and locators" {
     Err(message) => fail(message)
   }
   assert_eq(message.submessages().length(), 1)
+}
+
+///|
+test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
+  let endpoint_guid = sedp_test_guid(0xC2).unwrap()
+  let participant_guid = sedp_test_guid(0xC1).unwrap()
+  let locator = Locator::udp_v4(b"\x7F\x00\x00\x01", 7410U).unwrap()
+  let payload : Array[Byte] = [0, 2, 0, 0]
+  parameter_test_append_be_parameter(
+    payload,
+    PID_ENDPOINT_GUID,
+    endpoint_guid.to_bytes(),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_PARTICIPANT_GUID,
+    participant_guid.to_bytes(),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_TOPIC_NAME,
+    sedp_test_string_be("rt/chatter"),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_TYPE_NAME,
+    sedp_test_string_be("example::Type"),
+  )
+  let locator_value : Array[Byte] = []
+  parameter_test_append_u32_be(
+    locator_value,
+    locator.kind().reinterpret_as_uint(),
+  )
+  parameter_test_append_u32_be(locator_value, locator.port())
+  for byte in locator.address() {
+    locator_value.push(byte)
+  }
+  parameter_test_append_be_parameter(
+    payload,
+    PID_UNICAST_LOCATOR,
+    Bytes::from_array(locator_value),
+  )
+  let reliability : Array[Byte] = []
+  parameter_test_append_u32_be(reliability, RELIABILITY_RELIABLE)
+  parameter_test_append_u32_be(reliability, 0U)
+  parameter_test_append_u32_be(reliability, 0U)
+  parameter_test_append_be_parameter(
+    payload,
+    PID_RELIABILITY,
+    Bytes::from_array(reliability),
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_DATA_REPRESENTATION,
+    b"\x00\x00\x00\x01\x00\x00",
+  )
+  parameter_test_append_be_parameter(
+    payload,
+    PID_USER_DATA,
+    sedp_test_octet_sequence_be(b"typehash=RIHS01_test;"),
+  )
+  parameter_test_append_be_parameter(payload, PID_SENTINEL, b"")
+
+  let serialized_payload = Bytes::from_array(payload)
+  let decoded = SedpEndpointData::from_cdr_bytes(
+    SedpEndpointKind::Publication,
+    serialized_payload,
+  ).unwrap()
+  assert_eq(decoded.endpoint_guid(), endpoint_guid)
+  assert_eq(decoded.participant_guid(), participant_guid)
+  assert_eq(decoded.topic_name(), "rt/chatter")
+  assert_eq(decoded.type_name(), "example::Type")
+  assert_eq(decoded.unicast_locators(), [locator])
+  assert_eq(decoded.type_hash(), Ok(Some("RIHS01_test")))
+  let qos = decoded.qos().unwrap()
+  assert_eq(qos.reliability(), RELIABILITY_RELIABLE)
+  assert_eq(qos.data_representation(), [DATA_REPRESENTATION_XCDR1])
+  let data = DataSubmessage::new(
+    EntityId::new(b"rdr", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap(),
+    EntityId::new(b"wrt", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
+    1L,
+    serialized_payload,
+  )
+  assert_eq(
+    SedpEndpointData::from_data_submessage(SedpEndpointKind::Publication, data)
+    .unwrap()
+    .topic_name(),
+    "rt/chatter",
+  )
 }
 
 ///|

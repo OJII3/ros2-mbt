@@ -118,7 +118,7 @@ pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
 ///|
-/// One RTPS parameter with an opaque, little-endian value.
+/// One RTPS parameter value; known scalar fields are normalized to little-endian.
 pub struct Parameter {
   id : UInt16
   value : Bytes
@@ -181,6 +181,108 @@ fn read_u16_with_endianness(
     (input[offset].to_int() << 8) | input[offset + 1].to_int()
   }
   value.to_uint16()
+}
+
+///|
+fn read_u32_with_endianness(
+  input : Bytes,
+  offset : Int,
+  little_endian : Bool,
+) -> UInt {
+  if little_endian {
+    input[offset].to_int().reinterpret_as_uint() |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 3].to_int().reinterpret_as_uint() << 24)
+  } else {
+    (input[offset].to_int().reinterpret_as_uint() << 24) |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 3].to_int().reinterpret_as_uint()
+  }
+}
+
+///|
+fn parameter_normalize_u32_words(
+  value : Bytes,
+  offset : Int,
+  word_count : Int,
+) -> Bytes {
+  let byte_count = word_count * 4
+  if word_count == 0 || offset < 0 || value.length() < offset + byte_count {
+    return value
+  }
+  let normalized : Array[Byte] = []
+  for index in 0..<value.length() {
+    if index >= offset && index < offset + byte_count {
+      let word_offset = offset + (index - offset) / 4 * 4
+      normalized.push(value[word_offset + 3 - (index - offset) % 4])
+    } else {
+      normalized.push(value[index])
+    }
+  }
+  Bytes::from_array(normalized)
+}
+
+///|
+fn parameter_normalize_data_representation(value : Bytes) -> Bytes {
+  if value.length() < 4 {
+    return value
+  }
+  let count = read_u32_with_endianness(value, 0, false).reinterpret_as_int()
+  let normalized = parameter_normalize_u32_words(value, 0, 1)
+  if count < 0 || count > (value.length() - 4) / 2 {
+    return normalized
+  }
+  let result : Array[Byte] = []
+  for index in 0..<normalized.length() {
+    if index >= 4 && index < 4 + count * 2 {
+      result.push(normalized[4 + (index - 4) / 2 * 2 + 1 - (index - 4) % 2])
+    } else {
+      result.push(normalized[index])
+    }
+  }
+  Bytes::from_array(result)
+}
+
+///|
+///|
+/// Normalize known CDR fields for parsers that use little-endian values.
+fn parameter_normalize_big_endian_value(id : UInt16, value : Bytes) -> Bytes {
+  if id == PID_DATA_REPRESENTATION {
+    return parameter_normalize_data_representation(value)
+  }
+  if id == PID_RELATED_SAMPLE_IDENTITY {
+    return parameter_normalize_u32_words(value, 16, 2)
+  }
+  let word_count = match id {
+    PID_PARTICIPANT_LEASE_DURATION
+    | PID_DEADLINE
+    | PID_LATENCY_BUDGET
+    | PID_LIFESPAN => 2
+    PID_UNICAST_LOCATOR
+    | PID_MULTICAST_LOCATOR
+    | PID_METATRAFFIC_UNICAST_LOCATOR
+    | PID_METATRAFFIC_MULTICAST_LOCATOR
+    | PID_DEFAULT_UNICAST_LOCATOR
+    | PID_DEFAULT_MULTICAST_LOCATOR => 2
+    PID_RELIABILITY | PID_LIVELINESS | PID_RESOURCE_LIMITS => 3
+    PID_HISTORY => 2
+    PID_TOPIC_NAME
+    | PID_TYPE_NAME
+    | PID_USER_DATA
+    | PID_SERVICE_INSTANCE_NAME => 1
+    PID_DOMAIN_ID
+    | PID_BUILTIN_ENDPOINT_SET
+    | PID_TYPE_MAX_SIZE_SERIALIZED
+    | PID_STATUS_INFO
+    | PID_DURABILITY
+    | PID_DESTINATION_ORDER
+    | PID_OWNERSHIP
+    | PID_OWNERSHIP_STRENGTH => 1
+    _ => 0
+  }
+  parameter_normalize_u32_words(value, 0, word_count)
 }
 
 ///|
@@ -258,6 +360,11 @@ fn ParameterList::from_bytes_with_endianness(
       return Err("truncated RTPS parameter value")
     }
     let value = bytes_from(input, offset, length)
+    let value = if little_endian {
+      value
+    } else {
+      parameter_normalize_big_endian_value(id, value)
+    }
     result.add(Parameter::new(id, value))
     offset += length
   }
@@ -265,34 +372,35 @@ fn ParameterList::from_bytes_with_endianness(
 }
 
 ///|
-/// Parse a CDR little-endian parameter list.
+/// Parse a PL_CDR_BE or PL_CDR_LE parameter list into normalized values.
 pub fn ParameterList::from_cdr_bytes(
   input : Bytes,
 ) -> Result[ParameterList, String] {
   if input.length() < 4 {
     return Err("a CDR parameter list must have a 4-byte encapsulation header")
   }
-  if input[0] != 0 || input[1] != 3 || input[2] != 0 || input[3] != 0 {
-    return Err("only RTPS ParameterList CDR little-endian encoding is supported")
+  if input[0] != 0 || (input[1] != 2 && input[1] != 3) {
+    return Err("only RTPS PL_CDR_BE and PL_CDR_LE encodings are supported")
   }
+  let little_endian = input[1] == 3
   let body = bytes_from(input, 4, input.length() - 4)
-  match ParameterList::from_bytes(body) {
+  match ParameterList::from_bytes_with_endianness(body, little_endian) {
     Ok((parameters, _)) => Ok(parameters)
     Err(message) => Err(message)
   }
 }
 
+///|
 /// Parse a ParameterList carried directly in an RTPS DATA payload.
 ///
-/// RTPS implementations use both the PL_CDR_LE encapsulation form and the
+/// RTPS implementations use both PL_CDR encapsulation forms and the
 /// DATA form whose payload starts at the first parameter identifier. Keep
 /// `from_cdr_bytes` strict for standalone CDR values, while accepting both
 /// wire forms at the DATA boundary.
 pub fn ParameterList::from_data_bytes(
   input : Bytes,
 ) -> Result[ParameterList, String] {
-  if input.length() >= 4 &&
-    input[0] == 0 && input[1] == 3 && input[2] == 0 && input[3] == 0 {
+  if input.length() >= 4 && input[0] == 0 && (input[1] == 2 || input[1] == 3) {
     return ParameterList::from_cdr_bytes(input)
   }
   match ParameterList::from_bytes(input) {

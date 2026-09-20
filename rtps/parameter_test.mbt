@@ -1,4 +1,42 @@
 ///|
+fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt) -> Unit {
+  bytes.push((value >> 8).to_byte())
+  bytes.push(value.to_byte())
+}
+
+///|
+fn parameter_test_append_u32_be(bytes : Array[Byte], value : UInt) -> Unit {
+  bytes.push((value >> 24).to_byte())
+  bytes.push((value >> 16).to_byte())
+  bytes.push((value >> 8).to_byte())
+  bytes.push(value.to_byte())
+}
+
+///|
+fn parameter_test_append_be_parameter(
+  bytes : Array[Byte],
+  id : UInt16,
+  value : Bytes,
+) -> Unit {
+  let length = (value.length() + 3) / 4 * 4
+  parameter_test_append_u16_be(bytes, id.to_int().reinterpret_as_uint())
+  parameter_test_append_u16_be(bytes, length.reinterpret_as_uint())
+  for byte in value {
+    bytes.push(byte)
+  }
+  for _ in 0..<(length - value.length()) {
+    bytes.push(0)
+  }
+}
+
+///|
+fn parameter_test_be_u32(value : UInt) -> Bytes {
+  let bytes : Array[Byte] = []
+  parameter_test_append_u32_be(bytes, value)
+  Bytes::from_array(bytes)
+}
+
+///|
 test "RTPS parameter list round trip" {
   let parameters = ParameterList::new()
   parameters.add(Parameter::new(PID_PROTOCOL_VERSION, b"\x02\x03\x00\x00"))
@@ -12,6 +50,28 @@ test "RTPS parameter list round trip" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.values(), parameters.values())
+}
+
+///|
+test "RTPS PL_CDR_BE decodes parameter headers and normalizes known fields" {
+  let encoded : Array[Byte] = [0, 2, 0x12, 0x34]
+  parameter_test_append_be_parameter(
+    encoded,
+    PID_DOMAIN_ID,
+    b"\x00\x00\x00\x2A",
+  )
+  parameter_test_append_be_parameter(encoded, 0x8000, b"\x10\x20\x30\x40")
+  parameter_test_append_be_parameter(encoded, PID_SENTINEL, b"")
+  let payload = Bytes::from_array(encoded)
+  let decoded = ParameterList::from_cdr_bytes(payload).unwrap()
+  assert_eq(decoded.values()[0].id(), PID_DOMAIN_ID)
+  assert_eq(decoded.values()[0].value(), b"\x2A\x00\x00\x00")
+  assert_eq(decoded.values()[1].id(), (0x8000 : UInt16))
+  assert_eq(decoded.values()[1].value(), b"\x10\x20\x30\x40")
+  assert_eq(
+    ParameterList::from_data_bytes(payload).unwrap().values(),
+    decoded.values(),
+  )
 }
 
 ///|
