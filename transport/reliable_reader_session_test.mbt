@@ -18,6 +18,10 @@ async test "reliable reader session receives discovered publication data" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let other_reader_id = match @rtps.EntityId::new(b"oth", 0xC7) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let locator = match
@@ -55,6 +59,21 @@ async test "reliable reader session receives discovered publication data" {
     sender.send_data(
       @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"other participant"),
       other_prefix,
+      @rtps.VendorId::new(1, 15),
+      receiver.local_addr(),
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  match
+    sender.send_data(
+      @rtps.DataSubmessage::new(
+        other_reader_id,
+        writer_id,
+        1L,
+        b"other reader",
+      ),
+      prefix,
       @rtps.VendorId::new(1, 15),
       receiver.local_addr(),
     ) {

@@ -146,6 +146,10 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             Ok(value) => value
             Err(_) => continue
           }
+          if data.reader_id() != self.state.reader_id &&
+            data.reader_id() != @rtps.EntityId::unknown() {
+            continue
+          }
           match self.state.accept_data(data) {
             Ok(_) => {
               let identity = match
@@ -165,6 +169,10 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
           let fragment = match @rtps.DataFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
+          }
+          if fragment.reader_id() != self.state.reader_id &&
+            fragment.reader_id() != @rtps.EntityId::unknown() {
+            continue
           }
           let data = match self.state.accept_data_frag(fragment) {
             Ok(value) => value
