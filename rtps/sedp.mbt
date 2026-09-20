@@ -441,7 +441,7 @@ fn sedp_qos_data_representation(value : Bytes) -> Result[Array[UInt16], String] 
     [u32le(result)] => result.reinterpret_as_int()
     _ => return Err("invalid SEDP data representation parameter")
   }
-  if length < 0 || 4 + length * 2 > value.length() {
+  if length < 0 || length > (value.length() - 4) / 2 {
     return Err("invalid SEDP data representation sequence length")
   }
   let representations : Array[UInt16] = []
@@ -727,7 +727,7 @@ fn sedp_read_octet_sequence(value : Bytes) -> Result[Bytes, String] {
     [u32le(result)] => result.reinterpret_as_int()
     _ => return Err("SEDP USER_DATA has an invalid length")
   }
-  if length < 0 || 4 + length > value.length() {
+  if length < 0 || length > value.length() - 4 {
     return Err("SEDP USER_DATA length is outside the parameter")
   }
   let bytes : Array[Byte] = []
@@ -760,7 +760,7 @@ fn sedp_read_string(value : Bytes, label : String) -> Result[String, String] {
     [u32le(result)] => result.reinterpret_as_int()
     _ => return Err("invalid SEDP " + label + " length")
   }
-  if length <= 0 || 4 + length > value.length() {
+  if length <= 0 || length > value.length() - 4 {
     return Err("invalid SEDP " + label + " length")
   }
   if value[4 + length - 1] != 0 {

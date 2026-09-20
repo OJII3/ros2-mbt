@@ -506,6 +506,48 @@ test "SEDP rejects malformed data representation sequences" {
 }
 
 ///|
+test "SEDP rejects overflowing variable-length fields" {
+  let oversized_length = b"\xFC\xFF\xFF\x7F"
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  endpoint.add_parameter(
+    Parameter::new(PID_DATA_REPRESENTATION, oversized_length),
+  )
+  assert_true(endpoint.qos() is Err(_))
+
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let parameters = endpoint.to_parameter_list().unwrap()
+  parameters.add(Parameter::new(PID_USER_DATA, oversized_length))
+  assert_true(
+    SedpEndpointData::from_parameter_list(
+      SedpEndpointKind::Publication,
+      parameters,
+    ) is Err(_),
+  )
+
+  let parameters = ParameterList::new()
+  parameters.add(
+    Parameter::new(PID_ENDPOINT_GUID, sedp_test_guid(0xC2).unwrap().to_bytes()),
+  )
+  parameters.add(Parameter::new(PID_TOPIC_NAME, oversized_length))
+  assert_true(
+    SedpEndpointData::from_parameter_list(
+      SedpEndpointKind::Publication,
+      parameters,
+    ) is Err(_),
+  )
+}
+
+///|
 test "SEDP subscription advertises that it does not expect inline QoS" {
   let endpoint_guid = match sedp_test_guid(0xC7) {
     Ok(value) => value
