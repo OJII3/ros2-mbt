@@ -119,6 +119,27 @@ test "ROS message parser and generator handle scalar constants" {
 }
 
 ///|
+test "ROS float constants accept exponent notation" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "FloatConstants",
+    "float32 SMALL=1.25e-3\nfloat32 WHOLE=1\nfloat64 LARGE=-2E+9\nfloat64 POSITIVE=+2E3\nfloat64 LEADING=.5\nfloat64 TRAILING=1.\nfloat64 GROUPED=1_000.5e+2",
+  ).unwrap()
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub const SMALL : Float = 1.25e-3F"))
+  assert_true(generated.contains("pub const WHOLE : Float = 1.0F"))
+  assert_true(generated.contains("pub const LARGE : Double = -2.0e+9"))
+  assert_true(generated.contains("pub const POSITIVE : Double = 2.0e3"))
+  assert_true(generated.contains("pub const LEADING : Double = 0.5"))
+  assert_true(generated.contains("pub const TRAILING : Double = 1.0"))
+  assert_true(generated.contains("pub const GROUPED : Double = 1000.5e+2"))
+  assert_true(parse_message("demo", "msg", "Invalid", "float64 BAD=1e") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "float32 BAD=1.2.3") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "float64 BAD=1__0.0") is Err(_))
+}
+
+///|
 test "ROS string constants accept quoted and unquoted values" {
   let definition = parse_message(
     "demo",

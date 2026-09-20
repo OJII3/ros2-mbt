@@ -1262,15 +1262,11 @@ fn rosidl_constant_literal(
       if !rosidl_float_literal(value) {
         return Err("ROS float constants must be numeric")
       }
-      if value[value.length() - 1] == 'F' {
-        Ok(value)
-      } else {
-        Ok(value + "F")
-      }
+      Ok(rosidl_normalize_float_literal(value) + "F")
     }
     "float64" =>
       if rosidl_float_literal(value) {
-        Ok(value)
+        Ok(rosidl_normalize_float_literal(value))
       } else {
         Err("ROS float constants must be numeric")
       }
@@ -1407,21 +1403,116 @@ fn rosidl_float_literal(value : String) -> Bool {
   if bytes.length() == 0 {
     return false
   }
-  let mut has_digit = false
-  let mut has_dot = false
-  for index in 0..<bytes.length() {
-    let byte = bytes[index]
-    if byte >= 48 && byte <= 57 {
-      has_digit = true
-    } else if byte == b'-' && index == 0 {
-      continue
-    } else if byte == b'.' && !has_dot {
-      has_dot = true
-    } else {
+  let mut index = 0
+  if bytes[index] == b'-' || bytes[index] == b'+' {
+    index += 1
+  }
+  let (after_integer, integer_digits) = rosidl_float_digits(bytes, index)
+  if integer_digits < 0 {
+    return false
+  }
+  index = after_integer
+  let mut mantissa_digits = integer_digits
+  if index < bytes.length() && bytes[index] == b'.' {
+    index += 1
+    let (after_fraction, fraction_digits) = rosidl_float_digits(bytes, index)
+    if fraction_digits < 0 {
       return false
     }
+    index = after_fraction
+    mantissa_digits += fraction_digits
   }
-  has_digit
+  if mantissa_digits == 0 {
+    return false
+  }
+  if index < bytes.length() && (bytes[index] == b'e' || bytes[index] == b'E') {
+    index += 1
+    if index < bytes.length() &&
+      (bytes[index] == b'+' || bytes[index] == b'-') {
+      index += 1
+    }
+    let (after_exponent, exponent_digits) = rosidl_float_digits(bytes, index)
+    if exponent_digits <= 0 {
+      return false
+    }
+    index = after_exponent
+  }
+  index == bytes.length()
+}
+
+///|
+fn rosidl_float_digits(bytes : Bytes, start : Int) -> (Int, Int) {
+  let mut index = start
+  let mut digits = 0
+  while index < bytes.length() {
+    let byte = bytes[index]
+    if byte >= 48 && byte <= 57 {
+      digits += 1
+      index += 1
+    } else if byte == b'_' {
+      if digits == 0 || index + 1 >= bytes.length() ||
+        bytes[index + 1] < 48 || bytes[index + 1] > 57 {
+        return (index, -1)
+      }
+      index += 1
+    } else {
+      break
+    }
+  }
+  (index, digits)
+}
+
+///|
+fn rosidl_normalize_float_literal(value : String) -> String {
+  let bytes = @utf8.encode(value)
+  let mut exponent_index = bytes.length()
+  for index in 0..<bytes.length() {
+    if bytes[index] == b'e' || bytes[index] == b'E' {
+      exponent_index = index
+      break
+    }
+  }
+  let mantissa_start = if bytes[0] == b'+' || bytes[0] == b'-' {
+    1
+  } else {
+    0
+  }
+  let mut has_dot = false
+  for index in mantissa_start..<exponent_index {
+    if bytes[index] == b'.' {
+      has_dot = true
+    }
+  }
+  let mut result = ""
+  for index in 0..<bytes.length() {
+    if (index == 0 && bytes[index] == b'+') || bytes[index] == b'_' {
+      continue
+    }
+    if index == exponent_index && exponent_index < bytes.length() {
+      if !has_dot {
+        result += ".0"
+      } else if bytes[index - 1] == b'.' {
+        result += "0"
+      }
+      result += "e"
+    } else if index == mantissa_start && bytes[index] == b'.' {
+      result += "0."
+    } else if bytes[index] == b'E' {
+      result += "e"
+    } else {
+      result += @utf8.decode(Bytes::from_array([bytes[index]])) catch {
+        _ => ""
+      }
+    }
+  }
+  if exponent_index == bytes.length() {
+    if bytes[bytes.length() - 1] == b'.' {
+      result += "0"
+    } else if !has_dot {
+      result += ".0"
+    }
+  }
+  result
 }
 
 ///|
