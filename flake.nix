@@ -17,6 +17,10 @@
         let
           pkgs = import inputs.nixpkgs {
             inherit system;
+            overlays = [ inputs.moonbit-overlay.overlays.default ];
+          };
+          rosPkgs = import inputs.nixpkgs {
+            inherit system;
             overlays = [
               inputs.moonbit-overlay.overlays.default
               inputs.nix-ros-overlay.overlays.default
@@ -29,13 +33,13 @@
             default = pkgs.mkShell {
               packages = [ moonbit ];
             };
-            ros2 = pkgs.mkShell {
+            ros2 = rosPkgs.mkShell {
               packages = [
                 moonbit
-                pkgs.coreutils
-                (pkgs.rosPackages.jazzy.buildEnv {
+                rosPkgs.coreutils
+                (rosPkgs.rosPackages.jazzy.buildEnv {
                   underlay = true;
-                  paths = with pkgs.rosPackages.jazzy; [
+                  paths = with rosPkgs.rosPackages.jazzy; [
                     ros-core
                     demo-nodes-cpp
                     example-interfaces
