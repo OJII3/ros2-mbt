@@ -599,7 +599,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
     Ok(_) => {
       self.graph_publication_id = Some(publication_id)
       self.graph_subscription_id = Some(subscription_id)
-      Ok(())
+      self.reconcile_ros_discovery_endpoints()
     }
     Err(message) => Err(message)
   }
@@ -829,6 +829,117 @@ fn RosParticipant::forget_graph_participant(
   self.graph_publishers = publishers
 }
 
+///| Ensure one already-known ROS graph publication has a reliable reader.
+fn RosParticipant::ensure_ros_discovery_publication(
+  self : RosParticipant,
+  publication : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  if publication.topic_name() != @ros.ROS_DISCOVERY_INFO_TOPIC_NAME ||
+    publication.type_name() != @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+    return Ok(())
+  }
+  let reader_id = match self.graph_subscription_id {
+    Some(value) => value
+    None => return Ok(())
+  }
+  let endpoint_guid = publication.endpoint_guid()
+  for guid in self.graph_subscription_guids {
+    if guid == endpoint_guid {
+      return Ok(())
+    }
+  }
+  let reader = match
+    ReliableRosDiscoverySubscription::new_for_publication(
+      self.user_socket,
+      self.participant.participant_guid().prefix(),
+      self.participant.vendor_id(),
+      reader_id,
+      publication,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.graph_subscriptions.push(reader)
+  self.graph_subscription_guids.push(endpoint_guid)
+  Ok(())
+}
+
+///| Ensure one already-known ROS graph subscription has a reliable writer.
+async fn RosParticipant::ensure_ros_discovery_subscription(
+  self : RosParticipant,
+  subscription : @rtps.SedpEndpointData,
+  announce_initial : Bool,
+) -> Result[Unit, String] {
+  if subscription.topic_name() != @ros.ROS_DISCOVERY_INFO_TOPIC_NAME ||
+    subscription.type_name() != @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+    return Ok(())
+  }
+  let writer_id = match self.graph_publication_id {
+    Some(value) => value
+    None => return Ok(())
+  }
+  let endpoint_guid = subscription.endpoint_guid()
+  for guid in self.graph_publisher_guids {
+    if guid == endpoint_guid {
+      return Ok(())
+    }
+  }
+  let publisher = match
+    ReliableRosDiscoveryPublisher::new_for_subscription(
+      self.user_socket,
+      self.participant.participant_guid().prefix(),
+      self.participant.vendor_id(),
+      writer_id,
+      subscription,
+      1L,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if announce_initial {
+    let info = match self.latest_graph_info {
+      Some(info) => Some(info)
+      None => match self.configured_ros_discovery_info() {
+        Ok(info) => {
+          self.latest_graph_info = Some(info)
+          Some(info)
+        }
+        Err(_) => None
+      }
+    }
+    match info {
+      Some(info) => match publisher.announce_once(info) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+      None => ()
+    }
+  }
+  self.graph_publishers.push(publisher)
+  self.graph_publisher_guids.push(endpoint_guid)
+  Ok(())
+}
+
+///| Reconcile graph endpoints received before local graph endpoints were set up.
+async fn RosParticipant::reconcile_ros_discovery_endpoints(
+  self : RosParticipant,
+) -> Result[Unit, String] {
+  let graph = self.graph()
+  for publication in graph.publications() {
+    match self.ensure_ros_discovery_publication(publication) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  for subscription in graph.subscriptions() {
+    match self.ensure_ros_discovery_subscription(subscription, false) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  self.refresh_ros_discovery_info()
+}
+
 ///|
 /// Receive one SPDP or SEDP event and ingest it into the graph.
 pub async fn RosParticipant::receive_discovery_once(
@@ -851,84 +962,14 @@ pub async fn RosParticipant::receive_discovery_once(
         }
       }
     DiscoveryEvent::Publication(publication) =>
-      match self.graph_subscription_id {
-        None => ()
-        Some(reader_id) =>
-          if publication.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME &&
-            publication.type_name() == @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
-            let endpoint_guid = publication.endpoint_guid()
-            let mut known = false
-            for guid in self.graph_subscription_guids {
-              if guid == endpoint_guid {
-                known = true
-                break
-              }
-            }
-            if !known {
-              let reader = match
-                ReliableRosDiscoverySubscription::new_for_publication(
-                  self.user_socket,
-                  self.participant.participant_guid().prefix(),
-                  self.participant.vendor_id(),
-                  reader_id,
-                  publication,
-                ) {
-                Ok(value) => value
-                Err(message) => return Err(message)
-              }
-              self.graph_subscriptions.push(reader)
-              self.graph_subscription_guids.push(endpoint_guid)
-            }
-          }
+      match self.ensure_ros_discovery_publication(publication) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
       }
     DiscoveryEvent::Subscription(subscription) =>
-      match self.graph_publication_id {
-        None => ()
-        Some(writer_id) =>
-          if subscription.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME &&
-            subscription.type_name() == @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
-            let endpoint_guid = subscription.endpoint_guid()
-            let mut known = false
-            for guid in self.graph_publisher_guids {
-              if guid == endpoint_guid {
-                known = true
-                break
-              }
-            }
-            if !known {
-              let publisher = match
-                ReliableRosDiscoveryPublisher::new_for_subscription(
-                  self.user_socket,
-                  self.participant.participant_guid().prefix(),
-                  self.participant.vendor_id(),
-                  writer_id,
-                  subscription,
-                  1L,
-              ) {
-                Ok(value) => value
-                Err(message) => return Err(message)
-              }
-              let info = match self.latest_graph_info {
-                Some(info) => Some(info)
-                None => match self.configured_ros_discovery_info() {
-                  Ok(info) => {
-                    self.latest_graph_info = Some(info)
-                    Some(info)
-                  }
-                  Err(_) => None
-                }
-              }
-              match info {
-                Some(info) => match publisher.announce_once(info) {
-                  Ok(_) => ()
-                  Err(message) => return Err(message)
-                }
-                None => ()
-              }
-              self.graph_publishers.push(publisher)
-              self.graph_publisher_guids.push(endpoint_guid)
-            }
-          }
+      match self.ensure_ros_discovery_subscription(subscription, true) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
       }
     DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
       match kind {

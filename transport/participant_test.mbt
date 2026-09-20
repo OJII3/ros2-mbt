@@ -782,13 +782,6 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Err(message) => fail(message)
   }
   match
-    publisher.register_ros_discovery_info(
-      graph_publication_id, graph_subscription_id,
-    ) {
-    Ok(_) => ()
-    Err(message) => fail(message)
-  }
-  match
     subscriber.register_ros_discovery_info(
       graph_publication_id, graph_subscription_id,
     ) {
@@ -816,14 +809,25 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  for _ in 0..<3 {
-    match subscriber.receive_discovery_once() {
+  for _ in 0..<2 {
+    match publisher.receive_discovery_once() {
       Ok(_) => ()
       Err(message) => fail(message)
     }
   }
-  for _ in 0..<2 {
-    match publisher.receive_discovery_once() {
+  assert_eq(publisher.graph().publication_count(), 1)
+  assert_eq(publisher.graph().subscription_count(), 1)
+  assert_eq(publisher.ros_discovery_publisher_count(), 0)
+  assert_eq(publisher.ros_discovery_subscription_count(), 0)
+  match
+    publisher.register_ros_discovery_info(
+      graph_publication_id, graph_subscription_id,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  for _ in 0..<3 {
+    match subscriber.receive_discovery_once() {
       Ok(_) => ()
       Err(message) => fail(message)
     }
