@@ -191,6 +191,19 @@ pub fn DiscoveryGraph::participants(
   self.participants
 }
 
+/// Return the vendor ID of the participant owning an endpoint GUID prefix.
+pub fn DiscoveryGraph::participant_vendor_id(
+  self : DiscoveryGraph,
+  participant_guid : @rtps.Guid,
+) -> @rtps.VendorId? {
+  for participant in self.participants {
+    if participant.participant_guid().prefix() == participant_guid.prefix() {
+      return Some(participant.vendor_id())
+    }
+  }
+  None
+}
+
 ///|
 pub fn DiscoveryGraph::publications(
   self : DiscoveryGraph,

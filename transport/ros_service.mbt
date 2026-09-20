@@ -77,6 +77,23 @@ fn validate_service_endpoint_pair(
   Ok(())
 }
 
+/// Service payload wire format used by the remote ROS 2 implementation.
+pub(all) enum RosServiceWireFormat {
+  DdsRpcInline
+  CycloneDdsPayload
+} derive(Eq, Debug)
+
+///|
+fn service_payload_client_id(guid : @rtps.Guid) -> UInt64 {
+  let bytes = guid.to_bytes()
+  let mut value = 0L.reinterpret_as_uint64()
+  for index in 0..<8 {
+    value = value |
+      (bytes[index].to_int().to_uint64() << (index * 8))
+  }
+  value
+}
+
 ///|
 /// A ROS service client using reliable request/reply DATA endpoints.
 pub struct RosServiceClient {
@@ -84,6 +101,8 @@ pub struct RosServiceClient {
   request_writer : ReliableDataWriter
   response_reader : ReliableDataReaderSession
   response_reader_guid : @rtps.Guid
+  wire_format : RosServiceWireFormat
+  payload_client_id : UInt64
   shared_socket : Bool
 }
 
@@ -101,6 +120,27 @@ pub fn RosServiceClient::new(
   response_reader_id : @rtps.EntityId,
   response_publication : @rtps.SedpEndpointData,
   first_request_sequence_number : Int64,
+) -> Result[RosServiceClient, String] {
+  RosServiceClient::new_with_wire_format(
+    service, request_socket, response_socket, guid_prefix, vendor_id, request_writer_id,
+    request_subscription, response_reader_id, response_publication,
+    first_request_sequence_number, RosServiceWireFormat::DdsRpcInline,
+  )
+}
+
+/// Create a client with an explicit service payload wire format.
+pub fn RosServiceClient::new_with_wire_format(
+  service : @ros.RosService,
+  request_socket : Udp,
+  response_socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_writer_id : @rtps.EntityId,
+  request_subscription : @rtps.SedpEndpointData,
+  response_reader_id : @rtps.EntityId,
+  response_publication : @rtps.SedpEndpointData,
+  first_request_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
 ) -> Result[RosServiceClient, String] {
   match
     validate_service_endpoint(
@@ -147,6 +187,10 @@ pub fn RosServiceClient::new(
     request_writer,
     response_reader,
     response_reader_guid: @rtps.Guid::new(guid_prefix, response_reader_id),
+    wire_format,
+    payload_client_id: service_payload_client_id(
+      @rtps.Guid::new(guid_prefix, request_writer_id),
+    ),
     shared_socket: false,
   })
 }
@@ -164,10 +208,30 @@ pub fn RosServiceClient::new_with_shared_socket(
   response_publication : @rtps.SedpEndpointData,
   first_request_sequence_number : Int64,
 ) -> Result[RosServiceClient, String] {
+  RosServiceClient::new_with_shared_socket_and_wire_format(
+    service, socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
+    response_reader_id, response_publication, first_request_sequence_number,
+    RosServiceWireFormat::DdsRpcInline,
+  )
+}
+
+/// Create a client on one shared socket with an explicit wire format.
+pub fn RosServiceClient::new_with_shared_socket_and_wire_format(
+  service : @ros.RosService,
+  socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_writer_id : @rtps.EntityId,
+  request_subscription : @rtps.SedpEndpointData,
+  response_reader_id : @rtps.EntityId,
+  response_publication : @rtps.SedpEndpointData,
+  first_request_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
+) -> Result[RosServiceClient, String] {
   let client = match
-    RosServiceClient::new(
+    RosServiceClient::new_with_wire_format(
       service, socket, socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
-      response_reader_id, response_publication, first_request_sequence_number,
+      response_reader_id, response_publication, first_request_sequence_number, wire_format,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -186,15 +250,33 @@ pub async fn RosServiceClient::request(
   self : RosServiceClient,
   serialized_request : Bytes,
 ) -> Result[@rtps.SampleIdentity, String] {
-  let related_identity = @rtps.SampleIdentity::unknown_sequence(
-    self.response_reader_guid,
-  )
-  let identity = match
-    self.request_writer.write_with_related_sample_identity_and_return_identity(
-      serialized_request, related_identity,
-    ) {
-    Ok(value) => value
-    Err(message) => return Err(message)
+  let identity = match self.wire_format {
+    RosServiceWireFormat::DdsRpcInline => {
+      let related_identity = @rtps.SampleIdentity::unknown_sequence(
+        self.response_reader_guid,
+      )
+      match
+        self.request_writer.write_with_related_sample_identity_and_return_identity(
+          serialized_request, related_identity,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+    }
+    RosServiceWireFormat::CycloneDdsPayload => {
+      let header = @ros.RosServicePayloadHeader::new(
+        self.payload_client_id,
+        self.request_writer.next_sequence_number(),
+      )
+      let payload = match header.to_cdr_payload(serialized_request) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      match self.request_writer.write_and_return_identity(payload) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+    }
   }
   match self.request_writer.send_heartbeat() {
     Ok(_) =>
@@ -216,18 +298,45 @@ pub async fn RosServiceClient::receive_response(
   self : RosServiceClient,
   request_identity : @rtps.SampleIdentity,
 ) -> Result[(Bytes, @socket.Addr), String] {
-  let received = if self.shared_socket {
-    self.response_reader.receive_related_data_with_writer(
-      request_identity, self.request_writer,
-    )
-  } else {
-    self.response_reader.receive_related_data(request_identity)
+  match self.wire_format {
+    RosServiceWireFormat::DdsRpcInline => {
+      let received = if self.shared_socket {
+        self.response_reader.receive_related_data_with_writer(
+          request_identity, self.request_writer,
+        )
+      } else {
+        self.response_reader.receive_related_data(request_identity)
+      }
+      let (data, source) = match received {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      Ok((data.serialized_payload(), source))
+    }
+    RosServiceWireFormat::CycloneDdsPayload => {
+      while true {
+        let received = if self.shared_socket {
+          self.response_reader.receive_data_with_writer(self.request_writer)
+        } else {
+          self.response_reader.receive_data_with_identity()
+        }
+        let (data, _, source) = match received {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        let (header, payload) = match
+          @ros.ros_service_payload_from_cdr(data.serialized_payload()) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if header.client_id() == self.payload_client_id &&
+          header.sequence_number() == request_identity.sequence_number() {
+          return Ok((payload, source))
+        }
+      }
+      Err("reliable Cyclone DDS service response reader stopped")
+    }
   }
-  let (data, source) = match received {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  Ok((data.serialized_payload(), source))
 }
 
 ///|
@@ -258,6 +367,8 @@ pub struct RosServiceServer {
   service : @ros.RosService
   request_reader : ReliableDataReaderSession
   response_writer : ReliableDataWriter
+  wire_format : RosServiceWireFormat
+  mut pending_payload_header : @ros.RosServicePayloadHeader?
   shared_socket : Bool
 }
 
@@ -275,6 +386,27 @@ pub fn RosServiceServer::new(
   response_writer_id : @rtps.EntityId,
   response_subscription : @rtps.SedpEndpointData,
   first_response_sequence_number : Int64,
+) -> Result[RosServiceServer, String] {
+  RosServiceServer::new_with_wire_format(
+    service, request_socket, response_socket, guid_prefix, vendor_id, request_reader_id,
+    request_publication, response_writer_id, response_subscription,
+    first_response_sequence_number, RosServiceWireFormat::DdsRpcInline,
+  )
+}
+
+/// Create a server with an explicit service payload wire format.
+pub fn RosServiceServer::new_with_wire_format(
+  service : @ros.RosService,
+  request_socket : Udp,
+  response_socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_reader_id : @rtps.EntityId,
+  request_publication : @rtps.SedpEndpointData,
+  response_writer_id : @rtps.EntityId,
+  response_subscription : @rtps.SedpEndpointData,
+  first_response_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
 ) -> Result[RosServiceServer, String] {
   match
     validate_service_endpoint(
@@ -316,7 +448,14 @@ pub fn RosServiceServer::new(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ service, request_reader, response_writer, shared_socket: false, })
+  Ok({
+    service,
+    request_reader,
+    response_writer,
+    wire_format,
+    pending_payload_header: None,
+    shared_socket: false,
+  })
 }
 
 ///|
@@ -332,10 +471,30 @@ pub fn RosServiceServer::new_with_shared_socket(
   response_subscription : @rtps.SedpEndpointData,
   first_response_sequence_number : Int64,
 ) -> Result[RosServiceServer, String] {
+  RosServiceServer::new_with_shared_socket_and_wire_format(
+    service, socket, guid_prefix, vendor_id, request_reader_id, request_publication,
+    response_writer_id, response_subscription, first_response_sequence_number,
+    RosServiceWireFormat::DdsRpcInline,
+  )
+}
+
+/// Create a server on one shared socket with an explicit wire format.
+pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
+  service : @ros.RosService,
+  socket : Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_reader_id : @rtps.EntityId,
+  request_publication : @rtps.SedpEndpointData,
+  response_writer_id : @rtps.EntityId,
+  response_subscription : @rtps.SedpEndpointData,
+  first_response_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
+) -> Result[RosServiceServer, String] {
   let server = match
-    RosServiceServer::new(
+    RosServiceServer::new_with_wire_format(
       service, socket, socket, guid_prefix, vendor_id, request_reader_id, request_publication,
-      response_writer_id, response_subscription, first_response_sequence_number,
+      response_writer_id, response_subscription, first_response_sequence_number, wire_format,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -372,7 +531,20 @@ pub async fn RosServiceServer::receive_request(
         Ok(value) => value
         Err(_) => identity
       }
-    Ok(None) => identity
+    Ok(None) => {
+      match self.wire_format {
+        RosServiceWireFormat::DdsRpcInline => identity
+        RosServiceWireFormat::CycloneDdsPayload => {
+          let (header, payload) = match
+            @ros.ros_service_payload_from_cdr(data.serialized_payload()) {
+            Ok(value) => value
+            Err(message) => return Err(message)
+          }
+          self.pending_payload_header = Some(header)
+          return Ok((payload, identity, source))
+        }
+      }
+    }
     Err(_) => identity
   }
   Ok((data.serialized_payload(), response_identity, source))
@@ -385,12 +557,25 @@ pub async fn RosServiceServer::respond(
   request_identity : @rtps.SampleIdentity,
   serialized_response : Bytes,
 ) -> Result[Unit, String] {
-  match
-    self.response_writer.write_with_related_sample_identity(
-      serialized_response, request_identity,
-    ) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  match self.pending_payload_header {
+    Some(header) => {
+      let payload = match header.to_cdr_payload(serialized_response) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      match self.response_writer.write(payload) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+      self.pending_payload_header = None
+    }
+    None => match
+      self.response_writer.write_with_related_sample_identity(
+        serialized_response, request_identity,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
   }
   self.response_writer.send_heartbeat()
 }

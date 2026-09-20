@@ -11,11 +11,17 @@ pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
 
+pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03
+
+pub const ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND : Byte = 0x04
+
 pub const STD_MSGS_STRING_TYPE_HASH : String = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
 
 pub fn ros_discovery_info_to_sedp(@rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 
 pub fn ros_name_to_dds(String, DdsTopicKind) -> Result[String, String]
+
+pub fn ros_service_payload_from_cdr(Bytes) -> Result[(RosServicePayloadHeader, Bytes), String]
 
 pub fn ros_service_request_to_dds(String) -> Result[String, String]
 
@@ -93,6 +99,15 @@ pub fn RosService::response_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps
 pub fn RosService::response_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::response_to_sedp_with_related_endpoint(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::ros_name(Self) -> String
+
+pub struct RosServicePayloadHeader {
+  client_id : UInt64
+  sequence_number : Int64
+} derive(Eq, @debug.Debug)
+pub fn RosServicePayloadHeader::client_id(Self) -> UInt64
+pub fn RosServicePayloadHeader::new(UInt64, Int64) -> Self
+pub fn RosServicePayloadHeader::sequence_number(Self) -> Int64
+pub fn RosServicePayloadHeader::to_cdr_payload(Self, Bytes) -> Result[Bytes, String]
 
 pub struct RosTopic {
   ros_name : String

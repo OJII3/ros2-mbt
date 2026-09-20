@@ -8,6 +8,80 @@ pub struct RosService {
   dds_response_type_name : String
 } derive(Eq, Debug)
 
+/// The request identity wrapper used by rmw_cyclonedds_cpp service topics.
+pub struct RosServicePayloadHeader {
+  client_id : UInt64
+  sequence_number : Int64
+} derive(Eq, Debug)
+
+///|
+pub fn RosServicePayloadHeader::new(
+  client_id : UInt64,
+  sequence_number : Int64,
+) -> RosServicePayloadHeader {
+  { client_id, sequence_number, }
+}
+
+///|
+pub fn RosServicePayloadHeader::client_id(
+  self : RosServicePayloadHeader,
+) -> UInt64 {
+  self.client_id
+}
+
+///|
+pub fn RosServicePayloadHeader::sequence_number(
+  self : RosServicePayloadHeader,
+) -> Int64 {
+  self.sequence_number
+}
+
+/// Serialize a service payload with the Cyclone DDS request identity header.
+pub fn RosServicePayloadHeader::to_cdr_payload(
+  self : RosServicePayloadHeader,
+  payload : Bytes,
+) -> Result[Bytes, String] {
+  match @cdr.Reader::from_bytes(payload) {
+    Err(message) => Err(message)
+    Ok(_) => {
+      let writer = @cdr.Writer::new()
+      writer.write_u64(self.client_id)
+      writer.write_i64(self.sequence_number)
+      writer.write_byte_array(payload[4:].to_owned())
+      Ok(writer.to_bytes())
+    }
+  }
+}
+
+/// Deserialize a Cyclone DDS service identity header and restore the payload
+/// to the ordinary ROS 2 CDR shape expected by the application.
+pub fn ros_service_payload_from_cdr(
+  payload : Bytes,
+) -> Result[(RosServicePayloadHeader, Bytes), String] {
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let client_id = match reader.read_u64() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let sequence_number = match reader.read_i64() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let body = match reader.read_byte_array(reader.remaining()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let body_writer = @cdr.Writer::new()
+  body_writer.write_byte_array(body)
+  Ok((
+    RosServicePayloadHeader::new(client_id, sequence_number),
+    body_writer.to_bytes(),
+  ))
+}
+
 ///|
 /// Create a service descriptor for a `package/srv/Service` interface.
 pub fn RosService::new(

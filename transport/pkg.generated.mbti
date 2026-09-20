@@ -5,6 +5,7 @@ import {
   "kainaproject/ros2_mbt/ros",
   "kainaproject/ros2_mbt/rtps",
   "moonbitlang/async/socket",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -98,6 +99,7 @@ pub fn DiscoveryGraph::ingest(Self, DiscoveryEvent) -> Unit
 pub fn DiscoveryGraph::ingest_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Unit
 pub fn DiscoveryGraph::new() -> Self
 pub fn DiscoveryGraph::participant_count(Self) -> Int
+pub fn DiscoveryGraph::participant_vendor_id(Self, @rtps.Guid) -> @rtps.VendorId?
 pub fn DiscoveryGraph::participants(Self) -> Array[@rtps.SpdpParticipantData]
 pub fn DiscoveryGraph::publication_count(Self) -> Int
 pub fn DiscoveryGraph::publications(Self) -> Array[@rtps.SedpEndpointData]
@@ -362,11 +364,15 @@ pub struct RosServiceClient {
   request_writer : ReliableDataWriter
   response_reader : ReliableDataReaderSession
   response_reader_guid : @rtps.Guid
+  wire_format : RosServiceWireFormat
+  payload_client_id : UInt64
   shared_socket : Bool
 }
 pub fn RosServiceClient::close(Self) -> Unit
 pub fn RosServiceClient::new(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosServiceClient::new_with_shared_socket(@ros.RosService, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceClient::new_with_shared_socket_and_wire_format(@ros.RosService, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub fn RosServiceClient::new_with_wire_format(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
 pub async fn RosServiceClient::receive_request_control(Self) -> Result[Unit, String]
 pub async fn RosServiceClient::receive_response(Self, @rtps.SampleIdentity) -> Result[(Bytes, @socket.Addr), String]
 pub async fn RosServiceClient::request(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
@@ -376,15 +382,24 @@ pub struct RosServiceServer {
   service : @ros.RosService
   request_reader : ReliableDataReaderSession
   response_writer : ReliableDataWriter
+  wire_format : RosServiceWireFormat
+  mut pending_payload_header : @ros.RosServicePayloadHeader?
   shared_socket : Bool
 }
 pub fn RosServiceServer::close(Self) -> Unit
 pub fn RosServiceServer::new(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosServiceServer::new_with_shared_socket(@ros.RosService, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceServer::new_with_shared_socket_and_wire_format(@ros.RosService, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub fn RosServiceServer::new_with_wire_format(@ros.RosService, Udp, Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
 pub async fn RosServiceServer::receive_request(Self) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String]
 pub async fn RosServiceServer::receive_response_control(Self) -> Result[Unit, String]
 pub async fn RosServiceServer::respond(Self, @rtps.SampleIdentity, Bytes) -> Result[Unit, String]
 pub fn RosServiceServer::service(Self) -> @ros.RosService
+
+pub(all) enum RosServiceWireFormat {
+  DdsRpcInline
+  CycloneDdsPayload
+} derive(Eq, @debug.Debug)
 
 pub struct RosSubscription {
   topic : @ros.RosTopic

@@ -1,4 +1,24 @@
 ///|
+test "Cyclone DDS service payload header round trips" {
+  let body_writer = @cdr.Writer::new()
+  body_writer.write_i64(2L)
+  body_writer.write_i64(3L)
+  let client_id = 9L.reinterpret_as_uint64()
+  let header = @ros.RosServicePayloadHeader::new(client_id, 12L)
+  let encoded = header.to_cdr_payload(body_writer.to_bytes()).unwrap()
+  assert_eq(encoded.length(), 36)
+  assert_eq(encoded[0], 0)
+  assert_eq(encoded[1], 1)
+  assert_eq(encoded[4], 9)
+  assert_eq(encoded[12], 12)
+  assert_eq(encoded[20], 2)
+  let (decoded_header, decoded_body) =
+    @ros.ros_service_payload_from_cdr(encoded).unwrap()
+  assert_eq(decoded_header, header)
+  assert_eq(decoded_body, body_writer.to_bytes())
+}
+
+///|
 test "ROS service descriptor maps request and response endpoints" {
   let service = match
     RosService::new("/add_two_ints", "example_interfaces", "AddTwoInts") {

@@ -156,12 +156,18 @@ async fn main {
       return
     }
   }
+  let service_wire_format = match
+    participant.graph().participant_vendor_id(response_publication.participant_guid()) {
+    Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
+      @transport.RosServiceWireFormat::CycloneDdsPayload
+    _ => @transport.RosServiceWireFormat::DdsRpcInline
+  }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()
   let client = match
-    @transport.RosServiceClient::new_with_shared_socket(
+    @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
       service, user_socket, prefix, vendor_id, request_writer_id, request_subscription,
-      response_reader_id, response_publication, 1L,
+      response_reader_id, response_publication, 1L, service_wire_format,
     ) {
     Ok(value) => value
     Err(message) => {
