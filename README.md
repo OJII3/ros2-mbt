@@ -87,6 +87,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
 - `example_interfaces/srv/AddTwoInts` を外部ROS 2と呼び出す実行可能な `examples/service_server` / `examples/service_client`
 - `example_interfaces/action/Fibonacci` を外部ROS 2 ActionServerと呼び出す実行可能な `examples/action_client`
+- `rcl_interfaces/srv/GetParameters` で整数parameterを取得する `examples/parameter_client`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -101,13 +102,14 @@ moon test --target native
 ```
 
 ROS 2 Jazzy CLIとの相互運用テストを行う場合は、専用devShellに入ります。
-`ros-core`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。
+`ros-core`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。`ros-core`から`rclpy`と`rcl_interfaces`も使えます。
 WString codecはNix devShellのROS 2 Jazzy/Fast DDSで実測したFast-CDR互換表現（UTF-16 code unitを32-bit wcharとして符号化）を使います。DDS-XTypesの標準wide-string表現とは異なる実装があるため、他DDSとの相互運用は別途確認が必要です。
 
 ```sh
 nix develop .#ros2
 bash scripts/ros2_cli_interop.sh
 bash scripts/ros2_action_interop.sh
+bash scripts/ros2_parameter_interop.sh
 ```
 
 外部ROS 2との最小通信を試す場合は、別の端末で購読者を起動してから talker を実行します。
@@ -145,6 +147,12 @@ Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci Actio
 nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
 ```
 
+Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い、MoonBitから`GetParameters`で宣言済み整数parameterを取得します。
+
+```sh
+nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
+```
+
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
 Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みですが、ROS graph全体の相互運用は未確認です。
 
@@ -157,4 +165,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用は実装済み。汎用goal lifecycle、Parameter APIは未実装）
+8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、整数parameterを取得するGetParameters clientは実装済み。汎用goal lifecycle、他のParameter service/APIは未実装）

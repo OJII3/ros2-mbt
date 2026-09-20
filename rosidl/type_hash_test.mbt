@@ -212,6 +212,39 @@ test "ROS workspace service generation preserves primitive type hashes" {
 }
 
 ///|
+test "ROS GetParameters request and response RIHS01 hashes" {
+  let workspace = MessageWorkspace::new()
+  workspace.add_source(
+    MessageSource::new(
+      "rcl_interfaces",
+      "msg",
+      "ParameterValue",
+      "uint8 PARAMETER_NOT_SET=0\nuint8 PARAMETER_BOOL=1\nuint8 PARAMETER_INTEGER=2\nuint8 PARAMETER_DOUBLE=3\nuint8 PARAMETER_STRING=4\nuint8 PARAMETER_BYTE_ARRAY=5\nuint8 PARAMETER_BOOL_ARRAY=6\nuint8 PARAMETER_INTEGER_ARRAY=7\nuint8 PARAMETER_DOUBLE_ARRAY=8\nuint8 PARAMETER_STRING_ARRAY=9\nuint8 type\nbool bool_value\nint64 integer_value\nfloat64 double_value\nstring string_value\nbyte[] byte_array_value\nbool[] bool_array_value\nint64[] integer_array_value\nfloat64[] double_array_value\nstring[] string_array_value",
+    ).unwrap(),
+  ).unwrap()
+  let service = parse_service_with_types(
+    "rcl_interfaces",
+    "GetParameters",
+    "string[] names\n---\nParameterValue[] values",
+    [
+      MessageTypeReference::new("ParameterValue", "ParameterValue"),
+    ],
+  ).unwrap()
+  assert_eq(
+    workspace.type_hash_for_definition(service.request()),
+    Ok(
+      "RIHS01_135a9e1c3d7cebef792f6687d7ddf99949b21a0bd9a320d863a9110a3f5cf4d6",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash_for_definition(service.response()),
+    Ok(
+      "RIHS01_9fa773b46e39cc5d02db6224d8fd520bb9caeeffc2b27c96c1e59431baba9f2a",
+    ),
+  )
+}
+
+///|
 test "ROS workspace type hash sorts multiple nested descriptions" {
   let workspace = MessageWorkspace::new()
   for name in ["A", "B"] {
