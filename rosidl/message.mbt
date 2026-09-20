@@ -1131,7 +1131,7 @@ fn rosidl_moon_type(type_name : String) -> Result[String, String] {
   match type_name {
     "bool" => Ok("Bool")
     "byte" => Ok("Byte")
-    "char" => Ok("Int")
+    "char" => Ok("Byte")
     "int8" => Ok("Int")
     "uint8" => Ok("Byte")
     "int16" => Ok("Int")
@@ -1192,10 +1192,10 @@ fn rosidl_constant_literal(
 ) -> Result[String, String] {
   match type_name {
     "bool" =>
-      if value == "true" || value == "false" {
-        Ok(value)
-      } else {
-        Err("ROS bool constants must be true or false")
+      match value {
+        "true" | "1" => Ok("true")
+        "false" | "0" => Ok("false")
+        _ => Err("ROS bool constants must be true, false, 1, or 0")
       }
     "string" => {
       let bytes = @utf8.encode(value)
@@ -1280,7 +1280,7 @@ fn rosidl_writer_method(type_name : String) -> String {
   match type_name {
     "bool" => "write_bool"
     "byte" => "write_u8"
-    "char" => "write_i8"
+    "char" => "write_u8"
     "int8" => "write_i8"
     "uint8" => "write_u8"
     "int16" => "write_i16_int"
@@ -1301,7 +1301,7 @@ fn rosidl_reader_method(type_name : String) -> String {
   match type_name {
     "bool" => "read_bool"
     "byte" => "read_u8"
-    "char" => "read_i8"
+    "char" => "read_u8"
     "int8" => "read_i8"
     "uint8" => "read_u8"
     "int16" => "read_i16"

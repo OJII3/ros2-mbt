@@ -16,7 +16,9 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
   let generated = definition.generate_moonbit()
   assert_true(generated.length() > 500)
   assert_true(generated.contains("pub struct Pose"))
-  assert_true(generated.contains("writer.write_i8(self.sign)"))
+  assert_true(generated.contains("sign : Byte"))
+  assert_true(generated.contains("writer.write_u8(self.sign)"))
+  assert_true(generated.contains("let sign = match reader.read_u8()"))
   assert_true(generated.contains("writer.write_i16_int(self.i16)"))
   assert_true(generated.contains("writer.write_u16_uint(self.u16)"))
   assert_true(generated.contains("writer.write_f64(self.height)"))
@@ -99,15 +101,18 @@ test "ROS service parser requires exactly one separator" {
 test "ROS message parser and generator handle scalar constants" {
   let definition = match
     parse_message(
-      "demo", "msg", "Limits", "int32 MAX=42\nfloat64 SCALE=1.5\nstring LABEL=\"demo\"\nint32 value",
+      "demo", "msg", "Limits", "bool ENABLED=1\nbool DISABLED=0\nint32 MAX=42\nfloat64 SCALE=1.5\nstring LABEL=\"demo\"\nint32 value",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(definition.constants().length(), 3)
-  assert_eq(definition.constants()[0].name(), "MAX")
-  assert_eq(definition.constants()[2].value(), "\"demo\"")
+  assert_eq(definition.constants().length(), 5)
+  assert_eq(definition.constants()[0].name(), "ENABLED")
+  assert_eq(definition.constants()[2].name(), "MAX")
+  assert_eq(definition.constants()[4].value(), "\"demo\"")
   let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub const ENABLED : Bool = true"))
+  assert_true(generated.contains("pub const DISABLED : Bool = false"))
   assert_true(generated.contains("pub const MAX : Int = 42"))
   assert_true(generated.contains("pub const SCALE : Double = 1.5"))
   assert_true(generated.contains("pub const LABEL : String = \"demo\""))
@@ -359,6 +364,7 @@ test "ROS message parser rejects unsupported definitions" {
   assert_true(
     parse_message("demo", "msg", "Bad", "int32 BAD=not_number") is Err(_),
   )
+  assert_true(parse_message("demo", "msg", "Bad", "bool INVALID=2") is Err(_))
   let nested_types : Array[MessageTypeReference] = [
     MessageTypeReference::new("Vector3", "Vector3"),
   ]
