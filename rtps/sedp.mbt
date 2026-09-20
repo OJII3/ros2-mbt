@@ -77,14 +77,25 @@ pub struct SedpEndpointData {
 } derive(Eq, Debug)
 
 ///|
-/// The QoS policies needed for basic DDS endpoint compatibility.
+/// DDS QoS policies needed for endpoint compatibility checks.
 pub struct SedpQos {
   reliability : UInt
   durability : UInt
   history : UInt
   depth : Int
   data_representation : Array[UInt16]
+  deadline_seconds : Int
+  deadline_fraction : UInt
+  liveliness : UInt
+  liveliness_lease_seconds : Int
+  liveliness_lease_fraction : UInt
 } derive(Eq, Debug)
+
+///|
+const SEDP_QOS_DURATION_INFINITE_SECONDS : Int = 0x7FFFFFFF
+
+///|
+const SEDP_QOS_DURATION_INFINITE_FRACTION : UInt = 0xFFFFFFFFU
 
 ///|
 pub fn SedpQos::new(
@@ -99,6 +110,11 @@ pub fn SedpQos::new(
     history,
     depth,
     data_representation: [DATA_REPRESENTATION_XCDR1],
+    deadline_seconds: SEDP_QOS_DURATION_INFINITE_SECONDS,
+    deadline_fraction: SEDP_QOS_DURATION_INFINITE_FRACTION,
+    liveliness: LIVELINESS_AUTOMATIC,
+    liveliness_lease_seconds: SEDP_QOS_DURATION_INFINITE_SECONDS,
+    liveliness_lease_fraction: SEDP_QOS_DURATION_INFINITE_FRACTION,
   }
 }
 
@@ -109,6 +125,51 @@ pub fn SedpQos::with_data_representation(
   representations : Array[UInt16],
 ) -> SedpQos {
   { ..self, data_representation: representations, }
+}
+
+///| Set the offered/requested deadline in seconds and nanoseconds.
+pub fn SedpQos::with_deadline(
+  self : SedpQos,
+  seconds : Int,
+  nanoseconds : UInt,
+) -> Result[SedpQos, String] {
+  if !sedp_duration_is_valid(seconds, nanoseconds) {
+    return Err("SEDP deadline duration is invalid")
+  }
+  Ok({
+    ..self,
+    deadline_seconds: seconds,
+    deadline_fraction: qos_nanoseconds_to_fraction(nanoseconds),
+  })
+}
+
+///| Set the liveliness policy and lease duration in seconds and nanoseconds.
+pub fn SedpQos::with_liveliness(
+  self : SedpQos,
+  kind : UInt,
+  lease_seconds : Int,
+  lease_nanoseconds : UInt,
+) -> Result[SedpQos, String] {
+  if kind > LIVELINESS_MANUAL_BY_TOPIC {
+    return Err("SEDP liveliness kind is invalid")
+  }
+  if !sedp_duration_is_valid(lease_seconds, lease_nanoseconds) {
+    return Err("SEDP liveliness lease duration is invalid")
+  }
+  Ok({
+    ..self,
+    liveliness: kind,
+    liveliness_lease_seconds: lease_seconds,
+    liveliness_lease_fraction: qos_nanoseconds_to_fraction(lease_nanoseconds),
+  })
+}
+
+///|
+fn sedp_duration_is_valid(seconds : Int, nanoseconds : UInt) -> Bool {
+  seconds >= 0 &&
+  (nanoseconds < 1_000_000_000U ||
+    (seconds == SEDP_QOS_DURATION_INFINITE_SECONDS &&
+      nanoseconds == SEDP_QOS_DURATION_INFINITE_FRACTION))
 }
 
 ///|
@@ -135,6 +196,45 @@ pub fn SedpQos::depth(self : SedpQos) -> Int {
 /// Return the CDR data representations supported by this endpoint.
 pub fn SedpQos::data_representation(self : SedpQos) -> Array[UInt16] {
   self.data_representation
+}
+
+///| Return the deadline seconds component.
+pub fn SedpQos::deadline_seconds(self : SedpQos) -> Int {
+  self.deadline_seconds
+}
+
+///| Return the raw RTPS 2^-32 seconds fraction of the deadline.
+pub fn SedpQos::deadline_fraction(self : SedpQos) -> UInt {
+  self.deadline_fraction
+}
+
+///|
+pub fn SedpQos::liveliness(self : SedpQos) -> UInt {
+  self.liveliness
+}
+
+///| Return the liveliness lease seconds component.
+pub fn SedpQos::liveliness_lease_seconds(self : SedpQos) -> Int {
+  self.liveliness_lease_seconds
+}
+
+///| Return the raw RTPS 2^-32 seconds fraction of the liveliness lease.
+pub fn SedpQos::liveliness_lease_fraction(self : SedpQos) -> UInt {
+  self.liveliness_lease_fraction
+}
+
+///|
+pub fn SedpQos::deadline_parameter(self : SedpQos) -> Parameter {
+  qos_deadline_fraction(self.deadline_seconds, self.deadline_fraction)
+}
+
+///|
+pub fn SedpQos::liveliness_parameter(self : SedpQos) -> Parameter {
+  qos_liveliness_fraction(
+    self.liveliness,
+    self.liveliness_lease_seconds,
+    self.liveliness_lease_fraction,
+  )
 }
 
 ///|
@@ -278,6 +378,61 @@ fn sedp_qos_i32(value : Bytes, label : String) -> Result[Int, String] {
 }
 
 ///|
+fn sedp_qos_u32_at(
+  value : Bytes,
+  offset : Int,
+  label : String,
+) -> Result[UInt, String] {
+  if offset < 0 || value.length() < offset + 4 {
+    return Err("SEDP " + label + " parameter is truncated")
+  }
+  sedp_qos_u32(
+    Bytes::from_array([
+      value[offset],
+      value[offset + 1],
+      value[offset + 2],
+      value[offset + 3],
+    ]),
+    label,
+  )
+}
+
+///|
+fn sedp_qos_i32_at(
+  value : Bytes,
+  offset : Int,
+  label : String,
+) -> Result[Int, String] {
+  match sedp_qos_u32_at(value, offset, label) {
+    Ok(result) => Ok(result.reinterpret_as_int())
+    Err(message) => Err(message)
+  }
+}
+
+///|
+fn sedp_qos_duration(
+  value : Bytes,
+  offset : Int,
+  label : String,
+) -> Result[(Int, UInt), String] {
+  if offset < 0 || value.length() < offset + 8 {
+    return Err("SEDP " + label + " duration is truncated")
+  }
+  let seconds = match sedp_qos_i32_at(value, offset, label + " seconds") {
+    Ok(result) => result
+    Err(message) => return Err(message)
+  }
+  if seconds < 0 {
+    return Err("SEDP " + label + " duration has negative seconds")
+  }
+  let fraction = match sedp_qos_u32_at(value, offset + 4, label + " fraction") {
+    Ok(result) => result
+    Err(message) => return Err(message)
+  }
+  Ok((seconds, fraction))
+}
+
+///|
 fn sedp_qos_data_representation(value : Bytes) -> Result[Array[UInt16], String] {
   if value.length() < 4 {
     return Err("SEDP data representation parameter is truncated")
@@ -318,6 +473,11 @@ pub fn SedpEndpointData::qos(
   let mut history = defaults.history
   let mut depth = defaults.depth
   let mut data_representation = defaults.data_representation
+  let mut deadline_seconds = defaults.deadline_seconds
+  let mut deadline_fraction = defaults.deadline_fraction
+  let mut liveliness = defaults.liveliness
+  let mut liveliness_lease_seconds = defaults.liveliness_lease_seconds
+  let mut liveliness_lease_fraction = defaults.liveliness_lease_fraction
   for parameter in self.extra_parameters {
     match parameter.id() {
       PID_RELIABILITY =>
@@ -350,6 +510,33 @@ pub fn SedpEndpointData::qos(
           Err(message) => return Err(message)
         }
       }
+      PID_DEADLINE => {
+        let (seconds, fraction) = match
+          sedp_qos_duration(parameter.value(), 0, "deadline") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        deadline_seconds = seconds
+        deadline_fraction = fraction
+      }
+      PID_LIVELINESS => {
+        let value = parameter.value()
+        if value.length() < 12 {
+          return Err("SEDP liveliness parameter is truncated")
+        }
+        liveliness = match sedp_qos_u32_at(value, 0, "liveliness") {
+          Ok(value) if value <= LIVELINESS_MANUAL_BY_TOPIC => value
+          Ok(_) => return Err("SEDP liveliness kind is invalid")
+          Err(message) => return Err(message)
+        }
+        let (lease_seconds, lease_fraction) = match
+          sedp_qos_duration(value, 4, "liveliness lease") {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        liveliness_lease_seconds = lease_seconds
+        liveliness_lease_fraction = lease_fraction
+      }
       PID_DATA_REPRESENTATION =>
         data_representation = match
           sedp_qos_data_representation(parameter.value()) {
@@ -359,11 +546,16 @@ pub fn SedpEndpointData::qos(
       _ => ()
     }
   }
-  Ok(
-    SedpQos::new(reliability, durability, history, depth).with_data_representation(
-      data_representation,
-    ),
-  )
+  let qos = SedpQos::new(reliability, durability, history, depth)
+    .with_data_representation(data_representation)
+  Ok({
+    ..qos,
+    deadline_seconds,
+    deadline_fraction,
+    liveliness,
+    liveliness_lease_seconds,
+    liveliness_lease_fraction,
+  })
 }
 
 ///|
@@ -382,7 +574,18 @@ fn sedp_data_representation_intersects(
 }
 
 ///|
-/// Check the basic offered/requested QoS compatibility of a writer and reader.
+fn sedp_duration_le(
+  left_seconds : Int,
+  left_fraction : UInt,
+  right_seconds : Int,
+  right_fraction : UInt,
+) -> Bool {
+  left_seconds < right_seconds ||
+  (left_seconds == right_seconds && left_fraction <= right_fraction)
+}
+
+///|
+/// Check the supported offered/requested QoS compatibility of a writer and reader.
 pub fn SedpEndpointData::qos_compatible_with(
   self : SedpEndpointData,
   reader : SedpEndpointData,
@@ -404,6 +607,19 @@ pub fn SedpEndpointData::qos_compatible_with(
   Ok(
     offered.reliability >= requested.reliability &&
     offered.durability >= requested.durability &&
+    sedp_duration_le(
+      offered.deadline_seconds,
+      offered.deadline_fraction,
+      requested.deadline_seconds,
+      requested.deadline_fraction,
+    ) &&
+    offered.liveliness >= requested.liveliness &&
+    sedp_duration_le(
+      offered.liveliness_lease_seconds,
+      offered.liveliness_lease_fraction,
+      requested.liveliness_lease_seconds,
+      requested.liveliness_lease_fraction,
+    ) &&
     sedp_data_representation_intersects(
       offered.data_representation,
       requested.data_representation,

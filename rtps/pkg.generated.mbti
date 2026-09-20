@@ -515,6 +515,7 @@ pub struct ParameterList {
 pub fn ParameterList::add(Self, Parameter) -> Unit
 pub fn ParameterList::from_bytes(Bytes) -> Result[(Self, Int), String]
 pub fn ParameterList::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn ParameterList::from_data_bytes(Bytes) -> Result[Self, String]
 pub fn ParameterList::new() -> Self
 pub fn ParameterList::to_bytes(Self) -> Bytes
 pub fn ParameterList::to_cdr_bytes(Self) -> Bytes
@@ -590,15 +591,29 @@ pub struct SedpQos {
   history : UInt
   depth : Int
   data_representation : Array[UInt16]
+  deadline_seconds : Int
+  deadline_fraction : UInt
+  liveliness : UInt
+  liveliness_lease_seconds : Int
+  liveliness_lease_fraction : UInt
 } derive(Eq, @debug.Debug)
 pub fn SedpQos::data_representation(Self) -> Array[UInt16]
+pub fn SedpQos::deadline_fraction(Self) -> UInt
+pub fn SedpQos::deadline_parameter(Self) -> Parameter
+pub fn SedpQos::deadline_seconds(Self) -> Int
 pub fn SedpQos::default() -> Self
 pub fn SedpQos::depth(Self) -> Int
 pub fn SedpQos::durability(Self) -> UInt
 pub fn SedpQos::history(Self) -> UInt
+pub fn SedpQos::liveliness(Self) -> UInt
+pub fn SedpQos::liveliness_lease_fraction(Self) -> UInt
+pub fn SedpQos::liveliness_lease_seconds(Self) -> Int
+pub fn SedpQos::liveliness_parameter(Self) -> Parameter
 pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
 pub fn SedpQos::reliability(Self) -> UInt
 pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
+pub fn SedpQos::with_deadline(Self, Int, UInt) -> Result[Self, String]
+pub fn SedpQos::with_liveliness(Self, UInt, Int, UInt) -> Result[Self, String]
 
 pub struct SpdpParticipantData {
   protocol_version : ProtocolVersion

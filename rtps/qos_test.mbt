@@ -32,6 +32,10 @@ test "RTPS QoS durations encode nanoseconds as NTP fractions" {
     qos_deadline(0, 2U).value(),
     b"\x00\x00\x00\x00\x09\x00\x00\x00",
   )
+  assert_eq(
+    qos_liveliness(LIVELINESS_AUTOMATIC, 3, 500_000_000U).value(),
+    b"\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x80",
+  )
 }
 
 ///|

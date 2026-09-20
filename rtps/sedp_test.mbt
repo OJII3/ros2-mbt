@@ -319,6 +319,97 @@ test "SEDP reads basic QoS and checks offered compatibility" {
 }
 
 ///|
+test "SEDP matches deadline and liveliness offered/requested QoS" {
+  let publication = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_parameter(qos_deadline(1, 0U))
+  publication.add_parameter(
+    qos_liveliness(LIVELINESS_MANUAL_BY_PARTICIPANT, 3, 0U),
+  )
+
+  let compatible_subscription = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  compatible_subscription.add_parameter(qos_deadline(2, 0U))
+  compatible_subscription.add_parameter(
+    qos_liveliness(LIVELINESS_AUTOMATIC, 4, 0U),
+  )
+  assert_true(
+    publication.qos_compatible_with(compatible_subscription).unwrap(),
+  )
+
+  let deadline_too_strict = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  deadline_too_strict.add_parameter(qos_deadline(0, 500_000_000U))
+  deadline_too_strict.add_parameter(
+    qos_liveliness(LIVELINESS_AUTOMATIC, 4, 0U),
+  )
+  assert_false(
+    publication.qos_compatible_with(deadline_too_strict).unwrap(),
+  )
+
+  let liveliness_too_strict = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  liveliness_too_strict.add_parameter(qos_deadline(2, 0U))
+  liveliness_too_strict.add_parameter(
+    qos_liveliness(LIVELINESS_MANUAL_BY_TOPIC, 4, 0U),
+  )
+  assert_false(
+    publication.qos_compatible_with(liveliness_too_strict).unwrap(),
+  )
+
+  let lease_too_strict = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  lease_too_strict.add_parameter(qos_deadline(2, 0U))
+  lease_too_strict.add_parameter(
+    qos_liveliness(LIVELINESS_AUTOMATIC, 2, 0U),
+  )
+  assert_false(publication.qos_compatible_with(lease_too_strict).unwrap())
+}
+
+///|
+test "SEDP rejects malformed deadline and liveliness QoS" {
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  endpoint.add_parameter(Parameter::new(PID_DEADLINE, b"\x00\x00\x00\x00"))
+  assert_true(endpoint.qos() is Err(_))
+
+  let liveliness_endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  liveliness_endpoint.add_parameter(
+    Parameter::new(PID_LIVELINESS, b"\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+  )
+  assert_true(liveliness_endpoint.qos() is Err(_))
+}
+
+///|
 test "SEDP omitted reliability defaults depend on endpoint kind" {
   let publication = SedpEndpointData::new(
     SedpEndpointKind::Publication,

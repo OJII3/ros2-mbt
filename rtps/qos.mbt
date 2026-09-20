@@ -156,7 +156,21 @@ pub fn qos_history(kind : UInt, depth : Int) -> Parameter {
 ///|
 /// Construct a duration-valued QoS parameter.
 pub fn qos_deadline(seconds : Int, nanoseconds : UInt) -> Parameter {
-  Parameter::new(PID_DEADLINE, qos_duration(seconds, nanoseconds))
+  qos_deadline_fraction(seconds, qos_nanoseconds_to_fraction(nanoseconds))
+}
+
+///|
+fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> Parameter {
+  let bytes : Array[Byte] = []
+  let seconds_bytes = qos_i32_le(seconds)
+  let fraction_bytes = qos_u32_le(fraction)
+  for i in 0..<4 {
+    bytes.push(seconds_bytes[i])
+  }
+  for i in 0..<4 {
+    bytes.push(fraction_bytes[i])
+  }
+  Parameter::new(PID_DEADLINE, Bytes::from_array(bytes))
 }
 
 ///|
@@ -190,14 +204,31 @@ pub fn qos_liveliness(
   lease_seconds : Int,
   lease_nanoseconds : UInt,
 ) -> Parameter {
+  qos_liveliness_fraction(
+    kind,
+    lease_seconds,
+    qos_nanoseconds_to_fraction(lease_nanoseconds),
+  )
+}
+
+///|
+fn qos_liveliness_fraction(
+  kind : UInt,
+  lease_seconds : Int,
+  lease_fraction : UInt,
+) -> Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
-  let duration_bytes = qos_duration(lease_seconds, lease_nanoseconds)
+  let seconds_bytes = qos_i32_le(lease_seconds)
+  let fraction_bytes = qos_u32_le(lease_fraction)
   for i in 0..<4 {
     bytes.push(kind_bytes[i])
   }
-  for i in 0..<8 {
-    bytes.push(duration_bytes[i])
+  for i in 0..<4 {
+    bytes.push(seconds_bytes[i])
+  }
+  for i in 0..<4 {
+    bytes.push(fraction_bytes[i])
   }
   Parameter::new(PID_LIVELINESS, Bytes::from_array(bytes))
 }

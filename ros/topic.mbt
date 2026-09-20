@@ -88,6 +88,8 @@ pub fn RosTopic::to_sedp_with_qos(
     endpoint.add_parameter(
       @rtps.qos_data_representation(qos.data_representation()),
     )
+    endpoint.add_parameter(qos.deadline_parameter())
+    endpoint.add_parameter(qos.liveliness_parameter())
     endpoint
   })
 }

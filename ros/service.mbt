@@ -324,6 +324,8 @@ fn service_endpoint_to_sedp(
     endpoint.add_parameter(
       @rtps.qos_data_representation(qos.data_representation()),
     )
+    endpoint.add_parameter(qos.deadline_parameter())
+    endpoint.add_parameter(qos.liveliness_parameter())
     match related_endpoint_guid {
       Some(guid) =>
         endpoint.add_parameter(
