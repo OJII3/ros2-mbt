@@ -119,6 +119,48 @@ test "ROS message parser and generator handle scalar constants" {
 }
 
 ///|
+test "ROS integer constants accept base prefixes and normalize literals" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "IntegerConstants",
+    "int8 MIN=-0x80\nuint8 BYTE=0xFF\nint16 OCTAL=0o77_777\nuint32 BINARY=0b11111111111111111111111111111111\nint64 WIDE=-0x8000000000000000\nuint64 UNSIGNED=0xFFFF_FFFF_FFFF_FFFF",
+  ).unwrap()
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub const MIN : Int = -128"))
+  assert_true(generated.contains("pub const BYTE : Byte = 255"))
+  assert_true(generated.contains("pub const OCTAL : Int = 32767"))
+  assert_true(generated.contains("pub const BINARY : UInt = 4294967295"))
+  assert_true(
+    generated.contains("pub const WIDE : Int64 = -9223372036854775808L"),
+  )
+  assert_true(
+    generated.contains(
+      "pub const UNSIGNED : UInt64 = 18446744073709551615UL",
+    ),
+  )
+}
+
+///|
+test "ROS integer constants reject values outside their declared widths" {
+  let invalid_constants = [
+    "int8 VALUE=-129",
+    "uint8 VALUE=256",
+    "int16 VALUE=32768",
+    "uint16 VALUE=65536",
+    "int32 VALUE=2147483648",
+    "uint32 VALUE=4294967296",
+    "int64 VALUE=9223372036854775808",
+    "uint64 VALUE=18446744073709551616",
+    "byte VALUE=-1",
+    "char VALUE=256",
+  ]
+  for constant in invalid_constants {
+    assert_true(parse_message("demo", "msg", "Invalid", constant) is Err(_))
+  }
+}
+
+///|
 test "ROS message generator handles fixed arrays and sequences" {
   let definition = match
     parse_message("demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples") {

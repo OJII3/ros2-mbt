@@ -1232,7 +1232,7 @@ fn rosidl_constant_literal(
       }
     }
     "float32" => {
-      if !rosidl_numeric_literal(value, true) {
+      if !rosidl_float_literal(value) {
         return Err("ROS float constants must be numeric")
       }
       if value[value.length() - 1] == 'F' {
@@ -1242,42 +1242,73 @@ fn rosidl_constant_literal(
       }
     }
     "float64" =>
-      if rosidl_numeric_literal(value, true) {
+      if rosidl_float_literal(value) {
         Ok(value)
       } else {
         Err("ROS float constants must be numeric")
       }
-    "int64" =>
-      if rosidl_numeric_literal(value, false) {
-        Ok(value + "L")
-      } else {
-        Err("ROS integer constants must be numeric")
-      }
-    "uint64" =>
-      if rosidl_numeric_literal(value, false) {
-        Ok(value + "UL")
-      } else {
-        Err("ROS integer constants must be numeric")
-      }
-    "byte"
-    | "char"
-    | "int8"
-    | "uint8"
-    | "int16"
-    | "uint16"
-    | "int32"
-    | "uint32" =>
-      if rosidl_numeric_literal(value, false) {
-        Ok(value)
-      } else {
-        Err("ROS integer constants must be numeric")
-      }
+    "int8" | "int16" | "int32" | "int64" =>
+      rosidl_signed_constant_literal(type_name, value)
+    "byte" | "char" | "uint8" | "uint16" | "uint32" | "uint64" =>
+      rosidl_unsigned_constant_literal(type_name, value)
     _ => Err("unsupported ROS constant type: " + type_name)
   }
 }
 
 ///|
-fn rosidl_numeric_literal(value : String, allow_float : Bool) -> Bool {
+fn rosidl_signed_constant_literal(
+  type_name : String,
+  value : String,
+) -> Result[String, String] {
+  let parsed : Int64 = @string.from_str(value) catch {
+    _ => return Err("ROS " + type_name + " constants must be valid integers")
+  }
+  let in_range = match type_name {
+    "int8" => parsed >= -128L && parsed <= 127L
+    "int16" => parsed >= -32768L && parsed <= 32767L
+    "int32" => parsed >= -2147483648L && parsed <= 2147483647L
+    "int64" => true
+    _ => false
+  }
+  if !in_range {
+    return Err("ROS " + type_name + " constant is out of range")
+  }
+  let literal = parsed.to_string()
+  if type_name == "int64" {
+    Ok(literal + "L")
+  } else {
+    Ok(literal)
+  }
+}
+
+///|
+fn rosidl_unsigned_constant_literal(
+  type_name : String,
+  value : String,
+) -> Result[String, String] {
+  let parsed : UInt64 = @string.from_str(value) catch {
+    _ => return Err("ROS " + type_name + " constants must be valid integers")
+  }
+  let maximum = match type_name {
+    "byte" | "char" | "uint8" => 255UL
+    "uint16" => 65535UL
+    "uint32" => 4294967295UL
+    "uint64" => 18446744073709551615UL
+    _ => 0UL
+  }
+  if parsed > maximum {
+    return Err("ROS " + type_name + " constant is out of range")
+  }
+  let literal = parsed.to_string()
+  if type_name == "uint64" {
+    Ok(literal + "UL")
+  } else {
+    Ok(literal)
+  }
+}
+
+///|
+fn rosidl_float_literal(value : String) -> Bool {
   let bytes = @utf8.encode(value)
   if bytes.length() == 0 {
     return false
@@ -1290,7 +1321,7 @@ fn rosidl_numeric_literal(value : String, allow_float : Bool) -> Bool {
       has_digit = true
     } else if byte == b'-' && index == 0 {
       continue
-    } else if allow_float && byte == b'.' && !has_dot {
+    } else if byte == b'.' && !has_dot {
       has_dot = true
     } else {
       return false
