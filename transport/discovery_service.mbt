@@ -292,12 +292,51 @@ pub fn DiscoveryService::next_sedp_sequence_number(
 pub async fn DiscoveryService::receive_once(
   self : DiscoveryService,
 ) -> Result[(@socket.Addr, DiscoveryEvent), String] {
-  let (event, source) = match self.session.receive_once() {
+  let (received_event, source) = match self.session.receive_once() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let event = match received_event {
+    DiscoveryEvent::Publication(endpoint) =>
+      DiscoveryEvent::Publication(
+        self.endpoint_with_participant_locator(endpoint),
+      )
+    DiscoveryEvent::Subscription(endpoint) =>
+      DiscoveryEvent::Subscription(
+        self.endpoint_with_participant_locator(endpoint),
+      )
+    other => other
+  }
   self.graph.ingest(event)
   Ok((source, event))
+}
+
+///| Use the participant's default data locator when SEDP omits endpoint locators.
+fn DiscoveryService::endpoint_with_participant_locator(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+) -> @rtps.SedpEndpointData {
+  if endpoint.unicast_locators().length() > 0 ||
+    endpoint.multicast_locators().length() > 0 {
+    return endpoint
+  }
+  for participant in self.graph.participants() {
+    if participant.participant_guid().prefix() !=
+      endpoint.endpoint_guid().prefix() {
+      continue
+    }
+    let unicast = participant.default_unicast_locators()
+    if unicast.length() > 0 {
+      endpoint.add_unicast_locator(unicast[0])
+    } else {
+      let multicast = participant.default_multicast_locators()
+      if multicast.length() > 0 {
+        endpoint.add_multicast_locator(multicast[0])
+      }
+    }
+    break
+  }
+  endpoint
 }
 
 ///|
