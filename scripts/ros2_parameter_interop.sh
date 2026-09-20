@@ -11,6 +11,15 @@ server_grouped=0
 client_pid=""
 client_grouped=0
 
+terminate_process_tree() {
+  local parent_pid="$1"
+  local child_pid
+  while IFS= read -r child_pid; do
+    terminate_process_tree "$child_pid"
+  done < <(pgrep -P "$parent_pid" 2>/dev/null || true)
+  kill -TERM "$parent_pid" 2>/dev/null || true
+}
+
 cleanup() {
   local exit_status=$?
   trap - EXIT INT TERM
@@ -18,7 +27,7 @@ cleanup() {
     if [[ "$client_grouped" -eq 1 ]]; then
       kill -TERM -- "-$client_pid" 2>/dev/null || true
     else
-      kill -TERM "$client_pid" 2>/dev/null || true
+      terminate_process_tree "$client_pid"
     fi
     wait "$client_pid" 2>/dev/null || true
   fi

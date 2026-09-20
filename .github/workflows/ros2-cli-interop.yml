@@ -28,3 +28,9 @@ jobs:
           ROS_LOCALHOST_ONLY: "1"
           ROS2_MBT_IP: 127.0.0.1
         run: nix develop .#ros2 --command bash scripts/ros2_cli_interop.sh
+
+      - name: Verify ROS 2 Action interoperability
+        run: nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
+
+      - name: Verify ROS 2 Parameter interoperability
+        run: nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh

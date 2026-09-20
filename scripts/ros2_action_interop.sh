@@ -9,15 +9,25 @@ client_log="$tmp_dir/moonbit-action-client.log"
 server_pid=""
 server_grouped=0
 client_pid=""
+client_grouped=0
+
+terminate_process_tree() {
+  local parent_pid="$1"
+  local child_pid
+  while IFS= read -r child_pid; do
+    terminate_process_tree "$child_pid"
+  done < <(pgrep -P "$parent_pid" 2>/dev/null || true)
+  kill -TERM "$parent_pid" 2>/dev/null || true
+}
 
 cleanup() {
   local exit_status=$?
   trap - EXIT INT TERM
   if [[ -n "$client_pid" ]]; then
-    if [[ "$server_grouped" -eq 1 ]]; then
+    if [[ "$client_grouped" -eq 1 ]]; then
       kill -TERM -- "-$client_pid" 2>/dev/null || true
     else
-      kill -TERM "$client_pid" 2>/dev/null || true
+      terminate_process_tree "$client_pid"
     fi
     wait "$client_pid" 2>/dev/null || true
   fi
@@ -96,9 +106,11 @@ run_client() {
 
   if command -v setsid >/dev/null 2>&1; then
     setsid "${client_command[@]}" >"$client_log" 2>&1 &
+    client_grouped=1
     client_pid=$!
   else
     "${client_command[@]}" >"$client_log" 2>&1 &
+    client_grouped=0
     client_pid=$!
   fi
 
@@ -125,10 +137,11 @@ run_client() {
     echo "MoonBit Fibonacci $mode client failed (status $client_status)" >&2
     exit 1
   fi
-  if [[ "$server_grouped" -eq 1 ]]; then
+  if [[ "$client_grouped" -eq 1 ]]; then
     kill -TERM -- "-$client_pid" 2>/dev/null || true
   fi
   client_pid=""
+  client_grouped=0
 
   if ! grep -Fq 'Fibonacci goal accepted: true' "$client_log"; then
     echo "MoonBit $mode client output did not indicate goal acceptance" >&2
