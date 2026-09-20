@@ -1,13 +1,11 @@
 ///|
-/// Discover the service endpoints and publish the local graph information.
+/// Discover the service endpoints.
 async fn discover_service(
   participant : @transport.RosParticipant,
   service : @ros.RosService,
-  graph_info : @ros.ParticipantEntitiesInfo,
 ) -> Result[(@rtps.SedpEndpointData, @rtps.SedpEndpointData), String] {
   let mut request_publication : @rtps.SedpEndpointData? = None
   let mut response_subscription : @rtps.SedpEndpointData? = None
-  let mut graph_info_published = false
   while request_publication is None || response_subscription is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
@@ -21,18 +19,6 @@ async fn discover_service(
           response_subscription = Some(subscription)
         }
       Ok(_) => ()
-      Err(message) => return Err(message)
-    }
-    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-      match participant.publish_ros_discovery_info(graph_info) {
-        Ok(_) => graph_info_published = true
-        Err(message) => return Err(message)
-      }
-    }
-  }
-  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => graph_info_published = true
       Err(message) => return Err(message)
     }
   }
@@ -116,6 +102,14 @@ async fn main {
       return
     }
   }
+  match participant.set_ros_node_identity("/demo", "moon_add_two_ints_server") {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
   match
     participant.register_ros_discovery_info(
       graph_publication_id, graph_subscription_id,
@@ -142,15 +136,6 @@ async fn main {
       return
     }
   }
-  let graph_info = match
-    participant.participant_entities_info("/demo", "moon_add_two_ints_server") {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      participant.close()
-      return
-    }
-  }
   let discovered_endpoints = @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
@@ -158,7 +143,7 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_service(participant, service, graph_info)
+    discover_service(participant, service)
   }
   let (request_publication, response_subscription) = match
     discovered_endpoints {

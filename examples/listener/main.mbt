@@ -1,12 +1,10 @@
 ///|
-/// Discover the remote publication and publish the local graph information.
+/// Discover the remote publication.
 async fn discover_publication(
   participant : @transport.RosParticipant,
   topic : @ros.RosTopic,
-  graph_info : @ros.ParticipantEntitiesInfo,
 ) -> Result[@rtps.SedpEndpointData, String] {
   let mut remote_publication : @rtps.SedpEndpointData? = None
-  let mut graph_info_published = false
   while remote_publication is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
@@ -15,18 +13,6 @@ async fn discover_publication(
           remote_publication = Some(publication)
         }
       Ok(_) => ()
-      Err(message) => return Err(message)
-    }
-    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-      match participant.publish_ros_discovery_info(graph_info) {
-        Ok(_) => graph_info_published = true
-        Err(message) => return Err(message)
-      }
-    }
-  }
-  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => graph_info_published = true
       Err(message) => return Err(message)
     }
   }
@@ -183,6 +169,14 @@ async fn main {
       return
     }
   }
+  match participant.set_ros_node_identity("/demo", "moon_listener") {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
   let qos = @rtps.SedpQos::new(
     @rtps.RELIABILITY_BEST_EFFORT,
     @rtps.DURABILITY_VOLATILE,
@@ -215,15 +209,6 @@ async fn main {
       return
     }
   }
-  let graph_info = match
-    participant.participant_entities_info("/demo", "moon_listener") {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      participant.close()
-      return
-    }
-  }
   let discovered_publication = @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
@@ -231,7 +216,7 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_publication(participant, topic, graph_info)
+    discover_publication(participant, topic)
   }
   let publication = match discovered_publication {
     Ok(value) => value

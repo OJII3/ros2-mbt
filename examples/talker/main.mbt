@@ -1,12 +1,10 @@
 ///|
-/// Discover the remote subscription and publish the local graph information.
+/// Discover the remote subscription.
 async fn discover_subscription(
   participant : @transport.RosParticipant,
   topic : @ros.RosTopic,
-  graph_info : @ros.ParticipantEntitiesInfo,
 ) -> Result[@rtps.SedpEndpointData, String] {
   let mut remote_subscription : @rtps.SedpEndpointData? = None
-  let mut graph_info_published = false
   while remote_subscription is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
@@ -15,18 +13,6 @@ async fn discover_subscription(
           remote_subscription = Some(subscription)
         }
       Ok(_) => ()
-      Err(message) => return Err(message)
-    }
-    if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-      match participant.publish_ros_discovery_info(graph_info) {
-        Ok(_) => graph_info_published = true
-        Err(message) => return Err(message)
-      }
-    }
-  }
-  if !graph_info_published && participant.ros_discovery_publisher_count() > 0 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => graph_info_published = true
       Err(message) => return Err(message)
     }
   }
@@ -192,6 +178,14 @@ async fn main {
       return
     }
   }
+  match participant.set_ros_node_identity("/demo", "moon_talker") {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
   let qos = @rtps.SedpQos::new(
     @rtps.RELIABILITY_RELIABLE,
     @rtps.DURABILITY_VOLATILE,
@@ -224,15 +218,6 @@ async fn main {
       return
     }
   }
-  let graph_info = match
-    participant.participant_entities_info("/demo", "moon_talker") {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      participant.close()
-      return
-    }
-  }
   let discovered_subscription = @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
@@ -240,7 +225,7 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_subscription(participant, topic, graph_info)
+    discover_subscription(participant, topic)
   }
   let subscription = match discovered_subscription {
     Ok(value) => value
