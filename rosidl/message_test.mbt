@@ -140,6 +140,22 @@ test "ROS message generator handles fixed arrays and sequences" {
 }
 
 ///|
+test "ROS message writer checks narrow integer field ranges" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "IntegerWidths",
+    "int8 small\nint16 medium\nuint16 count\nint8[] samples",
+  ).unwrap()
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("if self.small < -128 || self.small > 127"))
+  assert_true(generated.contains("if self.medium < -32768 || self.medium > 32767"))
+  assert_true(generated.contains("if self.count > 65535U"))
+  assert_true(generated.contains("if value < -128 || value > 127"))
+  assert_true(generated.contains("generated ROS int8 value is out of range"))
+}
+
+///|
 test "ROS message generator handles bounded sequences" {
   let definition = match
     parse_message("demo", "msg", "Bounded", "int32[<=3] values") {

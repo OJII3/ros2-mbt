@@ -783,7 +783,8 @@ fn rosidl_generate_writer_call(
   value : String,
   indent : String,
 ) -> String {
-  match field.string_upper_bound {
+  let range_check = rosidl_generate_writer_range_check(field, value, indent)
+  range_check + (match field.string_upper_bound {
     Some(bound) =>
       indent + "match writer.write_bounded_string(" + value + ", " +
       bound.to_string() + ") {\n" +
@@ -791,7 +792,30 @@ fn rosidl_generate_writer_call(
       indent + "  Err(message) => return Err(message)\n" +
       indent + "}\n"
     None => indent + "writer." + codec_method + "(" + value + ")\n"
+  })
+}
+
+///|
+fn rosidl_generate_writer_range_check(
+  field : MessageField,
+  value : String,
+  indent : String,
+) -> String {
+  let condition = match field.type_name {
+    "int8" => value + " < -128 || " + value + " > 127"
+    "int16" => value + " < -32768 || " + value + " > 32767"
+    "uint16" => value + " > 65535U"
+    _ => ""
   }
+  if condition.length() == 0 {
+    return ""
+  }
+  indent + "if " + condition + " {\n" +
+  indent +
+  "  return Err(\"generated ROS " +
+  field.type_name +
+  " value is out of range\")\n" +
+  indent + "}\n"
 }
 
 ///|
