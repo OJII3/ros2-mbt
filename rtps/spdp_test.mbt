@@ -58,6 +58,25 @@ test "SPDP participant data builds RTPS parameters" {
 }
 
 ///|
+test "SPDP participant lease duration uses RTPS fractional seconds" {
+  let participant = SpdpParticipantData::new(
+    spdp_test_guid().unwrap(),
+    VendorId::new(1, 15),
+    0,
+    2,
+    500_000_000U,
+    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let lease = participant.to_parameter_list().values()[3]
+  assert_eq(lease.value(), b"\x02\x00\x00\x00\x00\x00\x00\x80")
+  let decoded = SpdpParticipantData::from_parameter_list(
+    participant.to_parameter_list(),
+  ).unwrap()
+  assert_eq(decoded.lease_seconds(), 2)
+  assert_eq(decoded.lease_nanoseconds(), 500_000_000U)
+}
+
+///|
 test "SPDP parser requires a participant GUID" {
   let parameters = ParameterList::new()
   parameters.add(Parameter::new(PID_DOMAIN_ID, b"\x00\x00\x00\x00"))

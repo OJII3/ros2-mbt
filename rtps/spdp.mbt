@@ -189,12 +189,17 @@ fn spdp_i32_le(value : Int) -> Bytes {
 fn spdp_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
   let bytes : Array[Byte] = []
   let seconds_bytes = spdp_i32_le(seconds)
-  let nanoseconds_bytes = spdp_u32_le(nanoseconds)
+  let fraction = if nanoseconds == 0xFFFFFFFFU {
+    nanoseconds
+  } else {
+    qos_nanoseconds_to_fraction(nanoseconds)
+  }
+  let fraction_bytes = spdp_u32_le(fraction)
   for i in 0..<4 {
     bytes.push(seconds_bytes[i])
   }
   for i in 0..<4 {
-    bytes.push(nanoseconds_bytes[i])
+    bytes.push(fraction_bytes[i])
   }
   Bytes::from_array(bytes)
 }
@@ -239,7 +244,14 @@ fn spdp_read_duration(value : Bytes) -> Result[(Int, UInt), String] {
     [u32le(result)] => result
     _ => return Err("invalid SPDP lease duration")
   }
-  Ok((seconds.reinterpret_as_int(), nanoseconds))
+  Ok((
+    seconds.reinterpret_as_int(),
+    if nanoseconds == 0xFFFFFFFFU {
+      nanoseconds
+    } else {
+      qos_fraction_to_nanoseconds(nanoseconds)
+    },
+  ))
 }
 
 ///|
