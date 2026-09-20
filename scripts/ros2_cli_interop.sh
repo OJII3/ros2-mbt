@@ -79,7 +79,8 @@ trap cleanup EXIT
 wait_for_node() {
   local node_name="$1"
   local process_pid="$2"
-  for _ in {1..20}; do
+  local deadline=$((SECONDS + 45))
+  while ((SECONDS < deadline)); do
     local nodes
     nodes=$(timeout --kill-after=1s 3s ros2 node list --spin-time 0.25 2>/dev/null || true)
     if grep -Fxq "$node_name" <<<"$nodes"; then

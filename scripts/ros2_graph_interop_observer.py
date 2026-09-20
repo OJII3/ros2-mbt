@@ -6,6 +6,7 @@ import sys
 import time
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rmw_dds_common.msg import ParticipantEntitiesInfo
 from rclpy.node import Node
 from rclpy.qos import (
@@ -64,23 +65,27 @@ class RosGraphObserver(Node):
 def main() -> int:
     rclpy.init()
     node = RosGraphObserver()
-    deadline = time.monotonic() + float(os.environ.get("ROS2_MBT_GRAPH_TIMEOUT", "35"))
+    deadline = time.monotonic() + float(os.environ.get("ROS2_MBT_GRAPH_TIMEOUT", "40"))
     graph_publishers: list[str] = []
     graph_subscriptions: list[str] = []
     try:
         while rclpy.ok() and not node.matched_graph and time.monotonic() < deadline:
             rclpy.spin_once(node, timeout_sec=0.2)
-        graph_publishers = [
-            f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
-            for endpoint in node.get_publishers_info_by_topic("ros_discovery_info")
-        ]
-        graph_subscriptions = [
-            f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
-            for endpoint in node.get_subscriptions_info_by_topic("ros_discovery_info")
-        ]
+        if rclpy.ok():
+            graph_publishers = [
+                f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
+                for endpoint in node.get_publishers_info_by_topic("ros_discovery_info")
+            ]
+            graph_subscriptions = [
+                f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
+                for endpoint in node.get_subscriptions_info_by_topic("ros_discovery_info")
+            ]
+    except ExternalShutdownException:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
     if not node.matched_graph:
         print(
             "ROS 2 graph observer timed out: "

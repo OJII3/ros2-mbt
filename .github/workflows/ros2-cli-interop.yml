@@ -12,12 +12,24 @@ permissions:
 jobs:
   ros2-cli-interop:
     runs-on: ubuntu-24.04
+    env:
+      ROS_DOMAIN_ID: "42"
+      ROS_AUTOMATIC_DISCOVERY_RANGE: SUBNET
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Nix
         uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      - name: Select runner IPv4 address
+        run: |
+          runner_ip=$(ip -4 route get 239.255.0.1 | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}')
+          if [[ -z "$runner_ip" ]]; then
+            echo "Could not determine the runner IPv4 address for multicast discovery" >&2
+            exit 1
+          fi
+          echo "ROS2_MBT_IP=$runner_ip" >> "$GITHUB_ENV"
 
       - name: Update MoonBit package registry
         run: nix develop . --command moon update
@@ -29,22 +41,10 @@ jobs:
         run: nix develop . --command moon test --target native
 
       - name: Verify ROS 2 CLI topic and service interoperability
-        env:
-          ROS_DOMAIN_ID: "42"
-          ROS_LOCALHOST_ONLY: "1"
-          ROS2_MBT_IP: 127.0.0.1
         run: nix develop .#ros2 --command bash scripts/ros2_cli_interop.sh
 
       - name: Verify ROS 2 Action interoperability
-        env:
-          ROS_DOMAIN_ID: "42"
-          ROS_LOCALHOST_ONLY: "1"
-          ROS2_MBT_IP: 127.0.0.1
         run: nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
 
       - name: Verify ROS 2 Parameter interoperability
-        env:
-          ROS_DOMAIN_ID: "42"
-          ROS_LOCALHOST_ONLY: "1"
-          ROS2_MBT_IP: 127.0.0.1
         run: nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
