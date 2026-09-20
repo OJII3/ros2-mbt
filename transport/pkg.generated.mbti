@@ -299,6 +299,26 @@ pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtp
 pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 
+pub struct RosActionEndpoints {
+  send_goal_request_subscription : @rtps.SedpEndpointData
+  send_goal_response_publication : @rtps.SedpEndpointData
+  get_result_request_subscription : @rtps.SedpEndpointData
+  get_result_response_publication : @rtps.SedpEndpointData
+  cancel_goal_request_subscription : @rtps.SedpEndpointData
+  cancel_goal_response_publication : @rtps.SedpEndpointData
+  feedback_publication : @rtps.SedpEndpointData
+  status_publication : @rtps.SedpEndpointData
+}
+pub fn RosActionEndpoints::cancel_goal_request_subscription(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::cancel_goal_response_publication(Self) -> @rtps.SedpEndpointData
+pub async fn RosActionEndpoints::discover(RosParticipant, @ros.RosAction) -> Result[Self, String]
+pub fn RosActionEndpoints::feedback_publication(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::get_result_request_subscription(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::get_result_response_publication(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::send_goal_request_subscription(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::send_goal_response_publication(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::status_publication(Self) -> @rtps.SedpEndpointData
+
 pub struct RosParticipant {
   participant : @rtps.SpdpParticipantData
   discovery : DiscoveryService
