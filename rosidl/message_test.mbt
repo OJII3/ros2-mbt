@@ -119,6 +119,41 @@ test "ROS message parser and generator handle scalar constants" {
 }
 
 ///|
+test "ROS string constants accept quoted and unquoted values" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "StringConstants",
+    "string SINGLE='single quoted'\nstring RAW=unquoted value\nstring ESCAPED=\"say \\\"hi\\\"\"\nstring UNICODE=\"猫\"",
+  ).unwrap()
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub const SINGLE : String = \"single quoted\""))
+  assert_true(generated.contains("pub const RAW : String = \"unquoted value\""))
+  assert_true(
+    generated.contains("pub const ESCAPED : String = \"say \\\"hi\\\"\""),
+  )
+  assert_true(generated.contains("pub const UNICODE : String = \"猫\""))
+  assert_true(
+    parse_message("demo", "msg", "Invalid", "string BAD=\"bad \"quote\"\"")
+    is Err(_),
+  )
+}
+
+///|
+test "ROS string constants escape backslashes in generated literals" {
+  let source = "string PATH=\"a" + "\\" + "\\" + "b\""
+  let generated = parse_message("demo", "msg", "StringPath", source)
+    .unwrap()
+    .generate_moonbit()
+  let four_backslashes = "\\" + "\\" + "\\" + "\\"
+  assert_true(
+    generated.contains(
+      "pub const PATH : String = \"a" + four_backslashes + "b\"",
+    ),
+  )
+}
+
+///|
 test "ROS integer constants accept base prefixes and normalize literals" {
   let definition = parse_message(
     "demo",

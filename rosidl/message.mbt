@@ -1257,16 +1257,7 @@ fn rosidl_constant_literal(
         "false" | "0" => Ok("false")
         _ => Err("ROS bool constants must be true, false, 1, or 0")
       }
-    "string" => {
-      let bytes = @utf8.encode(value)
-      if bytes.length() >= 2 &&
-        bytes[0] == b'"' &&
-        bytes[bytes.length() - 1] == b'"' {
-        Ok(value)
-      } else {
-        Err("ROS string constants must use double quotes")
-      }
-    }
+    "string" => rosidl_string_constant_literal(value)
     "float32" => {
       if !rosidl_float_literal(value) {
         return Err("ROS float constants must be numeric")
@@ -1289,6 +1280,73 @@ fn rosidl_constant_literal(
       rosidl_unsigned_constant_literal(type_name, value)
     _ => Err("unsupported ROS constant type: " + type_name)
   }
+}
+
+///|
+fn rosidl_string_constant_literal(value : String) -> Result[String, String] {
+  let bytes = @utf8.encode(value)
+  let quoted = bytes.length() >= 2 &&
+    ((bytes[0] == b'"' && bytes[bytes.length() - 1] == b'"') ||
+    (bytes[0] == b'\'' && bytes[bytes.length() - 1] == b'\''))
+  let string_value = if !quoted {
+    value
+  } else {
+    let quote = bytes[0]
+    let end = bytes.length() - 1
+    let mut result = ""
+    let mut segment_start = 1
+    let mut index = 1
+    while index < end {
+      if bytes[index] == quote {
+        if index == 1 || bytes[index - 1] != b'\\' {
+          return Err("ROS string constants contain an unescaped quote")
+        }
+      }
+      if bytes[index] == b'\\' && index + 1 < end && bytes[index + 1] == quote {
+        result += @utf8.decode(bytes[segment_start:index]) catch {
+          _ => ""
+        }
+        result += @utf8.decode(Bytes::from_array([quote])) catch {
+          _ => ""
+        }
+        index += 2
+        segment_start = index
+      } else {
+        index += 1
+      }
+    }
+    result + (@utf8.decode(bytes[segment_start:end]) catch {
+      _ => ""
+    })
+  }
+  Ok(rosidl_moonbit_string_literal(string_value))
+}
+
+///|
+fn rosidl_moonbit_string_literal(value : String) -> String {
+  let bytes = @utf8.encode(value)
+  let mut result = "\""
+  let mut segment_start = 0
+  for index in 0..<bytes.length() {
+    let escape = match bytes[index] {
+      b'\\' => "\\\\"
+      b'"' => "\\\""
+      b'\n' => "\\n"
+      b'\r' => "\\r"
+      b'\t' => "\\t"
+      _ => ""
+    }
+    if escape.length() > 0 {
+      result += @utf8.decode(bytes[segment_start:index]) catch {
+        _ => ""
+      }
+      result += escape
+      segment_start = index + 1
+    }
+  }
+  result + (@utf8.decode(bytes[segment_start:]) catch {
+    _ => ""
+  }) + "\""
 }
 
 ///|
