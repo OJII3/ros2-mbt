@@ -79,6 +79,106 @@ async test "ROS participant can send SPDP with DDSI multicast discovery" {
 }
 
 ///|
+async test "ROS participant drops graph sessions for removed endpoints" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let participant = new_ddsi_participant(
+    local_prefix,
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let node = RosParticipant::from_sockets(
+    discovery_socket, user_socket, participant, 0, 1L,
+  ).unwrap()
+  node.register_ros_discovery_info(
+    @rtps.EntityId::new(b"gph", 0xC2).unwrap(),
+    @rtps.EntityId::new(b"gph", 0xC7).unwrap(),
+  ).unwrap()
+  let remote_subscription = @ros.ros_discovery_info_to_sedp(
+    @rtps.SedpEndpointKind::Subscription,
+    @rtps.Guid::new(
+      remote_prefix,
+      @rtps.EntityId::new(b"sub", 0xC7).unwrap(),
+    ),
+  ).unwrap()
+  remote_subscription.add_unicast_locator(node.user_locator())
+  let remote_publication = @ros.ros_discovery_info_to_sedp(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(
+      remote_prefix,
+      @rtps.EntityId::new(b"pub", 0xC2).unwrap(),
+    ),
+  ).unwrap()
+  remote_publication.add_unicast_locator(node.user_locator())
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let destination = node.discovery.session.socket.local_addr()
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let publication_data = remote_publication.to_data_submessage_with_vendor(
+    vendor_id,
+    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+    1L,
+  ).unwrap()
+  sender.send_data(publication_data, remote_prefix, vendor_id, destination).unwrap()
+  ignore(node.receive_discovery_once().unwrap())
+  let subscription_data = remote_subscription.to_data_submessage_with_vendor(
+    vendor_id,
+    @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
+    1L,
+  ).unwrap()
+  sender.send_data(subscription_data, remote_prefix, vendor_id, destination).unwrap()
+  ignore(node.receive_discovery_once().unwrap())
+  assert_eq(node.graph_publishers.length(), 1)
+  assert_eq(node.graph_subscriptions.length(), 1)
+  let publication_dispose = @rtps.DataSubmessage::new(
+    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+    2L,
+    b"",
+  ).with_key(remote_publication.endpoint_guid().to_bytes())
+  .with_status_info(@rtps.STATUS_INFO_DISPOSED)
+  sender.send_data(publication_dispose, remote_prefix, vendor_id, destination).unwrap()
+  ignore(node.receive_discovery_once().unwrap())
+  let subscription_dispose = @rtps.DataSubmessage::new(
+    @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
+    2L,
+    b"",
+  ).with_key(remote_subscription.endpoint_guid().to_bytes())
+  .with_status_info(@rtps.STATUS_INFO_DISPOSED)
+  sender.send_data(subscription_dispose, remote_prefix, vendor_id, destination).unwrap()
+  ignore(node.receive_discovery_once().unwrap())
+  assert_eq(node.graph_publishers.length(), 0)
+  assert_eq(node.graph_subscriptions.length(), 0)
+  let reappeared_publication = remote_publication.to_data_submessage_with_vendor(
+    vendor_id,
+    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+    3L,
+  ).unwrap()
+  sender.send_data(
+    reappeared_publication,
+    remote_prefix,
+    vendor_id,
+    destination,
+  ).unwrap()
+  ignore(node.receive_discovery_once().unwrap())
+  assert_eq(node.graph_subscriptions.length(), 1)
+  node.close()
+  sender.close()
+}
+
+///|
 async test "ROS participant registers and retains local SEDP endpoints" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

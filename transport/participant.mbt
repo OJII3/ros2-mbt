@@ -13,10 +13,10 @@ pub struct RosParticipant {
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
   mut latest_graph_info : @ros.ParticipantEntitiesInfo?
-  graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  graph_publisher_guids : Array[@rtps.Guid]
-  graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  graph_subscription_guids : Array[@rtps.Guid]
+  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  mut graph_publisher_guids : Array[@rtps.Guid]
+  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  mut graph_subscription_guids : Array[@rtps.Guid]
 }
 
 ///|
@@ -652,6 +652,71 @@ pub async fn RosParticipant::dispose_and_close(
   }
 }
 
+///| Forget a removed ROS graph publication and its reliable reader.
+fn RosParticipant::forget_graph_publication(
+  self : RosParticipant,
+  endpoint_guid : @rtps.Guid,
+) -> Unit {
+  let guids : Array[@rtps.Guid] = []
+  let subscriptions : Array[ReliableRosDiscoverySubscription] = []
+  for index in 0..<self.graph_subscription_guids.length() {
+    if self.graph_subscription_guids[index] == endpoint_guid {
+      continue
+    }
+    guids.push(self.graph_subscription_guids[index])
+    subscriptions.push(self.graph_subscriptions[index])
+  }
+  self.graph_subscription_guids = guids
+  self.graph_subscriptions = subscriptions
+}
+
+///| Forget a removed ROS graph subscription and its reliable writer.
+fn RosParticipant::forget_graph_subscription(
+  self : RosParticipant,
+  endpoint_guid : @rtps.Guid,
+) -> Unit {
+  let guids : Array[@rtps.Guid] = []
+  let publishers : Array[ReliableRosDiscoveryPublisher] = []
+  for index in 0..<self.graph_publisher_guids.length() {
+    if self.graph_publisher_guids[index] == endpoint_guid {
+      continue
+    }
+    guids.push(self.graph_publisher_guids[index])
+    publishers.push(self.graph_publishers[index])
+  }
+  self.graph_publisher_guids = guids
+  self.graph_publishers = publishers
+}
+
+///| Forget all ROS graph sessions owned by one remote participant.
+fn RosParticipant::forget_graph_participant(
+  self : RosParticipant,
+  participant_prefix : @rtps.GuidPrefix,
+) -> Unit {
+  let subscription_guids : Array[@rtps.Guid] = []
+  let subscriptions : Array[ReliableRosDiscoverySubscription] = []
+  for index in 0..<self.graph_subscription_guids.length() {
+    if self.graph_subscription_guids[index].prefix() == participant_prefix {
+      continue
+    }
+    subscription_guids.push(self.graph_subscription_guids[index])
+    subscriptions.push(self.graph_subscriptions[index])
+  }
+  self.graph_subscription_guids = subscription_guids
+  self.graph_subscriptions = subscriptions
+  let publisher_guids : Array[@rtps.Guid] = []
+  let publishers : Array[ReliableRosDiscoveryPublisher] = []
+  for index in 0..<self.graph_publisher_guids.length() {
+    if self.graph_publisher_guids[index].prefix() == participant_prefix {
+      continue
+    }
+    publisher_guids.push(self.graph_publisher_guids[index])
+    publishers.push(self.graph_publishers[index])
+  }
+  self.graph_publisher_guids = publisher_guids
+  self.graph_publishers = publishers
+}
+
 ///|
 /// Receive one SPDP or SEDP event and ingest it into the graph.
 pub async fn RosParticipant::receive_discovery_once(
@@ -743,8 +808,15 @@ pub async fn RosParticipant::receive_discovery_once(
             }
           }
       }
-    DiscoveryEvent::EndpointRemoved(_, _) => ()
-    DiscoveryEvent::ParticipantRemoved(_) => ()
+    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
+      match kind {
+        @rtps.SedpEndpointKind::Publication =>
+          self.forget_graph_publication(endpoint_guid)
+        @rtps.SedpEndpointKind::Subscription =>
+          self.forget_graph_subscription(endpoint_guid)
+      }
+    DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+      self.forget_graph_participant(participant_guid.prefix())
   }
   Ok((source, event))
 }
