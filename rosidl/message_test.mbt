@@ -161,6 +161,25 @@ test "ROS integer constants reject values outside their declared widths" {
 }
 
 ///|
+test "ROS message parser rejects duplicate names and invalid constant names" {
+  assert_true(
+    parse_message("demo", "msg", "Duplicate", "int32 value\nint32 value")
+    is Err(_),
+  )
+  assert_true(
+    parse_message("demo", "msg", "Duplicate", "int32 VALUE=1\nint32 VALUE=2")
+    is Err(_),
+  )
+  assert_true(parse_message("demo", "msg", "Invalid", "int32 value=1") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "int32 VALUE_=1") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "int32 VALUE__1=1") is Err(_))
+  assert_true(
+    parse_message("demo", "msg", "Valid", "int32 VALUE_1=1\nint32 value")
+    is Ok(_),
+  )
+}
+
+///|
 test "ROS message generator handles fixed arrays and sequences" {
   let definition = match
     parse_message("demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples") {

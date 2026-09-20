@@ -191,7 +191,13 @@ pub fn MessageDefinition::new_with_types(
       )
     }
   }
-  for field in fields {
+  for index in 0..<fields.length() {
+    let field = fields[index]
+    for previous_index in 0..<index {
+      if fields[previous_index].name == field.name {
+        return Err("ROS message field names must be unique")
+      }
+    }
     if !rosidl_identifier(field.name) {
       return Err("ROS message field names must be identifiers")
     }
@@ -235,9 +241,15 @@ pub fn MessageDefinition::with_constants(
   self : MessageDefinition,
   constants : Array[MessageConstant],
 ) -> Result[MessageDefinition, String] {
-  for constant in constants {
-    if !rosidl_identifier(constant.name) {
-      return Err("ROS message constant names must be identifiers")
+  for index in 0..<constants.length() {
+    let constant = constants[index]
+    for previous_index in 0..<index {
+      if constants[previous_index].name == constant.name {
+        return Err("ROS message constant names must be unique")
+      }
+    }
+    if !rosidl_constant_identifier(constant.name) {
+      return Err("ROS message constant names must be uppercase identifiers")
     }
     match rosidl_constant_literal(constant.type_name, constant.value) {
       Ok(_) => ()
@@ -1108,6 +1120,30 @@ fn rosidl_identifier(value : String) -> Bool {
         return false
       }
     } else if !is_letter && !is_digit {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn rosidl_constant_identifier(value : String) -> Bool {
+  let bytes = @utf8.encode(value)
+  if bytes.length() == 0 || bytes[0] < 65 || bytes[0] > 90 {
+    return false
+  }
+  for index in 1..<bytes.length() {
+    let byte = bytes[index]
+    let is_uppercase = byte >= 65 && byte <= 90
+    let is_digit = byte >= 48 && byte <= 57
+    if is_uppercase || is_digit {
+      continue
+    }
+    if byte != 95 || index == bytes.length() - 1 || bytes[index - 1] == 95 {
+      return false
+    }
+    let next = bytes[index + 1]
+    if (next < 65 || next > 90) && (next < 48 || next > 57) {
       return false
     }
   }
