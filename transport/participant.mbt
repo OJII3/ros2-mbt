@@ -8,7 +8,7 @@ pub struct RosParticipant {
   discovery : DiscoveryService
   user_socket : Udp
   user_locator : @rtps.Locator
-  local_endpoints : Array[@rtps.SedpEndpointData]
+  mut local_endpoints : Array[@rtps.SedpEndpointData]
   mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
@@ -232,6 +232,49 @@ pub async fn RosParticipant::register_endpoint(
   // A graph sample generated before this endpoint was registered is stale.
   self.latest_graph_info = None
   self.discovery.announce_sedp_to_all(registered)
+}
+
+///|
+/// Dispose and forget one locally registered SEDP endpoint.
+pub async fn RosParticipant::unregister_endpoint(
+  self : RosParticipant,
+  endpoint_guid : @rtps.Guid,
+) -> Result[Unit, String] {
+  let mut endpoint_index = -1
+  for index in 0..<self.local_endpoints.length() {
+    if self.local_endpoints[index].endpoint_guid() == endpoint_guid {
+      endpoint_index = index
+      break
+    }
+  }
+  if endpoint_index < 0 {
+    return Err("the SEDP endpoint is not registered")
+  }
+  let endpoint = self.local_endpoints[endpoint_index]
+  match self.discovery.dispose_sedp_to_all(endpoint) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let remaining : Array[@rtps.SedpEndpointData] = []
+  for index in 0..<self.local_endpoints.length() {
+    if index != endpoint_index {
+      remaining.push(self.local_endpoints[index])
+    }
+  }
+  self.local_endpoints = remaining
+  let prefix = self.participant.participant_guid().prefix()
+  match self.graph_publication_id {
+    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) =>
+      self.graph_publication_id = None
+    _ => ()
+  }
+  match self.graph_subscription_id {
+    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) =>
+      self.graph_subscription_id = None
+    _ => ()
+  }
+  self.latest_graph_info = None
+  Ok(())
 }
 
 ///|

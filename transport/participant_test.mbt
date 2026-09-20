@@ -271,6 +271,15 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     1,
   )
   assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
+  match
+    node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_eq(node.local_endpoints().length(), 2)
+  assert_true(
+    node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) is Err(_),
+  )
   node.close()
 }
 
