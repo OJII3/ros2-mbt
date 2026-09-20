@@ -139,7 +139,7 @@ ros2 run demo_nodes_cpp add_two_ints_server
 ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service_client
 ```
 
-Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci ActionServerを起動し、MoonBit clientのgoal受付、Succeeded status、result sequenceを検証します。
+Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci ActionServerを起動し、MoonBit clientの通常完了（goal受付、Succeeded status、result sequence）とCancelGoal（受理コード、Canceled status）を検証します。
 
 ```sh
 nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
@@ -157,4 +157,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult相互運用は実装済み。Feedback/Status受信、CancelGoal、一般的なgoal lifecycle、Parameter APIは未実装）
+8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult/CancelGoal相互運用は実装済み。Feedback/Status受信、汎用goal lifecycle、Parameter APIは未実装）

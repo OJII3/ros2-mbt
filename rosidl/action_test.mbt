@@ -180,3 +180,67 @@ test "ROS action protocol message hashes match Jazzy Fibonacci" {
     ),
   )
 }
+
+///|
+test "ROS CancelGoal request and response hashes match their nested messages" {
+  let workspace = MessageWorkspace::new()
+  for source in [
+    MessageSource::new(
+      "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
+    ),
+    MessageSource::new(
+      "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
+    ),
+    MessageSource::new(
+      "action_msgs",
+      "msg",
+      "GoalInfo",
+      "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
+    ),
+  ] {
+    match source {
+      Ok(value) => assert_true(workspace.add_source(value) is Ok(_))
+      Err(message) => fail(message)
+    }
+  }
+  assert_true(
+    workspace.add_import(
+      MessageImport::new(
+        "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
+      ).unwrap(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    workspace.add_import(
+      MessageImport::new(
+        "builtin_interfaces", "builtin_interfaces/msg", "builtin",
+      ).unwrap(),
+    )
+    is Ok(_),
+  )
+  let service = parse_service_with_types(
+    "action_msgs",
+    "CancelGoal",
+    "GoalInfo goal_info\n---\nint8 return_code\nGoalInfo[] goals_canceling",
+    [MessageTypeReference::new("GoalInfo", "GoalInfo")],
+  ).unwrap()
+  let request_hash = match
+    workspace.type_hash_for_definition(service.request()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let response_hash = match
+    workspace.type_hash_for_definition(service.response()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    request_hash,
+    "RIHS01_3d3c84653c1f96918086887e1dcb236faec88b81a5b14fd4cf4840065bcdf8af",
+  )
+  assert_eq(
+    response_hash,
+    "RIHS01_35e682cf3f510e83c70a82a4aac888496dedee56773bf9d8e5e0aa81f9e1c960",
+  )
+}

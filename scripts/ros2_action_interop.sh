@@ -86,53 +86,77 @@ else
   moon_command=(nix develop --command moon run examples/action_client)
 fi
 
-if command -v setsid >/dev/null 2>&1; then
-  setsid "${moon_command[@]}" >"$client_log" 2>&1 &
-  client_pid=$!
-else
-  "${moon_command[@]}" >"$client_log" 2>&1 &
-  client_pid=$!
-fi
-
-client_finished=0
-for _ in {1..300}; do
-  if ! kill -0 "$client_pid" 2>/dev/null; then
-    client_finished=1
-    break
+run_client() {
+  local mode="$1"
+  local -a client_command=("${moon_command[@]}")
+  client_log="$tmp_dir/moonbit-action-$mode.log"
+  if [[ "$mode" == "canceled" ]]; then
+    client_command=(env ROS2_MBT_CANCEL_GOAL=1 "${moon_command[@]}")
   fi
-  sleep 0.2
-done
-if [[ "$client_finished" -ne 1 ]]; then
-  echo "MoonBit Fibonacci action client timed out after 60 seconds" >&2
-  exit 1
-fi
 
-if wait "$client_pid"; then
-  client_status=0
-else
-  client_status=$?
-fi
-if [[ "$client_status" -ne 0 ]]; then
-  echo "MoonBit Fibonacci action client failed (status $client_status)" >&2
-  exit 1
-fi
-if [[ "$server_grouped" -eq 1 ]]; then
-  kill -TERM -- "-$client_pid" 2>/dev/null || true
-fi
-client_pid=""
+  if command -v setsid >/dev/null 2>&1; then
+    setsid "${client_command[@]}" >"$client_log" 2>&1 &
+    client_pid=$!
+  else
+    "${client_command[@]}" >"$client_log" 2>&1 &
+    client_pid=$!
+  fi
 
-if ! grep -Fq 'Fibonacci goal accepted: true' "$client_log"; then
-  echo "MoonBit client output did not indicate that the goal was accepted" >&2
-  exit 1
-fi
-if ! grep -Fq 'Fibonacci result status: 4' "$client_log"; then
-  echo "MoonBit client did not receive a succeeded result status" >&2
-  exit 1
-fi
-compact_client_output=$(tr -d '[:space:]' <"$client_log")
-if [[ "$compact_client_output" != *'Fibonacciresult:'*'[0,1,1,2,3,5]'* ]]; then
-  echo "MoonBit client output did not contain the expected Fibonacci result sequence" >&2
-  exit 1
-fi
+  local client_finished=0
+  for _ in {1..300}; do
+    if ! kill -0 "$client_pid" 2>/dev/null; then
+      client_finished=1
+      break
+    fi
+    sleep 0.2
+  done
+  if [[ "$client_finished" -ne 1 ]]; then
+    echo "MoonBit Fibonacci $mode client timed out after 60 seconds" >&2
+    exit 1
+  fi
 
-echo "ROS 2 Fibonacci action interoperability passed."
+  local client_status=0
+  if wait "$client_pid"; then
+    client_status=0
+  else
+    client_status=$?
+  fi
+  if [[ "$client_status" -ne 0 ]]; then
+    echo "MoonBit Fibonacci $mode client failed (status $client_status)" >&2
+    exit 1
+  fi
+  if [[ "$server_grouped" -eq 1 ]]; then
+    kill -TERM -- "-$client_pid" 2>/dev/null || true
+  fi
+  client_pid=""
+
+  if ! grep -Fq 'Fibonacci goal accepted: true' "$client_log"; then
+    echo "MoonBit $mode client output did not indicate goal acceptance" >&2
+    exit 1
+  fi
+  if [[ "$mode" == "succeeded" ]]; then
+    if ! grep -Fq 'Fibonacci result status: 4' "$client_log"; then
+      echo "MoonBit client did not receive a succeeded result status" >&2
+      exit 1
+    fi
+    compact_client_output=$(tr -d '[:space:]' <"$client_log")
+    if [[ "$compact_client_output" != *'Fibonacciresult:'*'[0,1,1,2,3,5]'* ]]; then
+      echo "MoonBit client did not receive the expected Fibonacci sequence" >&2
+      exit 1
+    fi
+  else
+    if ! grep -Fq 'Fibonacci cancel return code: 0' "$client_log"; then
+      echo "MoonBit client did not cancel the Fibonacci goal" >&2
+      exit 1
+    fi
+    if ! grep -Fq 'Fibonacci result status: 5' "$client_log"; then
+      echo "MoonBit client did not receive a canceled result status" >&2
+      exit 1
+    fi
+  fi
+}
+
+run_client succeeded
+run_client canceled
+
+echo "ROS 2 Fibonacci action success and cancellation interoperability passed."
