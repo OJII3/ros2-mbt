@@ -452,7 +452,8 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     self.receive_sockets[socket_index - 1]
   }
   for index in 0..<acknacks.length() {
-    let acknack = if index + 1 == acknacks.length() {
+    let acknack = if index + 1 == acknacks.length() &&
+      !discovery_acknack_has_requests(acknacks[index]) {
       acknacks[index].with_final()
     } else {
       acknacks[index]
@@ -480,6 +481,19 @@ fn discovery_acknack_bitmap_contains(
   let word_index = offset / 32
   let bit_index = offset % 32
   (bitmap[word_index] & (0x80000000U >> bit_index)) != 0U
+}
+
+///|
+/// Return whether an ACKNACK requests any missing samples.
+fn discovery_acknack_has_requests(
+  acknack : @rtps.AckNackSubmessage,
+) -> Bool {
+  for offset in 0..<acknack.num_bits().reinterpret_as_int() {
+    if discovery_acknack_bitmap_contains(acknack.bitmap(), offset) {
+      return true
+    }
+  }
+  false
 }
 
 ///|

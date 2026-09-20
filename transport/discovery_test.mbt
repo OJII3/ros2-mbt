@@ -446,12 +446,52 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   assert_eq(acknack.bitmap_base(), 1L)
   assert_eq(acknack.num_bits(), 1U)
   assert_eq(acknack.bitmap(), [0x80000000U])
+  assert_true((acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) == 0)
+  sender
+  .send_heartbeat(
+    @rtps.HeartbeatSubmessage::new(
+      @rtps.EntityId::unknown(),
+      sedp_writer,
+      1L,
+      1L,
+      2U,
+    ).unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  sender
+  .send_data(
+    endpoint
+    .to_data_submessage(@rtps.EntityId::unknown(), sedp_writer, 2L)
+    .unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let (complete_event, _) = session.receive_once().unwrap()
+  match complete_event {
+    DiscoveryEvent::Publication(_) => ()
+    DiscoveryEvent::Participant(_) => fail("expected a repeated publication")
+    DiscoveryEvent::Subscription(_) => fail("expected a repeated publication")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected a repeated publication")
+    DiscoveryEvent::ParticipantRemoved(_) =>
+      fail("expected a repeated publication")
+  }
+  let (complete_acknack, _) = sender.receive_acknack().unwrap()
+  assert_eq(complete_acknack.bitmap(), [0U])
+  assert_true(
+    (complete_acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) != 0,
+  )
   sender
   .send_data(
     @rtps.DataSubmessage::new(
       @rtps.EntityId::unknown(),
       sedp_writer,
-      2L,
+      3L,
       b"",
     )
     .with_key(endpoint.endpoint_guid().to_bytes())
