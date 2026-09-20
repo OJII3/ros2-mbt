@@ -166,7 +166,7 @@ pub fn DataFragSubmessage::to_payload(self : DataFragSubmessage) -> Bytes {
   for i in 0..<4 {
     bytes.push(writer_id[i])
   }
-  append_u64_le(bytes, self.writer_sequence_number.reinterpret_as_uint64())
+  append_sequence_number_le(bytes, self.writer_sequence_number)
   data_append_u32_le(bytes, self.fragment_starting_number)
   data_append_u16_le(bytes, self.fragments_in_submessage)
   data_append_u16_le(bytes, self.fragment_size)
@@ -226,7 +226,7 @@ pub fn DataFragSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let sequence_number = read_u64_le(submessage.payload, 12).reinterpret_as_int64()
+  let sequence_number = read_sequence_number_le(submessage.payload, 12)
   let fragment_starting_number = data_read_u32_le(submessage.payload, 20)
   let fragments_in_submessage = data_read_u16_le(submessage.payload, 24)
   let fragment_size = data_read_u16_le(submessage.payload, 26)

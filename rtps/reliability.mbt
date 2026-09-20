@@ -295,15 +295,7 @@ fn reliability_append_u32(bytes : Array[Byte], value : UInt) -> Unit {
 
 ///|
 fn reliability_append_i64(bytes : Array[Byte], value : Int64) -> Unit {
-  let encoded = value.reinterpret_as_uint64()
-  bytes.push(encoded.to_byte())
-  bytes.push((encoded >> 8).to_byte())
-  bytes.push((encoded >> 16).to_byte())
-  bytes.push((encoded >> 24).to_byte())
-  bytes.push((encoded >> 32).to_byte())
-  bytes.push((encoded >> 40).to_byte())
-  bytes.push((encoded >> 48).to_byte())
-  bytes.push((encoded >> 56).to_byte())
+  append_sequence_number_le(bytes, value)
 }
 
 ///|
@@ -316,10 +308,7 @@ fn reliability_read_u32(input : Bytes, offset : Int) -> UInt {
 
 ///|
 fn reliability_read_i64(input : Bytes, offset : Int) -> Int64 {
-  match input[offset:offset + 8] {
-    [u64le(value)] => value.reinterpret_as_int64()
-    _ => 0L
-  }
+  read_sequence_number_le(input, offset)
 }
 
 ///|

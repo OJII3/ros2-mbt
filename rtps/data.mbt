@@ -250,18 +250,6 @@ fn data_u32_le(value : UInt) -> Bytes {
 }
 
 ///|
-fn append_u64_le(bytes : Array[Byte], value : UInt64) -> Unit {
-  bytes.push(value.to_byte())
-  bytes.push((value >> 8).to_byte())
-  bytes.push((value >> 16).to_byte())
-  bytes.push((value >> 24).to_byte())
-  bytes.push((value >> 32).to_byte())
-  bytes.push((value >> 40).to_byte())
-  bytes.push((value >> 48).to_byte())
-  bytes.push((value >> 56).to_byte())
-}
-
-///|
 fn data_read_u16_le(input : Bytes, offset : Int) -> UInt16 {
   let value = input[offset].to_int() | (input[offset + 1].to_int() << 8)
   value.to_uint16()
@@ -276,13 +264,6 @@ fn data_read_u32_le(input : Bytes, offset : Int) -> UInt {
 }
 
 ///|
-fn read_u64_le(input : Bytes, offset : Int) -> UInt64 {
-  match input[offset:offset + 8] {
-    [u64le(value)] => value
-    _ => 0
-  }
-}
-
 ///|
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
@@ -297,7 +278,7 @@ pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
   for i in 0..<4 {
     bytes.push(writer_id[i])
   }
-  append_u64_le(bytes, self.writer_sequence_number.reinterpret_as_uint64())
+  append_sequence_number_le(bytes, self.writer_sequence_number)
   for i in 0..<self.inline_qos.length() {
     bytes.push(self.inline_qos[i])
   }
@@ -351,7 +332,7 @@ pub fn DataSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let sequence_number = read_u64_le(submessage.payload, 12).reinterpret_as_int64()
+  let sequence_number = read_sequence_number_le(submessage.payload, 12)
   let mut inline_qos = b""
   let mut payload_offset = DATA_FIXED_BODY_LENGTH
   let inline_qos_offset = 4 + octets_to_inline_qos.to_int()
