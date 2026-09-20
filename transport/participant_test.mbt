@@ -867,6 +867,12 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     @rtps.SedpQos::default(),
   )
   .unwrap()
+  match subscriber.receive_discovery_once() {
+    Ok((_, DiscoveryEvent::Publication(publication))) =>
+      assert_eq(publication.topic_name(), "rt/late_topic")
+    Ok(_) => fail("expected the late SEDP publication")
+    Err(message) => fail(message)
+  }
   let refreshed_info = match publisher.latest_graph_info {
     Some(value) => value
     None => fail("automatic ROS graph information was not refreshed")
