@@ -24,7 +24,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SEDPの`PID_DATA_REPRESENTATION`解析と、XCDR1/XCDR2集合によるendpoint互換性判定
 - SEDP endpoint GUIDに対応する`PID_KEY_HASH`の広告・解析
 - SEDP publication/subscription向け標準パラメータ（型サイズ、inline QoS期待値）の広告
-- reliable SEDP HEARTBEAT の受信履歴管理と ACKNACK 応答
+- reliable SEDP DATA_FRAG の受信再構成、HEARTBEAT_FRAGへのNACK_FRAG応答と HEARTBEAT への ACKNACK 応答
 - SEDP ACKNACK に対する送信済み discovery DATA の再送
 - `DiscoverySession`による、1 RTPS datagram内の複数SPDP/SEDP DATA eventの順次dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper

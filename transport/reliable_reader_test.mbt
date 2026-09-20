@@ -162,6 +162,53 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
 }
 
 ///|
+test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let first = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    1U,
+    1U.to_uint16(),
+    2U.to_uint16(),
+    4U,
+    b"ab",
+  ).unwrap()
+  let second = @rtps.DataFragSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    2U,
+    1U.to_uint16(),
+    2U.to_uint16(),
+    4U,
+    b"cd",
+  ).unwrap()
+  let first_key = @rtps.Submessage::new(
+    @rtps.SubmessageId::DataFrag,
+    (first.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+    first.to_payload(),
+  )
+  let second_key = @rtps.Submessage::new(
+    @rtps.SubmessageId::DataFrag,
+    (second.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+    second.to_payload(),
+  )
+  let decoded_first = @rtps.DataFragSubmessage::from_submessage(first_key).unwrap()
+  let decoded_second = @rtps.DataFragSubmessage::from_submessage(second_key).unwrap()
+  assert_eq(reader.accept_data_frag(decoded_first), Ok(None))
+  let data = match reader.accept_data_frag(decoded_second) {
+    Ok(Some(value)) => value
+    Ok(None) => fail("the final key DATA_FRAG did not complete the sample")
+    Err(message) => fail(message)
+  }
+  assert_true((data.flags() & @rtps.DATA_FLAG_KEY) != 0)
+  assert_eq(data.serialized_payload(), b"abcd")
+}
+
+///|
 test "reliable reader requests missing DATA_FRAGs" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()

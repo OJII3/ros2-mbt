@@ -8,6 +8,7 @@ struct ReliableFragmentedSample {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   sequence_number : Int64
+  data_flags : Byte
   fragment_size : Int
   sample_size : Int
   mut inline_qos : Bytes
@@ -35,6 +36,8 @@ fn reliable_fragmented_sample_new(
     reader_id: fragment.reader_id(),
     writer_id: fragment.writer_id(),
     sequence_number: fragment.writer_sequence_number(),
+    data_flags: fragment.flags() &
+      (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY),
     fragment_size,
     sample_size,
     inline_qos: fragment.inline_qos(),
@@ -103,6 +106,11 @@ fn ReliableFragmentedSample::to_data(
     self.sequence_number,
     Bytes::from_array(self.payload),
   )
+  let data = if (self.data_flags & @rtps.DATA_FLAG_KEY) != 0 {
+    data.with_key(data.serialized_payload())
+  } else {
+    data
+  }
   if self.inline_qos.length() == 0 {
     data
   } else {

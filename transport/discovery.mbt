@@ -472,6 +472,48 @@ fn DiscoverySession::record_sedp_data(
   ignore(self.sedp_readers[index].reader.accept_data(data))
 }
 
+///| Dispatch one parsed SEDP sample as a publication, subscription, or removal.
+fn DiscoverySession::dispatch_sedp_data(
+  self : DiscoverySession,
+  events : Array[DiscoveryEvent],
+  writer_prefix : @rtps.GuidPrefix,
+  kind : @rtps.SedpEndpointKind,
+  data : @rtps.DataSubmessage,
+) -> Unit {
+  self.record_sedp_data(writer_prefix, data)
+  let status = match data.status_info() {
+    Ok(value) => value
+    Err(_) => return
+  }
+  match status {
+    Some(value) if
+      (value &
+        (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+      if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
+        return
+      }
+      match @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
+        Ok(endpoint_guid) =>
+          events.push(DiscoveryEvent::EndpointRemoved(kind, endpoint_guid))
+        Err(_) => ()
+      }
+    }
+    _ =>
+      match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+        Ok(endpoint) =>
+          events.push(
+            match kind {
+              @rtps.SedpEndpointKind::Publication =>
+                DiscoveryEvent::Publication(endpoint)
+              @rtps.SedpEndpointKind::Subscription =>
+                DiscoveryEvent::Subscription(endpoint)
+            },
+          )
+        Err(_) => ()
+      }
+  }
+}
+
 ///|
 /// Remember a received SEDP GAP for later ACKNACK generation.
 fn DiscoverySession::record_sedp_gap(
@@ -521,6 +563,54 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     match
       socket.send_message(
         acknack.to_message(
+          self.participant.participant_guid().prefix(),
+          self.participant.vendor_id(),
+        ).with_destination_guid_prefix(writer_prefix),
+        destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///| Send NACK_FRAG requests for missing fragments in a reliable SEDP sample.
+async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
+  self : DiscoverySession,
+  socket_index : Int,
+  writer_prefix : @rtps.GuidPrefix,
+  heartbeat : @rtps.HeartbeatFragSubmessage,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  let kind = match
+    @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id()) {
+    Ok(value) => value
+    Err(_) => return Ok(())
+  }
+  if heartbeat.reader_id() != kind.builtin_reader_id() &&
+    heartbeat.reader_id() != @rtps.EntityId::unknown() {
+    return Ok(())
+  }
+  let index = match self.sedp_reader_index(writer_prefix, heartbeat.writer_id()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let nackfrags = match
+    self.sedp_readers[index].reader.nackfrags_for_heartbeat_frag(heartbeat) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let socket = if socket_index == 0 {
+    self.socket
+  } else {
+    self.receive_sockets[socket_index - 1]
+  }
+  let destination = self.acknowledgement_destination(writer_prefix, source)
+  for nackfrag in nackfrags {
+    match
+      socket.send_message(
+        nackfrag.to_message(
           self.participant.participant_guid().prefix(),
           self.participant.vendor_id(),
         ).with_destination_guid_prefix(writer_prefix),
@@ -640,42 +730,12 @@ async fn DiscoverySession::decode_message(
               data.reader_id() != @rtps.EntityId::unknown() {
               continue
             }
-            self.record_sedp_data(message.header().guid_prefix(), data)
-            let status = match data.status_info() {
-              Ok(value) => value
-              Err(_) => continue
-            }
-            match status {
-              Some(value) if
-                (value &
-                  (@rtps.STATUS_INFO_DISPOSED |
-                    @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
-                if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
-                  continue
-                }
-                match
-                  @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
-                  Ok(endpoint_guid) =>
-                    events.push(
-                      DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
-                    )
-                  Err(_) => ()
-                }
-              }
-              _ =>
-                match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
-                  Ok(endpoint) =>
-                    events.push(
-                      match kind {
-                        @rtps.SedpEndpointKind::Publication =>
-                          DiscoveryEvent::Publication(endpoint)
-                        @rtps.SedpEndpointKind::Subscription =>
-                          DiscoveryEvent::Subscription(endpoint)
-                      },
-                    )
-                  Err(_) => ()
-                }
-            }
+            self.dispatch_sedp_data(
+              events,
+              message.header().guid_prefix(),
+              kind,
+              data,
+            )
           }
           Err(_) => {
             if data.writer_id() != self.writer_id ||
@@ -718,6 +778,45 @@ async fn DiscoverySession::decode_message(
           }
         }
       }
+      @rtps.SubmessageId::DataFrag => {
+        let fragment = match
+          @rtps.DataFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        let kind = match
+          @rtps.SedpEndpointKind::from_builtin_writer_id(fragment.writer_id()) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if fragment.reader_id() != kind.builtin_reader_id() &&
+          fragment.reader_id() != @rtps.EntityId::unknown() {
+          continue
+        }
+        let reader_index = match
+          self.sedp_reader_index(
+            message.header().guid_prefix(),
+            fragment.writer_id(),
+          ) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        let data = match
+          self.sedp_readers[reader_index].reader.accept_data_frag(fragment) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match data {
+          Some(data) =>
+            self.dispatch_sedp_data(
+              events,
+              message.header().guid_prefix(),
+              kind,
+              data,
+            )
+          None => ()
+        }
+      }
       @rtps.SubmessageId::Heartbeat => {
         let heartbeat = match
           @rtps.HeartbeatSubmessage::from_submessage(submessage) {
@@ -745,6 +844,23 @@ async fn DiscoverySession::decode_message(
             Ok(_) => ()
             Err(message) => return Err(message)
           }
+        }
+      }
+      @rtps.SubmessageId::HeartbeatFrag => {
+        let heartbeat = match
+          @rtps.HeartbeatFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match
+          self.acknowledge_sedp_heartbeat_frag(
+            socket_index,
+            message.header().guid_prefix(),
+            heartbeat,
+            source,
+          ) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       }
       @rtps.SubmessageId::Gap => {
