@@ -7,6 +7,10 @@ pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
 
 ///|
+/// RIHS01 type hash for `rmw_dds_common/msg/ParticipantEntitiesInfo`.
+pub const ROS_DISCOVERY_INFO_TYPE_HASH : String = "RIHS01_91a0593bacdcc50ea9bdcf849a938b128412cc1ea821245c663bcd26f83c295e"
+
+///|
 /// Standard user entity kind for the ROS graph publication endpoint.
 pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03
 
@@ -66,5 +70,8 @@ pub fn ros_discovery_info_to_sedp(
     @rtps.SedpEndpointKind::Subscription =>
       endpoint.add_parameter(@rtps.qos_history(@rtps.HISTORY_KEEP_ALL, 1))
   }
+  endpoint.add_parameter(
+    @rtps.qos_user_data_type_hash(ROS_DISCOVERY_INFO_TYPE_HASH),
+  )
   Ok(endpoint)
 }

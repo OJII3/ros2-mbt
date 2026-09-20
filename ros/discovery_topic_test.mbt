@@ -35,6 +35,7 @@ test "ROS discovery topic uses the standard DDS identity and writer QoS" {
     endpoint.type_name(),
     "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_",
   )
+  assert_eq(endpoint.type_hash(), Ok(Some(ROS_DISCOVERY_INFO_TYPE_HASH)))
   assert_eq(
     discovery_topic_test_parameter(endpoint, @rtps.PID_RELIABILITY).value(),
     b"\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
