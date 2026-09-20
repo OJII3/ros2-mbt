@@ -102,7 +102,8 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(Some(destination)) if destination != self.guid_prefix &&
+        !transport_guid_prefix_is_unknown(destination) => continue
       Ok(_) => ()
       Err(_) => continue
     }
@@ -300,7 +301,8 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(Some(destination)) if destination != self.guid_prefix &&
+        !transport_guid_prefix_is_unknown(destination) => continue
       Ok(_) => ()
       Err(_) => continue
     }

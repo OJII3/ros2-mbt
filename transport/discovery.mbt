@@ -31,6 +31,17 @@ priv enum DiscoveryReceiveOutcome {
 const DISCOVERY_MAX_TIMER_MILLISECONDS : Int = 0x7FFFFFFF
 
 ///|
+/// Return whether an RTPS destination prefix addresses every participant.
+fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
+  for byte in prefix.as_bytes() {
+    if byte != 0 {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
   socket : Udp
@@ -948,7 +959,8 @@ async fn DiscoverySession::decode_message(
 ) -> Result[Array[DiscoveryEvent], String] {
   match message.destination_guid_prefix() {
     Ok(Some(destination)) if destination !=
-      self.participant.participant_guid().prefix() => return Ok([])
+      self.participant.participant_guid().prefix() &&
+      !transport_guid_prefix_is_unknown(destination) => return Ok([])
     Ok(_) => ()
     Err(message) => return Err(message)
   }

@@ -88,7 +88,8 @@ pub async fn DataReader::receive(
     match message.destination_guid_prefix() {
       Ok(Some(destination)) =>
         match self.participant_prefix {
-          Some(prefix) if destination != prefix => continue
+          Some(prefix) if destination != prefix &&
+            !transport_guid_prefix_is_unknown(destination) => continue
           _ => ()
         }
       Ok(None) => ()

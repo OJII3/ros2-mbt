@@ -589,7 +589,8 @@ pub async fn ReliableDataWriter::receive_acknack(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(Some(destination)) if destination != self.guid_prefix &&
+        !transport_guid_prefix_is_unknown(destination) => continue
       Ok(_) => ()
       Err(_) => continue
     }
@@ -630,7 +631,8 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(Some(destination)) if destination != self.guid_prefix &&
+        !transport_guid_prefix_is_unknown(destination) => continue
       Ok(_) => ()
       Err(_) => continue
     }
@@ -675,7 +677,8 @@ pub async fn ReliableDataWriter::receive_control(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix => continue
+      Ok(Some(destination)) if destination != self.guid_prefix &&
+        !transport_guid_prefix_is_unknown(destination) => continue
       Ok(_) => ()
       Err(_) => continue
     }
