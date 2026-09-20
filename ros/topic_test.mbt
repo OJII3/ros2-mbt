@@ -121,7 +121,7 @@ test "ROS topic descriptor advertises deadline and liveliness QoS" {
 }
 
 ///|
-test "ROS topic descriptor advertises the configured data representations" {
+test "ROS topic descriptor advertises its supported data representation" {
   let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
@@ -132,7 +132,7 @@ test "ROS topic descriptor advertises the configured data representations" {
     @rtps.DURABILITY_VOLATILE,
     @rtps.HISTORY_KEEP_LAST,
     10,
-  ).with_data_representation([@rtps.DATA_REPRESENTATION_XCDR2])
+  ).with_data_representation([@rtps.DATA_REPRESENTATION_XCDR1])
   let endpoint = topic.to_sedp_with_qos(
     @rtps.SedpEndpointKind::Publication,
     @rtps.Guid::new(prefix, entity_id),
@@ -141,7 +141,21 @@ test "ROS topic descriptor advertises the configured data representations" {
   let decoded_qos = endpoint.qos().unwrap()
   assert_eq(
     decoded_qos.data_representation(),
-    [@rtps.DATA_REPRESENTATION_XCDR2],
+    [@rtps.DATA_REPRESENTATION_XCDR1],
+  )
+  assert_true(
+    topic.to_sedp_with_qos(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, entity_id),
+      qos.with_data_representation([@rtps.DATA_REPRESENTATION_XCDR2]),
+    ) is Err(_),
+  )
+  assert_true(
+    topic.to_sedp_with_qos(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, entity_id),
+      qos.with_data_representation([]),
+    ) is Err(_),
   )
 }
 

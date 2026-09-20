@@ -85,6 +85,15 @@ pub fn RosTopic::to_sedp_with_qos(
   if qos.depth() <= 0 {
     return Err("ROS topic history depth must be positive")
   }
+  let data_representations = qos.data_representation()
+  if data_representations.length() == 0 {
+    return Err("ROS topic data representation must not be empty")
+  }
+  for representation in data_representations {
+    if representation != @rtps.DATA_REPRESENTATION_XCDR1 {
+      return Err("ROS topic CDR serialization currently supports only XCDR1")
+    }
+  }
   @rtps.SedpEndpointData::new(
     kind,
     endpoint_guid,
