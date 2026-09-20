@@ -40,6 +40,104 @@ async test "ROS participant owns discovery and user-data sockets" {
 }
 
 ///|
+async test "ROS participant disposal removes its SEDP endpoints and SPDP participant" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let participant_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let spdp_reader = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, participant_id),
+    vendor_id,
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let remote_receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, participant_id),
+    vendor_id,
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  remote_participant.add_metatraffic_unicast(
+    remote_receiver.local_unicast_locator().unwrap(),
+  )
+  let session = DiscoverySession::new(
+    discovery_socket,
+    local_participant,
+    spdp_reader,
+    participant_id,
+    remote_sender.local_addr(),
+    1L,
+  ).unwrap()
+  let node = RosParticipant::from_discovery_session(session, user_socket).unwrap()
+  remote_sender
+  .send_data(
+    remote_participant.to_data_submessage(spdp_reader, participant_id, 1L),
+    remote_prefix,
+    vendor_id,
+    node.discovery.session.socket.local_addr(),
+  )
+  .unwrap()
+  match node.receive_discovery_once().unwrap().1 {
+    DiscoveryEvent::Participant(_) => ()
+    _ => fail("expected the remote SPDP participant")
+  }
+  let endpoint = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(
+      local_prefix,
+      @rtps.EntityId::new(b"pub", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
+    ),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  endpoint.add_unicast_locator(node.user_locator())
+  node.register_endpoint(endpoint).unwrap()
+  match remote_receiver.receive_discovery().unwrap().0 {
+    DiscoveryEvent::Publication(publication) =>
+      assert_eq(publication.topic_name(), "rt/chatter")
+    _ => fail("expected the SEDP publication announcement")
+  }
+  ignore(remote_receiver.receive_heartbeat().unwrap())
+  node.dispose_and_close().unwrap()
+  match remote_receiver.receive_discovery().unwrap().0 {
+    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
+      assert_eq(kind, @rtps.SedpEndpointKind::Publication)
+      assert_eq(endpoint_guid, endpoint.endpoint_guid())
+    }
+    _ => fail("expected the SEDP endpoint removal")
+  }
+  ignore(remote_receiver.receive_heartbeat().unwrap())
+  match remote_sender.receive_discovery().unwrap().0 {
+    DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+      assert_eq(participant_guid, local_participant.participant_guid())
+    _ => fail("expected the SPDP participant removal")
+  }
+  remote_receiver.close()
+  remote_sender.close()
+}
+
+///|
 async test "ROS participant rejects an invalid DDSI domain before binding" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
