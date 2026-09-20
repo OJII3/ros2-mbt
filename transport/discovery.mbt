@@ -26,6 +26,8 @@ pub struct DiscoverySession {
   sedp_readers : Array[DiscoverySedpReader]
   sedp_writers : Array[DiscoverySedpWriter]
   mut remote_participants : Array[@rtps.SpdpParticipantData]
+  mut pending_events : Array[(DiscoveryEvent, @socket.Addr)]
+  mut pending_event_index : Int
 }
 
 ///|
@@ -52,6 +54,8 @@ pub fn DiscoverySession::new(
     sedp_readers: [],
     sedp_writers: [],
     remote_participants: [],
+    pending_events: [],
+    pending_event_index: 0,
   })
 }
 
@@ -84,6 +88,8 @@ pub fn DiscoverySession::new_with_receive_sockets(
     sedp_readers: [],
     sedp_writers: [],
     remote_participants: [],
+    pending_events: [],
+    pending_event_index: 0,
   })
 }
 
@@ -602,21 +608,21 @@ async fn DiscoverySession::retransmit_sedp_acknack(
 }
 
 ///|
-/// Decode one RTPS message into its first SPDP/SEDP discovery event.
+/// Decode one RTPS message into its SPDP/SEDP discovery events.
 async fn DiscoverySession::decode_message(
   self : DiscoverySession,
   message : @rtps.Message,
   source : @socket.Addr,
   socket_index : Int,
-) -> Result[DiscoveryEvent?, String] {
+) -> Result[Array[DiscoveryEvent], String] {
   match message.destination_guid_prefix() {
     Ok(Some(destination)) if
       destination != self.participant.participant_guid().prefix() =>
-      return Ok(None)
+      return Ok([])
     Ok(_) => ()
     Err(message) => return Err(message)
   }
-  let mut event : DiscoveryEvent? = None
+  let events : Array[DiscoveryEvent] = []
   for submessage in message.submessages() {
     match submessage.id() {
       @rtps.SubmessageId::Data => {
@@ -650,28 +656,24 @@ async fn DiscoverySession::decode_message(
                 match
                   @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
                   Ok(endpoint_guid) =>
-                    if event is None {
-                      event = Some(
-                        DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
-                      )
-                    }
+                    events.push(
+                      DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
+                    )
                   Err(_) => ()
                 }
               }
               _ =>
-                if event is None {
-                  match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
-                    Ok(endpoint) =>
-                      event = Some(
-                        match kind {
-                          @rtps.SedpEndpointKind::Publication =>
-                            DiscoveryEvent::Publication(endpoint)
-                          @rtps.SedpEndpointKind::Subscription =>
-                            DiscoveryEvent::Subscription(endpoint)
-                        },
-                      )
-                    Err(_) => ()
-                  }
+                match @rtps.SedpEndpointData::from_data_submessage(kind, data) {
+                  Ok(endpoint) =>
+                    events.push(
+                      match kind {
+                        @rtps.SedpEndpointKind::Publication =>
+                          DiscoveryEvent::Publication(endpoint)
+                        @rtps.SedpEndpointKind::Subscription =>
+                          DiscoveryEvent::Subscription(endpoint)
+                      },
+                    )
+                  Err(_) => ()
                 }
             }
           }
@@ -697,9 +699,7 @@ async fn DiscoverySession::decode_message(
                   @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
                   Ok(participant_guid) => {
                     self.forget_remote_participant(participant_guid)
-                    if event is None {
-                      event = Some(DiscoveryEvent::ParticipantRemoved(participant_guid))
-                    }
+                    events.push(DiscoveryEvent::ParticipantRemoved(participant_guid))
                   }
                   Err(_) => ()
                 }
@@ -709,9 +709,7 @@ async fn DiscoverySession::decode_message(
                   Ok(participant) if
                     participant.domain_id() == self.participant.domain_id() => {
                     self.remember_remote_participant(participant)
-                    if event is None {
-                      event = Some(DiscoveryEvent::Participant(participant))
-                    }
+                    events.push(DiscoveryEvent::Participant(participant))
                   }
                   Err(_) => ()
                   _ => ()
@@ -788,7 +786,7 @@ async fn DiscoverySession::decode_message(
       _ => ()
     }
   }
-  Ok(event)
+  Ok(events)
 }
 
 ///|
@@ -797,17 +795,25 @@ pub async fn DiscoverySession::receive_once(
   self : DiscoverySession,
 ) -> Result[(DiscoveryEvent, @socket.Addr), String] {
   while true {
+    if self.pending_event_index < self.pending_events.length() {
+      let event = self.pending_events[self.pending_event_index]
+      self.pending_event_index += 1
+      if self.pending_event_index == self.pending_events.length() {
+        self.pending_events = []
+        self.pending_event_index = 0
+      }
+      return Ok(event)
+    }
     let (message, source, socket_index) = match self.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let event = match self.decode_message(message, source, socket_index) {
+    let events = match self.decode_message(message, source, socket_index) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match event {
-      Some(value) => return Ok((value, source))
-      None => ()
+    for event in events {
+      self.pending_events.push((event, source))
     }
   } nobreak {
     Err("discovery receive loop stopped")

@@ -26,7 +26,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SEDP publication/subscription向け標準パラメータ（型サイズ、inline QoS期待値）の広告
 - reliable SEDP HEARTBEAT の受信履歴管理と ACKNACK 応答
 - SEDP ACKNACK に対する送信済み discovery DATA の再送
-- UDP datagram内のSPDP/SEDP discovery event dispatch（publication/subscription判定を含む）
+- `DiscoverySession`による、1 RTPS datagram内の複数SPDP/SEDP DATA eventの順次dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
 - SPDP participant dispose DATAの生成・送信API
 - SEDP endpoint dispose DATAの送信とACKNACK再送履歴
