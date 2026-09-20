@@ -73,6 +73,27 @@ wait_for_node() {
   return 1
 }
 
+wait_for_node_endpoint() {
+  local node_name="$1"
+  local endpoint_section="$2"
+  local endpoint_name="$3"
+  for _ in {1..20}; do
+    local node_info
+    node_info=$(timeout 3s ros2 node info "$node_name" 2>/dev/null || true)
+    if awk -v section="  $endpoint_section:" -v endpoint="    $endpoint_name:" '
+      $0 == section { in_section = 1; next }
+      /^  [[:alpha:] ]+:$/ { in_section = 0 }
+      in_section && index($0, endpoint) == 1 { found = 1 }
+      END { exit !found }
+    ' <<<"$node_info"; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  echo "ROS 2 CLI did not discover $endpoint_section endpoint $endpoint_name on $node_name"
+  return 1
+}
+
 timeout --foreground 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$echo_log" 2>&1 &
 echo_pid=$!
@@ -81,6 +102,7 @@ timeout --foreground 45s nix develop --command moon run examples/talker \
 talker_pid=$!
 
 wait_for_node "/demo/moon_talker" "$talker_pid"
+wait_for_node_endpoint "/demo/moon_talker" "Publishers" "/chatter"
 
 wait "$talker_pid"
 talker_pid=""
@@ -97,6 +119,7 @@ timeout --foreground 45s nix develop --command moon run examples/listener \
 listener_pid=$!
 
 wait_for_node "/demo/moon_listener" "$listener_pid"
+wait_for_node_endpoint "/demo/moon_listener" "Subscribers" "/chatter"
 
 timeout --foreground 45s ros2 topic pub --times 5 --rate 10 \
   /chatter std_msgs/msg/String "{data: 'hello from ROS 2'}" \
@@ -114,6 +137,7 @@ timeout --foreground 45s nix develop --command moon run examples/service_server 
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
 wait_for_node "/demo/moon_add_two_ints_server" "$moon_service_pid"
+wait_for_node_endpoint "/demo/moon_add_two_ints_server" "Service Servers" "/add_two_ints"
 timeout --foreground 45s ros2 service call /add_two_ints \
   example_interfaces/srv/AddTwoInts "{a: 2, b: 3}" \
   >"$service_call_log" 2>&1
@@ -128,6 +152,7 @@ fi
 ros2 run demo_nodes_cpp add_two_ints_server >"$ros_service_log" 2>&1 &
 ros_service_pid=$!
 wait_for_node "/add_two_ints_server" "$ros_service_pid"
+wait_for_node_endpoint "/add_two_ints_server" "Service Servers" "/add_two_ints"
 timeout --foreground 45s nix develop --command moon run examples/service_client \
   >"$moon_client_log" 2>&1 &
 moon_client_pid=$!
