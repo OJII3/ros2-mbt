@@ -310,6 +310,24 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_31b937b82de3612426be79f231e386259f97e8dc843e3f2845288b4bfa296bdd",
     ),
   )
+  let parameter_types_service = parse_service_with_types(
+    "rcl_interfaces",
+    "GetParameterTypes",
+    "string[] names\n---\nuint8[] types",
+    [],
+  ).unwrap()
+  assert_eq(
+    workspace.type_hash_for_definition(parameter_types_service.request()),
+    Ok(
+      "RIHS01_87d7ec5ef545d4daa289d500025d31fb2437bc8b8365ca367161c4dac4be33fd",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash_for_definition(parameter_types_service.response()),
+    Ok(
+      "RIHS01_ac1335dce67c478e669434f6ac2fbff34fcd529580f272d3006785ba8b54e47f",
+    ),
+  )
 }
 
 ///|

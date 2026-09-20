@@ -2,10 +2,13 @@
 async fn discover_parameter_services(
   participant : @transport.RosParticipant,
   get_service : @ros.RosService,
+  get_parameter_types_service : @ros.RosService,
   set_service : @ros.RosService,
   list_service : @ros.RosService,
 ) -> Result[
   (
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
@@ -17,12 +20,16 @@ async fn discover_parameter_services(
 ] {
   let mut get_request_subscription : @rtps.SedpEndpointData? = None
   let mut get_response_publication : @rtps.SedpEndpointData? = None
+  let mut get_parameter_types_request_subscription : @rtps.SedpEndpointData? = None
+  let mut get_parameter_types_response_publication : @rtps.SedpEndpointData? = None
   let mut set_request_subscription : @rtps.SedpEndpointData? = None
   let mut set_response_publication : @rtps.SedpEndpointData? = None
   let mut list_request_subscription : @rtps.SedpEndpointData? = None
   let mut list_response_publication : @rtps.SedpEndpointData? = None
   while get_request_subscription is None ||
         get_response_publication is None ||
+        get_parameter_types_request_subscription is None ||
+        get_parameter_types_response_publication is None ||
         set_request_subscription is None ||
         set_response_publication is None ||
         list_request_subscription is None ||
@@ -32,6 +39,11 @@ async fn discover_parameter_services(
         if publication.topic_name() == get_service.dds_response_name() &&
           publication.type_name() == get_service.dds_response_type_name() {
           get_response_publication = Some(publication)
+        } else if publication.topic_name() ==
+          get_parameter_types_service.dds_response_name() &&
+          publication.type_name() ==
+          get_parameter_types_service.dds_response_type_name() {
+          get_parameter_types_response_publication = Some(publication)
         } else if publication.topic_name() == set_service.dds_response_name() &&
           publication.type_name() == set_service.dds_response_type_name() {
           set_response_publication = Some(publication)
@@ -43,6 +55,11 @@ async fn discover_parameter_services(
         if subscription.topic_name() == get_service.dds_request_name() &&
           subscription.type_name() == get_service.dds_request_type_name() {
           get_request_subscription = Some(subscription)
+        } else if subscription.topic_name() ==
+          get_parameter_types_service.dds_request_name() &&
+          subscription.type_name() ==
+          get_parameter_types_service.dds_request_type_name() {
+          get_parameter_types_request_subscription = Some(subscription)
         } else if subscription.topic_name() == set_service.dds_request_name() &&
           subscription.type_name() == set_service.dds_request_type_name() {
           set_request_subscription = Some(subscription)
@@ -58,6 +75,7 @@ async fn discover_parameter_services(
     (
       get_request_subscription, get_response_publication, set_request_subscription,
       set_response_publication, list_request_subscription, list_response_publication,
+      get_parameter_types_request_subscription, get_parameter_types_response_publication,
     ) {
     (
       Some(get_request_subscription),
@@ -66,11 +84,14 @@ async fn discover_parameter_services(
       Some(set_response_publication),
       Some(list_request_subscription),
       Some(list_response_publication),
+      Some(get_parameter_types_request_subscription),
+      Some(get_parameter_types_response_publication),
     ) =>
       Ok(
         (
           get_request_subscription, get_response_publication, set_request_subscription,
           set_response_publication, list_request_subscription, list_response_publication,
+          get_parameter_types_request_subscription, get_parameter_types_response_publication,
         ),
       )
     _ => Err("discovery ended without matching parameter service endpoints")
@@ -171,6 +192,39 @@ async fn get_integer_parameter(
 }
 
 ///|
+async fn get_parameter_type(
+  client : @transport.RosServiceClient,
+  name : String,
+) -> Result[Int, String] {
+  let writer = @cdr.Writer::new()
+  writer.write_u32(1U)
+  writer.write_string(name)
+  let identity = match client.request(writer.to_bytes()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let (payload, _) = match client.receive_response(identity) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let type_count = match reader.read_u32() {
+    Ok(value) => value.reinterpret_as_int()
+    Err(message) => return Err(message)
+  }
+  if type_count != 1 {
+    return Err("GetParameterTypes returned an unexpected number of types")
+  }
+  match reader.read_u8() {
+    Ok(value) => Ok(value.to_int())
+    Err(message) => Err(message)
+  }
+}
+
+///|
 async fn parameter_name_is_listed(
   client : @transport.RosServiceClient,
   expected_name : String,
@@ -253,6 +307,16 @@ async fn main {
       return
     }
   }
+  let get_parameter_types_service = match
+    @ros.RosService::new(
+      "/demo/moon_parameter_server/get_parameter_types", "rcl_interfaces", "GetParameterTypes",
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
   let set_service = match
     @ros.RosService::new(
       "/demo/moon_parameter_server/set_parameters", "rcl_interfaces", "SetParameters",
@@ -275,6 +339,12 @@ async fn main {
   }
   let get_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x03).unwrap()
   let get_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
+  let get_parameter_types_request_writer_id = @rtps.EntityId::new(
+    b"\x00\x00\x3C", 0x03,
+  ).unwrap()
+  let get_parameter_types_response_reader_id = @rtps.EntityId::new(
+    b"\x00\x00\x3D", 0x04,
+  ).unwrap()
   let set_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x38", 0x03).unwrap()
   let set_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x39", 0x04).unwrap()
   let list_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x3A", 0x03).unwrap()
@@ -336,6 +406,19 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
+      get_parameter_types_service, get_parameter_types_request_writer_id, get_parameter_types_response_reader_id,
+      "RIHS01_87d7ec5ef545d4daa289d500025d31fb2437bc8b8365ca367161c4dac4be33fd",
+      "RIHS01_ac1335dce67c478e669434f6ac2fbff34fcd529580f272d3006785ba8b54e47f",
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  match
+    participant.register_service_client_with_type_hashes(
       list_service, list_request_writer_id, list_response_reader_id, "RIHS01_a1b0b5d6b967a5b8ac5bc8563c3ea678f349e312a6a4967227c5a96bc5ce38df",
       "RIHS01_31b937b82de3612426be79f231e386259f97e8dc843e3f2845288b4bfa296bdd",
     ) {
@@ -366,7 +449,7 @@ async fn main {
       }
     }
     discover_parameter_services(
-      participant, get_service, set_service, list_service,
+      participant, get_service, get_parameter_types_service, set_service, list_service,
     )
   }
   let (
@@ -376,6 +459,8 @@ async fn main {
     set_response_publication,
     list_request_subscription,
     list_response_publication,
+    get_parameter_types_request_subscription,
+    get_parameter_types_response_publication,
   ) = match endpoints {
     Ok(value) => value
     Err(message) => {
@@ -427,6 +512,22 @@ async fn main {
     Err(message) => {
       println(message)
       set_client.close()
+      get_client.close()
+      return
+    }
+  }
+  let get_parameter_types_client = match
+    @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
+      get_parameter_types_service, user_socket, prefix, vendor_id, get_parameter_types_request_writer_id,
+      get_parameter_types_request_subscription, get_parameter_types_response_reader_id,
+      get_parameter_types_response_publication, 1L, service_wire_format,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      set_client.close()
+      get_client.close()
+      list_client.close()
       return
     }
   }
@@ -435,26 +536,59 @@ async fn main {
     Err(message) => {
       println(message)
       set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
       return
     }
   }
   if !set_succeeded {
     println("SetParameters rejected the integer parameter")
     set_client.close()
+    get_client.close()
+    list_client.close()
+    get_parameter_types_client.close()
     return
   }
   println("SetParameters answer: true")
+  let parameter_type = match
+    get_parameter_type(get_parameter_types_client, "answer") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
+      return
+    }
+  }
+  if parameter_type != 2 {
+    println("GetParameterTypes did not return the integer parameter type")
+    set_client.close()
+    get_client.close()
+    list_client.close()
+    get_parameter_types_client.close()
+    return
+  }
+  println("GetParameterTypes answer: " + parameter_type.to_string())
   let parameter_value = match get_integer_parameter(get_client, "answer") {
     Ok(value) => value
     Err(message) => {
       println(message)
       set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
       return
     }
   }
   if parameter_value != 99L {
     println("GetParameters did not return the updated parameter value")
     set_client.close()
+    get_client.close()
+    list_client.close()
+    get_parameter_types_client.close()
     return
   }
   println("GetParameters answer: " + parameter_value.to_string())
@@ -463,14 +597,23 @@ async fn main {
     Err(message) => {
       println(message)
       set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
       return
     }
   }
   if !answer_is_listed {
     println("ListParameters did not include answer")
     set_client.close()
+    get_client.close()
+    list_client.close()
+    get_parameter_types_client.close()
     return
   }
   println("ListParameters contains: answer")
   set_client.close()
+  get_client.close()
+  list_client.close()
+  get_parameter_types_client.close()
 }
