@@ -78,6 +78,22 @@ pub fn ParticipantEntitiesInfo::new(Gid) -> Self
 pub fn ParticipantEntitiesInfo::node_entities_info_seq(Self) -> Array[NodeEntitiesInfo]
 pub fn ParticipantEntitiesInfo::to_cdr_bytes(Self) -> Bytes
 
+pub struct RosAction {
+  ros_name : String
+  send_goal_service : RosService
+  get_result_service : RosService
+  cancel_goal_service : RosService
+  feedback_topic : RosTopic
+  status_topic : RosTopic
+}
+pub fn RosAction::cancel_goal_service(Self) -> RosService
+pub fn RosAction::feedback_topic(Self) -> RosTopic
+pub fn RosAction::get_result_service(Self) -> RosService
+pub fn RosAction::new(String, String, String) -> Result[Self, String]
+pub fn RosAction::ros_name(Self) -> String
+pub fn RosAction::send_goal_service(Self) -> RosService
+pub fn RosAction::status_topic(Self) -> RosTopic
+
 pub struct RosService {
   ros_name : String
   dds_request_name : String
@@ -90,6 +106,7 @@ pub fn RosService::dds_request_type_name(Self) -> String
 pub fn RosService::dds_response_name(Self) -> String
 pub fn RosService::dds_response_type_name(Self) -> String
 pub fn RosService::new(String, String, String) -> Result[Self, String]
+pub fn RosService::new_with_interface_namespace(String, String, String, String) -> Result[Self, String]
 pub fn RosService::request_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]

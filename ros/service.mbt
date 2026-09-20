@@ -89,6 +89,23 @@ pub fn RosService::new(
   package_name : String,
   service_name : String,
 ) -> Result[RosService, String] {
+  RosService::new_with_interface_namespace(
+    ros_name,
+    package_name,
+    "srv",
+    service_name,
+  )
+}
+
+///|
+/// Create a service descriptor using an explicit ROS interface namespace.
+/// This is also used by ROS actions, whose generated services use `action`.
+pub fn RosService::new_with_interface_namespace(
+  ros_name : String,
+  package_name : String,
+  interface_namespace : String,
+  service_name : String,
+) -> Result[RosService, String] {
   let dds_request_name = match ros_service_request_to_dds(ros_name) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -98,12 +115,20 @@ pub fn RosService::new(
     Err(message) => return Err(message)
   }
   let dds_request_type_name = match
-    ros_type_to_dds(package_name, "srv", service_name + "_Request") {
+    ros_type_to_dds(
+      package_name,
+      interface_namespace,
+      service_name + "_Request",
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let dds_response_type_name = match
-    ros_type_to_dds(package_name, "srv", service_name + "_Response") {
+    ros_type_to_dds(
+      package_name,
+      interface_namespace,
+      service_name + "_Response",
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
