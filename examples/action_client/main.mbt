@@ -93,6 +93,38 @@ fn format_int_sequence(sequence : Array[Int]) -> String {
 ///|
 async fn main {
   let cancel_requested = @env.get_env_var("ROS2_MBT_CANCEL_GOAL") == Some("1")
+  let action_package = match @env.get_env_var("ROS2_MBT_ACTION_PACKAGE") {
+    Some(value) => value
+    None => "example_interfaces"
+  }
+  let (
+    feedback_type_hash,
+    send_goal_request_type_hash,
+    send_goal_response_type_hash,
+    get_result_request_type_hash,
+    get_result_response_type_hash,
+  ) = match action_package {
+    "example_interfaces" =>
+      (
+        "RIHS01_c1de71afd52e49a89c53d8262366884185bc0a02f78ce051c4e46b0a7fe59bb2",
+        "RIHS01_3d088942b413247db536576f0286768c6be8fcd5d0c9a5d544f359fba090a238",
+        "RIHS01_d8c07bb3d5b766fe4b43159c9a5222af5214e2fcc29229b991d826166c512be1",
+        "RIHS01_c8a4f5e7d13b81286ee1043e2ecd084281cecf1ff06aaa799464f5f15479f003",
+        "RIHS01_6021dc98ab9b4bbe395e48aa4de81ee5f68eb570f88358affcc648146668b24f",
+      )
+    "action_tutorials_interfaces" =>
+      (
+        "RIHS01_e852234f7e7085fc3e14da27175b5b56a59463eea51e9146e8da58a5115f5f3d",
+        "RIHS01_cf867fa8462d62fc5436ec5605ff7894053a03a856d4bbaaef97808389ded602",
+        "RIHS01_7fbc4b8abac3cd2a14e146c4b635ecee917cb7ffcad38868d8afa4a31115b542",
+        "RIHS01_b200a8bd0b94170de44d257a5147443fb863c3e608fcda16399e090018b1af0d",
+        "RIHS01_b3385a6fc65e215c75cd72821baaf303335df6ead7c7be343d2f2ff94bdf29b6",
+      )
+    _ => {
+      println("unsupported ROS action package: " + action_package)
+      return
+    }
+  }
   let config = match @config.load() {
     Ok(value) => value
     Err(message) => {
@@ -127,7 +159,7 @@ async fn main {
   }
   let vendor_id = @rtps.VendorId::new(1, 15)
   let action = match
-    @ros.RosAction::new("/fibonacci", "example_interfaces", "Fibonacci") {
+    @ros.RosAction::new("/fibonacci", action_package, "Fibonacci") {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -225,7 +257,7 @@ async fn main {
         @rtps.HISTORY_KEEP_LAST,
         10,
       ),
-      "RIHS01_c1de71afd52e49a89c53d8262366884185bc0a02f78ce051c4e46b0a7fe59bb2",
+      feedback_type_hash,
       feedback_locator,
     ) {
     Ok(_) => ()
@@ -263,8 +295,8 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
-      send_goal, send_goal_request_id, send_goal_response_id, "RIHS01_3d088942b413247db536576f0286768c6be8fcd5d0c9a5d544f359fba090a238",
-      "RIHS01_d8c07bb3d5b766fe4b43159c9a5222af5214e2fcc29229b991d826166c512be1",
+      send_goal, send_goal_request_id, send_goal_response_id, send_goal_request_type_hash,
+      send_goal_response_type_hash,
     ) {
     Ok(_) => ()
     Err(message) => {
@@ -277,8 +309,8 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
-      get_result, get_result_request_id, get_result_response_id, "RIHS01_c8a4f5e7d13b81286ee1043e2ecd084281cecf1ff06aaa799464f5f15479f003",
-      "RIHS01_6021dc98ab9b4bbe395e48aa4de81ee5f68eb570f88358affcc648146668b24f",
+      get_result, get_result_request_id, get_result_response_id, get_result_request_type_hash,
+      get_result_response_type_hash,
     ) {
     Ok(_) => ()
     Err(message) => {

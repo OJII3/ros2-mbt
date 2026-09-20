@@ -105,7 +105,7 @@ moon test --target native
 
 ROS 2 Jazzy CLIとの相互運用テストを行う場合は、専用devShellに入ります。
 ROS 2は相互運用テスト専用です。MoonBitの各packageと標準の`nix develop` shellにはROS 2 packageを含めません。
-`ros-core`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。`ros-core`から`rclpy`と`rcl_interfaces`も使えます。
+`ros-core`、`demo-nodes-cpp`、`example-interfaces`、`action-tutorials-interfaces` が利用可能です。`ros-core`から`rclpy`と`rcl_interfaces`も使えます。
 WString codecはNix devShellのROS 2 Jazzy/Fast DDSで実測したFast-CDR互換表現（UTF-16 code unitを32-bit wcharとして符号化）を使います。DDS-XTypesの標準wide-string表現とは異なる実装があるため、他DDSとの相互運用は別途確認が必要です。
 
 ```sh
@@ -144,7 +144,7 @@ ros2 run demo_nodes_cpp add_two_ints_server
 ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service_client
 ```
 
-Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci ActionServerを起動し、MoonBit clientの通常完了（goal受付、Feedback、Succeeded result/status topic）とCancelGoal（受理コード、Canceled result/status topic）を検証します。
+Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` ActionServerを起動し、`example_interfaces`と`action_tutorials_interfaces`のFibonacci Actionそれぞれで、MoonBit clientの通常完了（goal受付、Feedback、Succeeded result/status topic）とCancelGoal（受理コード、Canceled result/status topic）を検証します。
 
 ```sh
 nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
@@ -168,4 +168,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Action endpoint発見API、goal handleベースの汎用`RosActionClient` lifecycleと終端GoalStatus待機、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、parameter service 6種のclientは実装済み。異なるAction型でのend-to-end確認は未実装）
+8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Action endpoint発見API、goal handleベースの汎用`RosActionClient` lifecycleと終端GoalStatus待機、2種類のFibonacci Action型でSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、parameter service 6種のclientは実装済み）

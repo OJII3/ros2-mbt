@@ -55,7 +55,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 if ! command -v python3 >/dev/null 2>&1 || \
-  ! python3 -c 'import rclpy; from example_interfaces.action import Fibonacci' \
+  ! python3 -c 'import rclpy; from action_tutorials_interfaces.action import Fibonacci as TutorialFibonacci; from example_interfaces.action import Fibonacci as ExampleFibonacci' \
     >/dev/null 2>&1; then
   echo "Python ROS 2 Jazzy environment unavailable; enter nix develop .#ros2 or source a ROS 2 setup first" >&2
   exit 127
@@ -72,23 +72,42 @@ start_in_process_group() {
   server_pid=$!
 }
 
-start_in_process_group python3 -u "$server_script" >"$server_log" 2>&1
+start_server() {
+  local package="$1"
+  server_log="$tmp_dir/fibonacci-action-server-$package.log"
+  start_in_process_group env ROS2_MBT_ACTION_PACKAGE="$package" \
+    python3 -u "$server_script" >"$server_log" 2>&1
 
-ready=0
-for _ in {1..100}; do
-  if grep -Fq FIBONACCI_ACTION_SERVER_READY "$server_log"; then
-    ready=1
-    break
+  local ready=0
+  for _ in {1..100}; do
+    if grep -Fq FIBONACCI_ACTION_SERVER_READY "$server_log"; then
+      ready=1
+      break
+    fi
+    if ! kill -0 "$server_pid" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+  if [[ "$ready" -ne 1 ]]; then
+    echo "Fibonacci action server ($package) did not become ready" >&2
+    exit 1
   fi
-  if ! kill -0 "$server_pid" 2>/dev/null; then
-    break
+}
+
+stop_server() {
+  if [[ -z "$server_pid" ]]; then
+    return
   fi
-  sleep 0.1
-done
-if [[ "$ready" -ne 1 ]]; then
-  echo "Fibonacci action server did not become ready" >&2
-  exit 1
-fi
+  if [[ "$server_grouped" -eq 1 ]]; then
+    kill -TERM -- "-$server_pid" 2>/dev/null || true
+  else
+    kill -TERM "$server_pid" 2>/dev/null || true
+  fi
+  wait "$server_pid" 2>/dev/null || true
+  server_pid=""
+  server_grouped=0
+}
 
 if [[ -n "${ROS_DISTRO:-}" || -n "${IN_NIX_SHELL:-}" ]]; then
   moon_command=(moon run examples/action_client)
@@ -98,10 +117,15 @@ fi
 
 run_client() {
   local mode="$1"
-  local -a client_command=("${moon_command[@]}")
-  client_log="$tmp_dir/moonbit-action-$mode.log"
+  local -a client_command=(
+    env ROS2_MBT_ACTION_PACKAGE="$current_action_package" "${moon_command[@]}"
+  )
+  client_log="$tmp_dir/moonbit-action-$current_action_package-$mode.log"
   if [[ "$mode" == "canceled" ]]; then
-    client_command=(env ROS2_MBT_CANCEL_GOAL=1 "${moon_command[@]}")
+    client_command=(
+      env ROS2_MBT_ACTION_PACKAGE="$current_action_package" \
+        ROS2_MBT_CANCEL_GOAL=1 "${moon_command[@]}"
+    )
   fi
 
   if command -v setsid >/dev/null 2>&1; then
@@ -185,7 +209,11 @@ run_client() {
   fi
 }
 
-run_client succeeded
-run_client canceled
+for current_action_package in example_interfaces action_tutorials_interfaces; do
+  start_server "$current_action_package"
+  run_client succeeded
+  run_client canceled
+  stop_server
+done
 
-echo "ROS 2 Fibonacci action success and cancellation interoperability passed."
+echo "ROS 2 Fibonacci and action_tutorials Fibonacci success/cancellation interoperability passed."

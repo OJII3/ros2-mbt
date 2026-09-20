@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """A deterministic ROS 2 Fibonacci action server for MoonBit interop tests."""
 
+import os
 import time
 
 import rclpy
 from rclpy.callback_groups import ReentrantCallbackGroup
-from example_interfaces.action import Fibonacci
 from rclpy.action import ActionServer, CancelResponse
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+
+ACTION_PACKAGE = os.environ.get("ROS2_MBT_ACTION_PACKAGE", "example_interfaces")
+if ACTION_PACKAGE == "example_interfaces":
+    from example_interfaces.action import Fibonacci
+elif ACTION_PACKAGE == "action_tutorials_interfaces":
+    from action_tutorials_interfaces.action import Fibonacci
+else:
+    raise RuntimeError(f"Unsupported action package: {ACTION_PACKAGE}")
 
 
 class FibonacciActionServer(Node):
@@ -43,7 +51,10 @@ class FibonacciActionServer(Node):
                 return result
             sequence.append(sequence[-1] + sequence[-2])
             feedback = Fibonacci.Feedback()
-            feedback.sequence = sequence
+            if hasattr(feedback, "partial_sequence"):
+                feedback.partial_sequence = sequence
+            else:
+                feedback.sequence = sequence
             goal_handle.publish_feedback(feedback)
 
         goal_handle.succeed()

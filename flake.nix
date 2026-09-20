@@ -43,6 +43,7 @@
                     ros-core
                     demo-nodes-cpp
                     example-interfaces
+                    action-tutorials-interfaces
                   ];
                 })
               ];
