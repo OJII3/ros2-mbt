@@ -168,6 +168,22 @@ test "ROS message parser validates float and string-array defaults" {
 }
 
 ///|
+test "ROS string field defaults preserve assignment characters" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "StringDefaults",
+    "string scalar \"a=b\"\nstring unquoted a=b=c\nstring[] values [\"a=b\", \"c<=d\"]",
+  ).unwrap()
+  assert_eq(definition.fields()[0].default_value(), Some("\"a=b\""))
+  assert_eq(definition.fields()[1].default_value(), Some("\"a=b=c\""))
+  assert_eq(
+    definition.fields()[2].default_value(),
+    Some("[\"a=b\", \"c<=d\"]"),
+  )
+}
+
+///|
 test "ROS message parser rejects malformed primitive field defaults" {
   assert_true(parse_message("demo", "msg", "Invalid", "int8 value 128") is Err(_))
   assert_true(

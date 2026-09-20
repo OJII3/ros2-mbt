@@ -594,13 +594,18 @@ fn rosidl_text_after_words(line : String, word_count : Int) -> String {
   ""
 }
 
-///| Find the first assignment separator, excluding bounded-type `<=` tokens.
+///| Find an assignment separator before any field default value.
 fn rosidl_assignment_index(line : String) -> Int {
   let bytes = @utf8.encode(line)
   for index in 0..<bytes.length() {
     if bytes[index] == b'=' &&
       (index == 0 || bytes[index - 1] != b'<') {
-      return index
+      let declaration_source = @utf8.decode(bytes[:index]) catch {
+        _ => ""
+      }
+      if rosidl_words(declaration_source).length() == 2 {
+        return index
+      }
     }
   }
   -1
