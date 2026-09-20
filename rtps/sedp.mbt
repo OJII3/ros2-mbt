@@ -294,6 +294,15 @@ pub fn SedpEndpointData::with_participant_guid(
 }
 
 ///|
+/// Return an endpoint with a replacement list of unicast locators.
+pub fn SedpEndpointData::with_unicast_locators(
+  self : SedpEndpointData,
+  unicast_locators : Array[Locator],
+) -> SedpEndpointData {
+  { ..self, unicast_locators, }
+}
+
+///|
 pub fn SedpEndpointData::kind(self : SedpEndpointData) -> SedpEndpointKind {
   self.kind
 }

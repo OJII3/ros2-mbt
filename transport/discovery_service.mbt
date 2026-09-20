@@ -313,19 +313,67 @@ pub async fn DiscoveryService::receive_once(
 }
 
 ///|
-/// Use the participant's default data locator when SEDP omits endpoint locators.
+/// Return whether a UDP locator has an unspecified address.
+fn discovery_locator_has_unspecified_address(locator : @rtps.Locator) -> Bool {
+  let address = locator.address()
+  if locator.kind() == @rtps.LOCATOR_KIND_UDP_V4 {
+    address[12] == 0 && address[13] == 0 && address[14] == 0 && address[15] == 0
+  } else if locator.kind() == @rtps.LOCATOR_KIND_UDP_V6 {
+    let mut unspecified = true
+    for byte in address {
+      if byte != 0 {
+        unspecified = false
+        break
+      }
+    }
+    unspecified
+  } else {
+    false
+  }
+}
+
+///|
+/// Resolve unspecified endpoint locators and use participant defaults when absent.
 fn DiscoveryService::endpoint_with_participant_locator(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
 ) -> @rtps.SedpEndpointData {
-  if endpoint.unicast_locators().length() > 0 ||
-    endpoint.multicast_locators().length() > 0 {
-    return endpoint
-  }
   for participant in self.graph.participants() {
     if participant.participant_guid().prefix() !=
       endpoint.endpoint_guid().prefix() {
       continue
+    }
+    let endpoint_locators = endpoint.unicast_locators()
+    if endpoint_locators.length() > 0 {
+      let normalized_locators : Array[@rtps.Locator] = []
+      for locator in endpoint_locators {
+        if !discovery_locator_has_unspecified_address(locator) {
+          normalized_locators.push(locator)
+          continue
+        }
+        let mut replacements = 0
+        for default_locator in participant.default_unicast_locators() {
+          if default_locator.kind() != locator.kind() ||
+            discovery_locator_has_unspecified_address(default_locator) {
+            continue
+          }
+          normalized_locators.push(
+            @rtps.Locator::new(
+              locator.kind(),
+              locator.port(),
+              default_locator.address(),
+            ).unwrap(),
+          )
+          replacements += 1
+        }
+        if replacements == 0 {
+          normalized_locators.push(locator)
+        }
+      }
+      return endpoint.with_unicast_locators(normalized_locators)
+    }
+    if endpoint.multicast_locators().length() > 0 {
+      return endpoint
     }
     let unicast = participant.default_unicast_locators()
     if unicast.length() > 0 {
