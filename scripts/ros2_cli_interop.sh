@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC1091
-source /opt/ros/jazzy/setup.bash
+if ! command -v ros2 >/dev/null 2>&1 && [[ -f /opt/ros/jazzy/setup.bash ]]; then
+  # shellcheck disable=SC1091
+  source /opt/ros/jazzy/setup.bash
+fi
+if ! command -v ros2 >/dev/null 2>&1; then
+  echo "ROS 2 CLI not found; use nix develop .#ros2 or source /opt/ros/jazzy/setup.bash" >&2
+  exit 127
+fi
 
 tmp_dir=$(mktemp -d)
 echo_log="$tmp_dir/topic-echo.log"

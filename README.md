@@ -96,6 +96,14 @@ moon check
 moon test --target native
 ```
 
+x86_64 Linux でROS 2 Jazzy CLIとの相互運用テストを行う場合は、専用devShellに入ります。
+`ros-base`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。
+
+```sh
+nix develop .#ros2
+bash scripts/ros2_cli_interop.sh
+```
+
 外部ROS 2との最小通信を試す場合は、別の端末で購読者を起動してから talker を実行します。
 
 ```sh
