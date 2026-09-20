@@ -8,6 +8,10 @@ import {
 // Values
 pub const RIHS01_PREFIX : String = "RIHS01_"
 
+pub fn parse_action(String, String, String) -> Result[ActionDefinition, String]
+
+pub fn parse_action_with_types(String, String, String, Array[MessageTypeReference]) -> Result[ActionDefinition, String]
+
 pub fn parse_message(String, String, String, String) -> Result[MessageDefinition, String]
 
 pub fn parse_message_with_types(String, String, String, String, Array[MessageTypeReference]) -> Result[MessageDefinition, String]
@@ -19,6 +23,21 @@ pub fn parse_service_with_types(String, String, String, Array[MessageTypeReferen
 // Errors
 
 // Types and methods
+pub struct ActionDefinition {
+  package_name : String
+  action_name : String
+  goal : MessageDefinition
+  result : MessageDefinition
+  feedback : MessageDefinition
+} derive(Eq, @debug.Debug)
+pub fn ActionDefinition::action_name(Self) -> String
+pub fn ActionDefinition::feedback(Self) -> MessageDefinition
+pub fn ActionDefinition::generate_moonbit(Self) -> String
+pub fn ActionDefinition::goal(Self) -> MessageDefinition
+pub fn ActionDefinition::new(String, String, MessageDefinition, MessageDefinition, MessageDefinition) -> Result[Self, String]
+pub fn ActionDefinition::package_name(Self) -> String
+pub fn ActionDefinition::result(Self) -> MessageDefinition
+
 pub struct MessageConstant {
   type_name : String
   name : String
@@ -109,6 +128,7 @@ pub struct MessageWorkspace {
 pub fn MessageWorkspace::add_import(Self, MessageImport) -> Result[Unit, String]
 pub fn MessageWorkspace::add_source(Self, MessageSource) -> Result[Unit, String]
 pub fn MessageWorkspace::dependency_order(Self, String, String) -> Result[Array[MessageSource], String]
+pub fn MessageWorkspace::generate_action_moonbit(Self, String, String, String) -> Result[String, String]
 pub fn MessageWorkspace::generate_message_moonbit(Self, String, String, String) -> Result[String, String]
 pub fn MessageWorkspace::generate_moonbit(Self, String, String) -> Result[String, String]
 pub fn MessageWorkspace::generate_service_moonbit(Self, String, String, String) -> Result[String, String]

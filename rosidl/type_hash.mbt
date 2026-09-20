@@ -583,7 +583,8 @@ fn rosidl_workspace_type_name_for_field(
       }
       let resolved_namespace = if qualified {
         "msg"
-      } else if owner.interface_namespace() == "srv" {
+      } else if owner.interface_namespace() == "srv" ||
+        owner.interface_namespace() == "action" {
         "msg"
       } else {
         owner.interface_namespace()
