@@ -6,6 +6,12 @@ pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 /// DDS type name used for ROS graph discovery.
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
 
+/// Standard user entity kind for the ROS graph publication endpoint.
+pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03
+
+/// Standard user entity kind for the ROS graph subscription endpoint.
+pub const ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND : Byte = 0x04
+
 ///|
 /// Validate an endpoint used for ROS graph discovery data.
 pub fn validate_ros_discovery_info_endpoint(
