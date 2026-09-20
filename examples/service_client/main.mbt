@@ -72,14 +72,14 @@ async fn main {
       return
     }
   }
-  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0xC2) {
+  let graph_publication_id = match @rtps.EntityId::new(b"gph", 0x03) {
     Ok(value) => value
     Err(message) => {
       println(message)
       return
     }
   }
-  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0xC7) {
+  let graph_subscription_id = match @rtps.EntityId::new(b"gph", 0x04) {
     Ok(value) => value
     Err(message) => {
       println(message)

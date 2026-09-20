@@ -124,7 +124,7 @@ ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service
 ```
 
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
-Cyclone DDS 11.0.1で生成した同じIDLのrequest writer / response readerとのrequest/reply相互運用は、固定unicast discoveryで確認済みです。ROS 2 CLIとのservice実通信、およびMoonBit clientから外部ROS 2/Cyclone serverを呼び出す試験は未実施です。
+Cyclone DDS 11.0.1で生成した同じIDLのrequest writer / response readerとのrequest/reply相互運用は、固定unicast discoveryで確認済みです。ROS graph用の`ros_discovery_info`も、公式IDLで生成したCyclone DDS readerとの受信を確認済みです。ROS 2 CLIとのservice実通信、およびMoonBit clientから外部ROS 2/Cyclone serverを呼び出す試験は未実施です。
 
 ## Roadmap
 
@@ -134,4 +134,4 @@ Cyclone DDS 11.0.1で生成した同じIDLのrequest writer / response readerと
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1 clientとのrequest/reply検証済み）
-7. Cyclone DDS / Fast DDSとのtopic・service相互運用テスト（Cyclone DDS 11.0.1のtalker-listener双方向とMoonBit service server検証済み、Fast DDSは未実施）
+7. Cyclone DDS / Fast DDSとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtalker-listener双方向、MoonBit service server、`ros_discovery_info`検証済み、Fast DDSは未実施）
