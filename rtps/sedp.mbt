@@ -238,7 +238,7 @@ pub fn SedpQos::liveliness_parameter(self : SedpQos) -> Parameter {
 }
 
 ///|
-/// Best-effort defaults used when a topic descriptor has no explicit QoS.
+/// Best-effort fallback QoS for endpoint parameters omitted from SEDP.
 pub fn SedpQos::default() -> SedpQos {
   SedpQos::new(
     RELIABILITY_BEST_EFFORT,

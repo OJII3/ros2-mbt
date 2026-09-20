@@ -37,7 +37,6 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   publication.add_unicast_locator(sender_locator)
-  publication.add_parameter(@rtps.qos_reliability(2U, 0, 0))
   let subscription = match
     topic.to_sedp(
       @rtps.SedpEndpointKind::Subscription,
@@ -47,7 +46,6 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   subscription.add_unicast_locator(receiver_locator)
-  subscription.add_parameter(@rtps.qos_reliability(2U, 0, 0))
   let publisher = match
     ReliableRosPublisher::new_for_subscription(
       topic,

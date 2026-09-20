@@ -45,13 +45,22 @@ pub fn RosTopic::dds_type_name(self : RosTopic) -> String {
 }
 
 ///|
-/// Build an SEDP endpoint identity for this ROS topic.
+/// Build an SEDP endpoint with the ROS 2 default topic QoS.
 pub fn RosTopic::to_sedp(
   self : RosTopic,
   kind : @rtps.SedpEndpointKind,
   endpoint_guid : @rtps.Guid,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.to_sedp_with_qos(kind, endpoint_guid, @rtps.SedpQos::default())
+  self.to_sedp_with_qos(
+    kind,
+    endpoint_guid,
+    @rtps.SedpQos::new(
+      @rtps.RELIABILITY_RELIABLE,
+      @rtps.DURABILITY_VOLATILE,
+      @rtps.HISTORY_KEEP_LAST,
+      10,
+    ),
+  )
 }
 
 ///|

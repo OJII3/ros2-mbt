@@ -18,18 +18,26 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let best_effort_qos = @rtps.SedpQos::new(
+    @rtps.RELIABILITY_BEST_EFFORT,
+    @rtps.DURABILITY_VOLATILE,
+    @rtps.HISTORY_KEEP_LAST,
+    1,
+  )
   let publication = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, writer_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let subscription = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(prefix, reader_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -226,18 +234,26 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let best_effort_qos = @rtps.SedpQos::new(
+    @rtps.RELIABILITY_BEST_EFFORT,
+    @rtps.DURABILITY_VOLATILE,
+    @rtps.HISTORY_KEEP_LAST,
+    1,
+  )
   let publication = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(publisher_prefix, publisher_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let subscription = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(subscriber_prefix, subscriber_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)

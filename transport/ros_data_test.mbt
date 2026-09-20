@@ -5,6 +5,12 @@ async test "ROS publisher and subscription validate the topic identity" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let best_effort_qos = @rtps.SedpQos::new(
+    @rtps.RELIABILITY_BEST_EFFORT,
+    @rtps.DURABILITY_VOLATILE,
+    @rtps.HISTORY_KEEP_LAST,
+    1,
+  )
   let other_topic = match
     @ros.RosTopic::new("/other", "std_msgs", "msg", "String") {
     Ok(value) => value
@@ -34,18 +40,20 @@ async test "ROS publisher and subscription validate the topic identity" {
     Err(message) => fail(message)
   }
   let publication = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, writer_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   publication.add_unicast_locator(sender_locator)
   let subscription = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(prefix, reader_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -101,6 +109,12 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  let best_effort_qos = @rtps.SedpQos::new(
+    @rtps.RELIABILITY_BEST_EFFORT,
+    @rtps.DURABILITY_VOLATILE,
+    @rtps.HISTORY_KEEP_LAST,
+    1,
+  )
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
@@ -125,18 +139,20 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   let publication = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, writer_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   publication.add_unicast_locator(sender_locator)
   let subscription = match
-    topic.to_sedp(
+    topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(prefix, reader_id),
+      best_effort_qos,
     ) {
     Ok(value) => value
     Err(message) => fail(message)

@@ -30,8 +30,10 @@ test "ROS topic descriptor maps names into SEDP identity" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(default_qos.reliability(), @rtps.RELIABILITY_BEST_EFFORT)
-  assert_eq(default_qos.depth(), 1)
+  assert_eq(default_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
+  assert_eq(default_qos.durability(), @rtps.DURABILITY_VOLATILE)
+  assert_eq(default_qos.history(), @rtps.HISTORY_KEEP_LAST)
+  assert_eq(default_qos.depth(), 10)
   assert_eq(default_qos.deadline_seconds(), 0x7FFFFFFF)
   assert_eq(default_qos.deadline_fraction(), 0xFFFFFFFFU)
   assert_eq(default_qos.liveliness(), @rtps.LIVELINESS_AUTOMATIC)
