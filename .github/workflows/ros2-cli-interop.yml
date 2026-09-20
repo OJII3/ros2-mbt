@@ -21,13 +21,16 @@ jobs:
         with:
           required-ros-distributions: jazzy
 
+      - name: Install ROS 2 service test packages
+        run: sudo apt-get update && sudo apt-get install -y ros-jazzy-demo-nodes-cpp ros-jazzy-example-interfaces
+
       - name: Set up Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
       - name: Run native test suite
         run: nix develop --command moon test --target native
 
-      - name: Verify bidirectional ROS 2 CLI topic interoperability
+      - name: Verify ROS 2 CLI topic and service interoperability
         env:
           ROS_DOMAIN_ID: "42"
           ROS_LOCALHOST_ONLY: "1"
