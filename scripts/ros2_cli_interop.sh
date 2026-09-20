@@ -135,7 +135,7 @@ wait_for_ros_endpoint() {
 timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$echo_log" 2>&1 &
 echo_pid=$!
-if [[ "$(uname -s)" == "Linux" ]]; then
+if [[ "$(uname -s)" == "Linux" || "${ROS2_MBT_VERIFY_ROS_GRAPH:-0}" == "1" ]]; then
   timeout --kill-after=2s 45s python3 -u \
     "$script_dir/ros2_graph_interop_observer.py" >"$graph_observer_log" 2>&1 &
   graph_observer_pid=$!

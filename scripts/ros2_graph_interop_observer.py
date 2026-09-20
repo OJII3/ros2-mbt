@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Assert MoonBit ROS graph metadata is visible to a ROS 2 participant."""
 
+import os
 import sys
 import time
 
@@ -63,10 +64,20 @@ class RosGraphObserver(Node):
 def main() -> int:
     rclpy.init()
     node = RosGraphObserver()
-    deadline = time.monotonic() + 35
+    deadline = time.monotonic() + float(os.environ.get("ROS2_MBT_GRAPH_TIMEOUT", "35"))
+    graph_publishers: list[str] = []
+    graph_subscriptions: list[str] = []
     try:
         while rclpy.ok() and not node.matched_graph and time.monotonic() < deadline:
             rclpy.spin_once(node, timeout_sec=0.2)
+        graph_publishers = [
+            f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
+            for endpoint in node.get_publishers_info_by_topic("ros_discovery_info")
+        ]
+        graph_subscriptions = [
+            f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
+            for endpoint in node.get_subscriptions_info_by_topic("ros_discovery_info")
+        ]
     finally:
         node.destroy_node()
         rclpy.shutdown()
@@ -74,6 +85,8 @@ def main() -> int:
         print(
             "ROS 2 graph observer timed out: "
             f"graph_samples={node.graph_samples}, "
+            f"discovered_publishers={graph_publishers}, "
+            f"discovered_subscriptions={graph_subscriptions}, "
             f"moon_talker_writer_gids={node.moon_talker_writer_gids}",
             file=sys.stderr,
         )
