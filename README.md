@@ -80,7 +80,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator（区切り `---` は単独行として認識）
 - `.srv` のRIHS01 request/response/service型ハッシュ計算（nested messageはworkspace経由）
 - `MessageWorkspace::generate_service_moonbit` によるnested request/response codec、外部package import、型hash定数の生成
-- `.action` のGoal/Result/Feedback message parserとCDR codec generator（workspace経由のnested type、import、RIHS01 message hashに対応。action protocol/service wrapperは未実装）
+- `.action` のGoal/Result/Feedbackと、SendGoal/GetResult request/response・FeedbackMessage codec generator（nested type、import、RIHS01 hashに対応。Action service endpoint、CancelGoal、status topic、goal lifecycleは未実装）
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - `std_msgs/msg/String` を外部ROS 2と送受信する実行可能な `examples/talker` / `examples/listener`
 - `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
@@ -148,4 +148,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（ActionのGoal/Result/Feedback codec生成を実装。protocol service/topic、goal lifecycle、Parameter APIは未実装）
+8. ROS Action / Parameter対応（Goal/Result/Feedbackと5つのAction wrapper message codec・RIHS01 hashを実装。Action service endpoint、CancelGoal、status topic、goal lifecycle、Parameter APIは未実装）

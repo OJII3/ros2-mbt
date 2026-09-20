@@ -64,8 +64,28 @@ test "ROS workspace generates action codecs with nested imports and hashes" {
       "std_msgs", "msg", "Header", "uint32 seq\nstring frame_id",
     ).unwrap(),
   ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
+    ).unwrap(),
+  ).unwrap()
   workspace.add_import(
     MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new(
+      "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new(
+      "builtin_interfaces", "builtin_interfaces/msg", "builtin",
+    ).unwrap(),
   ).unwrap()
   let generated = workspace.generate_action_moonbit(
     "demo_msgs",
@@ -77,7 +97,86 @@ test "ROS workspace generates action codecs with nested imports and hashes" {
   assert_true(generated.contains("target : Vector3"))
   assert_true(generated.contains("pub struct Move_Result"))
   assert_true(generated.contains("pub struct Move_Feedback"))
+  assert_true(generated.contains("pub struct Move_SendGoal_Request"))
+  assert_true(generated.contains("pub struct Move_SendGoal_Response"))
+  assert_true(generated.contains("pub struct Move_GetResult_Request"))
+  assert_true(generated.contains("pub struct Move_GetResult_Response"))
+  assert_true(generated.contains("pub struct Move_FeedbackMessage"))
   assert_true(generated.contains("header : @std.Header"))
+  assert_true(generated.contains("goal_id : @unique.UUID"))
+  assert_true(generated.contains("stamp : @builtin.Time"))
   assert_true(generated.contains("pub const Move_Goal_TYPE_HASH"))
   assert_true(generated.contains("pub const Move_Feedback_TYPE_HASH"))
+  assert_true(generated.contains("pub const Move_SendGoal_Request_TYPE_HASH"))
+  assert_true(generated.contains("pub const Move_FeedbackMessage_TYPE_HASH"))
+}
+
+///|
+test "ROS action protocol message hashes match Jazzy Fibonacci" {
+  let workspace = MessageWorkspace::new()
+  workspace.add_source(
+    MessageSource::new(
+      "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new(
+      "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new(
+      "builtin_interfaces", "builtin_interfaces/msg", "builtin",
+    ).unwrap(),
+  ).unwrap()
+  let generated = workspace.generate_action_moonbit(
+    "example_interfaces",
+    "Fibonacci",
+    "int32 order\n---\nint32[] sequence\n---\nint32[] sequence",
+  ).unwrap()
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_Goal_TYPE_HASH : String = \"RIHS01_226cb437e4355dcd3e914f930382a3b0cc1da81545bd319ed554e95a03255f51\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_Result_TYPE_HASH : String = \"RIHS01_fea81394f25aa4502217953f1a021fb750e79c10bbd43f13dd94632da6569649\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_Feedback_TYPE_HASH : String = \"RIHS01_2b12e37361da6f408d4c85bc24a18de64333f29082f2ca34b5ee33dc4c8b42a9\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_SendGoal_Request_TYPE_HASH : String = \"RIHS01_3d088942b413247db536576f0286768c6be8fcd5d0c9a5d544f359fba090a238\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_SendGoal_Response_TYPE_HASH : String = \"RIHS01_d8c07bb3d5b766fe4b43159c9a5222af5214e2fcc29229b991d826166c512be1\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_GetResult_Request_TYPE_HASH : String = \"RIHS01_c8a4f5e7d13b81286ee1043e2ecd084281cecf1ff06aaa799464f5f15479f003\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_GetResult_Response_TYPE_HASH : String = \"RIHS01_6021dc98ab9b4bbe395e48aa4de81ee5f68eb570f88358affcc648146668b24f\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Fibonacci_FeedbackMessage_TYPE_HASH : String = \"RIHS01_c1de71afd52e49a89c53d8262366884185bc0a02f78ce051c4e46b0a7fe59bb2\"",
+    ),
+  )
 }

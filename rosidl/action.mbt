@@ -86,6 +86,110 @@ pub fn ActionDefinition::generate_moonbit(
 }
 
 ///|
+/// Build the action-specific message types used by SendGoal, GetResult, and
+/// feedback. The supplied MoonBit type names identify the imported UUID and
+/// Time message types.
+fn ActionDefinition::protocol_messages(
+  self : ActionDefinition,
+  uuid_moon_type : String,
+  time_moon_type : String,
+) -> Result[Array[MessageDefinition], String] {
+  let uuid_ros_type = "unique_identifier_msgs/UUID"
+  let time_ros_type = "builtin_interfaces/Time"
+  let goal_name = self.goal.type_name()
+  let result_name = self.result.type_name()
+  let feedback_name = self.feedback.type_name()
+  let uuid_reference = MessageTypeReference::new(
+    uuid_ros_type,
+    uuid_moon_type,
+  )
+  let time_reference = MessageTypeReference::new(
+    time_ros_type,
+    time_moon_type,
+  )
+  let goal_reference = MessageTypeReference::new(goal_name, goal_name)
+  let result_reference = MessageTypeReference::new(result_name, result_name)
+  let feedback_reference = MessageTypeReference::new(
+    feedback_name,
+    feedback_name,
+  )
+  let send_goal_request = match
+    MessageDefinition::new_with_types(
+      self.package_name,
+      "action",
+      self.action_name + "_SendGoal_Request",
+      [
+        MessageField::new(uuid_ros_type, "goal_id"),
+        MessageField::new(goal_name, "goal"),
+      ],
+      [uuid_reference, goal_reference],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let send_goal_response = match
+    MessageDefinition::new_with_types(
+      self.package_name,
+      "action",
+      self.action_name + "_SendGoal_Response",
+      [
+        MessageField::new("bool", "accepted"),
+        MessageField::new(time_ros_type, "stamp"),
+      ],
+      [time_reference],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let get_result_request = match
+    MessageDefinition::new_with_types(
+      self.package_name,
+      "action",
+      self.action_name + "_GetResult_Request",
+      [MessageField::new(uuid_ros_type, "goal_id")],
+      [uuid_reference],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let get_result_response = match
+    MessageDefinition::new_with_types(
+      self.package_name,
+      "action",
+      self.action_name + "_GetResult_Response",
+      [
+        MessageField::new("int8", "status"),
+        MessageField::new(result_name, "result"),
+      ],
+      [result_reference],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let feedback_message = match
+    MessageDefinition::new_with_types(
+      self.package_name,
+      "action",
+      self.action_name + "_FeedbackMessage",
+      [
+        MessageField::new(uuid_ros_type, "goal_id"),
+        MessageField::new(feedback_name, "feedback"),
+      ],
+      [uuid_reference, feedback_reference],
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok([
+    send_goal_request,
+    send_goal_response,
+    get_result_request,
+    get_result_response,
+    feedback_message,
+  ])
+}
+
+///|
 /// Parse the three message sections of a ROS `.action` definition.
 pub fn parse_action(
   package_name : String,

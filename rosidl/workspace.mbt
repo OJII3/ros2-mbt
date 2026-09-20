@@ -471,9 +471,10 @@ pub fn MessageWorkspace::generate_service_moonbit(
 }
 
 ///|
-/// Generate an action's goal, result, and feedback message codecs.
-/// Nested message types are resolved from the workspace and their package
-/// imports and RIHS01 message hashes are emitted with the generated codecs.
+/// Generate an action's goal, result, feedback, SendGoal/GetResult wrapper,
+/// and feedback-message codecs. Nested message types are resolved from the
+/// workspace and their package imports and RIHS01 hashes are emitted.
+/// Action services, status messages, and goal lifecycle are separate layers.
 pub fn MessageWorkspace::generate_action_moonbit(
   self : MessageWorkspace,
   package_name : String,
@@ -514,6 +515,33 @@ pub fn MessageWorkspace::generate_action_moonbit(
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
+  }
+  let action_hash_descriptors = [
+    MessageSource::new(
+      package_name,
+      "action",
+      action_name + "_Goal",
+      goal_source,
+    ),
+    MessageSource::new(
+      package_name,
+      "action",
+      action_name + "_Result",
+      result_source,
+    ),
+    MessageSource::new(
+      package_name,
+      "action",
+      action_name + "_Feedback",
+      feedback_source,
+    ),
+  ]
+  let action_sources : Array[MessageSource] = []
+  for descriptor in action_hash_descriptors {
+    match descriptor {
+      Ok(value) => action_sources.push(value)
+      Err(message) => return Err(message)
+    }
   }
   let nested_types : Array[MessageTypeReference] = []
   for descriptor in [goal_descriptor, result_descriptor, feedback_descriptor] {
@@ -556,8 +584,60 @@ pub fn MessageWorkspace::generate_action_moonbit(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let uuid_import = match self.import_for("unique_identifier_msgs") {
+    Some(value) => value
+    None =>
+      return Err("missing MoonBit import for ROS package: unique_identifier_msgs")
+  }
+  let time_import = match self.import_for("builtin_interfaces") {
+    Some(value) => value
+    None =>
+      return Err("missing MoonBit import for ROS package: builtin_interfaces")
+  }
+  for mapping in [uuid_import, time_import] {
+    if !rosidl_workspace_contains_import(imports, mapping.ros_package_name) {
+      imports.push(mapping)
+    }
+  }
+  let protocol_messages = match
+    action.protocol_messages(
+      "@" + uuid_import.moon_alias + ".UUID",
+      "@" + time_import.moon_alias + ".Time",
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let hash_workspace = MessageWorkspace::new()
+  for source in self.sources {
+    match hash_workspace.add_source(source) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  for mapping in self.imports {
+    match hash_workspace.add_import(mapping) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  for source in action_sources {
+    if rosidl_workspace_source_index(
+      hash_workspace.sources,
+      package_name,
+      "action",
+      source.type_name,
+    ) < 0 {
+      match hash_workspace.add_source(source) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
+    }
+  }
   let mut output = rosidl_workspace_import_block(imports) +
     action.generate_moonbit()
+  for definition in protocol_messages {
+    output += "\n\n" + definition.generate_moonbit()
+  }
   for definition in [action.goal(), action.result(), action.feedback()] {
     match definition.type_hash() {
       Ok(_) => ()
@@ -571,6 +651,15 @@ pub fn MessageWorkspace::generate_action_moonbit(
           "_TYPE_HASH : String = \"" + type_hash + "\"\n"
       }
     }
+  }
+  for definition in protocol_messages {
+    let type_hash = match hash_workspace.type_hash_for_definition(definition) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    output += "\n///|\n"
+    output += "pub const " + definition.type_name() +
+      "_TYPE_HASH : String = \"" + type_hash + "\"\n"
   }
   Ok(output)
 }
@@ -613,6 +702,17 @@ fn MessageWorkspace::reference_for(
     owner.package_name
   }
   let resolved_namespace = if qualified {
+    "msg"
+  } else if owner.interface_namespace == "action" &&
+    rosidl_workspace_source_index(
+      self.sources,
+      owner.package_name,
+      "action",
+      referenced_type,
+    ) >= 0 {
+    "action"
+  } else if owner.interface_namespace == "srv" ||
+    owner.interface_namespace == "action" {
     "msg"
   } else {
     owner.interface_namespace
