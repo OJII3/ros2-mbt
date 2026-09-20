@@ -111,12 +111,14 @@ pub fn MessageWorkspace::add_source(Self, MessageSource) -> Result[Unit, String]
 pub fn MessageWorkspace::dependency_order(Self, String, String) -> Result[Array[MessageSource], String]
 pub fn MessageWorkspace::generate_message_moonbit(Self, String, String, String) -> Result[String, String]
 pub fn MessageWorkspace::generate_moonbit(Self, String, String) -> Result[String, String]
+pub fn MessageWorkspace::generate_service_moonbit(Self, String, String, String) -> Result[String, String]
 pub fn MessageWorkspace::import_count(Self) -> Int
 pub fn MessageWorkspace::new() -> Self
 pub fn MessageWorkspace::resolve(Self, String, String, String) -> Result[MessageDefinition, String]
 pub fn MessageWorkspace::service_type_hash(Self, ServiceDefinition) -> Result[String, String]
 pub fn MessageWorkspace::source_count(Self) -> Int
 pub fn MessageWorkspace::type_hash(Self, String, String, String) -> Result[String, String]
+pub fn MessageWorkspace::type_hash_for_definition(Self, MessageDefinition) -> Result[String, String]
 
 pub struct ServiceDefinition {
   package_name : String

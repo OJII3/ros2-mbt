@@ -583,6 +583,8 @@ fn rosidl_workspace_type_name_for_field(
       }
       let resolved_namespace = if qualified {
         "msg"
+      } else if owner.interface_namespace() == "srv" {
+        "msg"
       } else {
         owner.interface_namespace()
       }
@@ -719,6 +721,16 @@ pub fn MessageWorkspace::service_type_hash(
 }
 
 ///|
+/// Calculate a RIHS01 hash for one message definition using nested sources in
+/// the workspace. This also accepts generated service request/response types.
+pub fn MessageWorkspace::type_hash_for_definition(
+  self : MessageWorkspace,
+  root : MessageDefinition,
+) -> Result[String, String] {
+  rosidl_hash_with_workspace(self, root)
+}
+
+///|
 fn rosidl_workspace_find_definition(
   definitions : Array[MessageDefinition],
   type_name : String,
@@ -755,20 +767,28 @@ pub fn MessageWorkspace::type_hash(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  self.type_hash_for_definition(root)
+}
+
+///|
+fn rosidl_hash_with_workspace(
+  workspace : MessageWorkspace,
+  root : MessageDefinition,
+) -> Result[String, String] {
   let definitions : Array[MessageDefinition] = [root]
   let mut index = 0
   while index < definitions.length() {
     let definition = definitions[index]
     for field in definition.fields() {
       let nested_name = match
-        rosidl_workspace_type_name_for_field(self, definition, field) {
+        rosidl_workspace_type_name_for_field(workspace, definition, field) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
       if nested_name.length() > 0 &&
         !rosidl_workspace_find_definition(definitions, nested_name) {
         let nested = match
-          rosidl_workspace_resolve_type_name(self, nested_name) {
+          rosidl_workspace_resolve_type_name(workspace, nested_name) {
           Ok(value) => value
           Err(message) => return Err(message)
         }
@@ -787,7 +807,7 @@ pub fn MessageWorkspace::type_hash(
     let field_names : Array[String] = []
     for field in reference.fields() {
       let nested_name = match
-        rosidl_workspace_type_name_for_field(self, reference, field) {
+        rosidl_workspace_type_name_for_field(workspace, reference, field) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
@@ -798,7 +818,7 @@ pub fn MessageWorkspace::type_hash(
   let root_field_names : Array[String] = []
   for field in root.fields() {
     let nested_name = match
-      rosidl_workspace_type_name_for_field(self, root, field) {
+      rosidl_workspace_type_name_for_field(workspace, root, field) {
       Ok(value) => value
       Err(message) => return Err(message)
     }

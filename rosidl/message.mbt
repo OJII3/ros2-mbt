@@ -504,25 +504,10 @@ pub fn parse_service_with_types(
   source : String,
   nested_types : Array[MessageTypeReference],
 ) -> Result[ServiceDefinition, String] {
-  let mut request_source = ""
-  let mut response_source = ""
-  let mut has_separator = false
-  for raw_line in source.split("\n") {
-    if rosidl_trim(raw_line.to_owned()) == "---" {
-      if has_separator {
-        return Err("ROS service definitions must contain one --- separator")
-      }
-      has_separator = true
-      continue
-    }
-    if has_separator {
-      response_source += raw_line.to_owned() + "\n"
-    } else {
-      request_source += raw_line.to_owned() + "\n"
-    }
-  }
-  if !has_separator {
-    return Err("ROS service definitions must contain one --- separator")
+  let (request_source, response_source) = match
+    rosidl_service_request_response(source) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let request = match
     parse_message_with_types(
@@ -547,6 +532,33 @@ pub fn parse_service_with_types(
     Err(message) => return Err(message)
   }
   ServiceDefinition::new(package_name, service_name, request, response)
+}
+
+///|
+fn rosidl_service_request_response(
+  source : String,
+) -> Result[(String, String), String] {
+  let mut request_source = ""
+  let mut response_source = ""
+  let mut has_separator = false
+  for raw_line in source.split("\n") {
+    if rosidl_trim(raw_line.to_owned()) == "---" {
+      if has_separator {
+        return Err("ROS service definitions must contain one --- separator")
+      }
+      has_separator = true
+      continue
+    }
+    if has_separator {
+      response_source += raw_line.to_owned() + "\n"
+    } else {
+      request_source += raw_line.to_owned() + "\n"
+    }
+  }
+  if !has_separator {
+    return Err("ROS service definitions must contain one --- separator")
+  }
+  Ok((request_source, response_source))
 }
 
 ///|

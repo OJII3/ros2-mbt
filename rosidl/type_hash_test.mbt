@@ -124,6 +124,94 @@ test "ROS workspace service hash includes nested request and response types" {
 }
 
 ///|
+test "ROS workspace generates nested service codecs and type hashes" {
+  let workspace = MessageWorkspace::new()
+  workspace.add_source(
+    MessageSource::new(
+      "demo_msgs",
+      "msg",
+      "Vector3",
+      "float64 x\nfloat64 y\nfloat64 z",
+    ).unwrap(),
+  ).unwrap()
+  let source = "Vector3 input\n---\nVector3 output"
+  let service = parse_service_with_types(
+    "demo_msgs",
+    "Transform",
+    source,
+    [MessageTypeReference::new("Vector3", "Vector3")],
+  ).unwrap()
+  let request_hash = workspace.type_hash_for_definition(service.request()).unwrap()
+  let response_hash = workspace.type_hash_for_definition(service.response()).unwrap()
+  let service_hash = workspace.service_type_hash(service).unwrap()
+  let generated = workspace.generate_service_moonbit(
+    "demo_msgs", "Transform", source,
+  ).unwrap()
+  assert_true(generated.contains("pub struct Transform_Request"))
+  assert_true(generated.contains("input : Vector3"))
+  assert_true(generated.contains("pub struct Transform_Response"))
+  assert_true(generated.contains("output : Vector3"))
+  assert_true(
+    generated.contains(
+      "pub const Transform_Request_TYPE_HASH : String = \"" +
+        request_hash + "\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Transform_Response_TYPE_HASH : String = \"" +
+        response_hash + "\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub const Transform_TYPE_HASH : String = \"" + service_hash + "\"",
+    ),
+  )
+}
+
+///|
+test "ROS workspace service generation imports external nested message types" {
+  let workspace = MessageWorkspace::new()
+  workspace.add_source(
+    MessageSource::new(
+      "std_msgs",
+      "msg",
+      "Header",
+      "uint32 seq\nstring frame_id",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap(),
+  ).unwrap()
+  let generated = workspace.generate_service_moonbit(
+    "demo_msgs",
+    "Stamped",
+    "std_msgs/Header header\n---\nstd_msgs/Header header",
+  ).unwrap()
+  assert_true(generated.contains("\"std_msgs/msg\" @std"))
+  assert_true(generated.contains("header : @std.Header"))
+  assert_true(generated.contains("pub const Stamped_Request_TYPE_HASH"))
+  assert_true(generated.contains("pub const Stamped_TYPE_HASH"))
+}
+
+///|
+test "ROS workspace service generation preserves primitive type hashes" {
+  let workspace = MessageWorkspace::new()
+  let generated = workspace.generate_service_moonbit(
+    "example_interfaces",
+    "AddTwoInts",
+    "int64 a\nint64 b\n---\nint64 sum",
+  ).unwrap()
+  assert_eq(generated.split("pub const AddTwoInts_TYPE_HASH").length(), 2)
+  assert_true(
+    generated.contains(
+      "pub const AddTwoInts_TYPE_HASH : String = \"RIHS01_baab5d12c15b0dbfdde3e778fa22481c0ef1c02268debebacff3ef350edce27e\"",
+    ),
+  )
+}
+
+///|
 test "ROS workspace type hash sorts multiple nested descriptions" {
   let workspace = MessageWorkspace::new()
   for name in ["A", "B"] {

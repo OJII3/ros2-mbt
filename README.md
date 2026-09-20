@@ -78,8 +78,8 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（タブ区切り、固定配列・bounded/unbounded sequence・bounded string/wstring、Fast-CDR互換wide stringのUTF-16 code unit変換、primitive scalar/array defaultと`::default()`生成に対応。整数定数は基数表記と型幅を検証、文字列定数は引用形式を解析、浮動小数点定数は指数表記を正規化、narrow integerの書き込み範囲を検証、生成codecは`Result`でエラーを返す）
 - `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（bounded string/wstring capacity・primitive・同一workspace内のnested type）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator（区切り `---` は単独行として認識）
-- `.srv` のRIHS01 service型ハッシュ計算（primitiveは直接、nestedはworkspace経由）
-- primitive request/response `.srv` の生成コードへの`<Service>_TYPE_HASH`定数埋め込み
+- `.srv` のRIHS01 request/response/service型ハッシュ計算（nested messageはworkspace経由）
+- `MessageWorkspace::generate_service_moonbit` によるnested request/response codec、外部package import、型hash定数の生成
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - `std_msgs/msg/String` を外部ROS 2と送受信する実行可能な `examples/talker` / `examples/listener`
 - `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
@@ -145,5 +145,5 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
-6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
+6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
