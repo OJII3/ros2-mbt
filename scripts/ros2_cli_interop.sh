@@ -149,7 +149,7 @@ timeout --foreground 45s ros2 service call /add_two_ints \
   >"$service_call_log" 2>&1
 wait "$moon_service_pid"
 moon_service_pid=""
-if ! grep -Fq "sum: 5" "$service_call_log" || \
+if ! grep -Eq "sum[=:][[:space:]]*5" "$service_call_log" || \
   ! grep -Fq "served AddTwoInts request" "$moon_service_log"; then
   echo "ROS 2 CLI service call did not complete with the expected sum"
   exit 1

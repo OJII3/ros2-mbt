@@ -17,11 +17,10 @@
         let
           pkgs = import inputs.nixpkgs {
             inherit system;
-            overlays = [ inputs.moonbit-overlay.overlays.default ] ++
-              (if system == "x86_64-linux" then
-                [ inputs.nix-ros-overlay.overlays.default ]
-              else
-                [ ]);
+            overlays = [
+              inputs.moonbit-overlay.overlays.default
+              inputs.nix-ros-overlay.overlays.default
+            ];
           };
           moonbit = pkgs.moonbit-bin.moonbit.latest;
         in
@@ -30,14 +29,14 @@
             default = pkgs.mkShell {
               packages = [ moonbit ];
             };
-          } // pkgs.lib.optionalAttrs (system == "x86_64-linux") {
             ros2 = pkgs.mkShell {
               packages = [
                 moonbit
+                pkgs.coreutils
                 (pkgs.rosPackages.jazzy.buildEnv {
                   underlay = true;
                   paths = with pkgs.rosPackages.jazzy; [
-                    ros-base
+                    ros-core
                     demo-nodes-cpp
                     example-interfaces
                   ];
