@@ -95,7 +95,26 @@ test "discovery graph removes a participant and its endpoints" {
   let info = @ros.ParticipantEntitiesInfo::new(
     @ros.Gid::from_guid(participant_guid),
   )
+  let info_node = @ros.NodeEntitiesInfo::new("/demo", "talker").unwrap()
+  info_node.add_writer_gid(@ros.Gid::from_guid(publication.endpoint_guid()))
+  info.add_node(info_node)
   graph.ingest_ros_discovery_info(info)
+  assert_eq(
+    graph.ros_participants()[0].node_entities_info_seq()[0]
+    .writer_gid_seq()
+    .length(),
+    1,
+  )
+  graph.ingest(DiscoveryEvent::EndpointRemoved(
+    @rtps.SedpEndpointKind::Publication,
+    publication.endpoint_guid(),
+  ))
+  assert_eq(
+    graph.ros_participants()[0].node_entities_info_seq()[0]
+    .writer_gid_seq()
+    .length(),
+    0,
+  )
   assert_eq(graph.ros_participant_count(), 1)
   graph.ingest(DiscoveryEvent::ParticipantRemoved(participant_guid))
   assert_eq(graph.participant_count(), 0)

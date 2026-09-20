@@ -7,6 +7,37 @@ pub struct DiscoveryGraph {
   mut ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 
+///| Remove one endpoint GID from all retained ROS graph snapshots.
+fn DiscoveryGraph::remove_ros_endpoint(
+  self : DiscoveryGraph,
+  endpoint_guid : @rtps.Guid,
+) -> Unit {
+  let endpoint_gid = @ros.Gid::from_guid(endpoint_guid)
+  let remaining : Array[@ros.ParticipantEntitiesInfo] = []
+  for info in self.ros_participants {
+    let updated = @ros.ParticipantEntitiesInfo::new(info.gid())
+    for node in info.node_entities_info_seq() {
+      let updated_node = @ros.NodeEntitiesInfo::new(
+        node.node_namespace(),
+        node.node_name(),
+      ).unwrap()
+      for gid in node.reader_gid_seq() {
+        if gid != endpoint_gid {
+          updated_node.add_reader_gid(gid)
+        }
+      }
+      for gid in node.writer_gid_seq() {
+        if gid != endpoint_gid {
+          updated_node.add_writer_gid(gid)
+        }
+      }
+      updated.add_node(updated_node)
+    }
+    remaining.push(updated)
+  }
+  self.ros_participants = remaining
+}
+
 ///|
 pub fn DiscoveryGraph::new() -> DiscoveryGraph {
   {
@@ -54,7 +85,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.subscriptions.push(subscription)
     }
-    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
+    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
       match kind {
         @rtps.SedpEndpointKind::Publication => {
           let remaining : Array[@rtps.SedpEndpointData] = []
@@ -75,6 +106,8 @@ pub fn DiscoveryGraph::ingest(
           self.subscriptions = remaining
         }
       }
+      self.remove_ros_endpoint(endpoint_guid)
+    }
     DiscoveryEvent::ParticipantRemoved(participant_guid) => {
       let remaining_participants : Array[@rtps.SpdpParticipantData] = []
       for participant in self.participants {
