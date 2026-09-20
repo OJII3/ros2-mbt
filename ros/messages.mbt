@@ -39,7 +39,7 @@ pub fn StringMessage::from_cdr_bytes(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  if reader.remaining() != 0 {
+  if !reader.remaining_is_zero_padding(4) {
     return Err("trailing bytes after std_msgs/msg/String")
   }
   Ok(StringMessage::new(data))
@@ -139,7 +139,7 @@ pub fn Twist::from_cdr_bytes(input : Bytes) -> Result[Twist, String] {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  if reader.remaining() != 0 {
+  if !reader.remaining_is_zero_padding(8) {
     return Err("trailing bytes after geometry_msgs/msg/Twist")
   }
   Ok(

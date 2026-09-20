@@ -11,7 +11,9 @@ pub fn Reader::from_bytes(bytes : Bytes) -> Result[Reader, String] {
   if bytes.length() < ENCAPSULATION_LENGTH {
     return Err("a CDR payload must contain a 4-byte encapsulation header")
   }
-  if bytes[0] != 0 || bytes[1] != 1 || bytes[2] != 0 || bytes[3] != 0 {
+  // The final two bytes are encapsulation options. Cyclone DDS sets one of
+  // these option bits for otherwise ordinary little-endian CDR payloads.
+  if bytes[0] != 0 || bytes[1] != 1 {
     return Err("only CDR little-endian encapsulation is supported")
   }
   Ok({ bytes, offset: ENCAPSULATION_LENGTH, })
@@ -21,6 +23,23 @@ pub fn Reader::from_bytes(bytes : Bytes) -> Result[Reader, String] {
 /// Return the number of unread bytes.
 pub fn Reader::remaining(self : Reader) -> Int {
   self.bytes.length() - self.offset
+}
+
+///| Check for the zero-filled final padding of a CDR aggregate.
+pub fn Reader::remaining_is_zero_padding(
+  self : Reader,
+  alignment : Int,
+) -> Bool {
+  let remaining = self.remaining()
+  if alignment <= 0 || remaining >= alignment {
+    return remaining == 0
+  }
+  for index in 0..<remaining {
+    if self.bytes[self.offset + index] != 0 {
+      return false
+    }
+  }
+  true
 }
 
 ///|

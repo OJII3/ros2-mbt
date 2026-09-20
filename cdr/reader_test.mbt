@@ -52,6 +52,18 @@ test "CDR reader round trips strings and sequences" {
 }
 
 ///|
+test "CDR reader accepts little-endian encapsulation options" {
+  let reader = match Reader::from_bytes(
+    b"\x00\x01\x00\x01\x02\x00\x00\x00x\x00",
+  ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(reader.read_string(), Ok("x"))
+  assert_eq(reader.remaining(), 0)
+}
+
+///|
 test "CDR reader rejects malformed payloads" {
   assert_true(Reader::from_bytes(b"bad") is Err(_))
   assert_true(Reader::from_bytes(b"\x00\x00\x00\x00") is Err(_))
@@ -60,4 +72,14 @@ test "CDR reader rejects malformed payloads" {
     Err(message) => fail(message)
   }
   assert_true(reader.read_u32() is Err(_))
+  let padded = match Reader::from_bytes(b"\x00\x01\x00\x00\x00") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_true(padded.remaining_is_zero_padding(4))
+  let nonzero = match Reader::from_bytes(b"\x00\x01\x00\x00\x01") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_false(nonzero.remaining_is_zero_padding(4))
 }

@@ -241,7 +241,7 @@ pub fn NodeEntitiesInfo::from_cdr_bytes(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  if reader.remaining() != 0 {
+  if !reader.remaining_is_zero_padding(4) {
     return Err("trailing bytes after ROS NodeEntitiesInfo")
   }
   Ok(node)
@@ -290,7 +290,7 @@ pub fn ParticipantEntitiesInfo::from_cdr_bytes(
       },
     )
   }
-  if reader.remaining() != 0 {
+  if !reader.remaining_is_zero_padding(4) {
     return Err("trailing bytes after ROS ParticipantEntitiesInfo")
   }
   Ok(result)

@@ -33,6 +33,7 @@ pub fn Reader::read_u32(Self) -> Result[UInt, String]
 pub fn Reader::read_u64(Self) -> Result[UInt64, String]
 pub fn Reader::read_u8(Self) -> Result[Byte, String]
 pub fn Reader::remaining(Self) -> Int
+pub fn Reader::remaining_is_zero_padding(Self, Int) -> Bool
 
 pub struct Writer {
   buffer : @buffer.Buffer

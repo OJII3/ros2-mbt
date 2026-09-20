@@ -37,7 +37,7 @@ test "ROS message parsers reject trailing data" {
   for i in 0..<encoded.length() {
     bytes.push(encoded[i])
   }
-  bytes.push(0)
+  bytes.push(1)
   let with_trailing = Bytes::from_array(bytes)
   assert_true(StringMessage::from_cdr_bytes(with_trailing) is Err(_))
 }
