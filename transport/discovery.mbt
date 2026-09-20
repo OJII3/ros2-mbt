@@ -496,6 +496,10 @@ async fn DiscoverySession::retransmit_sedp_acknack(
     Ok(value) => value
     Err(_) => return Ok(())
   }
+  if acknack.reader_id() != kind.builtin_reader_id() &&
+    acknack.reader_id() != @rtps.EntityId::unknown() {
+    return Ok(())
+  }
   let writer_index = self.sedp_writer_index(kind)
   let socket = if socket_index == 0 {
     self.socket
@@ -554,6 +558,10 @@ async fn DiscoverySession::decode_message(
         }
         match @rtps.SedpEndpointKind::from_builtin_writer_id(data.writer_id()) {
           Ok(kind) => {
+            if data.reader_id() != kind.builtin_reader_id() &&
+              data.reader_id() != @rtps.EntityId::unknown() {
+              continue
+            }
             self.record_sedp_data(message.header().guid_prefix(), data)
             let status = match data.status_info() {
               Ok(value) => value
@@ -596,6 +604,11 @@ async fn DiscoverySession::decode_message(
             }
           }
           Err(_) => {
+            if data.writer_id() != self.writer_id ||
+              (data.reader_id() != self.reader_id &&
+                data.reader_id() != @rtps.EntityId::unknown()) {
+              continue
+            }
             let status = match data.status_info() {
               Ok(value) => value
               Err(_) => continue
@@ -639,6 +652,15 @@ async fn DiscoverySession::decode_message(
         }
         if @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id())
           is Ok(_) {
+          let kind = match
+            @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id()) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          if heartbeat.reader_id() != kind.builtin_reader_id() &&
+            heartbeat.reader_id() != @rtps.EntityId::unknown() {
+            continue
+          }
           match
             self.acknowledge_sedp_heartbeat(
               socket_index,
@@ -658,6 +680,15 @@ async fn DiscoverySession::decode_message(
         }
         if @rtps.SedpEndpointKind::from_builtin_writer_id(gap.writer_id())
           is Ok(_) {
+          let kind = match
+            @rtps.SedpEndpointKind::from_builtin_writer_id(gap.writer_id()) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          if gap.reader_id() != kind.builtin_reader_id() &&
+            gap.reader_id() != @rtps.EntityId::unknown() {
+            continue
+          }
           self.record_sedp_gap(message.header().guid_prefix(), gap)
         }
       }

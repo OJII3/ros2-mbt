@@ -402,3 +402,82 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   session.close()
   sender.close()
 }
+
+///|
+async test "discovery session filters SEDP data for another builtin reader" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let spdp_reader = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let spdp_writer = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, spdp_writer),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+  )
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let session = DiscoverySession::new(
+    receiver,
+    participant,
+    spdp_reader,
+    spdp_writer,
+    sender.local_addr(),
+    1L,
+  ).unwrap()
+  let endpoint = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(
+      remote_prefix,
+      @rtps.EntityId::new(b"pub", 0xC2).unwrap(),
+    ),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let wrong_reader = @rtps.EntityId::new(b"bad", 0xC7).unwrap()
+  sender.send_data(
+    endpoint.to_data_submessage(
+      wrong_reader,
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      1L,
+    ).unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  ).unwrap()
+  sender.send_data(
+    endpoint.to_data_submessage(
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      2L,
+    ).unwrap(),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  ).unwrap()
+  let (event, _) = session.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::Publication(publication) =>
+      assert_eq(publication.endpoint_guid(), endpoint.endpoint_guid())
+    DiscoveryEvent::Participant(_) => fail("expected an SEDP publication")
+    DiscoveryEvent::Subscription(_) => fail("expected an SEDP publication")
+    DiscoveryEvent::EndpointRemoved(_, _) =>
+      fail("expected an SEDP publication")
+    DiscoveryEvent::ParticipantRemoved(_) =>
+      fail("expected an SEDP publication")
+  }
+  session.close()
+  sender.close()
+}
