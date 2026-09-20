@@ -89,7 +89,7 @@ pub struct DiscoveryGraph {
   mut participants : Array[@rtps.SpdpParticipantData]
   mut publications : Array[@rtps.SedpEndpointData]
   mut subscriptions : Array[@rtps.SedpEndpointData]
-  ros_participants : Array[@ros.ParticipantEntitiesInfo]
+  mut ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 pub fn DiscoveryGraph::find_compatible_publications(Self, @rtps.SedpEndpointData) -> Result[Array[@rtps.SedpEndpointData], String]
 pub fn DiscoveryGraph::find_publications(Self, String, String) -> Array[@rtps.SedpEndpointData]
@@ -124,6 +124,7 @@ pub async fn DiscoveryService::announce_sedp_n(Self, @rtps.SedpEndpointData, Int
 pub async fn DiscoveryService::announce_sedp_once(Self, @rtps.SedpEndpointData, @rtps.SpdpParticipantData) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_to_all(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
+pub async fn DiscoveryService::dispose_sedp_to_all(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::graph(Self) -> DiscoveryGraph
 pub fn DiscoveryService::ingest_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Unit
 pub fn DiscoveryService::new(DiscoverySession) -> Self
@@ -306,14 +307,15 @@ pub struct RosParticipant {
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
   mut latest_graph_info : @ros.ParticipantEntitiesInfo?
-  graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  graph_publisher_guids : Array[@rtps.Guid]
-  graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  graph_subscription_guids : Array[@rtps.Guid]
+  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  mut graph_publisher_guids : Array[@rtps.Guid]
+  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  mut graph_subscription_guids : Array[@rtps.Guid]
 }
 pub async fn RosParticipant::announce_spdp_forever(Self, Int) -> Result[Unit, String]
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
+pub async fn RosParticipant::dispose_and_close(Self) -> Result[Unit, String]
 pub fn RosParticipant::from_discovery_session(DiscoverySession, Udp) -> Result[Self, String]
 pub fn RosParticipant::from_sockets(Udp, Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn RosParticipant::graph(Self) -> DiscoveryGraph
@@ -422,6 +424,8 @@ pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit
 pub async fn Udp::send_nack_frag(Self, @rtps.NackFragSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_sedp_dispose_to_participant(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64) -> Result[Unit, String]
+pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
 pub async fn Udp::send_sedp_to_participant(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64) -> Result[Unit, String]
 pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
