@@ -323,3 +323,89 @@ pub fn Reader::read_bounded_string(
   }
   Ok(value)
 }
+
+///| Read a length-prefixed UTF-16 ROS wide string.
+pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
+  let length = match self.read_u32() {
+    Ok(value) => value.reinterpret_as_int()
+    Err(message) => return Err(message)
+  }
+  if length < 0 || length > self.remaining() / 2 {
+    return Err("a CDR wide string is truncated")
+  }
+  let encoded : Array[Byte] = []
+  let mut index = 0
+  while index < length {
+    let first = match self.read_u16() {
+      Ok(value) => value.reinterpret_as_int()
+      Err(message) => return Err(message)
+    }
+    if first == 0 {
+      return Err("CDR wide strings must not contain NUL")
+    }
+    let codepoint = if first >= 0xD800 && first <= 0xDBFF {
+      if index + 1 >= length {
+        return Err("CDR wide string contains an incomplete surrogate pair")
+      }
+      let second = match self.read_u16() {
+        Ok(value) => value.reinterpret_as_int()
+        Err(message) => return Err(message)
+      }
+      if second < 0xDC00 || second > 0xDFFF {
+        return Err("CDR wide string contains an invalid surrogate pair")
+      }
+      index += 1
+      0x10000 + ((first - 0xD800) << 10) + (second - 0xDC00)
+    } else if first >= 0xDC00 && first <= 0xDFFF {
+      return Err("CDR wide string contains an unpaired low surrogate")
+    } else {
+      first
+    }
+    cdr_append_utf8_codepoint(encoded, codepoint)
+    index += 1
+  }
+  Ok(@utf8.decode(Bytes::from_array(encoded))) catch {
+    _ => Err("invalid UTF-16 in CDR wide string")
+  }
+}
+
+///| Read a UTF-16 ROS wide string and enforce its code-unit bound.
+pub fn Reader::read_bounded_wstring(
+  self : Reader,
+  maximum_length : Int,
+) -> Result[String, String] {
+  if maximum_length < 0 {
+    return Err("a CDR wide-string bound must not be negative")
+  }
+  let value = match self.read_wstring() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let units = match cdr_utf16_code_units(value) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if units.length() > maximum_length {
+    return Err("CDR wide string exceeds its code-unit bound")
+  }
+  Ok(value)
+}
+
+///|
+fn cdr_append_utf8_codepoint(output : Array[Byte], codepoint : Int) -> Unit {
+  if codepoint <= 0x7F {
+    output.push(codepoint.to_byte())
+  } else if codepoint <= 0x7FF {
+    output.push((0xC0 | (codepoint >> 6)).to_byte())
+    output.push((0x80 | (codepoint & 0x3F)).to_byte())
+  } else if codepoint <= 0xFFFF {
+    output.push((0xE0 | (codepoint >> 12)).to_byte())
+    output.push((0x80 | ((codepoint >> 6) & 0x3F)).to_byte())
+    output.push((0x80 | (codepoint & 0x3F)).to_byte())
+  } else {
+    output.push((0xF0 | (codepoint >> 18)).to_byte())
+    output.push((0x80 | ((codepoint >> 12) & 0x3F)).to_byte())
+    output.push((0x80 | ((codepoint >> 6) & 0x3F)).to_byte())
+    output.push((0x80 | (codepoint & 0x3F)).to_byte())
+  }
+}

@@ -30,6 +30,26 @@ test "ROS bounded string type hashes use bounded string IDs and capacity" {
 }
 
 ///|
+test "ROS wide-string type hashes use their own type IDs" {
+  let wide = parse_message("demo", "msg", "Wide", "wstring data").unwrap()
+  assert_eq(
+    wide.type_hash(),
+    Ok(
+      "RIHS01_8203b3c357d38a350de9133031fb7c6af58260768a32c88dd234cc6452965133",
+    ),
+  )
+  let bounded = parse_message(
+    "demo", "msg", "BoundedWide", "wstring<=2 value",
+  ).unwrap()
+  assert_eq(
+    bounded.type_hash(),
+    Ok(
+      "RIHS01_67db191861cdc89fd27d4061d6940df30704950eff8d6c7a9673cd05f96e596a",
+    ),
+  )
+}
+
+///|
 test "ROS workspace type hash includes sorted nested message descriptions" {
   let workspace = MessageWorkspace::new()
   let vector = match

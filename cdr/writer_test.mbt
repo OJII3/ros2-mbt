@@ -53,6 +53,26 @@ test "CDR writer accepts non-ASCII UTF-8 strings" {
 }
 
 ///|
+test "CDR writer encodes wide strings as UTF-16 code units" {
+  let writer = Writer::new()
+  assert_eq(writer.write_wstring("A猫🙂"), Ok(()))
+  assert_eq(
+    writer.to_bytes(),
+    b"\x00\x01\x00\x00\x04\x00\x00\x00\x41\x00\x2B\x73\x3D\xD8\x42\xDE",
+  )
+}
+
+///|
+test "CDR writer enforces bounded wide-string code-unit counts" {
+  let writer = Writer::new()
+  assert_eq(writer.write_bounded_wstring("🙂", 2), Ok(()))
+  let before = writer.to_bytes()
+  assert_true(writer.write_bounded_wstring("🙂", 1) is Err(_))
+  assert_eq(writer.to_bytes(), before)
+  assert_true(writer.write_wstring("\u0000") is Err(_))
+}
+
+///|
 test "CDR writer enforces bounded string character counts" {
   let writer = Writer::new()
   assert_eq(writer.write_bounded_string("猫", 1), Ok(()))

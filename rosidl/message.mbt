@@ -115,7 +115,7 @@ pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
 }
 
 ///|
-/// Return the maximum length for a bounded ROS string field, if any.
+/// Return the maximum length for a bounded ROS string or wide-string field.
 pub fn MessageField::string_upper_bound(self : MessageField) -> Int? {
   self.string_upper_bound
 }
@@ -219,8 +219,9 @@ pub fn MessageDefinition::new_with_types(
     }
     match field.string_upper_bound {
       Some(bound) =>
-        if field.type_name != "string" || bound <= 0 {
-          return Err("ROS string upper bounds require a positive string bound")
+        if (field.type_name != "string" && field.type_name != "wstring") ||
+          bound <= 0 {
+          return Err("ROS string upper bounds require a positive bound")
         }
       None => ()
     }
@@ -386,8 +387,8 @@ pub fn ServiceDefinition::generate_moonbit(self : ServiceDefinition) -> String {
 ///
 /// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`),
 /// unbounded sequences (`type[]`), bounded sequences (`type[<=N]`), bounded
-/// strings (`string<=N`), and scalar constants are supported. Nested message
-/// fields can be enabled with `parse_message_with_types`.
+/// strings (`string<=N` / `wstring<=N`), and scalar constants are supported.
+/// Nested message fields can be enabled with `parse_message_with_types`.
 pub fn parse_message(
   package_name : String,
   interface_namespace : String,
@@ -673,14 +674,15 @@ fn rosidl_parse_base_field_type(
   if parts.length() == 1 {
     return Ok((type_spec, None))
   }
-  if parts.length() != 2 || parts[0] != "string" {
-    return Err("ROS bounded strings must use the string<=N form")
+  if parts.length() != 2 ||
+    (parts[0] != "string" && parts[0] != "wstring") {
+    return Err("ROS bounded strings must use the string<=N or wstring<=N form")
   }
   let bound = match rosidl_positive_int(parts[1].to_owned()) {
     Ok(value) => value
     Err(_) => return Err("ROS string upper bounds must be positive integers")
   }
-  Ok(("string", Some(bound)))
+  Ok((parts[0].to_owned(), Some(bound)))
 }
 
 ///|
@@ -893,7 +895,7 @@ fn rosidl_default_scalar(
     "uint64" => "0UL"
     "float32" => "0.0F"
     "float64" => "0.0"
-    "string" => "\"\""
+    "string" | "wstring" => "\"\""
     _ => rosidl_moon_type_for_field(field.type_name, nested_types).unwrap() +
       "::default()"
   }
@@ -953,10 +955,22 @@ fn rosidl_generate_writer_call(
   indent : String,
 ) -> String {
   let range_check = rosidl_generate_writer_range_check(field, value, indent)
-  range_check + (match field.string_upper_bound {
-    Some(bound) =>
-      indent + "match writer.write_bounded_string(" + value + ", " +
+  range_check +
+  (match field.string_upper_bound {
+    Some(bound) => {
+      let bounded_method = if field.type_name == "wstring" {
+        "write_bounded_wstring"
+      } else {
+        "write_bounded_string"
+      }
+      indent + "match writer." + bounded_method + "(" + value + ", " +
       bound.to_string() + ") {\n" +
+      indent + "  Ok(_) => ()\n" +
+      indent + "  Err(message) => return Err(message)\n" +
+      indent + "}\n"
+    }
+    None if field.type_name == "wstring" =>
+      indent + "match writer." + codec_method + "(" + value + ") {\n" +
       indent + "  Ok(_) => ()\n" +
       indent + "  Err(message) => return Err(message)\n" +
       indent + "}\n"
@@ -994,7 +1008,14 @@ fn rosidl_generate_reader(
 ) -> String {
   let codec_method = rosidl_reader_method(field.type_name)
   let codec_call = match field.string_upper_bound {
-    Some(bound) => "reader.read_bounded_string(" + bound.to_string() + ")"
+    Some(bound) => {
+      let bounded_method = if field.type_name == "wstring" {
+        "read_bounded_wstring"
+      } else {
+        "read_bounded_string"
+      }
+      "reader." + bounded_method + "(" + bound.to_string() + ")"
+    }
     None => "reader." + codec_method + "()"
   }
   let base = rosidl_moon_type_for_field(field.type_name, nested_types).unwrap()
@@ -1359,7 +1380,7 @@ fn rosidl_moon_type(type_name : String) -> Result[String, String] {
     "uint64" => Ok("UInt64")
     "float32" => Ok("Float")
     "float64" => Ok("Double")
-    "string" => Ok("String")
+    "string" | "wstring" => Ok("String")
     _ => Err("unsupported ROS message field type: " + type_name)
   }
 }
@@ -1414,7 +1435,7 @@ fn rosidl_constant_literal(
         "false" | "0" => Ok("false")
         _ => Err("ROS bool constants must be true, false, 1, or 0")
       }
-    "string" => rosidl_string_constant_literal(value)
+    "string" | "wstring" => rosidl_string_constant_literal(value)
     "float32" => {
       if !rosidl_float_literal(value) {
         return Err("ROS float constants must be numeric")
@@ -1496,7 +1517,7 @@ fn rosidl_array_default_elements(
   if end == 1 {
     return Ok(elements)
   }
-  let is_string = type_name == "string"
+  let is_string = type_name == "string" || type_name == "wstring"
   let mut quote = 0
   let mut escaped = false
   let mut element_start = 1
@@ -1542,13 +1563,18 @@ fn rosidl_field_scalar_default_literal(
   string_upper_bound : Int?,
   value : String,
 ) -> Result[String, String] {
-  if type_name == "string" {
+  if type_name == "string" || type_name == "wstring" {
     let decoded = match rosidl_string_constant_value(value) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     match string_upper_bound {
-      Some(bound) if rosidl_utf8_character_count(decoded) > bound =>
+      Some(bound) if
+        (if type_name == "wstring" {
+          rosidl_utf16_unit_count(decoded)
+        } else {
+          rosidl_utf8_character_count(decoded)
+        }) > bound =>
         return Err("ROS string defaults exceed their declared bound")
       _ => ()
     }
@@ -1563,6 +1589,17 @@ fn rosidl_utf8_character_count(value : String) -> Int {
   for byte in @utf8.encode(value) {
     if byte < 0x80 || byte > 0xBF {
       count += 1
+    }
+  }
+  count
+}
+
+///|
+fn rosidl_utf16_unit_count(value : String) -> Int {
+  let mut count = 0
+  for byte in @utf8.encode(value) {
+    if byte < 0x80 || byte > 0xBF {
+      count += if byte >= 0xF0 { 2 } else { 1 }
     }
   }
   count
@@ -1854,6 +1891,7 @@ fn rosidl_writer_method(type_name : String) -> String {
     "float32" => "write_f32"
     "float64" => "write_f64"
     "string" => "write_string"
+    "wstring" => "write_wstring"
     _ => ""
   }
 }
@@ -1875,6 +1913,7 @@ fn rosidl_reader_method(type_name : String) -> String {
     "float32" => "read_f32"
     "float64" => "read_f64"
     "string" => "read_string"
+    "wstring" => "read_wstring"
     _ => ""
   }
 }

@@ -72,11 +72,11 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
 - ROS topic descriptor から QoS付きSEDP topic/type identity への bridge
 - ROS 2 CDR_BE / CDR_LE encapsulationの読み取りと、CDR_LE (`00 01 00 00`) の生成
-- CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
+- CDRのprimitive、UTF-8 string、UTF-16 wide string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
-- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（タブ区切り、固定配列・bounded/unbounded sequence・bounded string、primitive scalar/array defaultと`::default()`生成に対応。整数定数は基数表記と型幅を検証、文字列定数は引用形式を解析、浮動小数点定数は指数表記を正規化、narrow integerの書き込み範囲を検証、生成codecは`Result`でエラーを返す）
-- `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（bounded string capacity・primitive・同一workspace内のnested type）
+- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（タブ区切り、固定配列・bounded/unbounded sequence・bounded string/wstring、wstringのUTF-16 CDR変換、primitive scalar/array defaultと`::default()`生成に対応。整数定数は基数表記と型幅を検証、文字列定数は引用形式を解析、浮動小数点定数は指数表記を正規化、narrow integerの書き込み範囲を検証、生成codecは`Result`でエラーを返す）
+- `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（bounded string/wstring capacity・primitive・同一workspace内のnested type）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator（区切り `---` は単独行として認識）
 - `.srv` のRIHS01 service型ハッシュ計算（primitiveは直接、nestedはworkspace経由）
 - primitive request/response `.srv` の生成コードへの`<Service>_TYPE_HASH`定数埋め込み
@@ -142,6 +142,6 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 2. SPDP participant discovery（packet codec、DATA/DATA_FRAG受信 dispatch、周期 announcement は実装済み）
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
-5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
+5. `geometry_msgs/Twist`などのROS message codec（primitive・UTF-16 wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）

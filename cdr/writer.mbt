@@ -194,6 +194,102 @@ pub fn Writer::write_bounded_string(
   Ok(())
 }
 
+///| Write a ROS wide string as a length-prefixed UTF-16 sequence.
+pub fn Writer::write_wstring(self : Writer, value : String) -> Result[Unit, String] {
+  let units = match cdr_utf16_code_units(value) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.write_u32(units.length().reinterpret_as_uint())
+  for unit in units {
+    self.write_u16_uint(unit)
+  }
+  Ok(())
+}
+
+///| Write a ROS wide string if it fits within its UTF-16 code-unit bound.
+pub fn Writer::write_bounded_wstring(
+  self : Writer,
+  value : String,
+  maximum_length : Int,
+) -> Result[Unit, String] {
+  if maximum_length < 0 {
+    return Err("a CDR wide-string bound must not be negative")
+  }
+  let units = match cdr_utf16_code_units(value) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if units.length() > maximum_length {
+    return Err("CDR wide string exceeds its code-unit bound")
+  }
+  self.write_u32(units.length().reinterpret_as_uint())
+  for unit in units {
+    self.write_u16_uint(unit)
+  }
+  Ok(())
+}
+
+///|
+fn cdr_utf16_code_units(value : String) -> Result[Array[UInt], String] {
+  let bytes = @utf8.encode(value)
+  let units : Array[UInt] = []
+  let mut index = 0
+  while index < bytes.length() {
+    let first = bytes[index].to_int()
+    let (codepoint, width) = if first <= 0x7F {
+      (first, 1)
+    } else if first >= 0xC2 && first <= 0xDF && index + 1 < bytes.length() {
+      let second = bytes[index + 1].to_int()
+      if second < 0x80 || second > 0xBF {
+        return Err("invalid UTF-8 in CDR wide string")
+      }
+      (((first & 0x1F) << 6) | (second & 0x3F), 2)
+    } else if first >= 0xE0 && first <= 0xEF && index + 2 < bytes.length() {
+      let second = bytes[index + 1].to_int()
+      let third = bytes[index + 2].to_int()
+      if second < 0x80 || second > 0xBF || third < 0x80 || third > 0xBF ||
+        (first == 0xE0 && second < 0xA0) ||
+        (first == 0xED && second >= 0xA0) {
+        return Err("invalid UTF-8 in CDR wide string")
+      }
+      (
+        ((first & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F),
+        3,
+      )
+    } else if first >= 0xF0 && first <= 0xF4 && index + 3 < bytes.length() {
+      let second = bytes[index + 1].to_int()
+      let third = bytes[index + 2].to_int()
+      let fourth = bytes[index + 3].to_int()
+      if second < 0x80 || second > 0xBF || third < 0x80 || third > 0xBF ||
+        fourth < 0x80 || fourth > 0xBF ||
+        (first == 0xF0 && second < 0x90) ||
+        (first == 0xF4 && second > 0x8F) {
+        return Err("invalid UTF-8 in CDR wide string")
+      }
+      (
+        ((first & 0x07) << 18) | ((second & 0x3F) << 12) |
+        ((third & 0x3F) << 6) | (fourth & 0x3F),
+        4,
+      )
+    } else {
+      return Err("invalid UTF-8 in CDR wide string")
+    }
+    if codepoint == 0 {
+      return Err("CDR wide strings must not contain NUL")
+    }
+    if codepoint <= 0xFFFF {
+      units.push(codepoint.reinterpret_as_uint())
+    } else {
+      let supplementary = codepoint - 0x10000
+      units.push((0xD800 + (supplementary >> 10)).reinterpret_as_uint())
+      units.push((0xDC00 + (supplementary & 0x3FF)).reinterpret_as_uint())
+    }
+    index += width
+  }
+  Ok(units)
+}
+
 ///|
 fn cdr_utf8_character_count(value : String) -> Int {
   let encoded = @utf8.encode(value)

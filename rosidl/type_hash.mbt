@@ -25,6 +25,7 @@ fn rosidl_hash_primitive_type_id(type_name : String) -> Result[Int, String] {
     "bool" => Ok(15)
     "byte" => Ok(16)
     "string" => Ok(17)
+    "wstring" => Ok(18)
     _ => Err("the ROS field is a nested type")
   }
 }
@@ -51,11 +52,10 @@ fn rosidl_hash_field_type_json(
   nested_type_name : String,
 ) -> Result[String, String] {
   let base_type_id = match field.string_upper_bound() {
-    Some(_) => {
-      if field.type_name() != "string" {
-        return Err("a string upper bound requires a string field")
-      }
-      21
+    Some(_) => match field.type_name() {
+      "string" => 21
+      "wstring" => 22
+      _ => return Err("a string upper bound requires a string field")
     }
     None =>
       match rosidl_hash_primitive_type_id(field.type_name()) {

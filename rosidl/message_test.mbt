@@ -184,6 +184,36 @@ test "ROS string field defaults preserve assignment characters" {
 }
 
 ///|
+test "ROS message parser generates CDR codecs for wide strings" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "WideStrings",
+    "wstring LABEL=\"猫\"\nwstring data\nwstring<=4 label\nwstring<=2 bounded \"🙂\"\nwstring[] values [\"猫\", \"🙂\"]",
+  ).unwrap()
+  assert_eq(definition.constants()[0].value(), "\"猫\"")
+  assert_eq(definition.fields()[0].type_name(), "wstring")
+  assert_eq(definition.fields()[1].string_upper_bound(), Some(4))
+  assert_eq(definition.fields()[2].default_value(), Some("\"🙂\""))
+  assert_eq(
+    definition.fields()[3].default_value(),
+    Some("[\"猫\", \"🙂\"]"),
+  )
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("data : String"))
+  assert_true(generated.contains("writer.write_wstring(self.data)"))
+  assert_true(generated.contains("reader.read_wstring()"))
+  assert_true(generated.contains("writer.write_bounded_wstring(self.label, 4)"))
+  assert_true(generated.contains("pub const LABEL : String = \"猫\""))
+  assert_true(generated.contains("let bounded : String = \"🙂\""))
+  assert_true(
+    parse_message(
+      "demo", "msg", "TooWide", "wstring<=1 value \"🙂\"",
+    ) is Err(_),
+  )
+}
+
+///|
 test "ROS message parser rejects malformed primitive field defaults" {
   assert_true(parse_message("demo", "msg", "Invalid", "int8 value 128") is Err(_))
   assert_true(
