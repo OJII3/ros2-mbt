@@ -411,6 +411,40 @@ async test "discovery service announces SEDP to all discovered participants" {
     service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
     3L,
   )
+  match service.dispose_sedp_to_all(endpoint) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (disposed_data, _) = match remote_receiver.receive_data() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(disposed_data.writer_sequence_number(), 3L)
+  assert_eq(disposed_data.serialized_payload(), endpoint.endpoint_guid().to_bytes())
+  assert_eq(
+    disposed_data.status_info(),
+    Ok(Some(@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)),
+  )
+  let (dispose_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  let (second_disposed_data, _) = match second_remote_receiver.receive_data() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(second_disposed_data.writer_sequence_number(), 3L)
+  let (second_dispose_heartbeat, _) = match
+    second_remote_receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(dispose_heartbeat.count(), 3U)
+  assert_eq(second_dispose_heartbeat.count(), 3U)
+  assert_eq(
+    service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
+    4L,
+  )
   service.close()
   remote_receiver.close()
   second_remote_receiver.close()

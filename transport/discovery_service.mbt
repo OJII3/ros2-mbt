@@ -74,6 +74,28 @@ async fn DiscoveryService::send_sedp_to_participant(
   )
 }
 
+///| Send one SEDP endpoint dispose sample to a participant.
+async fn DiscoveryService::send_sedp_dispose_to_participant(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  remote_participant : @rtps.SpdpParticipantData,
+  sequence_number : Int64,
+  heartbeat_count : UInt,
+) -> Result[Unit, String] {
+  match
+    self.session.remember_sedp_dispose_sample(endpoint, sequence_number) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  self.session.socket.send_sedp_dispose_to_participant_with_heartbeat_count(
+    endpoint,
+    self.session.participant.vendor_id(),
+    remote_participant,
+    sequence_number,
+    heartbeat_count,
+  )
+}
+
 ///|
 /// Send one local SEDP endpoint announcement to a discovered participant.
 pub async fn DiscoveryService::announce_sedp_once(
@@ -152,6 +174,45 @@ pub async fn DiscoveryService::announce_sedp_to_all(
     sent = true
     match
       self.send_sedp_to_participant(
+        endpoint, remote_participant, sequence_number, heartbeat_count,
+      ) {
+      Ok(_) => ()
+      Err(message) => {
+        self.advance_sedp_counters(endpoint.kind())
+        return Err(message)
+      }
+    }
+  }
+  if sent {
+    self.advance_sedp_counters(endpoint.kind())
+  }
+  Ok(())
+}
+
+///| Send a local SEDP endpoint dispose sample to every discovered participant.
+pub async fn DiscoveryService::dispose_sedp_to_all(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  let local_guid = self.session.participant.participant_guid()
+  let sequence_number = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_sequence_number
+  }
+  let heartbeat_count = match endpoint.kind() {
+    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
+    @rtps.SedpEndpointKind::Subscription =>
+      self.next_subscription_heartbeat_count
+  }
+  let mut sent = false
+  for remote_participant in self.graph.participants() {
+    if remote_participant.participant_guid() == local_guid {
+      continue
+    }
+    sent = true
+    match
+      self.send_sedp_dispose_to_participant(
         endpoint, remote_participant, sequence_number, heartbeat_count,
       ) {
       Ok(_) => ()

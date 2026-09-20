@@ -165,9 +165,10 @@ pub async fn DiscoverySession::announce_once(
   self.announce_once_on(self.socket)
 }
 
-///| Send a key-only SPDP dispose sample for the local participant.
-pub async fn DiscoverySession::dispose_once(
+///| Send the local participant dispose through a caller-provided socket.
+async fn DiscoverySession::dispose_once_on(
   self : DiscoverySession,
+  socket : Udp,
 ) -> Result[Unit, String] {
   let sequence_number = self.next_sequence_number
   let data = self.participant.to_dispose_data_submessage(
@@ -176,7 +177,7 @@ pub async fn DiscoverySession::dispose_once(
     sequence_number,
   )
   match
-    self.socket.send_message(
+    socket.send_message(
       data.to_message(
         self.participant.participant_guid().prefix(),
         self.participant.vendor_id(),
@@ -189,6 +190,13 @@ pub async fn DiscoverySession::dispose_once(
     }
     Err(message) => Err(message)
   }
+}
+
+///| Send a key-only SPDP dispose sample for the local participant.
+pub async fn DiscoverySession::dispose_once(
+  self : DiscoverySession,
+) -> Result[Unit, String] {
+  self.dispose_once_on(self.socket)
 }
 
 ///| Send one SPDP announcement through a caller-provided socket.
@@ -350,10 +358,20 @@ fn DiscoverySession::remember_sedp_sample(
       kind.builtin_reader_id(),
       kind.builtin_writer_id(),
       sequence_number,
-    ) {
+  ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  self.remember_sedp_data(kind, sequence_number, sample)
+}
+
+///| Retain one SEDP DATA sample for ACKNACK-driven retransmission.
+fn DiscoverySession::remember_sedp_data(
+  self : DiscoverySession,
+  kind : @rtps.SedpEndpointKind,
+  sequence_number : Int64,
+  sample : @rtps.DataSubmessage,
+) -> Result[Unit, String] {
   let index = self.sedp_writer_index(kind)
   for sample_index in 0..<self.sedp_writers[index].samples.length() {
     if self.sedp_writers[index].samples[sample_index].writer_sequence_number() ==
@@ -364,6 +382,21 @@ fn DiscoverySession::remember_sedp_sample(
   }
   self.sedp_writers[index].samples.push(sample)
   Ok(())
+}
+
+///| Retain one SEDP endpoint dispose sample for ACKNACK-driven retransmission.
+fn DiscoverySession::remember_sedp_dispose_sample(
+  self : DiscoverySession,
+  endpoint : @rtps.SedpEndpointData,
+  sequence_number : Int64,
+) -> Result[Unit, String] {
+  let kind = endpoint.kind()
+  let sample = endpoint.to_dispose_data_submessage(
+    kind.builtin_reader_id(),
+    kind.builtin_writer_id(),
+    sequence_number,
+  )
+  self.remember_sedp_data(kind, sequence_number, sample)
 }
 
 ///|

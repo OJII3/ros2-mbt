@@ -623,6 +623,35 @@ pub async fn RosParticipant::announce_spdp_forever(
   Ok(())
 }
 
+///| Send SEDP/SPDP disposal samples and close all participant sockets.
+pub async fn RosParticipant::dispose_and_close(
+  self : RosParticipant,
+) -> Result[Unit, String] {
+  for endpoint in self.local_endpoints {
+    match self.discovery.dispose_sedp_to_all(endpoint) {
+      Ok(_) => ()
+      Err(message) => {
+        self.close()
+        return Err(message)
+      }
+    }
+  }
+  let spdp_result = match self.spdp_socket {
+    Some(socket) => self.discovery.session.dispose_once_on(socket)
+    None => self.discovery.session.dispose_once()
+  }
+  match spdp_result {
+    Ok(_) => {
+      self.close()
+      Ok(())
+    }
+    Err(message) => {
+      self.close()
+      Err(message)
+    }
+  }
+}
+
 ///|
 /// Receive one SPDP or SEDP event and ingest it into the graph.
 pub async fn RosParticipant::receive_discovery_once(

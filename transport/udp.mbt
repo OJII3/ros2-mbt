@@ -519,6 +519,84 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
   Ok(())
 }
 
+///| Send an SEDP endpoint dispose sample to all advertised metatraffic locators.
+pub async fn Udp::send_sedp_dispose_to_participant(
+  self : Udp,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  remote_participant : @rtps.SpdpParticipantData,
+  writer_sequence_number : Int64,
+) -> Result[Unit, String] {
+  self.send_sedp_dispose_to_participant_with_heartbeat_count(
+    endpoint, vendor_id, remote_participant, writer_sequence_number, 1U,
+  )
+}
+
+///| Send an SEDP endpoint dispose with an explicit reliable HEARTBEAT count.
+pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(
+  self : Udp,
+  endpoint : @rtps.SedpEndpointData,
+  vendor_id : @rtps.VendorId,
+  remote_participant : @rtps.SpdpParticipantData,
+  writer_sequence_number : Int64,
+  heartbeat_count : UInt,
+) -> Result[Unit, String] {
+  let kind = endpoint.kind()
+  let reader_id = kind.builtin_reader_id()
+  let writer_id = kind.builtin_writer_id()
+  let unicast_locators = remote_participant.metatraffic_unicast_locators()
+  let locators = if unicast_locators.length() > 0 {
+    unicast_locators
+  } else {
+    remote_participant.metatraffic_multicast_locators()
+  }
+  if locators.length() == 0 {
+    return Err("the remote participant has no metatraffic locators")
+  }
+  let destinations = match udp_locator_to_addrs(locators) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for destination in destinations {
+    let endpoint_message = endpoint.to_dispose_data_submessage(
+      reader_id,
+      writer_id,
+      writer_sequence_number,
+    ).to_message(
+      endpoint.participant_guid().prefix(),
+      vendor_id,
+    ).with_destination_guid_prefix(
+      remote_participant.participant_guid().prefix(),
+    )
+    match self.send_message(endpoint_message, destination) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    let heartbeat = match
+      @rtps.HeartbeatSubmessage::new(
+        reader_id, writer_id, writer_sequence_number, writer_sequence_number,
+        heartbeat_count,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match
+      self.send_message(
+        heartbeat.to_message(
+          endpoint.participant_guid().prefix(),
+          vendor_id,
+        ).with_destination_guid_prefix(
+          remote_participant.participant_guid().prefix(),
+        ),
+        destination,
+      ) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
 ///|
 /// Receive the first SEDP endpoint DATA submessage in a UDP datagram.
 pub async fn Udp::receive_sedp(

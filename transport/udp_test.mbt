@@ -407,6 +407,31 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     Err(message) => fail(message)
   }
   assert_eq(heartbeat.last_sequence_number(), 1L)
+  match
+    sender.send_sedp_dispose_to_participant(
+      endpoint,
+      @rtps.VendorId::new(1, 15),
+      remote_participant,
+      2L,
+    ) {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  let (disposed, _) = match receiver.receive_data() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(disposed.writer_sequence_number(), 2L)
+  assert_eq(disposed.serialized_payload(), endpoint.endpoint_guid().to_bytes())
+  assert_eq(
+    disposed.status_info(),
+    Ok(Some(@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)),
+  )
+  let (dispose_heartbeat, _) = match receiver.receive_heartbeat() {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(dispose_heartbeat.last_sequence_number(), 2L)
   sender.close()
   receiver.close()
 }
