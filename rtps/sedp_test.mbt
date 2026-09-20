@@ -410,6 +410,27 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
 }
 
 ///|
+test "SEDP rejects invalid reliability, durability, and history QoS" {
+  let invalid_parameters = [
+    qos_reliability(0U, 0, 0),
+    Parameter::new(PID_RELIABILITY, b"\x02\x00\x00\x00"),
+    qos_durability(4U),
+    qos_history(2U, 1),
+    qos_history(HISTORY_KEEP_LAST, 0),
+  ]
+  for parameter in invalid_parameters {
+    let endpoint = SedpEndpointData::new(
+      SedpEndpointKind::Publication,
+      sedp_test_guid(0xC2).unwrap(),
+      "rt/chatter",
+      "std_msgs::msg::dds_::String_",
+    ).unwrap()
+    endpoint.add_parameter(parameter)
+    assert_true(endpoint.qos() is Err(_))
+  }
+}
+
+///|
 test "SEDP omitted reliability defaults depend on endpoint kind" {
   let publication = SedpEndpointData::new(
     SedpEndpointKind::Publication,

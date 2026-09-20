@@ -480,11 +480,20 @@ pub fn SedpEndpointData::qos(
   let mut liveliness_lease_fraction = defaults.liveliness_lease_fraction
   for parameter in self.extra_parameters {
     match parameter.id() {
-      PID_RELIABILITY =>
-        reliability = match sedp_qos_u32(parameter.value(), "reliability") {
+      PID_RELIABILITY => {
+        let value = parameter.value()
+        if value.length() < 12 {
+          return Err("SEDP reliability parameter is truncated")
+        }
+        reliability = match sedp_qos_u32(value, "reliability") {
           Ok(value) => value
           Err(message) => return Err(message)
         }
+        match sedp_qos_duration(value, 4, "reliability max blocking time") {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      }
       PID_DURABILITY =>
         durability = match sedp_qos_u32(parameter.value(), "durability") {
           Ok(value) => value
@@ -545,6 +554,19 @@ pub fn SedpEndpointData::qos(
         }
       _ => ()
     }
+  }
+  if reliability != RELIABILITY_BEST_EFFORT &&
+    reliability != RELIABILITY_RELIABLE {
+    return Err("SEDP reliability kind is invalid")
+  }
+  if durability > DURABILITY_PERSISTENT {
+    return Err("SEDP durability kind is invalid")
+  }
+  if history != HISTORY_KEEP_LAST && history != HISTORY_KEEP_ALL {
+    return Err("SEDP history kind is invalid")
+  }
+  if history == HISTORY_KEEP_LAST && depth <= 0 {
+    return Err("SEDP keep-last history depth must be positive")
   }
   let qos = SedpQos::new(reliability, durability, history, depth)
     .with_data_representation(data_representation)
