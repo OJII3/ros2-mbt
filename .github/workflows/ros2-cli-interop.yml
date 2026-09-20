@@ -17,17 +17,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up ROS 2 Jazzy
-        uses: ros-tooling/setup-ros@77bcad67a6cb15f6192d61464d99bbab658e4ca9 # 0.7.18
+        uses: ros-tooling/setup-ros@649ef6bcd696da05bc27ceb3fab69d810c0daeab # 0.7.19
         with:
           required-ros-distributions: jazzy
 
       - name: Set up Nix
-        uses: DeterminateSystems/nix-installer-action@129f07902485941992791c670de648dbe572a9ac # v3
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
       - name: Run native test suite
         run: nix develop --command moon test --target native
 
-      - name: Verify ROS 2 CLI discovery and topic receive
+      - name: Verify bidirectional ROS 2 CLI topic interoperability
         env:
           ROS_DOMAIN_ID: "42"
           ROS_LOCALHOST_ONLY: "1"
