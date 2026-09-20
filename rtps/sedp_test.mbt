@@ -319,6 +319,33 @@ test "SEDP reads basic QoS and checks offered compatibility" {
 }
 
 ///|
+test "SEDP omitted reliability defaults depend on endpoint kind" {
+  let publication = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    sedp_test_guid(0xC2).unwrap(),
+    "rr/add_two_intsReply",
+    "example_interfaces::srv::dds_::AddTwoInts_Response_",
+  ).unwrap()
+  publication.add_parameter(qos_durability(DURABILITY_VOLATILE))
+  assert_eq(
+    publication.qos().unwrap().reliability(),
+    RELIABILITY_RELIABLE,
+  )
+
+  let subscription = SedpEndpointData::new(
+    SedpEndpointKind::Subscription,
+    sedp_test_guid(0xC7).unwrap(),
+    "rq/add_two_intsRequest",
+    "example_interfaces::srv::dds_::AddTwoInts_Request_",
+  ).unwrap()
+  subscription.add_parameter(qos_durability(DURABILITY_VOLATILE))
+  assert_eq(
+    subscription.qos().unwrap().reliability(),
+    RELIABILITY_BEST_EFFORT,
+  )
+}
+
+///|
 test "SEDP matches endpoints only when data representations overlap" {
   let publication = SedpEndpointData::new(
     SedpEndpointKind::Publication,

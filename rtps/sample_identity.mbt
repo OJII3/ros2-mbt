@@ -52,14 +52,16 @@ pub fn SampleIdentity::to_bytes(self : SampleIdentity) -> Bytes {
     bytes.push(guid[i])
   }
   let value = self.sequence_number.reinterpret_as_uint64()
-  bytes.push(value.to_byte())
-  bytes.push((value >> 8).to_byte())
-  bytes.push((value >> 16).to_byte())
-  bytes.push((value >> 24).to_byte())
-  bytes.push((value >> 32).to_byte())
-  bytes.push((value >> 40).to_byte())
-  bytes.push((value >> 48).to_byte())
-  bytes.push((value >> 56).to_byte())
+  let high = value >> 32
+  let low = value & 0xFFFFFFFFL.reinterpret_as_uint64()
+  bytes.push(high.to_byte())
+  bytes.push((high >> 8).to_byte())
+  bytes.push((high >> 16).to_byte())
+  bytes.push((high >> 24).to_byte())
+  bytes.push(low.to_byte())
+  bytes.push((low >> 8).to_byte())
+  bytes.push((low >> 16).to_byte())
+  bytes.push((low >> 24).to_byte())
   Bytes::from_array(bytes)
 }
 
@@ -76,9 +78,15 @@ pub fn SampleIdentity::from_bytes(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let sequence_number = match input[16:24] {
-    [u64le(value)] => value.reinterpret_as_int64()
+  let high = match input[16:20] {
+    [u32le(value)] => value
     _ => return Err("an RTPS sample identity sequence number is 8 bytes")
   }
+  let low = match input[20:24] {
+    [u32le(value)] => value
+    _ => return Err("an RTPS sample identity sequence number is 8 bytes")
+  }
+  let sequence_number =
+    ((high.to_uint64() << 32) | low.to_uint64()).reinterpret_as_int64()
   SampleIdentity::new(writer_guid, sequence_number)
 }

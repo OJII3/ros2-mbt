@@ -123,6 +123,9 @@ test "ROS graph endpoint validation requires reliable matching SEDP data" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  endpoint.add_parameter(
+    @rtps.qos_reliability(@rtps.RELIABILITY_BEST_EFFORT, 0, 0),
+  )
   assert_true(
     @ros.validate_ros_discovery_info_endpoint(
       endpoint,

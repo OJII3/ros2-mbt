@@ -124,7 +124,7 @@ ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service
 ```
 
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
-Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS系のinline `RELATED_SAMPLE_IDENTITY`形式も従来どおり利用できます。ROS graph用の`ros_discovery_info`も、公式IDLで生成したCyclone DDS readerとの受信を確認済みです。ROS 2 CLIそのものとのservice実通信は未実施です。
+Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerとの受信を確認済みです。ROS 2 CLIそのものとのservice実通信、およびFast DDSとのgraph相互運用は未実施です。
 
 ## Roadmap
 
@@ -134,4 +134,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
-7. Cyclone DDS / Fast DDSとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic双方向を確認済み。Fast DDS service/graphおよびROS 2 CLIは未確認）
+7. Cyclone DDS / Fast DDSとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向を確認済み。Fast DDS graphおよびROS 2 CLIは未確認）

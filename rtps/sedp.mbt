@@ -138,7 +138,7 @@ pub fn SedpQos::data_representation(self : SedpQos) -> Array[UInt16] {
 }
 
 ///|
-/// DDS defaults used when an SEDP endpoint omits a recognized QoS policy.
+/// Best-effort defaults used when a topic descriptor has no explicit QoS.
 pub fn SedpQos::default() -> SedpQos {
   SedpQos::new(
     RELIABILITY_BEST_EFFORT,
@@ -308,7 +308,12 @@ pub fn SedpEndpointData::qos(
   self : SedpEndpointData,
 ) -> Result[SedpQos, String] {
   let defaults = SedpQos::default()
-  let mut reliability = defaults.reliability
+  // DDSI-RTPS uses Reliable as the publication default and Best Effort as
+  // the subscription default, so Fast DDS may omit PID_RELIABILITY.
+  let mut reliability = match self.kind {
+    SedpEndpointKind::Publication => RELIABILITY_RELIABLE
+    SedpEndpointKind::Subscription => defaults.reliability
+  }
   let mut durability = defaults.durability
   let mut history = defaults.history
   let mut depth = defaults.depth
