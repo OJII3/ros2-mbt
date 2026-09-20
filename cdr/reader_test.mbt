@@ -80,9 +80,9 @@ test "CDR reader round trips strings and sequences" {
 }
 
 ///|
-test "CDR reader decodes UTF-16 wide strings" {
+test "CDR reader decodes widened UTF-16 wide strings" {
   let reader = Reader::from_bytes(
-    b"\x00\x01\x00\x00\x04\x00\x00\x00\x41\x00\x2B\x73\x3D\xD8\x42\xDE",
+    b"\x00\x01\x00\x00\x04\x00\x00\x00\x41\x00\x00\x00\x2B\x73\x00\x00\x3D\xD8\x00\x00\x42\xDE\x00\x00",
   ).unwrap()
   assert_eq(reader.read_wstring(), Ok("A猫🙂"))
   assert_eq(reader.remaining(), 0)
@@ -101,14 +101,14 @@ test "CDR reader enforces bounded wide-string code-unit counts" {
 }
 
 ///|
-test "CDR reader rejects malformed UTF-16 wide strings" {
+test "CDR reader rejects malformed widened UTF-16 wide strings" {
   let high_surrogate = Reader::from_bytes(
-    b"\x00\x01\x00\x00\x01\x00\x00\x00\x00\xD8",
+    b"\x00\x01\x00\x00\x01\x00\x00\x00\x00\xD8\x00\x00",
   ).unwrap()
   assert_true(high_surrogate.read_wstring() is Err(_))
 
   let nul_character = Reader::from_bytes(
-    b"\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00",
+    b"\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00",
   ).unwrap()
   assert_true(nul_character.read_wstring() is Err(_))
 }

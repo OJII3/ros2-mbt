@@ -194,20 +194,25 @@ pub fn Writer::write_bounded_string(
   Ok(())
 }
 
-///| Write a ROS wide string as a length-prefixed UTF-16 sequence.
-pub fn Writer::write_wstring(self : Writer, value : String) -> Result[Unit, String] {
+///|
+/// Write a ROS wide string as UTF-16 code units widened to CDR wchar.
+pub fn Writer::write_wstring(
+  self : Writer,
+  value : String,
+) -> Result[Unit, String] {
   let units = match cdr_utf16_code_units(value) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   self.write_u32(units.length().reinterpret_as_uint())
   for unit in units {
-    self.write_u16_uint(unit)
+    self.write_u32(unit)
   }
   Ok(())
 }
 
-///| Write a ROS wide string if it fits within its UTF-16 code-unit bound.
+///|
+/// Write a ROS wide string if it fits within its UTF-16 code-unit bound.
 pub fn Writer::write_bounded_wstring(
   self : Writer,
   value : String,
@@ -225,7 +230,7 @@ pub fn Writer::write_bounded_wstring(
   }
   self.write_u32(units.length().reinterpret_as_uint())
   for unit in units {
-    self.write_u16_uint(unit)
+    self.write_u32(unit)
   }
   Ok(())
 }

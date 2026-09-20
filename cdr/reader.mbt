@@ -324,20 +324,22 @@ pub fn Reader::read_bounded_string(
   Ok(value)
 }
 
-///| Read a length-prefixed UTF-16 ROS wide string.
+///|
+/// Read a ROS wide string encoded as widened UTF-16 code units.
 pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
   let length = match self.read_u32() {
     Ok(value) => value.reinterpret_as_int()
     Err(message) => return Err(message)
   }
-  if length < 0 || length > self.remaining() / 2 {
+  if length < 0 || length > self.remaining() / 4 {
     return Err("a CDR wide string is truncated")
   }
   let encoded : Array[Byte] = []
   let mut index = 0
   while index < length {
-    let first = match self.read_u16() {
-      Ok(value) => value.reinterpret_as_int()
+    let first = match self.read_u32() {
+      Ok(value) if value <= 0xFFFFU => value.reinterpret_as_int()
+      Ok(_) => return Err("CDR wide string contains a non-UTF-16 code unit")
       Err(message) => return Err(message)
     }
     if first == 0 {
@@ -347,8 +349,9 @@ pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
       if index + 1 >= length {
         return Err("CDR wide string contains an incomplete surrogate pair")
       }
-      let second = match self.read_u16() {
-        Ok(value) => value.reinterpret_as_int()
+      let second = match self.read_u32() {
+        Ok(value) if value <= 0xFFFFU => value.reinterpret_as_int()
+        Ok(_) => return Err("CDR wide string contains a non-UTF-16 code unit")
         Err(message) => return Err(message)
       }
       if second < 0xDC00 || second > 0xDFFF {
@@ -369,7 +372,8 @@ pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
   }
 }
 
-///| Read a UTF-16 ROS wide string and enforce its code-unit bound.
+///|
+/// Read a UTF-16 ROS wide string and enforce its code-unit bound.
 pub fn Reader::read_bounded_wstring(
   self : Reader,
   maximum_length : Int,

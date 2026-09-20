@@ -15,6 +15,10 @@ echo_log="$tmp_dir/topic-echo.log"
 talker_log="$tmp_dir/moonbit-talker.log"
 listener_log="$tmp_dir/moonbit-listener.log"
 publisher_log="$tmp_dir/topic-pub.log"
+wstring_echo_log="$tmp_dir/wstring-topic-echo.log"
+wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
+wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
+wstring_publisher_log="$tmp_dir/wstring-topic-pub.log"
 moon_service_log="$tmp_dir/moonbit-service-server.log"
 service_call_log="$tmp_dir/ros2-service-call.log"
 ros_service_log="$tmp_dir/ros2-service-server.log"
@@ -54,6 +58,8 @@ cleanup() {
   fi
   if [[ $exit_status -ne 0 ]]; then
     cat "$talker_log" "$echo_log" "$listener_log" "$publisher_log" \
+      "$wstring_talker_log" "$wstring_echo_log" \
+      "$wstring_listener_log" "$wstring_publisher_log" \
       "$moon_service_log" "$service_call_log" "$ros_service_log" \
       "$moon_client_log" 2>/dev/null || true
   fi
@@ -151,6 +157,41 @@ listener_pid=""
 received_count=$(grep -Fxc "hello from ROS 2" "$listener_log" || true)
 if [[ "$received_count" -ne 5 ]]; then
   echo "MoonBit listener received $received_count of 5 ROS 2 String samples"
+  exit 1
+fi
+
+timeout --kill-after=2s 45s ros2 topic echo /wide_chatter \
+  example_interfaces/msg/WString --qos-reliability reliable --once \
+  >"$wstring_echo_log" 2>&1 &
+echo_pid=$!
+timeout --kill-after=2s 45s nix develop --command moon run \
+  examples/wstring_talker >"$wstring_talker_log" 2>&1 &
+talker_pid=$!
+wait_for_ros_endpoint "/demo/moon_wstring_talker" "$talker_pid" \
+  "Publishers" "/wide_chatter"
+wait "$talker_pid"
+talker_pid=""
+wait "$echo_pid"
+echo_pid=""
+if ! grep -Fq "wide こんにちは 🙂 #" "$wstring_echo_log"; then
+  echo "ROS 2 CLI did not receive a MoonBit WString sample"
+  exit 1
+fi
+
+timeout --kill-after=2s 45s nix develop --command moon run \
+  examples/wstring_listener >"$wstring_listener_log" 2>&1 &
+listener_pid=$!
+wait_for_ros_endpoint "/demo/moon_wstring_listener" "$listener_pid" \
+  "Subscribers" "/wide_chatter"
+timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
+  --qos-reliability reliable /wide_chatter example_interfaces/msg/WString \
+  "{data: 'wide こんにちは 🙂'}" >"$wstring_publisher_log" 2>&1
+wait "$listener_pid"
+listener_pid=""
+
+received_count=$(grep -Fxc "wide こんにちは 🙂" "$wstring_listener_log" || true)
+if [[ "$received_count" -ne 5 ]]; then
+  echo "MoonBit listener received $received_count of 5 ROS 2 WString samples"
   exit 1
 fi
 

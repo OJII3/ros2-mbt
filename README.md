@@ -72,16 +72,17 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
 - ROS topic descriptor から QoS付きSEDP topic/type identity への bridge
 - ROS 2 CDR_BE / CDR_LE encapsulationの読み取りと、CDR_LE (`00 01 00 00`) の生成
-- CDRのprimitive、UTF-8 string、UTF-16 wide string、byte sequenceのエンコード/デコード
+- CDRのprimitive、UTF-8 string、Fast-CDR互換wide string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
-- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（タブ区切り、固定配列・bounded/unbounded sequence・bounded string/wstring、wstringのUTF-16 CDR変換、primitive scalar/array defaultと`::default()`生成に対応。整数定数は基数表記と型幅を検証、文字列定数は引用形式を解析、浮動小数点定数は指数表記を正規化、narrow integerの書き込み範囲を検証、生成codecは`Result`でエラーを返す）
+- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（タブ区切り、固定配列・bounded/unbounded sequence・bounded string/wstring、Fast-CDR互換wide stringのUTF-16 code unit変換、primitive scalar/array defaultと`::default()`生成に対応。整数定数は基数表記と型幅を検証、文字列定数は引用形式を解析、浮動小数点定数は指数表記を正規化、narrow integerの書き込み範囲を検証、生成codecは`Result`でエラーを返す）
 - `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（bounded string/wstring capacity・primitive・同一workspace内のnested type）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator（区切り `---` は単独行として認識）
 - `.srv` のRIHS01 service型ハッシュ計算（primitiveは直接、nestedはworkspace経由）
 - primitive request/response `.srv` の生成コードへの`<Service>_TYPE_HASH`定数埋め込み
 - 複数 `.msg` source の依存順解決と外部ROS package向けMoonBit import生成
 - `std_msgs/msg/String` を外部ROS 2と送受信する実行可能な `examples/talker` / `examples/listener`
+- `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
 - `example_interfaces/srv/AddTwoInts` を外部ROS 2と呼び出す実行可能な `examples/service_server` / `examples/service_client`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
@@ -98,6 +99,7 @@ moon test --target native
 
 ROS 2 Jazzy CLIとの相互運用テストを行う場合は、専用devShellに入ります。
 `ros-core`、`demo-nodes-cpp`、`example-interfaces` が利用可能です。
+WString codecはNix devShellのROS 2 Jazzy/Fast DDSで実測したFast-CDR互換表現（UTF-16 code unitを32-bit wcharとして符号化）を使います。DDS-XTypesの標準wide-string表現とは異なる実装があるため、他DDSとの相互運用は別途確認が必要です。
 
 ```sh
 nix develop .#ros2
@@ -121,7 +123,7 @@ ros2 topic pub --qos-reliability reliable /chatter std_msgs/msg/String "{data: h
 direnv exec . moon run examples/listener
 ```
 
-`examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、相手のreliability QoSに合わせて `std_msgs/msg/String` を5件送信します。`examples/listener` もpublicationのQoSに応じたreaderを選択し、5件受信してCDRを復号します。両exampleともnode identityを設定し、endpoint登録・発見時の`ros_discovery_info`を自動更新します。`ROS2_MBT_IP` はMoonBit participantがDDSI locatorとして広告するローカルIPv4アドレスで、未設定時は `127.0.0.1` です。`ROS_DOMAIN_ID` はROS 2側と一致させ、未設定時は `0` です。ROS 2側のDDS実装と到達可能なネットワークで実行してください。macOSでは、依存しているUDP multicast socketの同一ポート共有がOSの負荷分散対象になるため、同一ホスト上で複数participantを動かす検証は不安定です。Cyclone DDS 11.0.1およびFast DDS 3.6.2とのtalker-listener双方向実通信は、固定unicast locatorを使った検証で確認済みです。Fast DDSではString sampleを双方向それぞれ5件受信しました。Nix devShellのROS 2 Jazzy CLIとのtopic/service双方向通信もmacOSで確認済みです。相互運用スクリプトの`ros2 node list` / `ros2 node info`によるgraph assertionはLinuxで実行し、macOSではmulticastの同一ポート共有が不安定なため省略します。
+`examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、相手のreliability QoSに合わせて `std_msgs/msg/String` を5件送信します。`examples/listener` もpublicationのQoSに応じたreaderを選択し、5件受信してCDRを復号します。WString用exampleも同じQoS選択で `/wide_chatter` を送受信します。両example群ともnode identityを設定し、endpoint登録・発見時の`ros_discovery_info`を自動更新します。`ROS2_MBT_IP` はMoonBit participantがDDSI locatorとして広告するローカルIPv4アドレスで、未設定時は `127.0.0.1` です。`ROS_DOMAIN_ID` はROS 2側と一致させ、未設定時は `0` です。ROS 2側のDDS実装と到達可能なネットワークで実行してください。macOSでは、依存しているUDP multicast socketの同一ポート共有がOSの負荷分散対象になるため、同一ホスト上で複数participantを動かす検証は不安定です。Cyclone DDS 11.0.1およびFast DDS 3.6.2とのtalker-listener双方向実通信は、固定unicast locatorを使った検証で確認済みです。Fast DDSではString sampleを双方向それぞれ5件受信しました。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みです。相互運用スクリプトの`ros2 node list` / `ros2 node info`によるgraph assertionはLinuxで実行し、macOSではmulticastの同一ポート共有が不安定なため省略します。
 
 serviceの動作確認は、MoonBit serverに対してROS 2 CLIまたはDDS clientから呼び出すか、ROS 2 serverを起動してMoonBit clientから呼び出します。
 
@@ -134,7 +136,7 @@ ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service
 ```
 
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
-Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのtopic/service双方向通信もmacOSで確認済みですが、ROS graph全体の相互運用は未確認です。
+Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みですが、ROS graph全体の相互運用は未確認です。
 
 ## Roadmap
 
@@ -142,6 +144,6 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 2. SPDP participant discovery（packet codec、DATA/DATA_FRAG受信 dispatch、周期 announcement は実装済み）
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
-5. `geometry_msgs/Twist`などのROS message codec（primitive・UTF-16 wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
+5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
