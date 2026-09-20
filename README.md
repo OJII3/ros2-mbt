@@ -57,7 +57,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `ros_discovery_info` 向けの reliable graph publisher/subscription facade
 - `RosTopic` と `std_msgs/msg/String` を使った loopback publisher/listener test
 - RTPS HEARTBEAT / ACKNACK の codec と UDP helper
-- reliable writer の送信履歴、HEARTBEAT、ACKNACK 指定再送
+- reliable writer の送信履歴、ACKNACK累積確認による履歴解放、HEARTBEAT、ACKNACK指定再送
 - reliable writer の大きい payload の DATA_FRAG送信、HEARTBEAT_FRAG、NACK_FRAG再送
 - reliable SEDP writer と UDP-backed reliable reader session
 - reliable reader の受信 sequence 管理と ACKNACK bitmap 生成

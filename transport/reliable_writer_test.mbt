@@ -62,9 +62,9 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
     @rtps.AckNackSubmessage::new(
       reader_id,
       writer_id,
-      1L,
-      2U,
-      [0x40000000U],
+      2L,
+      1U,
+      [0x80000000U],
       1U,
     ) {
     Ok(value) => value
@@ -80,6 +80,18 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
   }
   assert_eq(retransmitted.writer_sequence_number(), 2L)
   assert_eq(retransmitted.serialized_payload(), b"second")
+  assert_eq(writer.history_length(), 1)
+  let complete_acknack = @rtps.AckNackSubmessage::new(
+    reader_id,
+    writer_id,
+    3L,
+    0U,
+    [],
+    2U,
+  ).unwrap()
+  writer.handle_acknack(complete_acknack).unwrap()
+  assert_eq(writer.history_length(), 0)
+  writer.send_heartbeat().unwrap()
   writer.close()
   receiver.close()
 }
@@ -300,6 +312,23 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   ).unwrap()
   assert_eq(retransmitted.fragment_starting_number(), 2U)
   assert_eq(retransmitted.serialized_payload().length(), 1200)
+  writer.handle_acknack(
+    @rtps.AckNackSubmessage::new(
+      reader_id,
+      writer_id,
+      2L,
+      0U,
+      [],
+      2U,
+    ).unwrap(),
+  ).unwrap()
+  assert_eq(writer.history_length(), 0)
+  writer.handle_nackfrag(nackfrag).unwrap()
+  let after_acknowledgement = @async.with_timeout_opt(
+    20,
+    async fn() { receiver.receive_message() },
+  )
+  assert_true(after_acknowledgement is None)
   writer.close()
   receiver.close()
 }

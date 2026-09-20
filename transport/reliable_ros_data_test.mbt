@@ -98,9 +98,11 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
   }
   assert_eq(decoded.data(), message.data())
   assert_eq(heartbeat.last_sequence_number(), 1L)
-  assert_eq(acknack.bitmap(), [0U])
+  assert_eq(acknack.bitmap_base(), 2L)
+  assert_eq(acknack.num_bits(), 0U)
+  assert_eq(acknack.bitmap(), [])
   assert_eq(publisher.next_sequence_number(), 2L)
-  assert_eq(publisher.history_length(), 1)
+  assert_eq(publisher.history_length(), 0)
   assert_eq(subscriber.sample_count(), 1)
   assert_eq(source.ip(), 0x7F000001U)
   publisher.close()

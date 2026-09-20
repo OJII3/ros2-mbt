@@ -144,8 +144,9 @@ async test "reliable reader session receives discovered publication data" {
   assert_eq(decoded.serialized_payload(), b"payload")
   assert_eq(heartbeat.last_sequence_number(), 1L)
   assert_eq(heartbeat.count(), 1U)
-  assert_eq(acknack.num_bits(), 1U)
-  assert_eq(acknack.bitmap(), [0U])
+  assert_eq(acknack.bitmap_base(), 2L)
+  assert_eq(acknack.num_bits(), 0U)
+  assert_eq(acknack.bitmap(), [])
   assert_eq(reader.sample_count(), 1)
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()
@@ -223,7 +224,7 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
 }
 
 ///|
-async test "reliable reader session sends ACKNACK windows for a large HEARTBEAT" {
+async test "reliable reader session limits ACKNACK to the first missing window" {
   let prefix = @rtps.GuidPrefix::from_array(
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   ).unwrap()
@@ -266,12 +267,22 @@ async test "reliable reader session sends ACKNACK windows for a large HEARTBEAT"
   .unwrap()
   let (received, _) = reader.receive_heartbeat().unwrap()
   let (first, _) = sender.receive_acknack().unwrap()
-  let (second, _) = sender.receive_acknack().unwrap()
   assert_eq(received.last_sequence_number(), 300L)
   assert_eq(first.bitmap_base(), 1L)
   assert_eq(first.num_bits(), 256U)
-  assert_eq(second.bitmap_base(), 257L)
-  assert_eq(second.num_bits(), 44U)
+  assert_eq(
+    first.bitmap(),
+    [
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+    ],
+  )
   reader.close()
   sender.close()
 }

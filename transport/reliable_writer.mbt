@@ -85,8 +85,8 @@ pub struct ReliableDataWriter {
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
-  history : Array[@rtps.DataSubmessage]
-  fragmented_history : Array[ReliableFragmentedWrite]
+  mut history : Array[@rtps.DataSubmessage]
+  mut fragmented_history : Array[ReliableFragmentedWrite]
 }
 
 ///|
@@ -251,6 +251,33 @@ fn ReliableDataWriter::message_for_reader(
 }
 
 ///|
+/// Release samples cumulatively acknowledged before the ACKNACK bitmap base.
+fn ReliableDataWriter::discard_acknowledged(
+  self : ReliableDataWriter,
+  bitmap_base : Int64,
+) -> Unit {
+  let acknowledged_before = if bitmap_base > self.next_sequence_number {
+    self.next_sequence_number
+  } else {
+    bitmap_base
+  }
+  let retained_history : Array[@rtps.DataSubmessage] = []
+  for sample in self.history {
+    if sample.writer_sequence_number() >= acknowledged_before {
+      retained_history.push(sample)
+    }
+  }
+  self.history = retained_history
+  let retained_fragments : Array[ReliableFragmentedWrite] = []
+  for fragmented in self.fragmented_history {
+    if fragmented.sequence_number >= acknowledged_before {
+      retained_fragments.push(fragmented)
+    }
+  }
+  self.fragmented_history = retained_fragments
+}
+
+///|
 /// Send one sample and retain it in the reliable writer history.
 pub async fn ReliableDataWriter::write(
   self : ReliableDataWriter,
@@ -376,7 +403,7 @@ pub async fn ReliableDataWriter::send_heartbeat(
   self : ReliableDataWriter,
 ) -> Result[Unit, String] {
   if self.history.length() == 0 {
-    return Err("cannot send a HEARTBEAT before the first sample")
+    return Ok(())
   }
   let first_sequence_number = self.history[0].writer_sequence_number()
   let last_sequence_number = self.history[self.history.length() - 1].writer_sequence_number()
@@ -501,6 +528,7 @@ pub async fn ReliableDataWriter::handle_acknack(
       }
     }
   }
+  self.discard_acknowledged(acknack.bitmap_base())
   Ok(())
 }
 

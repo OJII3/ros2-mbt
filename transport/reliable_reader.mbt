@@ -362,9 +362,9 @@ fn reliable_reader_gap_contains_sequence(
 }
 
 ///|
-/// Build ACKNACK windows whose set bits identify samples missing from a
-/// heartbeat. RTPS SequenceNumberSet carries at most 256 bits, so a large
-/// HEARTBEAT range is represented by multiple ACKNACK submessages.
+/// Build an ACKNACK whose base is the first missing sample in the heartbeat.
+/// RTPS SequenceNumberSet carries at most 256 bits; later gaps are requested
+/// after an ensuing HEARTBEAT advances the first missing sequence number.
 pub fn ReliableDataReader::acknacks_for_heartbeat(
   self : ReliableDataReader,
   heartbeat : @rtps.HeartbeatSubmessage,
@@ -376,44 +376,57 @@ pub fn ReliableDataReader::acknacks_for_heartbeat(
   if heartbeat.writer_id() != self.writer_id {
     return Err("the HEARTBEAT comes from a different RTPS writer")
   }
-  let result : Array[@rtps.AckNackSubmessage] = []
-  let mut bitmap_base = heartbeat.first_sequence_number()
-  while bitmap_base <= heartbeat.last_sequence_number() {
-    let remaining =
-      (heartbeat.last_sequence_number() - bitmap_base + 1L).to_int()
-    let range = if remaining > 256 { 256 } else { remaining }
-    let word_count = (range + 31) / 32
-    let bitmap : Array[UInt] = []
-    for _ in 0..<word_count {
-      bitmap.push(0U)
+  let last_sequence_number = heartbeat.last_sequence_number()
+  let mut first_missing : Int64? = None
+  let mut sequence_number = heartbeat.first_sequence_number()
+  while sequence_number <= last_sequence_number && first_missing is None {
+    if !reliable_reader_has_sequence(self.samples, sequence_number) &&
+      !reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
+      first_missing = Some(sequence_number)
+    } else if sequence_number < last_sequence_number {
+      sequence_number += 1L
+    } else {
+      break
     }
-    for offset in 0..<range {
-      let sequence_number = bitmap_base + offset.to_int64()
-      if reliable_reader_has_sequence(self.samples, sequence_number) ||
-        reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
-        continue
-      }
-      let word_index = offset / 32
-      let bit_index = offset % 32
-      bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
-    }
-    let acknack = match
-      @rtps.AckNackSubmessage::new(
-        self.reader_id,
-        self.writer_id,
-        bitmap_base,
-        range.reinterpret_as_uint(),
-        bitmap,
-        self.next_acknack_count,
-      ) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    result.push(acknack)
-    self.next_acknack_count += 1U
-    bitmap_base += range.to_int64()
   }
-  Ok(result)
+  let (bitmap_base, range) = match first_missing {
+    Some(value) => {
+      let remaining = last_sequence_number - value
+      (value, if remaining >= 255L { 256 } else { remaining.to_int() + 1 })
+    }
+    None if last_sequence_number == 0x7FFFFFFFFFFFFFFFL =>
+      (last_sequence_number, 1)
+    None => (last_sequence_number + 1L, 0)
+  }
+  let word_count = (range + 31) / 32
+  let bitmap : Array[UInt] = []
+  for _ in 0..<word_count {
+    bitmap.push(0U)
+  }
+  for offset in 0..<range {
+    let sequence_number = bitmap_base + offset.to_int64()
+    if reliable_reader_has_sequence(self.samples, sequence_number) ||
+      reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
+      continue
+    }
+    let word_index = offset / 32
+    let bit_index = offset % 32
+    bitmap[word_index] = bitmap[word_index] | (0x80000000U >> bit_index)
+  }
+  let acknack = match
+    @rtps.AckNackSubmessage::new(
+      self.reader_id,
+      self.writer_id,
+      bitmap_base,
+      range.reinterpret_as_uint(),
+      bitmap,
+      self.next_acknack_count,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.next_acknack_count += 1U
+  Ok([acknack])
 }
 
 ///|
@@ -428,9 +441,6 @@ pub fn ReliableDataReader::acknack_for_heartbeat(
   }
   if acknacks.length() == 0 {
     return Err("the HEARTBEAT sequence range is empty")
-  }
-  if acknacks.length() > 1 {
-    self.next_acknack_count -= (acknacks.length() - 1).reinterpret_as_uint()
   }
   Ok(acknacks[0])
 }

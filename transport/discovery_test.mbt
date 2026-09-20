@@ -512,7 +512,9 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
       fail("expected a repeated publication")
   }
   let (complete_acknack, _) = ack_receiver.receive_acknack().unwrap()
-  assert_eq(complete_acknack.bitmap(), [0U])
+  assert_eq(complete_acknack.bitmap_base(), 2L)
+  assert_eq(complete_acknack.num_bits(), 0U)
+  assert_eq(complete_acknack.bitmap(), [])
   assert_true(
     (complete_acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) != 0,
   )

@@ -25,14 +25,28 @@ test "reliable reader creates an ACKNACK for missing samples" {
   }
   assert_eq(reader.sample_count(), 1)
   assert_eq(reader.next_acknack_count(), 2U)
-  assert_eq(acknack.bitmap_base(), 1L)
-  assert_eq(acknack.num_bits(), 3U)
-  assert_eq(acknack.bitmap(), [0x60000000U])
+  assert_eq(acknack.bitmap_base(), 2L)
+  assert_eq(acknack.num_bits(), 2U)
+  assert_eq(acknack.bitmap(), [0xC0000000U])
   assert_eq(acknack.count(), 1U)
+  assert_true(
+    reader.accept_data(
+      @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"second"),
+    ) is Ok(_),
+  )
+  assert_true(
+    reader.accept_data(
+      @rtps.DataSubmessage::new(reader_id, writer_id, 3L, b"third"),
+    ) is Ok(_),
+  )
+  let complete_acknack = reader.acknack_for_heartbeat(heartbeat).unwrap()
+  assert_eq(complete_acknack.bitmap_base(), 4L)
+  assert_eq(complete_acknack.num_bits(), 0U)
+  assert_eq(complete_acknack.bitmap(), [])
 }
 
 ///|
-test "reliable reader splits a large HEARTBEAT into ACKNACK windows" {
+test "reliable reader limits ACKNACK to the first missing window" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let reader = ReliableDataReader::new(reader_id, writer_id)
@@ -44,13 +58,40 @@ test "reliable reader splits a large HEARTBEAT into ACKNACK windows" {
     1U,
   ).unwrap()
   let acknacks = reader.acknacks_for_heartbeat(heartbeat).unwrap()
-  assert_eq(acknacks.length(), 2)
+  assert_eq(acknacks.length(), 1)
   assert_eq(acknacks[0].bitmap_base(), 1L)
   assert_eq(acknacks[0].num_bits(), 256U)
+  assert_eq(
+    acknacks[0].bitmap(),
+    [
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+      0xFFFFFFFFU,
+    ],
+  )
   assert_eq(acknacks[0].count(), 1U)
-  assert_eq(acknacks[1].bitmap_base(), 257L)
-  assert_eq(acknacks[1].num_bits(), 44U)
-  assert_eq(acknacks[1].count(), 2U)
+  for offset in 0..<256 {
+    assert_true(
+      reader.accept_data(
+        @rtps.DataSubmessage::new(
+          reader_id,
+          writer_id,
+          (offset + 1).to_int64(),
+          b"received",
+        ),
+      ) is Ok(_),
+    )
+  }
+  let next_acknack = reader.acknacks_for_heartbeat(heartbeat).unwrap()[0]
+  assert_eq(next_acknack.bitmap_base(), 257L)
+  assert_eq(next_acknack.num_bits(), 44U)
+  assert_eq(next_acknack.bitmap(), [0xFFFFFFFFU, 0xFFF00000U])
+  assert_eq(next_acknack.count(), 2U)
   assert_eq(reader.next_acknack_count(), 3U)
 }
 
