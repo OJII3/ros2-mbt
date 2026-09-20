@@ -73,15 +73,35 @@ fn qos_i32_le(value : Int) -> Bytes {
 }
 
 ///|
+fn qos_fraction_to_nanoseconds(fraction : UInt) -> UInt {
+  ((fraction.to_uint64() * 1_000_000_000U.to_uint64()) >> 32).to_uint()
+}
+
+///|
+fn qos_nanoseconds_to_fraction(nanoseconds : UInt) -> UInt {
+  if nanoseconds >= 1_000_000_000U {
+    return 0xFFFFFFFFU
+  }
+  let mut fraction = (
+    nanoseconds.to_uint64() * (1U.to_uint64() << 32) /
+    1_000_000_000U.to_uint64()
+  ).to_uint()
+  while qos_fraction_to_nanoseconds(fraction) < nanoseconds {
+    fraction += 1U
+  }
+  fraction
+}
+
+///|
 fn qos_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
-  let nanoseconds_bytes = qos_u32_le(nanoseconds)
+  let fraction_bytes = qos_u32_le(qos_nanoseconds_to_fraction(nanoseconds))
   for i in 0..<4 {
     bytes.push(seconds_bytes[i])
   }
   for i in 0..<4 {
-    bytes.push(nanoseconds_bytes[i])
+    bytes.push(fraction_bytes[i])
   }
   Bytes::from_array(bytes)
 }

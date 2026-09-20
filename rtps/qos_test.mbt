@@ -23,6 +23,18 @@ test "RTPS QoS parameter helpers use CDR little-endian fields" {
 }
 
 ///|
+test "RTPS QoS durations encode nanoseconds as NTP fractions" {
+  assert_eq(
+    qos_deadline(3, 500_000_000U).value(),
+    b"\x03\x00\x00\x00\x00\x00\x00\x80",
+  )
+  assert_eq(
+    qos_deadline(0, 2U).value(),
+    b"\x00\x00\x00\x00\x09\x00\x00\x00",
+  )
+}
+
+///|
 test "RTPS QoS helper parameter identifiers" {
   assert_eq(qos_deadline(1, 2).id(), PID_DEADLINE)
   assert_eq(qos_lifespan(1, 2).id(), PID_LIFESPAN)
