@@ -116,10 +116,9 @@ pub async fn RosActionClient::receive_feedback(
 
 ///|
 /// Receive the next status entry for `goal_id` from GoalStatusArray samples.
-pub async fn RosActionClient::receive_goal_status(
+pub async fn RosActionClient::receive_next_goal_status(
   self : RosActionClient,
   goal_id : Bytes,
-  expected_status : Int,
 ) -> Result[@ros.RosActionGoalStatus, String] {
   if goal_id.length() != 16 {
     return Err("an action goal ID must contain exactly 16 bytes")
@@ -135,10 +134,46 @@ pub async fn RosActionClient::receive_goal_status(
       Err(message) => return Err(message)
     }
     for goal_status in status_array.status_list() {
-      if goal_status.goal_info().goal_id() == goal_id &&
-        goal_status.status() == expected_status {
+      if goal_status.goal_info().goal_id() == goal_id {
         return Ok(goal_status)
       }
+    }
+  }
+  Err("GoalStatusArray receive loop stopped")
+}
+
+///|
+/// Wait until `goal_id` reaches Succeeded, Canceled, or Aborted.
+pub async fn RosActionClient::receive_terminal_goal_status(
+  self : RosActionClient,
+  goal_id : Bytes,
+) -> Result[@ros.RosActionGoalStatus, String] {
+  while true {
+    let status = match self.receive_next_goal_status(goal_id) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    if status.is_terminal() {
+      return Ok(status)
+    }
+  }
+  Err("GoalStatusArray receive loop stopped before a terminal status")
+}
+
+///|
+/// Receive statuses for `goal_id` until `expected_status` is published.
+pub async fn RosActionClient::receive_goal_status(
+  self : RosActionClient,
+  goal_id : Bytes,
+  expected_status : Int,
+) -> Result[@ros.RosActionGoalStatus, String] {
+  while true {
+    let status = match self.receive_next_goal_status(goal_id) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    if status.status() == expected_status {
+      return Ok(status)
     }
   }
   Err("GoalStatusArray receive loop stopped")

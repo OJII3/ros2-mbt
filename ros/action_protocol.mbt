@@ -1,4 +1,26 @@
 ///|
+/// Standard status values from `action_msgs/msg/GoalStatus`.
+pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
+
+///|
+pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
+
+///|
 /// The goal identifier and timestamp carried by ROS 2 action control messages.
 pub struct RosActionGoalInfo {
   goal_id : Bytes
@@ -61,6 +83,14 @@ pub fn RosActionGoalStatus::goal_info(
 ///|
 pub fn RosActionGoalStatus::status(self : RosActionGoalStatus) -> Int {
   self.status
+}
+
+///|
+/// Whether this goal status represents a completed action goal.
+pub fn RosActionGoalStatus::is_terminal(self : RosActionGoalStatus) -> Bool {
+  self.status == ROS_ACTION_GOAL_STATUS_SUCCEEDED ||
+  self.status == ROS_ACTION_GOAL_STATUS_CANCELED ||
+  self.status == ROS_ACTION_GOAL_STATUS_ABORTED
 }
 
 ///|

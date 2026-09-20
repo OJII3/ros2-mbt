@@ -108,7 +108,9 @@ pub fn DiscoveryGraph::ros_participants(Self) -> Array[@ros.ParticipantEntitiesI
 pub fn DiscoveryGraph::subscription_count(Self) -> Int
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@rtps.SedpEndpointData]
 
-type DiscoverySedpReader
+type DiscoveryRemoteDataReader
+
+type DiscoveryRemoteParticipant
 
 type DiscoverySedpWriter
 
@@ -145,8 +147,12 @@ pub struct DiscoverySession {
   writer_id : @rtps.EntityId
   destination : @socket.Addr
   mut next_sequence_number : Int64
-  sedp_readers : Array[DiscoverySedpReader]
+  mut sedp_readers : Array[DiscoveryRemoteDataReader]
+  mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
+  mut remote_participants : Array[DiscoveryRemoteParticipant]
+  mut pending_events : Array[(DiscoveryEvent, @socket.Addr)]
+  mut pending_event_index : Int
 }
 pub async fn DiscoverySession::announce_forever(Self, Int) -> Result[Unit, String]
 pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String]
@@ -165,9 +171,11 @@ pub struct ReliableDataReader {
   writer_id : @rtps.EntityId
   mut next_acknack_count : UInt
   mut next_nackfrag_count : UInt
-  samples : Array[@rtps.DataSubmessage]
-  gaps : Array[@rtps.GapSubmessage]
-  fragments : Array[ReliableFragmentedSample]
+  mut samples : Array[Int64]
+  mut gaps : Array[@rtps.GapSubmessage]
+  mut fragments : Array[ReliableFragmentedSample]
+  mut acknowledged_through : Int64
+  mut accepted_sample_count : Int
 }
 pub fn ReliableDataReader::accept_data(Self, @rtps.DataSubmessage) -> Result[Unit, String]
 pub fn ReliableDataReader::accept_data_frag(Self, @rtps.DataFragSubmessage) -> Result[@rtps.DataSubmessage?, String]
@@ -188,6 +196,8 @@ pub struct ReliableDataReaderSession {
   destinations : Array[@socket.Addr]
   writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
+  mut pending_samples : Array[(@rtps.DataSubmessage, @socket.Addr)]
+  mut pending_sample_index : Int
 }
 pub fn ReliableDataReaderSession::close(Self) -> Unit
 pub fn ReliableDataReaderSession::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
@@ -209,8 +219,8 @@ pub struct ReliableDataWriter {
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
   mut next_heartbeat_count : UInt
-  history : Array[@rtps.DataSubmessage]
-  fragmented_history : Array[ReliableFragmentedWrite]
+  mut history : Array[@rtps.DataSubmessage]
+  mut fragmented_history : Array[ReliableFragmentedWrite]
 }
 pub fn ReliableDataWriter::close(Self) -> Unit
 pub async fn ReliableDataWriter::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
@@ -310,6 +320,8 @@ pub fn RosActionClient::close(Self) -> Unit
 pub fn RosActionClient::new(@ros.RosAction, RosServiceClient, RosServiceClient, RosServiceClient, ReliableRosSubscription, ReliableRosSubscription) -> Result[Self, String]
 pub async fn RosActionClient::receive_feedback(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::receive_goal_status(Self, Bytes, Int) -> Result[@ros.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_next_goal_status(Self, Bytes) -> Result[@ros.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_terminal_goal_status(Self, Bytes) -> Result[@ros.RosActionGoalStatus, String]
 pub async fn RosActionClient::request_cancel_goal(Self, Bytes) -> Result[@ros.RosCancelGoalResponse, String]
 pub async fn RosActionClient::request_get_result(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::request_send_goal(Self, Bytes) -> Result[Bytes, String]

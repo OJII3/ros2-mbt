@@ -647,7 +647,7 @@ async fn main {
   println("Fibonacci result status: " + status.to_string())
   println("Fibonacci result: [" + format_int_sequence(sequence) + "]")
   let status_topic_goal_status = match
-    action_client.receive_goal_status(goal_id, status) {
+    action_client.receive_terminal_goal_status(goal_id) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -656,6 +656,15 @@ async fn main {
       )
       return
     }
+  }
+  if status_topic_goal_status.status() != status {
+    println(
+      "Fibonacci result and GoalStatusArray reported different terminal states",
+    )
+    close_action_client_io(
+      send_goal_client, feedback_subscription, status_subscription,
+    )
+    return
   }
   println(
     "Fibonacci status topic: " + status_topic_goal_status.status().to_string(),

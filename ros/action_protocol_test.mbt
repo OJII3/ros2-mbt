@@ -11,8 +11,8 @@ test "action GoalStatusArray CDR round trip preserves aligned entries" {
     999U,
   ).unwrap()
   let status_list = RosActionGoalStatusArray::new([
-    RosActionGoalStatus::new(first_goal, 1).unwrap(),
-    RosActionGoalStatus::new(second_goal, 5).unwrap(),
+    RosActionGoalStatus::new(first_goal, ROS_ACTION_GOAL_STATUS_ACCEPTED).unwrap(),
+    RosActionGoalStatus::new(second_goal, ROS_ACTION_GOAL_STATUS_CANCELED).unwrap(),
   ])
 
   let parsed = RosActionGoalStatusArray::from_cdr_bytes(
@@ -52,6 +52,31 @@ test "action control CDR codecs reject malformed payloads" {
     0U,
   ).unwrap()
   assert_true(RosActionGoalStatus::new(goal_info, 128) is Err(_))
+  assert_false(
+    RosActionGoalStatus::new(goal_info, ROS_ACTION_GOAL_STATUS_ACCEPTED)
+    .unwrap()
+    .is_terminal(),
+  )
+  assert_false(
+    RosActionGoalStatus::new(goal_info, ROS_ACTION_GOAL_STATUS_EXECUTING)
+    .unwrap()
+    .is_terminal(),
+  )
+  assert_false(
+    RosActionGoalStatus::new(goal_info, ROS_ACTION_GOAL_STATUS_CANCELING)
+    .unwrap()
+    .is_terminal(),
+  )
+  for
+    status in [
+      ROS_ACTION_GOAL_STATUS_SUCCEEDED,
+      ROS_ACTION_GOAL_STATUS_CANCELED,
+      ROS_ACTION_GOAL_STATUS_ABORTED,
+    ] {
+    assert_true(
+      RosActionGoalStatus::new(goal_info, status).unwrap().is_terminal(),
+    )
+  }
   assert_true(
     RosActionGoalStatusArray::from_cdr_bytes(
       Bytes::from_array([0, 1, 0, 0, 255, 255, 255, 255]),

@@ -7,6 +7,20 @@ import {
 }
 
 // Values
+pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
+
+pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
+
+pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
+
+pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
+
+pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
+
+pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
+
+pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
+
 pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
@@ -109,6 +123,7 @@ pub struct RosActionGoalStatus {
   status : Int
 } derive(Eq, @debug.Debug)
 pub fn RosActionGoalStatus::goal_info(Self) -> RosActionGoalInfo
+pub fn RosActionGoalStatus::is_terminal(Self) -> Bool
 pub fn RosActionGoalStatus::new(RosActionGoalInfo, Int) -> Result[Self, String]
 pub fn RosActionGoalStatus::status(Self) -> Int
 
