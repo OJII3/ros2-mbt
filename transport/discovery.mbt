@@ -25,6 +25,7 @@ pub struct DiscoverySession {
   mut next_sequence_number : Int64
   sedp_readers : Array[DiscoverySedpReader]
   sedp_writers : Array[DiscoverySedpWriter]
+  mut remote_participants : Array[@rtps.SpdpParticipantData]
 }
 
 ///|
@@ -50,6 +51,7 @@ pub fn DiscoverySession::new(
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
     sedp_writers: [],
+    remote_participants: [],
   })
 }
 
@@ -81,6 +83,7 @@ pub fn DiscoverySession::new_with_receive_sockets(
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
     sedp_writers: [],
+    remote_participants: [],
   })
 }
 
@@ -329,6 +332,56 @@ fn DiscoverySession::sedp_reader_index(
 }
 
 ///|
+/// Retain the latest SPDP locators for one remote participant.
+fn DiscoverySession::remember_remote_participant(
+  self : DiscoverySession,
+  participant : @rtps.SpdpParticipantData,
+) -> Unit {
+  for index in 0..<self.remote_participants.length() {
+    if self.remote_participants[index].participant_guid() ==
+      participant.participant_guid() {
+      self.remote_participants[index] = participant
+      return
+    }
+  }
+  self.remote_participants.push(participant)
+}
+
+///|
+/// Forget one remote participant and its advertised locators.
+fn DiscoverySession::forget_remote_participant(
+  self : DiscoverySession,
+  participant_guid : @rtps.Guid,
+) -> Unit {
+  let remaining : Array[@rtps.SpdpParticipantData] = []
+  for participant in self.remote_participants {
+    if participant.participant_guid() != participant_guid {
+      remaining.push(participant)
+    }
+  }
+  self.remote_participants = remaining
+}
+
+///|
+/// Resolve an ACKNACK destination from SPDP, falling back to the packet source.
+fn DiscoverySession::acknowledgement_destination(
+  self : DiscoverySession,
+  participant_prefix : @rtps.GuidPrefix,
+  source : @socket.Addr,
+) -> @socket.Addr {
+  for participant in self.remote_participants {
+    if participant.participant_guid().prefix() != participant_prefix {
+      continue
+    }
+    match udp_locator_to_addrs(participant.metatraffic_unicast_locators()) {
+      Ok(addresses) if addresses.length() > 0 => return addresses[0]
+      _ => ()
+    }
+  }
+  source
+}
+
+///|
 /// Locate or create history for one local SEDP writer kind.
 fn DiscoverySession::sedp_writer_index(
   self : DiscoverySession,
@@ -451,6 +504,7 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
   } else {
     self.receive_sockets[socket_index - 1]
   }
+  let destination = self.acknowledgement_destination(writer_prefix, source)
   for index in 0..<acknacks.length() {
     let acknack = if index + 1 == acknacks.length() &&
       !discovery_acknack_has_requests(acknacks[index]) {
@@ -464,7 +518,7 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
           self.participant.participant_guid().prefix(),
           self.participant.vendor_id(),
         ).with_destination_guid_prefix(writer_prefix),
-        source,
+        destination,
       ) {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -641,22 +695,26 @@ async fn DiscoverySession::decode_message(
                 }
                 match
                   @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
-                  Ok(participant_guid) =>
+                  Ok(participant_guid) => {
+                    self.forget_remote_participant(participant_guid)
                     if event is None {
                       event = Some(DiscoveryEvent::ParticipantRemoved(participant_guid))
                     }
+                  }
                   Err(_) => ()
                 }
               }
               _ =>
-                if event is None {
-                  match @rtps.SpdpParticipantData::from_data_submessage(data) {
-                    Ok(participant) if
-                      participant.domain_id() == self.participant.domain_id() =>
+                match @rtps.SpdpParticipantData::from_data_submessage(data) {
+                  Ok(participant) if
+                    participant.domain_id() == self.participant.domain_id() => {
+                    self.remember_remote_participant(participant)
+                    if event is None {
                       event = Some(DiscoveryEvent::Participant(participant))
-                    Err(_) => ()
-                    _ => ()
+                    }
                   }
+                  Err(_) => ()
+                  _ => ()
                 }
             }
           }

@@ -379,6 +379,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   let sedp_writer = @rtps.EntityId::new(b"\x00\x00\x03", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let ack_receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(local_prefix, participant_id),
     @rtps.VendorId::new(1, 15),
@@ -398,6 +399,35 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     sender.local_addr(),
     1L,
   ).unwrap()
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, participant_id),
+    @rtps.VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
+  )
+  remote_participant.add_metatraffic_unicast(
+    ack_receiver.local_unicast_locator().unwrap(),
+  )
+  sender
+  .send_data(
+    remote_participant.to_data_submessage(spdp_reader, spdp_writer, 1L),
+    remote_prefix,
+    @rtps.VendorId::new(1, 15),
+    session.socket.local_addr(),
+  )
+  .unwrap()
+  let (participant_event, _) = session.receive_once().unwrap()
+  match participant_event {
+    DiscoveryEvent::Participant(discovered) =>
+      assert_eq(discovered.participant_guid().prefix(), remote_prefix)
+    _ => fail("expected an SPDP participant")
+  }
+  assert_true(sender.local_addr().port() != ack_receiver.local_addr().port())
   sender
   .send_heartbeat(
     @rtps.HeartbeatSubmessage::new(
@@ -437,7 +467,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     DiscoveryEvent::EndpointRemoved(_, _) => fail("expected an SEDP publication")
     DiscoveryEvent::ParticipantRemoved(_) => fail("expected an SEDP publication")
   }
-  let (acknack, _) = sender.receive_acknack().unwrap()
+  let (acknack, _) = ack_receiver.receive_acknack().unwrap()
   assert_eq(
     acknack.reader_id(),
     @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
@@ -481,7 +511,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     DiscoveryEvent::ParticipantRemoved(_) =>
       fail("expected a repeated publication")
   }
-  let (complete_acknack, _) = sender.receive_acknack().unwrap()
+  let (complete_acknack, _) = ack_receiver.receive_acknack().unwrap()
   assert_eq(complete_acknack.bitmap(), [0U])
   assert_true(
     (complete_acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) != 0,
@@ -514,6 +544,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   }
   session.close()
   sender.close()
+  ack_receiver.close()
 }
 
 ///|
