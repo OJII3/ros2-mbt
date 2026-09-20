@@ -53,12 +53,15 @@ pub struct MessageField {
   type_name : String
   name : String
   collection : MessageFieldCollection
+  string_upper_bound : Int?
 } derive(Eq, @debug.Debug)
 pub fn MessageField::collection(Self) -> MessageFieldCollection
 pub fn MessageField::name(Self) -> String
 pub fn MessageField::new(String, String) -> Self
+pub fn MessageField::string_upper_bound(Self) -> Int?
 pub fn MessageField::type_name(Self) -> String
 pub fn MessageField::with_collection(Self, MessageFieldCollection) -> Self
+pub fn MessageField::with_string_upper_bound(Self, Int) -> Self
 
 pub(all) enum MessageFieldCollection {
   Scalar

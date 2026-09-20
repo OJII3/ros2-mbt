@@ -553,7 +553,7 @@ fn rosidl_workspace_referenced_types(
     if words.length() != 2 {
       return Err("ROS message fields must have exactly a type and a name")
     }
-    let (base_type, _) = match rosidl_parse_field_type(words[0]) {
+    let (base_type, _, _) = match rosidl_parse_field_type(words[0]) {
       Ok(value) => value
       Err(message) => return Err(message)
     }

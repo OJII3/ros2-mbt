@@ -75,8 +75,8 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec
-- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence 対応、明示的な型参照に対応、`rosidl`）
-- `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（primitiveおよび同一workspace内のnested type）
+- primitive / scalar constant / nested message `.msg` の parser / MoonBit CDR codec generator（固定配列・bounded/unbounded sequence・bounded string 対応、明示的な型参照に対応、`rosidl`）
+- `.msg` のRIHS01型ハッシュ計算と生成コードへの`*_TYPE_HASH`定数埋め込み（bounded string capacity・primitive・同一workspace内のnested type）
 - `.srv` の request/response 分割 parser と MoonBit CDR codec generator
 - `.srv` のRIHS01 service型ハッシュ計算（primitiveは直接、nestedはworkspace経由）
 - primitive request/response `.srv` の生成コードへの`<Service>_TYPE_HASH`定数埋め込み

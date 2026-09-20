@@ -13,6 +13,7 @@ pub struct MessageField {
   type_name : String
   name : String
   collection : MessageFieldCollection
+  string_upper_bound : Int?
 } derive(Eq, Debug)
 
 ///|
@@ -53,7 +54,12 @@ pub struct ServiceDefinition {
 ///|
 /// Create a message field descriptor.
 pub fn MessageField::new(type_name : String, name : String) -> MessageField {
-  { type_name, name, collection: MessageFieldCollection::Scalar, }
+  {
+    type_name,
+    name,
+    collection: MessageFieldCollection::Scalar,
+    string_upper_bound: None,
+  }
 }
 
 ///|
@@ -63,6 +69,15 @@ pub fn MessageField::with_collection(
   collection : MessageFieldCollection,
 ) -> MessageField {
   { ..self, collection, }
+}
+
+///|
+/// Return a copy of the field with a bounded ROS string type.
+pub fn MessageField::with_string_upper_bound(
+  self : MessageField,
+  string_upper_bound : Int,
+) -> MessageField {
+  { ..self, string_upper_bound: Some(string_upper_bound), }
 }
 
 ///|
@@ -81,6 +96,12 @@ pub fn MessageField::name(self : MessageField) -> String {
 /// Return whether the field is scalar, fixed-size, or a sequence.
 pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
   self.collection
+}
+
+///|
+/// Return the maximum length for a bounded ROS string field, if any.
+pub fn MessageField::string_upper_bound(self : MessageField) -> Int? {
+  self.string_upper_bound
 }
 
 ///|
@@ -173,6 +194,13 @@ pub fn MessageDefinition::new_with_types(
   for field in fields {
     if !rosidl_identifier(field.name) {
       return Err("ROS message field names must be identifiers")
+    }
+    match field.string_upper_bound {
+      Some(bound) =>
+        if field.type_name != "string" || bound <= 0 {
+          return Err("ROS string upper bounds require a positive string bound")
+        }
+      None => ()
     }
     match rosidl_moon_type_for_field(field.type_name, nested_types) {
       Ok(_) => ()
@@ -328,10 +356,10 @@ pub fn ServiceDefinition::generate_moonbit(self : ServiceDefinition) -> String {
 ///|
 /// Parse the primitive-field subset of a ROS `.msg` definition.
 ///
-/// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`) and
-/// unbounded sequences (`type[]`), bounded sequences (`type[<=N]`), and scalar
-/// constants are supported. Nested message fields can be enabled with
-/// `parse_message_with_types`.
+/// Blank lines and `#` comments are ignored. Fixed arrays (`type[N]`),
+/// unbounded sequences (`type[]`), bounded sequences (`type[<=N]`), bounded
+/// strings (`string<=N`), and scalar constants are supported. Nested message
+/// fields can be enabled with `parse_message_with_types`.
 pub fn parse_message(
   package_name : String,
   interface_namespace : String,
@@ -383,15 +411,22 @@ pub fn parse_message_with_types(
     if words.length() != 2 {
       return Err("ROS message fields must have exactly a type and a name")
     }
-    let (base_type, collection) = match rosidl_parse_field_type(words[0]) {
+    let (base_type, string_upper_bound, collection) = match
+      rosidl_parse_field_type(words[0]) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     if !rosidl_identifier(words[1]) {
       return Err("ROS message field names must be identifiers")
     }
+    let field = MessageField::new(base_type, words[1]).with_collection(
+      collection,
+    )
     fields.push(
-      MessageField::new(base_type, words[1]).with_collection(collection),
+      match string_upper_bound {
+        Some(bound) => field.with_string_upper_bound(bound)
+        None => field
+      },
     )
   }
   let definition = match
@@ -466,21 +501,30 @@ fn rosidl_words(line : String) -> Array[String] {
 ///|
 fn rosidl_parse_field_type(
   type_spec : String,
-) -> Result[(String, MessageFieldCollection), String] {
+) -> Result[(String, Int?, MessageFieldCollection), String] {
   let parts = type_spec.split("[").collect()
   if parts.length() == 1 {
-    Ok((parts[0].to_owned(), MessageFieldCollection::Scalar))
+    let (base_type, string_upper_bound) = match
+      rosidl_parse_base_field_type(parts[0].to_owned()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    Ok((base_type, string_upper_bound, MessageFieldCollection::Scalar))
   } else if parts.length() != 2 {
     Err("ROS message field type has an invalid collection suffix")
   } else {
-    let base_type = parts[0].to_owned()
+    let (base_type, string_upper_bound) = match
+      rosidl_parse_base_field_type(parts[0].to_owned()) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
     let suffix = parts[1].to_owned()
     if suffix.length() == 0 || suffix[suffix.length() - 1] != ']' {
       return Err("ROS message collection type must end with ]")
     }
     let inner = suffix[0:suffix.length() - 1].to_owned()
     if inner.length() == 0 {
-      Ok((base_type, MessageFieldCollection::Sequence))
+      Ok((base_type, string_upper_bound, MessageFieldCollection::Sequence))
     } else if inner[0] == '<' {
       if inner.length() <= 2 || inner[1] != '=' {
         return Err("ROS bounded sequence must use the <=N form")
@@ -489,15 +533,41 @@ fn rosidl_parse_field_type(
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok((base_type, MessageFieldCollection::BoundedSequence(bound)))
+      Ok((
+        base_type,
+        string_upper_bound,
+        MessageFieldCollection::BoundedSequence(bound),
+      ))
     } else {
       let length = match rosidl_positive_int(inner) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok((base_type, MessageFieldCollection::FixedArray(length)))
+      Ok((
+        base_type,
+        string_upper_bound,
+        MessageFieldCollection::FixedArray(length),
+      ))
     }
   }
+}
+
+///|
+fn rosidl_parse_base_field_type(
+  type_spec : String,
+) -> Result[(String, Int?), String] {
+  let parts = type_spec.split("<=").collect()
+  if parts.length() == 1 {
+    return Ok((type_spec, None))
+  }
+  if parts.length() != 2 || parts[0] != "string" {
+    return Err("ROS bounded strings must use the string<=N form")
+  }
+  let bound = match rosidl_positive_int(parts[1].to_owned()) {
+    Ok(value) => value
+    Err(_) => return Err("ROS string upper bounds must be positive integers")
+  }
+  Ok(("string", Some(bound)))
 }
 
 ///|

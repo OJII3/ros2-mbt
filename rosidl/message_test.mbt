@@ -151,6 +151,52 @@ test "ROS message generator handles bounded sequences" {
 }
 
 ///|
+test "ROS message parser preserves bounded string metadata and array shapes" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "Strings",
+    "string<=12 text\nstring<=8[2] labels\nstring<=4[] names\nstring<=7[<=3] tags",
+  ).unwrap()
+  assert_eq(definition.fields()[0].type_name(), "string")
+  assert_eq(definition.fields()[0].string_upper_bound(), Some(12))
+  assert_eq(definition.fields()[1].string_upper_bound(), Some(8))
+  assert_eq(
+    definition.fields()[1].collection(),
+    MessageFieldCollection::FixedArray(2),
+  )
+  assert_eq(
+    definition.fields()[2].collection(),
+    MessageFieldCollection::Sequence,
+  )
+  assert_eq(
+    definition.fields()[3].collection(),
+    MessageFieldCollection::BoundedSequence(3),
+  )
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("text : String"))
+  assert_true(generated.contains("labels : Array[String]"))
+  assert_true(generated.contains("writer.write_string(self.text)"))
+  assert_true(generated.contains("reader.read_string()"))
+
+  let unbounded = parse_message("demo", "msg", "Strings", "string text").unwrap()
+  let larger_bound = parse_message(
+    "demo", "msg", "Strings", "string<=13 text",
+  ).unwrap()
+  assert_true(definition.type_hash().unwrap() != unbounded.type_hash().unwrap())
+  assert_true(
+    unbounded.type_hash().unwrap() != larger_bound.type_hash().unwrap(),
+  )
+}
+
+///|
+test "ROS message parser rejects malformed bounded string types" {
+  assert_true(parse_message("demo", "msg", "Invalid", "string<=0 name") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "int32<=4 value") is Err(_))
+  assert_true(parse_message("demo", "msg", "Invalid", "string<=x name") is Err(_))
+}
+
+///|
 test "ROS message generator handles nested message fields" {
   let nested_types : Array[MessageTypeReference] = [
     MessageTypeReference::new("geometry_msgs/msg/Vector3", "Vector3"),

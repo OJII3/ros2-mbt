@@ -14,6 +14,22 @@ test "ROS primitive message type hash matches the RIHS01 reference" {
 }
 
 ///|
+test "ROS bounded string type hashes use bounded string IDs and capacity" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "BoundedStrings",
+    "string<=8 value\nstring<=8[2] fixed\nstring<=8[<=3] bounded\nstring<=8[] sequence",
+  ).unwrap()
+  assert_eq(
+    definition.type_hash(),
+    Ok(
+      "RIHS01_3b11e8a626ea93c8ea2430873f1740becdac3d3d2400f6d1ac97594ccf5463aa",
+    ),
+  )
+}
+
+///|
 test "ROS workspace type hash includes sorted nested message descriptions" {
   let workspace = MessageWorkspace::new()
   let vector = match

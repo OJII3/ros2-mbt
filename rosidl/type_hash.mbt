@@ -50,13 +50,22 @@ fn rosidl_hash_field_type_json(
   field : MessageField,
   nested_type_name : String,
 ) -> Result[String, String] {
-  let base_type_id = match rosidl_hash_primitive_type_id(field.type_name()) {
-    Ok(value) => value
-    Err(_) => if nested_type_name.length() > 0 {
-      1
-    } else {
-      return Err("a nested ROS field needs a resolved type description")
+  let base_type_id = match field.string_upper_bound() {
+    Some(_) => {
+      if field.type_name() != "string" {
+        return Err("a string upper bound requires a string field")
+      }
+      21
     }
+    None =>
+      match rosidl_hash_primitive_type_id(field.type_name()) {
+        Ok(value) => value
+        Err(_) => if nested_type_name.length() > 0 {
+          1
+        } else {
+          return Err("a nested ROS field needs a resolved type description")
+        }
+      }
   }
   let (type_id, capacity) = match field.collection() {
     MessageFieldCollection::Scalar => (base_type_id, 0)
@@ -69,10 +78,15 @@ fn rosidl_hash_field_type_json(
     Ok(_) => ""
     Err(_) => nested_type_name
   }
+  let string_capacity = match field.string_upper_bound() {
+    Some(value) => value
+    None => 0
+  }
   Ok(
     "{\"type_id\": " + type_id.to_string() +
       ", \"capacity\": " + capacity.to_string() +
-      ", \"string_capacity\": 0, \"nested_type_name\": " +
+      ", \"string_capacity\": " + string_capacity.to_string() +
+      ", \"nested_type_name\": " +
       rosidl_hash_json_quote(type_name) + "}",
   )
 }
