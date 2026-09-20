@@ -238,6 +238,14 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "bool successful\nstring reason",
     ).unwrap(),
   ).unwrap()
+  workspace.add_source(
+    MessageSource::new(
+      "rcl_interfaces",
+      "msg",
+      "ListParametersResult",
+      "string[] names\nstring[] prefixes",
+    ).unwrap(),
+  ).unwrap()
   let service = parse_service_with_types(
     "rcl_interfaces",
     "GetParameters",
@@ -277,6 +285,29 @@ test "ROS parameter service request and response RIHS01 hashes" {
     workspace.type_hash_for_definition(set_service.response()),
     Ok(
       "RIHS01_7a0e8140a0b8d98308fa81a5403a766e610af29a239caf54b7553227906fc266",
+    ),
+  )
+  let list_service = parse_service_with_types(
+    "rcl_interfaces",
+    "ListParameters",
+    "string[] prefixes\nuint64 depth\n---\nListParametersResult result",
+    [
+      MessageTypeReference::new(
+        "ListParametersResult",
+        "ListParametersResult",
+      ),
+    ],
+  ).unwrap()
+  assert_eq(
+    workspace.type_hash_for_definition(list_service.request()),
+    Ok(
+      "RIHS01_a1b0b5d6b967a5b8ac5bc8563c3ea678f349e312a6a4967227c5a96bc5ce38df",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash_for_definition(list_service.response()),
+    Ok(
+      "RIHS01_31b937b82de3612426be79f231e386259f97e8dc843e3f2845288b4bfa296bdd",
     ),
   )
 }

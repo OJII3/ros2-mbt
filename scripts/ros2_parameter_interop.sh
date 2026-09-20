@@ -116,9 +116,10 @@ if [[ "$client_grouped" -eq 1 ]]; then
 fi
 client_pid=""
 if ! grep -Fq 'SetParameters answer: true' "$client_log" || \
-  ! grep -Fq 'GetParameters answer: 99' "$client_log"; then
-  echo "MoonBit client did not set and read back the expected parameter" >&2
+  ! grep -Fq 'GetParameters answer: 99' "$client_log" || \
+  ! grep -Fq 'ListParameters contains: answer' "$client_log"; then
+  echo "MoonBit client did not set, read, and list the expected parameter" >&2
   exit 1
 fi
 
-echo "ROS 2 SetParameters/GetParameters interoperability passed."
+echo "ROS 2 SetParameters/GetParameters/ListParameters interoperability passed."
