@@ -98,6 +98,26 @@ test "ROS service parser requires exactly one separator" {
 }
 
 ///|
+test "ROS service parser recognizes only a standalone separator line" {
+  let definition = parse_service(
+    "demo", "Separated", "string DELIMITER=\"---\"\n# --- is part of this comment\n---\nint32 value",
+  ).unwrap()
+  assert_eq(definition.request().constants().length(), 1)
+  assert_eq(definition.response().fields().length(), 1)
+}
+
+///|
+test "ROS message parser treats tabs as whitespace" {
+  let definition = parse_message(
+    "demo", "msg", "Tabbed", "\tint32\tvalue\n\tfloat64\tSCALE\t=\t1.5",
+  ).unwrap()
+  assert_eq(definition.fields().length(), 1)
+  assert_eq(definition.fields()[0].name(), "value")
+  assert_eq(definition.constants().length(), 1)
+  assert_eq(definition.constants()[0].name(), "SCALE")
+}
+
+///|
 test "ROS message parser and generator handle scalar constants" {
   let definition = match
     parse_message(

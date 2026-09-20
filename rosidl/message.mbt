@@ -469,8 +469,24 @@ pub fn parse_service_with_types(
   source : String,
   nested_types : Array[MessageTypeReference],
 ) -> Result[ServiceDefinition, String] {
-  let sections = source.split("---").collect()
-  if sections.length() != 2 {
+  let mut request_source = ""
+  let mut response_source = ""
+  let mut has_separator = false
+  for raw_line in source.split("\n") {
+    if rosidl_trim(raw_line.to_owned()) == "---" {
+      if has_separator {
+        return Err("ROS service definitions must contain one --- separator")
+      }
+      has_separator = true
+      continue
+    }
+    if has_separator {
+      response_source += raw_line.to_owned() + "\n"
+    } else {
+      request_source += raw_line.to_owned() + "\n"
+    }
+  }
+  if !has_separator {
     return Err("ROS service definitions must contain one --- separator")
   }
   let request = match
@@ -478,7 +494,7 @@ pub fn parse_service_with_types(
       package_name,
       "srv",
       service_name + "_Request",
-      sections[0].to_owned(),
+      request_source,
       nested_types,
     ) {
     Ok(value) => value
@@ -489,7 +505,7 @@ pub fn parse_service_with_types(
       package_name,
       "srv",
       service_name + "_Response",
-      sections[1].to_owned(),
+      response_source,
       nested_types,
     ) {
     Ok(value) => value
@@ -501,11 +517,20 @@ pub fn parse_service_with_types(
 ///|
 fn rosidl_words(line : String) -> Array[String] {
   let words : Array[String] = []
-  for raw_word in line.split(" ") {
-    let word = rosidl_trim(raw_word.to_owned())
-    if word.length() > 0 {
-      words.push(word)
+  let bytes = @utf8.encode(line)
+  let mut word_start = -1
+  for index in 0..<bytes.length() {
+    if rosidl_space(bytes[index]) {
+      if word_start >= 0 {
+        words.push(@utf8.decode(bytes[word_start:index]) catch { _ => "" })
+        word_start = -1
+      }
+    } else if word_start < 0 {
+      word_start = index
     }
+  }
+  if word_start >= 0 {
+    words.push(@utf8.decode(bytes[word_start:]) catch { _ => "" })
   }
   words
 }
