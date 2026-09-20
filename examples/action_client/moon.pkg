@@ -5,6 +5,7 @@ import {
   "kainaproject/ros2_mbt/rtps",
   "kainaproject/ros2_mbt/transport",
   "moonbitlang/async",
+  "moonbitlang/async/socket",
   "moonbitlang/core/env",
 }
 

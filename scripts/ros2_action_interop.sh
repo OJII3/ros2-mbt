@@ -139,6 +139,14 @@ run_client() {
       echo "MoonBit client did not receive a succeeded result status" >&2
       exit 1
     fi
+    if ! grep -Fq 'Fibonacci status topic: 4' "$client_log"; then
+      echo "MoonBit client did not receive the succeeded status topic sample" >&2
+      exit 1
+    fi
+    if ! grep -Fq 'Fibonacci feedback:' "$client_log"; then
+      echo "MoonBit client did not receive a Fibonacci feedback sample" >&2
+      exit 1
+    fi
     compact_client_output=$(tr -d '[:space:]' <"$client_log")
     if [[ "$compact_client_output" != *'Fibonacciresult:'*'[0,1,1,2,3,5]'* ]]; then
       echo "MoonBit client did not receive the expected Fibonacci sequence" >&2
@@ -151,6 +159,14 @@ run_client() {
     fi
     if ! grep -Fq 'Fibonacci result status: 5' "$client_log"; then
       echo "MoonBit client did not receive a canceled result status" >&2
+      exit 1
+    fi
+    if ! grep -Fq 'Fibonacci status topic: 5' "$client_log"; then
+      echo "MoonBit client did not receive the canceled status topic sample" >&2
+      exit 1
+    fi
+    if ! grep -Fq 'Fibonacci feedback:' "$client_log"; then
+      echo "MoonBit client did not receive a Fibonacci feedback sample" >&2
       exit 1
     fi
   fi

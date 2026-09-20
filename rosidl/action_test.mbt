@@ -244,3 +244,57 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
     "RIHS01_35e682cf3f510e83c70a82a4aac888496dedee56773bf9d8e5e0aa81f9e1c960",
   )
 }
+
+///|
+test "ROS Jazzy GoalStatusArray hash includes its nested message definitions" {
+  let workspace = MessageWorkspace::new()
+  for source in [
+    MessageSource::new(
+      "action_msgs",
+      "msg",
+      "GoalStatusArray",
+      "GoalStatus[] status_list",
+    ),
+    MessageSource::new(
+      "action_msgs",
+      "msg",
+      "GoalStatus",
+      "int8 STATUS_UNKNOWN=0\nint8 STATUS_ACCEPTED=1\nint8 STATUS_EXECUTING=2\nint8 STATUS_CANCELING=3\nint8 STATUS_SUCCEEDED=4\nint8 STATUS_CANCELED=5\nint8 STATUS_ABORTED=6\nGoalInfo goal_info\nint8 status",
+    ),
+    MessageSource::new(
+      "action_msgs",
+      "msg",
+      "GoalInfo",
+      "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
+    ),
+    MessageSource::new(
+      "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
+    ),
+    MessageSource::new(
+      "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
+    ),
+  ] {
+    match source {
+      Ok(value) => assert_true(workspace.add_source(value) is Ok(_))
+      Err(message) => fail(message)
+    }
+  }
+  workspace.add_import(
+    MessageImport::new(
+      "builtin_interfaces", "builtin_interfaces/msg", "builtin",
+    ).unwrap(),
+  ).unwrap()
+  workspace.add_import(
+    MessageImport::new(
+      "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
+    ).unwrap(),
+  ).unwrap()
+  let hash = match workspace.type_hash("action_msgs", "msg", "GoalStatusArray") {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    hash,
+    "RIHS01_6c1684b00f177d37438febe6e709fc4e2b0d4248dca4854946f9ed8b30cda83e",
+  )
+}

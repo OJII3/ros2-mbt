@@ -4,8 +4,12 @@ async fn discover_action_services(
   send_goal : @ros.RosService,
   get_result : @ros.RosService,
   cancel_goal : @ros.RosService,
+  feedback_topic : @ros.RosTopic,
+  status_topic : @ros.RosTopic,
 ) -> Result[
   (
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
@@ -21,12 +25,16 @@ async fn discover_action_services(
   let mut get_result_response_publication : @rtps.SedpEndpointData? = None
   let mut cancel_goal_request_subscription : @rtps.SedpEndpointData? = None
   let mut cancel_goal_response_publication : @rtps.SedpEndpointData? = None
+  let mut feedback_publication : @rtps.SedpEndpointData? = None
+  let mut status_publication : @rtps.SedpEndpointData? = None
   while send_goal_request_subscription is None ||
         send_goal_response_publication is None ||
         get_result_request_subscription is None ||
         get_result_response_publication is None ||
         cancel_goal_request_subscription is None ||
-        cancel_goal_response_publication is None {
+        cancel_goal_response_publication is None ||
+        feedback_publication is None ||
+        status_publication is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) => {
         if publication.topic_name() == send_goal.dds_response_name() &&
@@ -40,6 +48,14 @@ async fn discover_action_services(
         if publication.topic_name() == cancel_goal.dds_response_name() &&
           publication.type_name() == cancel_goal.dds_response_type_name() {
           cancel_goal_response_publication = Some(publication)
+        }
+        if publication.topic_name() == feedback_topic.dds_name() &&
+          publication.type_name() == feedback_topic.dds_type_name() {
+          feedback_publication = Some(publication)
+        }
+        if publication.topic_name() == status_topic.dds_name() &&
+          publication.type_name() == status_topic.dds_type_name() {
+          status_publication = Some(publication)
         }
       }
       Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) => {
@@ -64,6 +80,7 @@ async fn discover_action_services(
     (
       send_goal_request_subscription, send_goal_response_publication, get_result_request_subscription,
       get_result_response_publication, cancel_goal_request_subscription, cancel_goal_response_publication,
+      feedback_publication, status_publication,
     ) {
     (
       Some(send_goal_request_subscription),
@@ -72,11 +89,14 @@ async fn discover_action_services(
       Some(get_result_response_publication),
       Some(cancel_goal_request_subscription),
       Some(cancel_goal_response_publication),
+      Some(feedback_publication),
+      Some(status_publication),
     ) =>
       Ok(
         (
           send_goal_request_subscription, send_goal_response_publication, get_result_request_subscription,
           get_result_response_publication, cancel_goal_request_subscription, cancel_goal_response_publication,
+          feedback_publication, status_publication,
         ),
       )
     _ => Err("discovery ended without matching ROS action services")
@@ -152,6 +172,133 @@ async fn request_goal_cancel(
 }
 
 ///|
+async fn register_action_topic_subscription(
+  participant : @transport.RosParticipant,
+  prefix : @rtps.GuidPrefix,
+  topic : @ros.RosTopic,
+  endpoint_id : @rtps.EntityId,
+  qos : @rtps.SedpQos,
+  type_hash : String,
+  locator : @rtps.Locator,
+) -> Result[Unit, String] {
+  let endpoint = match
+    topic.to_sedp_with_qos_and_type_hash(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, endpoint_id),
+      qos,
+      type_hash,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  endpoint.add_unicast_locator(locator)
+  participant.register_endpoint(endpoint)
+}
+
+///|
+async fn receive_fibonacci_feedback(
+  subscription : @transport.ReliableRosSubscription,
+  goal_id : Bytes,
+) -> Result[Array[Int], String] {
+  while true {
+    let (payload, _) = match subscription.receive() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let reader = match @cdr.Reader::from_bytes(payload) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let received_goal_id = match reader.read_byte_array(16) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let sequence_length = match reader.read_u32() {
+      Ok(value) => value.reinterpret_as_int()
+      Err(message) => return Err(message)
+    }
+    if sequence_length < 0 || sequence_length > reader.remaining() / 4 {
+      return Err("invalid Fibonacci feedback sequence length")
+    }
+    let sequence : Array[Int] = []
+    for _ in 0..<sequence_length {
+      match reader.read_i32() {
+        Ok(value) => sequence.push(value)
+        Err(message) => return Err(message)
+      }
+    }
+    if received_goal_id == goal_id {
+      return Ok(sequence)
+    }
+  }
+  Err("Fibonacci feedback receive loop stopped")
+}
+
+///|
+async fn receive_goal_status(
+  subscription : @transport.ReliableRosSubscription,
+  goal_id : Bytes,
+  expected_status : Int,
+) -> Result[Int, String] {
+  while true {
+    let (payload, _) = match subscription.receive() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let reader = match @cdr.Reader::from_bytes(payload) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    let status_count = match reader.read_u32() {
+      Ok(value) => value.reinterpret_as_int()
+      Err(message) => return Err(message)
+    }
+    if status_count < 0 || status_count > reader.remaining() / 25 {
+      return Err("invalid GoalStatusArray status_list length")
+    }
+    for _ in 0..<status_count {
+      let received_goal_id = match reader.read_byte_array(16) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let status = match
+        (reader.read_i32(), reader.read_u32(), reader.read_i8()) {
+        (Ok(_), Ok(_), Ok(value)) => value
+        (Err(message), _, _) | (_, Err(message), _) | (_, _, Err(message)) =>
+          return Err(message)
+      }
+      if received_goal_id == goal_id && status == expected_status {
+        return Ok(status)
+      }
+    }
+  }
+  Err("GoalStatusArray receive loop stopped")
+}
+
+///|
+fn close_action_client_io(
+  send_goal_client : @transport.RosServiceClient,
+  feedback_subscription : @transport.ReliableRosSubscription,
+  status_subscription : @transport.ReliableRosSubscription,
+) -> Unit {
+  send_goal_client.close()
+  feedback_subscription.close()
+  status_subscription.close()
+}
+
+///|
+fn format_int_sequence(sequence : Array[Int]) -> String {
+  let mut sequence_text = ""
+  for index in 0..<sequence.length() {
+    if index > 0 {
+      sequence_text += ", "
+    }
+    sequence_text += sequence[index].to_string()
+  }
+  sequence_text
+}
+
+///|
 async fn main {
   let cancel_requested = @env.get_env_var("ROS2_MBT_CANCEL_GOAL") == Some("1")
   let config = match @config.load() {
@@ -198,6 +345,8 @@ async fn main {
   let send_goal = action.send_goal_service()
   let get_result = action.get_result_service()
   let cancel_goal = action.cancel_goal_service()
+  let feedback_topic = action.feedback_topic()
+  let status_topic = action.status_topic()
   let send_goal_request_id = @rtps.EntityId::new(b"\x00\x00\x30", 0x03).unwrap()
   let send_goal_response_id = @rtps.EntityId::new(b"\x00\x00\x31", 0x04).unwrap()
   let get_result_request_id = @rtps.EntityId::new(b"\x00\x00\x32", 0x03).unwrap()
@@ -248,6 +397,78 @@ async fn main {
       return
     }
   }
+  let feedback_reader_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x04).unwrap()
+  let status_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
+  let feedback_socket = @transport.Udp::bind(@socket.Addr::new(config.ip, 0))
+  let status_socket = @transport.Udp::bind(@socket.Addr::new(config.ip, 0))
+  let feedback_locator = match feedback_socket.local_unicast_locator() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      feedback_socket.close()
+      status_socket.close()
+      participant.close()
+      return
+    }
+  }
+  let status_locator = match status_socket.local_unicast_locator() {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      feedback_socket.close()
+      status_socket.close()
+      participant.close()
+      return
+    }
+  }
+  match
+    register_action_topic_subscription(
+      participant,
+      prefix,
+      feedback_topic,
+      feedback_reader_id,
+      @rtps.SedpQos::new(
+        @rtps.RELIABILITY_RELIABLE,
+        @rtps.DURABILITY_VOLATILE,
+        @rtps.HISTORY_KEEP_LAST,
+        10,
+      ),
+      "RIHS01_c1de71afd52e49a89c53d8262366884185bc0a02f78ce051c4e46b0a7fe59bb2",
+      feedback_locator,
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      feedback_socket.close()
+      status_socket.close()
+      participant.close()
+      return
+    }
+  }
+  match
+    register_action_topic_subscription(
+      participant,
+      prefix,
+      status_topic,
+      status_reader_id,
+      @rtps.SedpQos::new(
+        @rtps.RELIABILITY_RELIABLE,
+        @rtps.DURABILITY_TRANSIENT_LOCAL,
+        @rtps.HISTORY_KEEP_LAST,
+        1,
+      ),
+      "RIHS01_6c1684b00f177d37438febe6e709fc4e2b0d4248dca4854946f9ed8b30cda83e",
+      status_locator,
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      feedback_socket.close()
+      status_socket.close()
+      participant.close()
+      return
+    }
+  }
   match
     participant.register_service_client_with_type_hashes(
       send_goal, send_goal_request_id, send_goal_response_id, "RIHS01_3d088942b413247db536576f0286768c6be8fcd5d0c9a5d544f359fba090a238",
@@ -256,6 +477,8 @@ async fn main {
     Ok(_) => ()
     Err(message) => {
       println(message)
+      feedback_socket.close()
+      status_socket.close()
       participant.close()
       return
     }
@@ -268,6 +491,8 @@ async fn main {
     Ok(_) => ()
     Err(message) => {
       println(message)
+      feedback_socket.close()
+      status_socket.close()
       participant.close()
       return
     }
@@ -280,6 +505,8 @@ async fn main {
     Ok(_) => ()
     Err(message) => {
       println(message)
+      feedback_socket.close()
+      status_socket.close()
       participant.close()
       return
     }
@@ -291,7 +518,9 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_action_services(participant, send_goal, get_result, cancel_goal)
+    discover_action_services(
+      participant, send_goal, get_result, cancel_goal, feedback_topic, status_topic,
+    )
   }
   let (
     send_goal_request_subscription,
@@ -300,10 +529,14 @@ async fn main {
     get_result_response_publication,
     cancel_goal_request_subscription,
     cancel_goal_response_publication,
+    feedback_publication,
+    status_publication,
   ) = match discovered_endpoints {
     Ok(value) => value
     Err(message) => {
       println(message)
+      feedback_socket.close()
+      status_socket.close()
       participant.close()
       return
     }
@@ -328,6 +561,8 @@ async fn main {
     Err(message) => {
       println(message)
       user_socket.close()
+      feedback_socket.close()
+      status_socket.close()
       return
     }
   }
@@ -340,6 +575,8 @@ async fn main {
     Err(message) => {
       println(message)
       send_goal_client.close()
+      feedback_socket.close()
+      status_socket.close()
       return
     }
   }
@@ -352,6 +589,34 @@ async fn main {
     Err(message) => {
       println(message)
       send_goal_client.close()
+      feedback_socket.close()
+      status_socket.close()
+      return
+    }
+  }
+  let feedback_subscription = match
+    @transport.ReliableRosSubscription::new_for_publication(
+      feedback_topic, feedback_socket, prefix, vendor_id, feedback_reader_id, feedback_publication,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      send_goal_client.close()
+      feedback_socket.close()
+      status_socket.close()
+      return
+    }
+  }
+  let status_subscription = match
+    @transport.ReliableRosSubscription::new_for_publication(
+      status_topic, status_socket, prefix, vendor_id, status_reader_id, status_publication,
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      send_goal_client.close()
+      feedback_subscription.close()
+      status_socket.close()
       return
     }
   }
@@ -387,7 +652,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -396,7 +663,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -404,7 +673,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -412,7 +683,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -420,15 +693,34 @@ async fn main {
     (Ok(_), Ok(_)) => ()
     (Err(message), _) | (_, Err(message)) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
   println("Fibonacci goal accepted: " + accepted.to_string())
   if !accepted {
-    send_goal_client.close()
+    close_action_client_io(
+      send_goal_client, feedback_subscription, status_subscription,
+    )
     return
   }
+
+  let feedback_sequence = match
+    receive_fibonacci_feedback(feedback_subscription, goal_id) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
+      return
+    }
+  }
+  println(
+    "Fibonacci feedback: [" + format_int_sequence(feedback_sequence) + "]",
+  )
 
   if cancel_requested {
     let cancel_return_code = match
@@ -436,13 +728,17 @@ async fn main {
       Ok(value) => value
       Err(message) => {
         println(message)
-        send_goal_client.close()
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
         return
       }
     }
     println("Fibonacci cancel return code: " + cancel_return_code.to_string())
     if cancel_return_code != 0 {
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -454,7 +750,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -463,7 +761,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -471,7 +771,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -479,7 +781,9 @@ async fn main {
     Ok(value) => value
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
@@ -487,13 +791,17 @@ async fn main {
     Ok(value) => value.reinterpret_as_int()
     Err(message) => {
       println(message)
-      send_goal_client.close()
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
       return
     }
   }
   if sequence_length < 0 || sequence_length > get_result_reader.remaining() / 4 {
     println("invalid Fibonacci result sequence length")
-    send_goal_client.close()
+    close_action_client_io(
+      send_goal_client, feedback_subscription, status_subscription,
+    )
     return
   }
   let sequence : Array[Int] = []
@@ -502,20 +810,28 @@ async fn main {
       Ok(value) => sequence.push(value)
       Err(message) => {
         println(message)
-        send_goal_client.close()
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
         return
       }
     }
   }
-  let mut sequence_text = ""
-  for index in 0..<sequence.length() {
-    if index > 0 {
-      sequence_text += ", "
-    }
-    sequence_text += sequence[index].to_string()
-  }
   println("Fibonacci result status: " + status.to_string())
-  println("Fibonacci result: [" + sequence_text + "]")
-  // Both service clients share the participant's user socket.
-  send_goal_client.close()
+  println("Fibonacci result: [" + format_int_sequence(sequence) + "]")
+  let status_topic_status = match
+    receive_goal_status(status_subscription, goal_id, status) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
+      return
+    }
+  }
+  println("Fibonacci status topic: " + status_topic_status.to_string())
+  close_action_client_io(
+    send_goal_client, feedback_subscription, status_subscription,
+  )
 }
