@@ -14,6 +14,7 @@ pub struct MessageField {
   name : String
   collection : MessageFieldCollection
   string_upper_bound : Int?
+  default_value : String?
 } derive(Eq, Debug)
 
 ///|
@@ -59,6 +60,7 @@ pub fn MessageField::new(type_name : String, name : String) -> MessageField {
     name,
     collection: MessageFieldCollection::Scalar,
     string_upper_bound: None,
+    default_value: None,
   }
 }
 
@@ -78,6 +80,20 @@ pub fn MessageField::with_string_upper_bound(
   string_upper_bound : Int,
 ) -> MessageField {
   { ..self, string_upper_bound: Some(string_upper_bound), }
+}
+
+///|
+/// Return the normalized MoonBit literal for a ROS field default, if present.
+pub fn MessageField::default_value(self : MessageField) -> String? {
+  self.default_value
+}
+
+///|
+fn MessageField::with_default_value(
+  self : MessageField,
+  default_value : String,
+) -> MessageField {
+  { ..self, default_value: Some(default_value), }
 }
 
 ///|
@@ -400,16 +416,21 @@ pub fn parse_message_with_types(
     if line.length() == 0 {
       continue
     }
-    let equal_parts = line.split("=").collect()
-    if line.contains("=") && !line.contains("<=") {
-      if equal_parts.length() != 2 {
-        return Err("ROS message constants must contain one =")
+    let assignment_index = rosidl_assignment_index(line)
+    if assignment_index >= 0 {
+      let bytes = @utf8.encode(line)
+      let declaration_source = @utf8.decode(bytes[:assignment_index]) catch {
+        _ => ""
       }
-      let declaration = rosidl_words(equal_parts[0].to_owned())
+      let declaration = rosidl_words(declaration_source)
       if declaration.length() != 2 {
         return Err("ROS message constants must have a type and a name")
       }
-      let value = rosidl_trim(equal_parts[1].to_owned())
+      let value = rosidl_trim(
+        @utf8.decode(bytes[assignment_index + 1:]) catch {
+          _ => ""
+        },
+      )
       match rosidl_constant_literal(declaration[0], value) {
         Ok(_) => ()
         Err(message) => return Err(message)
@@ -420,8 +441,8 @@ pub fn parse_message_with_types(
       continue
     }
     let words = rosidl_words(line)
-    if words.length() != 2 {
-      return Err("ROS message fields must have exactly a type and a name")
+    if words.length() < 2 {
+      return Err("ROS message fields must have a type and a name")
     }
     let (base_type, string_upper_bound, collection) = match
       rosidl_parse_field_type(words[0]) {
@@ -431,15 +452,28 @@ pub fn parse_message_with_types(
     if !rosidl_identifier(words[1]) {
       return Err("ROS message field names must be identifiers")
     }
-    let field = MessageField::new(base_type, words[1]).with_collection(
+    let mut field = MessageField::new(base_type, words[1]).with_collection(
       collection,
     )
-    fields.push(
-      match string_upper_bound {
-        Some(bound) => field.with_string_upper_bound(bound)
-        None => field
-      },
-    )
+    field = match string_upper_bound {
+      Some(bound) => field.with_string_upper_bound(bound)
+      None => field
+    }
+    let default_source = rosidl_text_after_words(line, 2)
+    if default_source.length() > 0 {
+      let default_value = match
+        rosidl_field_default_literal(
+          base_type,
+          string_upper_bound,
+          collection,
+          default_source,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      field = field.with_default_value(default_value)
+    }
+    fields.push(field)
   }
   let definition = match
     MessageDefinition::new_with_types(
@@ -533,6 +567,43 @@ fn rosidl_words(line : String) -> Array[String] {
     words.push(@utf8.decode(bytes[word_start:]) catch { _ => "" })
   }
   words
+}
+
+///| Return the trimmed suffix after a fixed number of whitespace-delimited words.
+fn rosidl_text_after_words(line : String, word_count : Int) -> String {
+  let bytes = @utf8.encode(line)
+  let mut completed_words = 0
+  let mut in_word = false
+  for index in 0..<bytes.length() {
+    if rosidl_space(bytes[index]) {
+      if in_word {
+        completed_words += 1
+        in_word = false
+        if completed_words == word_count {
+          return rosidl_trim(
+            @utf8.decode(bytes[index:]) catch {
+              _ => ""
+            },
+          )
+        }
+      }
+    } else if !in_word {
+      in_word = true
+    }
+  }
+  ""
+}
+
+///| Find the first assignment separator, excluding bounded-type `<=` tokens.
+fn rosidl_assignment_index(line : String) -> Int {
+  let bytes = @utf8.encode(line)
+  for index in 0..<bytes.length() {
+    if bytes[index] == b'=' &&
+      (index == 0 || bytes[index - 1] != b'<') {
+      return index
+    }
+  }
+  -1
 }
 
 ///|
@@ -683,6 +754,16 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     output += "    " + field.name + ",\n"
   }
   output += "  }\n}\n\n"
+  output += "///|\n"
+  output += "pub fn " + self.type_name + "::default() -> " + self.type_name + " {\n"
+  for field in self.fields {
+    output += rosidl_generate_default_field(field, self.nested_types)
+  }
+  output += "  " + self.type_name + "::new(\n"
+  for field in self.fields {
+    output += "    " + field.name + ",\n"
+  }
+  output += "  )\n}\n\n"
   for field in self.fields {
     output += "///|\n"
     output += "pub fn " +
@@ -764,6 +845,52 @@ fn rosidl_field_moon_type(
     MessageFieldCollection::FixedArray(_) => "Array[" + base + "]"
     MessageFieldCollection::Sequence => "Array[" + base + "]"
     MessageFieldCollection::BoundedSequence(_) => "Array[" + base + "]"
+  }
+}
+
+///|
+fn rosidl_generate_default_field(
+  field : MessageField,
+  nested_types : Array[MessageTypeReference],
+) -> String {
+  let field_type = rosidl_field_moon_type(field, nested_types)
+  match field.default_value {
+    Some(value) =>
+      "  let " + field.name + " : " + field_type + " = " + value + "\n"
+    None =>
+      match field.collection {
+        MessageFieldCollection::Scalar =>
+          "  let " + field.name + " : " + field_type + " = " +
+          rosidl_default_scalar(field, nested_types) + "\n"
+        MessageFieldCollection::FixedArray(length) => {
+          "  let " + field.name + " : " + field_type + " = []\n" +
+          "  for _ in 0..<" + length.to_string() + " {\n" +
+          "    " + field.name + ".push(" +
+          rosidl_default_scalar(field, nested_types) + ")\n" +
+          "  }\n"
+        }
+        MessageFieldCollection::Sequence | MessageFieldCollection::BoundedSequence(_) =>
+          "  let " + field.name + " : " + field_type + " = []\n"
+      }
+  }
+}
+
+///|
+fn rosidl_default_scalar(
+  field : MessageField,
+  nested_types : Array[MessageTypeReference],
+) -> String {
+  match field.type_name {
+    "bool" => "false"
+    "byte" | "char" | "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32" =>
+      "0"
+    "int64" => "0L"
+    "uint64" => "0UL"
+    "float32" => "0.0F"
+    "float64" => "0.0"
+    "string" => "\"\""
+    _ => rosidl_moon_type_for_field(field.type_name, nested_types).unwrap() +
+      "::default()"
   }
 }
 
@@ -1277,7 +1404,7 @@ fn rosidl_constant_literal(
 ) -> Result[String, String] {
   match type_name {
     "bool" =>
-      match value {
+      match rosidl_ascii_lower(value) {
         "true" | "1" => Ok("true")
         "false" | "0" => Ok("false")
         _ => Err("ROS bool constants must be true, false, 1, or 0")
@@ -1304,7 +1431,172 @@ fn rosidl_constant_literal(
 }
 
 ///|
+fn rosidl_field_default_literal(
+  type_name : String,
+  string_upper_bound : Int?,
+  collection : MessageFieldCollection,
+  value : String,
+) -> Result[String, String] {
+  match collection {
+    MessageFieldCollection::Scalar =>
+      rosidl_field_scalar_default_literal(
+        type_name, string_upper_bound, value,
+      )
+    MessageFieldCollection::FixedArray(_) |
+    MessageFieldCollection::Sequence |
+    MessageFieldCollection::BoundedSequence(_) => {
+      let elements = match rosidl_array_default_elements(type_name, value) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      match collection {
+        MessageFieldCollection::FixedArray(expected) if
+          elements.length() != expected =>
+          return Err("ROS fixed-array defaults must match the declared length")
+        MessageFieldCollection::BoundedSequence(maximum) if
+          elements.length() > maximum =>
+          return Err("ROS bounded-sequence defaults exceed their bound")
+        _ => ()
+      }
+      let mut literal = "["
+      for index in 0..<elements.length() {
+        if index > 0 {
+          literal += ", "
+        }
+        literal += match
+          rosidl_field_scalar_default_literal(
+            type_name, string_upper_bound, elements[index],
+          ) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+      }
+      Ok(literal + "]")
+    }
+  }
+}
+
+///|
+fn rosidl_array_default_elements(
+  type_name : String,
+  value : String,
+) -> Result[Array[String], String] {
+  let bytes = @utf8.encode(value)
+  if bytes.length() < 2 || bytes[0] != b'[' ||
+    bytes[bytes.length() - 1] != b']' {
+    return Err("ROS array defaults must be enclosed in brackets")
+  }
+  let end = bytes.length() - 1
+  let elements : Array[String] = []
+  if end == 1 {
+    return Ok(elements)
+  }
+  let is_string = type_name == "string"
+  let mut quote = 0
+  let mut escaped = false
+  let mut element_start = 1
+  for index in 1..<end {
+    let byte = bytes[index]
+    if quote != 0 {
+      if escaped {
+        escaped = false
+      } else if byte == b'\\' {
+        escaped = true
+      } else if byte.to_int() == quote {
+        quote = 0
+      }
+    } else if is_string && (byte == b'\'' || byte == b'"') {
+      quote = byte.to_int()
+    } else if byte == b',' {
+      elements.push(
+        rosidl_trim(
+          @utf8.decode(bytes[element_start:index]) catch {
+            _ => ""
+          },
+        ),
+      )
+      element_start = index + 1
+    }
+  }
+  if quote != 0 {
+    return Err("ROS string-array defaults contain an unterminated quote")
+  }
+  elements.push(
+    rosidl_trim(
+      @utf8.decode(bytes[element_start:end]) catch {
+        _ => ""
+      },
+    ),
+  )
+  Ok(elements)
+}
+
+///|
+fn rosidl_field_scalar_default_literal(
+  type_name : String,
+  string_upper_bound : Int?,
+  value : String,
+) -> Result[String, String] {
+  if type_name == "string" {
+    let decoded = match rosidl_string_constant_value(value) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    match string_upper_bound {
+      Some(bound) if rosidl_utf8_character_count(decoded) > bound =>
+        return Err("ROS string defaults exceed their declared bound")
+      _ => ()
+    }
+    return Ok(rosidl_moonbit_string_literal(decoded))
+  }
+  rosidl_constant_literal(type_name, value)
+}
+
+///|
+fn rosidl_utf8_character_count(value : String) -> Int {
+  let mut count = 0
+  for byte in @utf8.encode(value) {
+    if byte < 0x80 || byte > 0xBF {
+      count += 1
+    }
+  }
+  count
+}
+
+///|
+fn rosidl_ascii_lower(value : String) -> String {
+  let bytes = @utf8.encode(value)
+  let mut result = ""
+  let mut segment_start = 0
+  for index in 0..<bytes.length() {
+    let byte = bytes[index]
+    if byte >= 65 && byte <= 90 {
+      result += @utf8.decode(bytes[segment_start:index]) catch {
+        _ => ""
+      }
+      result += @utf8.decode(
+        Bytes::from_array([(byte.to_int() + 32).to_byte()]),
+      ) catch {
+        _ => ""
+      }
+      segment_start = index + 1
+    }
+  }
+  result + (@utf8.decode(bytes[segment_start:]) catch {
+    _ => ""
+  })
+}
+
+///|
 fn rosidl_string_constant_literal(value : String) -> Result[String, String] {
+  match rosidl_string_constant_value(value) {
+    Ok(value) => Ok(rosidl_moonbit_string_literal(value))
+    Err(message) => Err(message)
+  }
+}
+
+///|
+fn rosidl_string_constant_value(value : String) -> Result[String, String] {
   let bytes = @utf8.encode(value)
   let quoted = bytes.length() >= 2 &&
     ((bytes[0] == b'"' && bytes[bytes.length() - 1] == b'"') ||
@@ -1340,7 +1632,7 @@ fn rosidl_string_constant_literal(value : String) -> Result[String, String] {
       _ => ""
     })
   }
-  Ok(rosidl_moonbit_string_literal(string_value))
+  Ok(string_value)
 }
 
 ///|

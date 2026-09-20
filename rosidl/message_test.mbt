@@ -118,6 +118,73 @@ test "ROS message parser treats tabs as whitespace" {
 }
 
 ///|
+test "ROS message parser generates validated primitive field defaults" {
+  let source = "bool enabled TrUe\nint32 count 42\nstring label hello world\nint32[3] samples [1, 2, 3]\nint32[<=3] history []\nint32[2] zeros"
+  let definition = parse_message("demo", "msg", "Defaulted", source).unwrap()
+  assert_eq(definition.fields().length(), 6)
+  assert_eq(definition.fields()[0].default_value(), Some("true"))
+  assert_eq(definition.fields()[1].default_value(), Some("42"))
+  assert_eq(definition.fields()[2].default_value(), Some("\"hello world\""))
+  assert_eq(definition.fields()[3].default_value(), Some("[1, 2, 3]"))
+  assert_eq(definition.fields()[4].default_value(), Some("[]"))
+  assert_eq(definition.fields()[5].default_value(), None)
+  let generated = definition.generate_moonbit()
+  assert_true(generated.contains("pub fn Defaulted::default() -> Defaulted"))
+  assert_true(generated.contains("let enabled : Bool = true"))
+  assert_true(generated.contains("let count : Int = 42"))
+  assert_true(generated.contains("let label : String = \"hello world\""))
+  assert_true(generated.contains("let samples : Array[Int] = [1, 2, 3]"))
+  assert_true(generated.contains("let history : Array[Int] = []"))
+  assert_true(generated.contains("let zeros : Array[Int] = []"))
+  assert_true(generated.contains("for _ in 0..<2 {"))
+  assert_true(generated.contains("zeros.push(0)"))
+  let without_defaults = parse_message(
+    "demo",
+    "msg",
+    "Defaulted",
+    "bool enabled\nint32 count\nstring label\nint32[3] samples\nint32[<=3] history\nint32[2] zeros",
+  ).unwrap()
+  assert_eq(definition.type_hash(), without_defaults.type_hash())
+}
+
+///|
+test "ROS message parser validates float and string-array defaults" {
+  let definition = parse_message(
+    "demo",
+    "msg",
+    "ArrayDefaults",
+    "float32 ratio 1.5\nstring<=12[] names [\"alpha, beta\", \"gamma\"]",
+  ).unwrap()
+  assert_eq(definition.fields()[0].default_value(), Some("1.5F"))
+  assert_eq(
+    definition.fields()[1].default_value(),
+    Some("[\"alpha, beta\", \"gamma\"]"),
+  )
+  assert_true(
+    definition.generate_moonbit().contains(
+      "let names : Array[String] = [\"alpha, beta\", \"gamma\"]",
+    ),
+  )
+}
+
+///|
+test "ROS message parser rejects malformed primitive field defaults" {
+  assert_true(parse_message("demo", "msg", "Invalid", "int8 value 128") is Err(_))
+  assert_true(
+    parse_message("demo", "msg", "Invalid", "int32[2] values [1]")
+    is Err(_),
+  )
+  assert_true(
+    parse_message("demo", "msg", "Invalid", "uint8[<=2] values [1, 256]")
+    is Err(_),
+  )
+  assert_true(
+    parse_message("demo", "msg", "Invalid", "string<=3 name too long")
+    is Err(_),
+  )
+}
+
+///|
 test "ROS message parser and generator handle scalar constants" {
   let definition = match
     parse_message(
@@ -136,6 +203,20 @@ test "ROS message parser and generator handle scalar constants" {
   assert_true(generated.contains("pub const MAX : Int = 42"))
   assert_true(generated.contains("pub const SCALE : Double = 1.5"))
   assert_true(generated.contains("pub const LABEL : String = \"demo\""))
+}
+
+///|
+test "ROS string constants preserve assignment characters in values" {
+  let definition = parse_message(
+    "demo", "msg", "StringConstant", "string COMPARISON=\"a<=b=c\"",
+  ).unwrap()
+  assert_eq(definition.constants().length(), 1)
+  assert_eq(definition.constants()[0].value(), "\"a<=b=c\"")
+  assert_true(
+    definition.generate_moonbit().contains(
+      "pub const COMPARISON : String = \"a<=b=c\"",
+    ),
+  )
 }
 
 ///|
@@ -386,6 +467,7 @@ test "ROS message generator handles nested message fields" {
   assert_true(generated.contains("bounded_length > 2"))
   assert_true(generated.contains("match self.position.write_cdr(writer)"))
   assert_true(generated.contains("if self.bounded.length() > 2"))
+  assert_true(generated.contains("Vector3::default()"))
 }
 
 ///|
