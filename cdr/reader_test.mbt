@@ -83,3 +83,15 @@ test "CDR reader rejects malformed payloads" {
   }
   assert_false(nonzero.remaining_is_zero_padding(4))
 }
+
+///|
+test "CDR reader rejects overflowing sequence and string lengths" {
+  let malformed_payload = Bytes::from_array([
+    0, 1, 0, 0, 0xFC, 0xFF, 0xFF, 0x7F,
+  ])
+  let sequence_reader = Reader::from_bytes(malformed_payload).unwrap()
+  assert_true(sequence_reader.read_byte_sequence() is Err(_))
+
+  let string_reader = Reader::from_bytes(malformed_payload).unwrap()
+  assert_true(string_reader.read_string() is Err(_))
+}

@@ -44,7 +44,7 @@ pub fn Reader::remaining_is_zero_padding(
 
 ///|
 fn Reader::take(self : Reader, length : Int) -> Result[BytesView, String] {
-  if length < 0 || self.offset + length > self.bytes.length() {
+  if length < 0 || length > self.bytes.length() - self.offset {
     return Err("truncated CDR payload")
   }
   let view = self.bytes[self.offset:self.offset + length]
