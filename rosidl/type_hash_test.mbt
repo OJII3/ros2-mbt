@@ -287,6 +287,27 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_7a0e8140a0b8d98308fa81a5403a766e610af29a239caf54b7553227906fc266",
     ),
   )
+  let atomic_set_service = parse_service_with_types(
+    "rcl_interfaces",
+    "SetParametersAtomically",
+    "Parameter[] parameters\n---\nSetParametersResult result",
+    [
+      MessageTypeReference::new("Parameter", "Parameter"),
+      MessageTypeReference::new("SetParametersResult", "SetParametersResult"),
+    ],
+  ).unwrap()
+  assert_eq(
+    workspace.type_hash_for_definition(atomic_set_service.request()),
+    Ok(
+      "RIHS01_db0bd950ed5ed867a0e90b225e44dea382d762c0762ff3e0ee842190042a59e5",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash_for_definition(atomic_set_service.response()),
+    Ok(
+      "RIHS01_31b1a38c5b0b9d893ee24da45f69638f4561c78461d82d52750f429b534502b8",
+    ),
+  )
   let list_service = parse_service_with_types(
     "rcl_interfaces",
     "ListParameters",

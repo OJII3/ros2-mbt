@@ -4,9 +4,12 @@ async fn discover_parameter_services(
   get_service : @ros.RosService,
   get_parameter_types_service : @ros.RosService,
   set_service : @ros.RosService,
+  set_atomically_service : @ros.RosService,
   list_service : @ros.RosService,
 ) -> Result[
   (
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
     @rtps.SedpEndpointData,
@@ -24,6 +27,8 @@ async fn discover_parameter_services(
   let mut get_parameter_types_response_publication : @rtps.SedpEndpointData? = None
   let mut set_request_subscription : @rtps.SedpEndpointData? = None
   let mut set_response_publication : @rtps.SedpEndpointData? = None
+  let mut set_atomically_request_subscription : @rtps.SedpEndpointData? = None
+  let mut set_atomically_response_publication : @rtps.SedpEndpointData? = None
   let mut list_request_subscription : @rtps.SedpEndpointData? = None
   let mut list_response_publication : @rtps.SedpEndpointData? = None
   while get_request_subscription is None ||
@@ -32,6 +37,8 @@ async fn discover_parameter_services(
         get_parameter_types_response_publication is None ||
         set_request_subscription is None ||
         set_response_publication is None ||
+        set_atomically_request_subscription is None ||
+        set_atomically_response_publication is None ||
         list_request_subscription is None ||
         list_response_publication is None {
     match participant.receive_discovery_once() {
@@ -47,6 +54,11 @@ async fn discover_parameter_services(
         } else if publication.topic_name() == set_service.dds_response_name() &&
           publication.type_name() == set_service.dds_response_type_name() {
           set_response_publication = Some(publication)
+        } else if publication.topic_name() ==
+          set_atomically_service.dds_response_name() &&
+          publication.type_name() ==
+          set_atomically_service.dds_response_type_name() {
+          set_atomically_response_publication = Some(publication)
         } else if publication.topic_name() == list_service.dds_response_name() &&
           publication.type_name() == list_service.dds_response_type_name() {
           list_response_publication = Some(publication)
@@ -63,6 +75,11 @@ async fn discover_parameter_services(
         } else if subscription.topic_name() == set_service.dds_request_name() &&
           subscription.type_name() == set_service.dds_request_type_name() {
           set_request_subscription = Some(subscription)
+        } else if subscription.topic_name() ==
+          set_atomically_service.dds_request_name() &&
+          subscription.type_name() ==
+          set_atomically_service.dds_request_type_name() {
+          set_atomically_request_subscription = Some(subscription)
         } else if subscription.topic_name() == list_service.dds_request_name() &&
           subscription.type_name() == list_service.dds_request_type_name() {
           list_request_subscription = Some(subscription)
@@ -76,6 +93,7 @@ async fn discover_parameter_services(
       get_request_subscription, get_response_publication, set_request_subscription,
       set_response_publication, list_request_subscription, list_response_publication,
       get_parameter_types_request_subscription, get_parameter_types_response_publication,
+      set_atomically_request_subscription, set_atomically_response_publication,
     ) {
     (
       Some(get_request_subscription),
@@ -86,12 +104,15 @@ async fn discover_parameter_services(
       Some(list_response_publication),
       Some(get_parameter_types_request_subscription),
       Some(get_parameter_types_response_publication),
+      Some(set_atomically_request_subscription),
+      Some(set_atomically_response_publication),
     ) =>
       Ok(
         (
           get_request_subscription, get_response_publication, set_request_subscription,
           set_response_publication, list_request_subscription, list_response_publication,
           get_parameter_types_request_subscription, get_parameter_types_response_publication,
+          set_atomically_request_subscription, set_atomically_response_publication,
         ),
       )
     _ => Err("discovery ended without matching parameter service endpoints")
@@ -106,17 +127,7 @@ async fn set_integer_parameter(
 ) -> Result[Bool, String] {
   let writer = @cdr.Writer::new()
   writer.write_u32(1U)
-  writer.write_string(name)
-  writer.write_u8(2)
-  writer.write_bool(false)
-  writer.write_i64(value)
-  writer.write_f64(0.0)
-  writer.write_string("")
-  writer.write_u32(0U)
-  writer.write_u32(0U)
-  writer.write_u32(0U)
-  writer.write_u32(0U)
-  writer.write_u32(0U)
+  write_integer_parameter(writer, name, value)
   let identity = match client.request(writer.to_bytes()) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -144,6 +155,56 @@ async fn set_integer_parameter(
     Ok(_) => Ok(successful)
     Err(message) => Err(message)
   }
+}
+
+///|
+async fn set_integer_parameter_atomically(
+  client : @transport.RosServiceClient,
+  name : String,
+  value : Int64,
+) -> Result[(Bool, String), String] {
+  let writer = @cdr.Writer::new()
+  writer.write_u32(1U)
+  write_integer_parameter(writer, name, value)
+  let identity = match client.request(writer.to_bytes()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let (payload, _) = match client.receive_response(identity) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let successful = match reader.read_bool() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match reader.read_string() {
+    Ok(reason) => Ok((successful, reason))
+    Err(message) => Err(message)
+  }
+}
+
+///|
+fn write_integer_parameter(
+  writer : @cdr.Writer,
+  name : String,
+  value : Int64,
+) -> Unit {
+  writer.write_string(name)
+  writer.write_u8(2)
+  writer.write_bool(false)
+  writer.write_i64(value)
+  writer.write_f64(0.0)
+  writer.write_string("")
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
 }
 
 ///|
@@ -327,6 +388,17 @@ async fn main {
       return
     }
   }
+  let set_atomically_service = match
+    @ros.RosService::new(
+      "/demo/moon_parameter_server/set_parameters_atomically", "rcl_interfaces",
+      "SetParametersAtomically",
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
   let list_service = match
     @ros.RosService::new(
       "/demo/moon_parameter_server/list_parameters", "rcl_interfaces", "ListParameters",
@@ -347,6 +419,12 @@ async fn main {
   ).unwrap()
   let set_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x38", 0x03).unwrap()
   let set_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x39", 0x04).unwrap()
+  let set_atomically_request_writer_id = @rtps.EntityId::new(
+    b"\x00\x00\x3E", 0x03,
+  ).unwrap()
+  let set_atomically_response_reader_id = @rtps.EntityId::new(
+    b"\x00\x00\x3F", 0x04,
+  ).unwrap()
   let list_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x3A", 0x03).unwrap()
   let list_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x3B", 0x04).unwrap()
   let graph_publication_id = @rtps.EntityId::new(
@@ -441,6 +519,19 @@ async fn main {
       return
     }
   }
+  match
+    participant.register_service_client_with_type_hashes(
+      set_atomically_service, set_atomically_request_writer_id, set_atomically_response_reader_id,
+      "RIHS01_db0bd950ed5ed867a0e90b225e44dea382d762c0762ff3e0ee842190042a59e5",
+      "RIHS01_31b1a38c5b0b9d893ee24da45f69638f4561c78461d82d52750f429b534502b8",
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
   let endpoints = @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
@@ -449,7 +540,8 @@ async fn main {
       }
     }
     discover_parameter_services(
-      participant, get_service, get_parameter_types_service, set_service, list_service,
+      participant, get_service, get_parameter_types_service, set_service, set_atomically_service,
+      list_service,
     )
   }
   let (
@@ -461,6 +553,8 @@ async fn main {
     list_response_publication,
     get_parameter_types_request_subscription,
     get_parameter_types_response_publication,
+    set_atomically_request_subscription,
+    set_atomically_response_publication,
   ) = match endpoints {
     Ok(value) => value
     Err(message) => {
@@ -551,8 +645,12 @@ async fn main {
     return
   }
   println("SetParameters answer: true")
-  let parameter_type = match
-    get_parameter_type(get_parameter_types_client, "answer") {
+  let set_atomically_client = match
+    @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
+      set_atomically_service, user_socket, prefix, vendor_id, set_atomically_request_writer_id,
+      set_atomically_request_subscription, set_atomically_response_reader_id, set_atomically_response_publication,
+      1L, service_wire_format,
+    ) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -563,12 +661,52 @@ async fn main {
       return
     }
   }
+  let (atomically_succeeded, atomically_reason) = match
+    set_integer_parameter_atomically(set_atomically_client, "answer", 123L) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
+      set_atomically_client.close()
+      return
+    }
+  }
+  if !atomically_succeeded {
+    println(
+      "SetParametersAtomically rejected the integer parameter: " +
+      atomically_reason,
+    )
+    set_client.close()
+    get_client.close()
+    list_client.close()
+    get_parameter_types_client.close()
+    set_atomically_client.close()
+    return
+  }
+  println("SetParametersAtomically answer: true")
+  let parameter_type = match
+    get_parameter_type(get_parameter_types_client, "answer") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      set_client.close()
+      get_client.close()
+      list_client.close()
+      get_parameter_types_client.close()
+      set_atomically_client.close()
+      return
+    }
+  }
   if parameter_type != 2 {
     println("GetParameterTypes did not return the integer parameter type")
     set_client.close()
     get_client.close()
     list_client.close()
     get_parameter_types_client.close()
+    set_atomically_client.close()
     return
   }
   println("GetParameterTypes answer: " + parameter_type.to_string())
@@ -580,15 +718,17 @@ async fn main {
       get_client.close()
       list_client.close()
       get_parameter_types_client.close()
+      set_atomically_client.close()
       return
     }
   }
-  if parameter_value != 99L {
+  if parameter_value != 123L {
     println("GetParameters did not return the updated parameter value")
     set_client.close()
     get_client.close()
     list_client.close()
     get_parameter_types_client.close()
+    set_atomically_client.close()
     return
   }
   println("GetParameters answer: " + parameter_value.to_string())
@@ -600,6 +740,7 @@ async fn main {
       get_client.close()
       list_client.close()
       get_parameter_types_client.close()
+      set_atomically_client.close()
       return
     }
   }
@@ -609,6 +750,7 @@ async fn main {
     get_client.close()
     list_client.close()
     get_parameter_types_client.close()
+    set_atomically_client.close()
     return
   }
   println("ListParameters contains: answer")
@@ -616,4 +758,5 @@ async fn main {
   get_client.close()
   list_client.close()
   get_parameter_types_client.close()
+  set_atomically_client.close()
 }
