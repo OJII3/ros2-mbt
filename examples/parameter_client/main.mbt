@@ -1,31 +1,158 @@
 ///|
-async fn discover_get_parameters(
+async fn discover_parameter_services(
   participant : @transport.RosParticipant,
-  service : @ros.RosService,
-) -> Result[(@rtps.SedpEndpointData, @rtps.SedpEndpointData), String] {
-  let mut request_subscription : @rtps.SedpEndpointData? = None
-  let mut response_publication : @rtps.SedpEndpointData? = None
-  while request_subscription is None || response_publication is None {
+  get_service : @ros.RosService,
+  set_service : @ros.RosService,
+) -> Result[
+  (
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
+    @rtps.SedpEndpointData,
+  ),
+  String,
+] {
+  let mut get_request_subscription : @rtps.SedpEndpointData? = None
+  let mut get_response_publication : @rtps.SedpEndpointData? = None
+  let mut set_request_subscription : @rtps.SedpEndpointData? = None
+  let mut set_response_publication : @rtps.SedpEndpointData? = None
+  while get_request_subscription is None ||
+        get_response_publication is None ||
+        set_request_subscription is None ||
+        set_response_publication is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
-        if publication.topic_name() == service.dds_response_name() &&
-          publication.type_name() == service.dds_response_type_name() {
-          response_publication = Some(publication)
+        if publication.topic_name() == get_service.dds_response_name() &&
+          publication.type_name() == get_service.dds_response_type_name() {
+          get_response_publication = Some(publication)
+        } else if publication.topic_name() == set_service.dds_response_name() &&
+          publication.type_name() == set_service.dds_response_type_name() {
+          set_response_publication = Some(publication)
         }
       Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
-        if subscription.topic_name() == service.dds_request_name() &&
-          subscription.type_name() == service.dds_request_type_name() {
-          request_subscription = Some(subscription)
+        if subscription.topic_name() == get_service.dds_request_name() &&
+          subscription.type_name() == get_service.dds_request_type_name() {
+          get_request_subscription = Some(subscription)
+        } else if subscription.topic_name() == set_service.dds_request_name() &&
+          subscription.type_name() == set_service.dds_request_type_name() {
+          set_request_subscription = Some(subscription)
         }
       Ok(_) => ()
       Err(message) => return Err(message)
     }
   }
-  match (request_subscription, response_publication) {
-    (Some(request_subscription), Some(response_publication)) =>
-      Ok((request_subscription, response_publication))
-    _ => Err("discovery ended without matching GetParameters endpoints")
+  match
+    (
+      get_request_subscription, get_response_publication, set_request_subscription,
+      set_response_publication,
+    ) {
+    (
+      Some(get_request_subscription),
+      Some(get_response_publication),
+      Some(set_request_subscription),
+      Some(set_response_publication),
+    ) =>
+      Ok(
+        (
+          get_request_subscription, get_response_publication, set_request_subscription,
+          set_response_publication,
+        ),
+      )
+    _ => Err("discovery ended without matching parameter service endpoints")
   }
+}
+
+///|
+async fn set_integer_parameter(
+  client : @transport.RosServiceClient,
+  name : String,
+  value : Int64,
+) -> Result[Bool, String] {
+  let writer = @cdr.Writer::new()
+  writer.write_u32(1U)
+  writer.write_string(name)
+  writer.write_u8(2)
+  writer.write_bool(false)
+  writer.write_i64(value)
+  writer.write_f64(0.0)
+  writer.write_string("")
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  writer.write_u32(0U)
+  let identity = match client.request(writer.to_bytes()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let (payload, _) = match client.receive_response(identity) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let result_count = match reader.read_u32() {
+    Ok(value) => value.reinterpret_as_int()
+    Err(message) => return Err(message)
+  }
+  if result_count != 1 {
+    return Err("SetParameters returned an unexpected number of results")
+  }
+  let successful = match reader.read_bool() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match reader.read_string() {
+    Ok(_) => Ok(successful)
+    Err(message) => Err(message)
+  }
+}
+
+///|
+async fn get_integer_parameter(
+  client : @transport.RosServiceClient,
+  name : String,
+) -> Result[Int64, String] {
+  let writer = @cdr.Writer::new()
+  writer.write_u32(1U)
+  writer.write_string(name)
+  let identity = match client.request(writer.to_bytes()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let (payload, _) = match client.receive_response(identity) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let value_count = match reader.read_u32() {
+    Ok(value) => value.reinterpret_as_int()
+    Err(message) => return Err(message)
+  }
+  if value_count != 1 {
+    return Err("GetParameters returned an unexpected number of values")
+  }
+  let parameter_type = match reader.read_u8() {
+    Ok(value) => value.to_int()
+    Err(message) => return Err(message)
+  }
+  match reader.read_bool() {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let parameter_value = match reader.read_i64() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if parameter_type != 2 {
+    return Err("GetParameters returned a non-integer parameter")
+  }
+  Ok(parameter_value)
 }
 
 ///|
@@ -48,7 +175,7 @@ async fn main {
     }
   }
   let vendor_id = @rtps.VendorId::new(1, 15)
-  let service = match
+  let get_service = match
     @ros.RosService::new(
       "/demo/moon_parameter_server/get_parameters", "rcl_interfaces", "GetParameters",
     ) {
@@ -58,8 +185,20 @@ async fn main {
       return
     }
   }
-  let request_writer_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x03).unwrap()
-  let response_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
+  let set_service = match
+    @ros.RosService::new(
+      "/demo/moon_parameter_server/set_parameters", "rcl_interfaces", "SetParameters",
+    ) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      return
+    }
+  }
+  let get_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x03).unwrap()
+  let get_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
+  let set_request_writer_id = @rtps.EntityId::new(b"\x00\x00\x38", 0x03).unwrap()
+  let set_response_reader_id = @rtps.EntityId::new(b"\x00\x00\x39", 0x04).unwrap()
   let graph_publication_id = @rtps.EntityId::new(
     b"gph",
     @ros.ROS_GRAPH_PUBLICATION_ENTITY_KIND,
@@ -105,8 +244,20 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
-      service, request_writer_id, response_reader_id, "RIHS01_135a9e1c3d7cebef792f6687d7ddf99949b21a0bd9a320d863a9110a3f5cf4d6",
+      get_service, get_request_writer_id, get_response_reader_id, "RIHS01_135a9e1c3d7cebef792f6687d7ddf99949b21a0bd9a320d863a9110a3f5cf4d6",
       "RIHS01_9fa773b46e39cc5d02db6224d8fd520bb9caeeffc2b27c96c1e59431baba9f2a",
+    ) {
+    Ok(_) => ()
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  match
+    participant.register_service_client_with_type_hashes(
+      set_service, set_request_writer_id, set_response_reader_id, "RIHS01_130d46386b7e84ea9ecf60608a4d83cbe5e5cb7c6cc5b712b7a4e3a6c254e932",
+      "RIHS01_7a0e8140a0b8d98308fa81a5403a766e610af29a239caf54b7553227906fc266",
     ) {
     Ok(_) => ()
     Err(message) => {
@@ -122,9 +273,14 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_get_parameters(participant, service)
+    discover_parameter_services(participant, get_service, set_service)
   }
-  let (request_subscription, response_publication) = match endpoints {
+  let (
+    get_request_subscription,
+    get_response_publication,
+    set_request_subscription,
+    set_response_publication,
+  ) = match endpoints {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -135,93 +291,64 @@ async fn main {
   let service_wire_format = match
     participant
     .graph()
-    .participant_vendor_id(response_publication.participant_guid()) {
+    .participant_vendor_id(get_response_publication.participant_guid()) {
     Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
       @transport.RosServiceWireFormat::CycloneDdsPayload
     _ => @transport.RosServiceWireFormat::DdsRpcInline
   }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()
-  let client = match
+  let set_client = match
     @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
-      service, user_socket, prefix, vendor_id, request_writer_id, request_subscription,
-      response_reader_id, response_publication, 1L, service_wire_format,
+      set_service, user_socket, prefix, vendor_id, set_request_writer_id, set_request_subscription,
+      set_response_reader_id, set_response_publication, 1L, service_wire_format,
     ) {
     Ok(value) => value
     Err(message) => {
       println(message)
+      user_socket.close()
       return
     }
   }
-  let request_writer = @cdr.Writer::new()
-  request_writer.write_u32(1U)
-  request_writer.write_string("answer")
-  let request_identity = match client.request(request_writer.to_bytes()) {
+  let get_client = match
+    @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
+      get_service, user_socket, prefix, vendor_id, get_request_writer_id, get_request_subscription,
+      get_response_reader_id, get_response_publication, 1L, service_wire_format,
+    ) {
     Ok(value) => value
     Err(message) => {
       println(message)
-      client.close()
+      set_client.close()
       return
     }
   }
-  let (response_payload, _) = match client.receive_response(request_identity) {
+  let set_succeeded = match set_integer_parameter(set_client, "answer", 99L) {
     Ok(value) => value
     Err(message) => {
       println(message)
-      client.close()
+      set_client.close()
       return
     }
   }
-  let response_reader = match @cdr.Reader::from_bytes(response_payload) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      client.close()
-      return
-    }
-  }
-  let value_count = match response_reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => {
-      println(message)
-      client.close()
-      return
-    }
-  }
-  if value_count != 1 {
-    println("GetParameters returned an unexpected number of values")
-    client.close()
+  if !set_succeeded {
+    println("SetParameters rejected the integer parameter")
+    set_client.close()
     return
   }
-  let parameter_type = match response_reader.read_u8() {
-    Ok(value) => value.to_int()
-    Err(message) => {
-      println(message)
-      client.close()
-      return
-    }
-  }
-  match response_reader.read_bool() {
-    Ok(_) => ()
-    Err(message) => {
-      println(message)
-      client.close()
-      return
-    }
-  }
-  let parameter_value = match response_reader.read_i64() {
+  println("SetParameters answer: true")
+  let parameter_value = match get_integer_parameter(get_client, "answer") {
     Ok(value) => value
     Err(message) => {
       println(message)
-      client.close()
+      set_client.close()
       return
     }
   }
-  if parameter_type != 2 {
-    println("GetParameters returned a non-integer parameter")
-    client.close()
+  if parameter_value != 99L {
+    println("GetParameters did not return the updated parameter value")
+    set_client.close()
     return
   }
   println("GetParameters answer: " + parameter_value.to_string())
-  client.close()
+  set_client.close()
 }

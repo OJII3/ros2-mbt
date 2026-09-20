@@ -87,7 +87,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `example_interfaces/msg/WString` を外部ROS 2と送受信する実行可能な `examples/wstring_talker` / `examples/wstring_listener`
 - `example_interfaces/srv/AddTwoInts` を外部ROS 2と呼び出す実行可能な `examples/service_server` / `examples/service_client`
 - `example_interfaces/action/Fibonacci` を外部ROS 2 ActionServerと呼び出す実行可能な `examples/action_client`
-- `rcl_interfaces/srv/GetParameters` で整数parameterを取得する `examples/parameter_client`
+- `rcl_interfaces/srv/SetParameters` / `GetParameters` で整数parameterを設定・取得する `examples/parameter_client`
 - 不正な長さ、truncated payload、不正なencapsulationの検証
 
 ## 開発
@@ -147,7 +147,7 @@ Action相互運用テストはNix devShellのROS 2 Jazzy `rclpy` Fibonacci Actio
 nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
 ```
 
-Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い、MoonBitから`GetParameters`で宣言済み整数parameterを取得します。
+Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い、MoonBitから`SetParameters`で整数parameterを更新して`GetParameters`で読み戻します。
 
 ```sh
 nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
@@ -165,4 +165,4 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 5. `geometry_msgs/Twist`などのROS message codec（primitive・Fast-CDR互換wstring・scalar constants・field defaults・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
 6. ROS service の request/reply facade と `.srv` codec（primitive/nested message codecとRIHS01 hash codegen、loopback test、Cyclone DDS 11.0.1のinline形式および`rmw_cyclonedds_cpp`互換payload形式を双方向検証済み）
 7. Cyclone DDS / Fast DDS / ROS 2 CLIとのtopic・service・graph相互運用テスト（Cyclone DDS 11.0.1のtopic/service双方向と`ros_discovery_info`受信、Fast DDS 3.6.2のtopic/service双方向とraw DDS readerへのgraph sample送信、ROS 2 Jazzy CLIとのtopic/service双方向を確認済み。graph全体は未確認）
-8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、整数parameterを取得するGetParameters clientは実装済み。汎用goal lifecycle、他のParameter service/APIは未実装）
+8. ROS Action / Parameter対応（payload/wrapper codec・hashと5 endpoint identity、Fibonacci ActionのSendGoal/GetResult/CancelGoal/Feedback/Status相互運用、整数parameterを設定・取得するSetParameters/GetParameters clientは実装済み。汎用goal lifecycle、他のParameter service/APIは未実装）
