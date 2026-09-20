@@ -170,8 +170,16 @@ fn append_u16_le(bytes : Array[Byte], value : UInt16) -> Unit {
 }
 
 ///|
-fn read_u16_le(input : Bytes, offset : Int) -> UInt16 {
-  let value = input[offset].to_int() | (input[offset + 1].to_int() << 8)
+fn read_u16_with_endianness(
+  input : Bytes,
+  offset : Int,
+  little_endian : Bool,
+) -> UInt16 {
+  let value = if little_endian {
+    input[offset].to_int() | (input[offset + 1].to_int() << 8)
+  } else {
+    (input[offset].to_int() << 8) | input[offset + 1].to_int()
+  }
   value.to_uint16()
 }
 
@@ -221,11 +229,21 @@ pub fn ParameterList::to_cdr_bytes(self : ParameterList) -> Bytes {
 pub fn ParameterList::from_bytes(
   input : Bytes,
 ) -> Result[(ParameterList, Int), String] {
+  ParameterList::from_bytes_with_endianness(input, true)
+}
+
+///|
+/// Parse a parameter list body using the enclosing DATA submessage byte order.
+fn ParameterList::from_bytes_with_endianness(
+  input : Bytes,
+  little_endian : Bool,
+) -> Result[(ParameterList, Int), String] {
   let result = ParameterList::new()
   let mut offset = 0
   while offset + 4 <= input.length() {
-    let id = read_u16_le(input, offset)
-    let length = read_u16_le(input, offset + 2).to_int()
+    let id = read_u16_with_endianness(input, offset, little_endian)
+    let length =
+      read_u16_with_endianness(input, offset + 2, little_endian).to_int()
     offset += 4
     if id == PID_SENTINEL {
       if length != 0 {

@@ -134,9 +134,6 @@ pub fn HeartbeatFragSubmessage::from_submessage(
   if submessage.id() != SubmessageId::HeartbeatFrag {
     return Err("expected an RTPS HEARTBEAT_FRAG submessage")
   }
-  if (submessage.flags() & HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS HEARTBEAT_FRAG is supported")
-  }
   if submessage.payload.length() != HEARTBEAT_FRAG_BODY_LENGTH {
     return Err("an RTPS HEARTBEAT_FRAG body must be 24 bytes")
   }
@@ -150,18 +147,23 @@ pub fn HeartbeatFragSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let little_endian = (submessage.flags() & HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN) !=
+    0
   let result = match
     HeartbeatFragSubmessage::new(
       reader_id,
       writer_id,
-      reliability_read_i64(submessage.payload, 8),
-      reliability_read_u32(submessage.payload, 16),
-      reliability_read_u32(submessage.payload, 20),
+      reliability_read_i64(submessage.payload, 8, little_endian),
+      reliability_read_u32(submessage.payload, 16, little_endian),
+      reliability_read_u32(submessage.payload, 20, little_endian),
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..result, flags: submessage.flags(), })
+  Ok({
+    ..result,
+    flags: submessage.flags() | HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN,
+  })
 }
 
 ///|
@@ -297,9 +299,6 @@ pub fn NackFragSubmessage::from_submessage(
   if submessage.id() != SubmessageId::NackFrag {
     return Err("expected an RTPS NACK_FRAG submessage")
   }
-  if (submessage.flags() & NACK_FRAG_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS NACK_FRAG is supported")
-  }
   if submessage.payload.length() < 28 {
     return Err("an RTPS NACK_FRAG body is shorter than its fixed fields")
   }
@@ -313,9 +312,14 @@ pub fn NackFragSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let writer_sequence_number = reliability_read_i64(submessage.payload, 8)
-  let bitmap_base = reliability_read_u32(submessage.payload, 16)
-  let num_bits = reliability_read_u32(submessage.payload, 20)
+  let little_endian = (submessage.flags() & NACK_FRAG_FLAG_LITTLE_ENDIAN) != 0
+  let writer_sequence_number = reliability_read_i64(
+    submessage.payload,
+    8,
+    little_endian,
+  )
+  let bitmap_base = reliability_read_u32(submessage.payload, 16, little_endian)
+  let num_bits = reliability_read_u32(submessage.payload, 20, little_endian)
   if num_bits > 256U {
     return Err("an RTPS NACK_FRAG bitmap cannot exceed 256 bits")
   }
@@ -326,9 +330,15 @@ pub fn NackFragSubmessage::from_submessage(
   }
   let bitmap : Array[UInt] = []
   for i in 0..<word_count {
-    bitmap.push(reliability_read_u32(submessage.payload, 24 + i * 4))
+    bitmap.push(
+      reliability_read_u32(submessage.payload, 24 + i * 4, little_endian),
+    )
   }
-  let count = reliability_read_u32(submessage.payload, 24 + word_count * 4)
+  let count = reliability_read_u32(
+    submessage.payload,
+    24 + word_count * 4,
+    little_endian,
+  )
   let result = match
     NackFragSubmessage::new(
       reader_id,
@@ -342,5 +352,5 @@ pub fn NackFragSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..result, flags: submessage.flags(), })
+  Ok({ ..result, flags: submessage.flags() | NACK_FRAG_FLAG_LITTLE_ENDIAN, })
 }

@@ -23,6 +23,34 @@ test "CDR reader round trips primitive values" {
 }
 
 ///|
+test "CDR reader decodes big-endian primitive values" {
+  let reader = Reader::from_bytes(
+    b"\x00\x00\x00\x00\x01\xFE\xFB\x2E\xD4\x31\x00\x00\xF8\xA4\x32\xEB\x01\x02\x03\x04\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01\x02\x03\x04\x05\x06\x07\x08\x3F\xC0\x00\x00\x00\x00\x00\x00\xC0\x04\x00\x00\x00\x00\x00\x00",
+  ).unwrap()
+  assert_eq(reader.read_bool(), Ok(true))
+  assert_eq(reader.read_i8(), Ok(-2))
+  assert_eq(reader.read_i16(), Ok(-1234))
+  assert_eq(reader.read_u16(), Ok(54321U))
+  assert_eq(reader.read_i32(), Ok(-123456789))
+  assert_eq(reader.read_u32(), Ok(0x01020304U))
+  assert_eq(reader.read_i64(), Ok(-1L))
+  assert_eq(reader.read_u64(), Ok(0x0102030405060708UL))
+  assert_eq(reader.read_f32(), Ok(1.5F))
+  assert_eq(reader.read_f64(), Ok(-2.5))
+  assert_eq(reader.remaining(), 0)
+}
+
+///|
+test "CDR reader decodes big-endian strings and byte sequences" {
+  let reader = Reader::from_bytes(
+    b"\x00\x00\x00\x00\x00\x00\x00\x02x\x00\x00\x00\x00\x00\x00\x03\x01\x02\x03",
+  ).unwrap()
+  assert_eq(reader.read_string(), Ok("x"))
+  assert_eq(reader.read_byte_sequence(), Ok(b"\x01\x02\x03"))
+  assert_eq(reader.remaining(), 0)
+}
+
+///|
 test "CDR signed 8-bit and MoonBit-sized 16-bit helpers" {
   let writer = Writer::new()
   writer.write_i8(-2)
@@ -66,7 +94,7 @@ test "CDR reader accepts little-endian encapsulation options" {
 ///|
 test "CDR reader rejects malformed payloads" {
   assert_true(Reader::from_bytes(b"bad") is Err(_))
-  assert_true(Reader::from_bytes(b"\x00\x00\x00\x00") is Err(_))
+  assert_true(Reader::from_bytes(b"\x00\x02\x00\x00") is Err(_))
   let reader = match Reader::from_bytes(b"\x00\x01\x00\x00\x01") {
     Ok(value) => value
     Err(message) => fail(message)

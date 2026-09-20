@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub const CDR_BE : UInt16 = 0x0000
+
 pub const CDR_LE : UInt16 = 0x0001
 
 pub const ENCAPSULATION_LENGTH : Int = 4
@@ -16,6 +18,7 @@ pub const ENCAPSULATION_LENGTH : Int = 4
 pub struct Reader {
   bytes : Bytes
   mut offset : Int
+  little_endian : Bool
 }
 pub fn Reader::from_bytes(Bytes) -> Result[Self, String]
 pub fn Reader::read_bool(Self) -> Result[Bool, String]

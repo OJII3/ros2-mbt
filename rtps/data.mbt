@@ -250,8 +250,12 @@ fn data_u32_le(value : UInt) -> Bytes {
 }
 
 ///|
-fn data_read_u16_le(input : Bytes, offset : Int) -> UInt16 {
-  let value = input[offset].to_int() | (input[offset + 1].to_int() << 8)
+fn data_read_u16(input : Bytes, offset : Int, little_endian : Bool) -> UInt16 {
+  let value = if little_endian {
+    input[offset].to_int() | (input[offset + 1].to_int() << 8)
+  } else {
+    (input[offset].to_int() << 8) | input[offset + 1].to_int()
+  }
   value.to_uint16()
 }
 
@@ -263,7 +267,6 @@ fn data_read_u32_le(input : Bytes, offset : Int) -> UInt {
   (input[offset + 3].to_int().reinterpret_as_uint() << 24)
 }
 
-///|
 ///|
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
@@ -307,6 +310,51 @@ pub fn DataSubmessage::to_message(
 }
 
 ///|
+fn data_read_u32(input : Bytes, offset : Int, little_endian : Bool) -> UInt {
+  if little_endian {
+    data_read_u32_le(input, offset)
+  } else {
+    (input[offset].to_int().reinterpret_as_uint() << 24) |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 3].to_int().reinterpret_as_uint()
+  }
+}
+
+///|
+fn data_inline_qos_from_bytes(
+  input : Bytes,
+  little_endian : Bool,
+) -> Result[(Bytes, Int), String] {
+  let (parameters, consumed) = match
+    ParameterList::from_bytes_with_endianness(input, little_endian) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if little_endian {
+    return Ok((bytes_from(input, 0, consumed), consumed))
+  }
+  let normalized = ParameterList::new()
+  for parameter in parameters.values() {
+    let value = parameter.value()
+    let normalized_value = if parameter.id() == PID_STATUS_INFO &&
+      value.length() == 4 {
+      data_u32_le(data_read_u32(value, 0, false))
+    } else if parameter.id() == PID_RELATED_SAMPLE_IDENTITY &&
+      value.length() == 24 {
+      match SampleIdentity::from_bytes_with_endianness(value, false) {
+        Ok(identity) => identity.to_bytes()
+        Err(_) => value
+      }
+    } else {
+      value
+    }
+    normalized.add(Parameter::new(parameter.id(), normalized_value))
+  }
+  Ok((normalized.to_bytes(), consumed))
+}
+
+///|
 /// Parse a DATA submessage from an RTPS submessage.
 pub fn DataSubmessage::from_submessage(
   submessage : Submessage,
@@ -314,14 +362,12 @@ pub fn DataSubmessage::from_submessage(
   if submessage.id != SubmessageId::Data {
     return Err("expected an RTPS DATA submessage")
   }
-  if (submessage.flags & DATA_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS DATA submessages are supported")
-  }
   if submessage.payload.length() < DATA_FIXED_BODY_LENGTH {
     return Err("an RTPS DATA body is shorter than its fixed fields")
   }
-  let extra_flags = data_read_u16_le(submessage.payload, 0)
-  let octets_to_inline_qos = data_read_u16_le(submessage.payload, 2)
+  let little_endian = (submessage.flags & DATA_FLAG_LITTLE_ENDIAN) != 0
+  let extra_flags = data_read_u16(submessage.payload, 0, little_endian)
+  let octets_to_inline_qos = data_read_u16(submessage.payload, 2, little_endian)
   let reader_id = match
     EntityId::from_bytes(bytes_from(submessage.payload, 4, 4)) {
     Ok(value) => value
@@ -332,7 +378,11 @@ pub fn DataSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let sequence_number = read_sequence_number_le(submessage.payload, 12)
+  let sequence_number = read_sequence_number(
+    submessage.payload,
+    12,
+    little_endian,
+  )
   let mut inline_qos = b""
   let mut payload_offset = DATA_FIXED_BODY_LENGTH
   let inline_qos_offset = 4 + octets_to_inline_qos.to_int()
@@ -346,11 +396,12 @@ pub fn DataSubmessage::from_submessage(
       inline_qos_offset,
       submessage.payload.length() - inline_qos_offset,
     )
-    let consumed = match ParameterList::from_bytes(remaining) {
-      Ok((_, consumed)) => consumed
+    let (decoded_inline_qos, consumed) = match
+      data_inline_qos_from_bytes(remaining, little_endian) {
+      Ok(value) => value
       Err(message) => return Err(message)
     }
-    inline_qos = bytes_from(remaining, 0, consumed)
+    inline_qos = decoded_inline_qos
     payload_offset = inline_qos_offset + consumed
   } else {
     payload_offset = inline_qos_offset
@@ -363,7 +414,7 @@ pub fn DataSubmessage::from_submessage(
     return Err("RTPS DATA cannot contain both data and key")
   }
   Ok({
-    flags: submessage.flags,
+    flags: submessage.flags | DATA_FLAG_LITTLE_ENDIAN,
     extra_flags,
     octets_to_inline_qos,
     reader_id,

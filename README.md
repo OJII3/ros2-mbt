@@ -18,6 +18,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - RTPS `DATA_FRAG` の fragment codec と best-effort/reliable reader の再構成
 - RTPS `GAP`、`HEARTBEAT_FRAG`、`NACK_FRAG` の codec と reliable fragment再送要求
 - RTPS `INFO_TS` submessage（NTP timestamp、Invalidate flag、両エンディアン）
+- 対応済みRTPS submessageのE flagに応じたbig/little-endian受信（送信はlittle-endian）
 - RTPS message container（header + 複数 submessage の serialize/parse）
 - SPDP participant data の ParameterList生成・解析とDATA message/UDP helper
 - SEDP endpoint data（topic/type、locator、任意QoS）の生成・解析とUDP helper
@@ -69,7 +70,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - `rmw_dds_common` の `Gid` / `NodeEntitiesInfo` / `ParticipantEntitiesInfo` CDR codec
 - `ros_discovery_info` の DDS identity と graph discovery QoS descriptor
 - ROS topic descriptor から QoS付きSEDP topic/type identity への bridge
-- ROS 2で使うCDR little-endian encapsulation (`00 01 00 00`)
+- ROS 2 CDR_BE / CDR_LE encapsulationの読み取りと、CDR_LE (`00 01 00 00`) の生成
 - CDRのprimitive、UTF-8 string、byte sequenceのエンコード/デコード
 - native async UDPのbind、unicast送受信、multicast socket wrapper
 - `std_msgs/msg/String` と `geometry_msgs/msg/Twist` の最小CDR codec

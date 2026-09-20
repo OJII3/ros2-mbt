@@ -33,6 +33,59 @@ test "RTPS DATA submessage round trip" {
 }
 
 ///|
+test "RTPS DATA parser accepts a big-endian body" {
+  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
+  let submessage = Submessage::new(
+    SubmessageId::Data,
+    DATA_FLAG_DATA,
+    b"\x00\x00\x00\x10rdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x01payload",
+  )
+  let decoded = DataSubmessage::from_submessage(submessage).unwrap()
+  assert_eq(decoded, DataSubmessage::new(reader_id, writer_id, 1L, b"payload"))
+}
+
+///|
+test "RTPS DATA parser normalizes big-endian inline QoS" {
+  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
+  let prefix = GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).unwrap()
+  let identity = SampleIdentity::new(Guid::new(prefix, writer_id), 9L).unwrap()
+  let inline_qos : Array[Byte] = [
+    0x00, 0x71, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x83, 0x00, 0x18,
+  ]
+  let guid = identity.writer_guid().to_bytes()
+  for byte in guid {
+    inline_qos.push(byte)
+  }
+  for byte in [0, 0, 0, 0, 0, 0, 0, 9] {
+    inline_qos.push(byte.to_byte())
+  }
+  for byte in [0x00, 0x01, 0x00, 0x00] {
+    inline_qos.push(byte.to_byte())
+  }
+  let body : Array[Byte] = [
+    0, 0, 0, 16, 0x72, 0x64, 0x72, 0xC7, 0x77, 0x72, 0x74, 0xC2, 0, 0, 0, 0, 0, 0,
+    0, 1,
+  ]
+  for byte in inline_qos {
+    body.push(byte)
+  }
+  for byte in b"key" {
+    body.push(byte)
+  }
+  let decoded = DataSubmessage::from_submessage(
+    Submessage::new(
+      SubmessageId::Data,
+      DATA_FLAG_DATA | DATA_FLAG_INLINE_QOS,
+      Bytes::from_array(body),
+    ),
+  ).unwrap()
+  assert_eq(decoded.status_info(), Ok(Some(STATUS_INFO_DISPOSED)))
+  assert_eq(decoded.related_sample_identity(), Ok(Some(identity)))
+  assert_eq(decoded.serialized_payload(), b"key")
+}
+
+///|
 test "RTPS DATA supports inline QoS" {
   let reader_id = match test_entity_id(0xC7) {
     Ok(value) => value
@@ -63,6 +116,28 @@ test "RTPS DATA supports inline QoS" {
   }
   assert_eq(decoded.inline_qos(), inline_qos.to_bytes())
   assert_eq(decoded.serialized_payload(), b"payload")
+}
+
+///|
+test "RTPS DATA_FRAG parser accepts a big-endian body" {
+  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
+  let decoded = DataFragSubmessage::from_submessage(
+    Submessage::new(
+      SubmessageId::DataFrag,
+      DATA_FLAG_DATA,
+      b"\x00\x00\x00\x1Crdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x09\x00\x00\x00\x01\x00\x01\x00\x04\x00\x00\x00\x04data",
+    ),
+  ).unwrap()
+  assert_eq(decoded.reader_id(), reader_id)
+  assert_eq(decoded.writer_id(), writer_id)
+  assert_eq(decoded.writer_sequence_number(), 9L)
+  assert_eq(decoded.fragment_starting_number(), 1U)
+  assert_eq(decoded.fragments_in_submessage(), 1U.to_uint16())
+  assert_eq(decoded.fragment_size(), 4U.to_uint16())
+  assert_eq(decoded.sample_size(), 4U)
+  assert_eq(decoded.serialized_payload(), b"data")
+  assert_eq(decoded.flags(), DATA_FLAG_LITTLE_ENDIAN | DATA_FLAG_DATA)
 }
 
 ///|

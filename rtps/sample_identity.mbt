@@ -71,6 +71,14 @@ pub fn SampleIdentity::to_bytes(self : SampleIdentity) -> Bytes {
 pub fn SampleIdentity::from_bytes(
   input : Bytes,
 ) -> Result[SampleIdentity, String] {
+  SampleIdentity::from_bytes_with_endianness(input, true)
+}
+
+///|
+fn SampleIdentity::from_bytes_with_endianness(
+  input : Bytes,
+  little_endian : Bool,
+) -> Result[SampleIdentity, String] {
   if input.length() != 24 {
     return Err("an RTPS sample identity is 24 bytes")
   }
@@ -78,15 +86,27 @@ pub fn SampleIdentity::from_bytes(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let high = match input[16:20] {
-    [u32le(value)] => value
-    _ => return Err("an RTPS sample identity sequence number is 8 bytes")
-  }
-  let low = match input[20:24] {
-    [u32le(value)] => value
-    _ => return Err("an RTPS sample identity sequence number is 8 bytes")
-  }
-  let sequence_number =
-    ((high.to_uint64() << 32) | low.to_uint64()).reinterpret_as_int64()
+  let high = sample_identity_read_u32(input, 16, little_endian)
+  let low = sample_identity_read_u32(input, 20, little_endian)
+  let sequence_number = ((high.to_uint64() << 32) | low.to_uint64()).reinterpret_as_int64()
   SampleIdentity::new(writer_guid, sequence_number)
+}
+
+///|
+fn sample_identity_read_u32(
+  input : Bytes,
+  offset : Int,
+  little_endian : Bool,
+) -> UInt {
+  if little_endian {
+    input[offset].to_int().reinterpret_as_uint() |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 3].to_int().reinterpret_as_uint() << 24)
+  } else {
+    (input[offset].to_int().reinterpret_as_uint() << 24) |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 3].to_int().reinterpret_as_uint()
+  }
 }

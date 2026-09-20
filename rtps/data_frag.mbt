@@ -208,14 +208,12 @@ pub fn DataFragSubmessage::from_submessage(
   if submessage.id() != SubmessageId::DataFrag {
     return Err("expected an RTPS DATA_FRAG submessage")
   }
-  if (submessage.flags() & DATA_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS DATA_FRAG is supported")
-  }
   if submessage.payload.length() < DATA_FRAG_FIXED_BODY_LENGTH {
     return Err("an RTPS DATA_FRAG body is shorter than its fixed fields")
   }
-  let extra_flags = data_read_u16_le(submessage.payload, 0)
-  let octets_to_inline_qos = data_read_u16_le(submessage.payload, 2)
+  let little_endian = (submessage.flags() & DATA_FLAG_LITTLE_ENDIAN) != 0
+  let extra_flags = data_read_u16(submessage.payload, 0, little_endian)
+  let octets_to_inline_qos = data_read_u16(submessage.payload, 2, little_endian)
   let reader_id = match
     EntityId::from_bytes(bytes_from(submessage.payload, 4, 4)) {
     Ok(value) => value
@@ -226,11 +224,23 @@ pub fn DataFragSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let sequence_number = read_sequence_number_le(submessage.payload, 12)
-  let fragment_starting_number = data_read_u32_le(submessage.payload, 20)
-  let fragments_in_submessage = data_read_u16_le(submessage.payload, 24)
-  let fragment_size = data_read_u16_le(submessage.payload, 26)
-  let sample_size = data_read_u32_le(submessage.payload, 28)
+  let sequence_number = read_sequence_number(
+    submessage.payload,
+    12,
+    little_endian,
+  )
+  let fragment_starting_number = data_read_u32(
+    submessage.payload,
+    20,
+    little_endian,
+  )
+  let fragments_in_submessage = data_read_u16(
+    submessage.payload,
+    24,
+    little_endian,
+  )
+  let fragment_size = data_read_u16(submessage.payload, 26, little_endian)
+  let sample_size = data_read_u32(submessage.payload, 28, little_endian)
   if octets_to_inline_qos.to_int() < DATA_FRAG_INLINE_QOS_OFFSET {
     return Err("RTPS DATA_FRAG octetsToInlineQos is too small")
   }
@@ -246,11 +256,12 @@ pub fn DataFragSubmessage::from_submessage(
       inline_qos_offset,
       submessage.payload.length() - inline_qos_offset,
     )
-    let consumed = match ParameterList::from_bytes(remaining) {
-      Ok((_, consumed)) => consumed
+    let (decoded_inline_qos, consumed) = match
+      data_inline_qos_from_bytes(remaining, little_endian) {
+      Ok(value) => value
       Err(message) => return Err(message)
     }
-    inline_qos = bytes_from(remaining, 0, consumed)
+    inline_qos = decoded_inline_qos
     payload_offset = inline_qos_offset + consumed
   }
   let data_and_key_flags = submessage.flags() & (DATA_FLAG_DATA | DATA_FLAG_KEY)
@@ -278,7 +289,7 @@ pub fn DataFragSubmessage::from_submessage(
   }
   Ok({
     ..result,
-    flags: submessage.flags(),
+    flags: submessage.flags() | DATA_FLAG_LITTLE_ENDIAN,
     extra_flags,
     octets_to_inline_qos,
     inline_qos,

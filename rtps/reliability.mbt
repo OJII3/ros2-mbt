@@ -299,16 +299,33 @@ fn reliability_append_i64(bytes : Array[Byte], value : Int64) -> Unit {
 }
 
 ///|
-fn reliability_read_u32(input : Bytes, offset : Int) -> UInt {
-  input[offset].to_int().reinterpret_as_uint() |
-  (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
-  (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
-  (input[offset + 3].to_int().reinterpret_as_uint() << 24)
+fn reliability_read_u32(
+  input : Bytes,
+  offset : Int,
+  little_endian : Bool,
+) -> UInt {
+  if little_endian {
+    input[offset].to_int().reinterpret_as_uint() |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 3].to_int().reinterpret_as_uint() << 24)
+  } else {
+    (input[offset].to_int().reinterpret_as_uint() << 24) |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 3].to_int().reinterpret_as_uint()
+  }
 }
 
 ///|
-fn reliability_read_i64(input : Bytes, offset : Int) -> Int64 {
-  read_sequence_number_le(input, offset)
+fn reliability_read_i64(
+  input : Bytes,
+  offset : Int,
+  little_endian : Bool,
+) -> Int64 {
+  let high = reliability_read_u32(input, offset, little_endian).to_uint64()
+  let low = reliability_read_u32(input, offset + 4, little_endian).to_uint64()
+  ((high << 32) | low).reinterpret_as_int64()
 }
 
 ///|
@@ -357,9 +374,6 @@ pub fn HeartbeatSubmessage::from_submessage(
   if submessage.id() != SubmessageId::Heartbeat {
     return Err("expected an RTPS HEARTBEAT submessage")
   }
-  if (submessage.flags() & HEARTBEAT_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS HEARTBEAT is supported")
-  }
   if submessage.payload.length() != HEARTBEAT_BODY_LENGTH {
     return Err("an RTPS HEARTBEAT body must be 28 bytes")
   }
@@ -373,9 +387,18 @@ pub fn HeartbeatSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let first_sequence_number = reliability_read_i64(submessage.payload, 8)
-  let last_sequence_number = reliability_read_i64(submessage.payload, 16)
-  let count = reliability_read_u32(submessage.payload, 24)
+  let little_endian = (submessage.flags() & HEARTBEAT_FLAG_LITTLE_ENDIAN) != 0
+  let first_sequence_number = reliability_read_i64(
+    submessage.payload,
+    8,
+    little_endian,
+  )
+  let last_sequence_number = reliability_read_i64(
+    submessage.payload,
+    16,
+    little_endian,
+  )
+  let count = reliability_read_u32(submessage.payload, 24, little_endian)
   let result = match
     HeartbeatSubmessage::new(
       reader_id, writer_id, first_sequence_number, last_sequence_number, count,
@@ -383,7 +406,7 @@ pub fn HeartbeatSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..result, flags: submessage.flags(), })
+  Ok({ ..result, flags: submessage.flags() | HEARTBEAT_FLAG_LITTLE_ENDIAN, })
 }
 
 ///|
@@ -433,9 +456,6 @@ pub fn AckNackSubmessage::from_submessage(
   if submessage.id() != SubmessageId::AckNack {
     return Err("expected an RTPS ACKNACK submessage")
   }
-  if (submessage.flags() & ACKNACK_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS ACKNACK is supported")
-  }
   if submessage.payload.length() < 24 {
     return Err("an RTPS ACKNACK body is shorter than its fixed fields")
   }
@@ -449,8 +469,9 @@ pub fn AckNackSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let bitmap_base = reliability_read_i64(submessage.payload, 8)
-  let num_bits = reliability_read_u32(submessage.payload, 16)
+  let little_endian = (submessage.flags() & ACKNACK_FLAG_LITTLE_ENDIAN) != 0
+  let bitmap_base = reliability_read_i64(submessage.payload, 8, little_endian)
+  let num_bits = reliability_read_u32(submessage.payload, 16, little_endian)
   if num_bits > 256U {
     return Err("an RTPS ACKNACK bitmap cannot exceed 256 bits")
   }
@@ -461,9 +482,15 @@ pub fn AckNackSubmessage::from_submessage(
   }
   let bitmap : Array[UInt] = []
   for i in 0..<word_count {
-    bitmap.push(reliability_read_u32(submessage.payload, 20 + i * 4))
+    bitmap.push(
+      reliability_read_u32(submessage.payload, 20 + i * 4, little_endian),
+    )
   }
-  let count = reliability_read_u32(submessage.payload, 20 + word_count * 4)
+  let count = reliability_read_u32(
+    submessage.payload,
+    20 + word_count * 4,
+    little_endian,
+  )
   let result = match
     AckNackSubmessage::new(
       reader_id, writer_id, bitmap_base, num_bits, bitmap, count,
@@ -471,7 +498,7 @@ pub fn AckNackSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..result, flags: submessage.flags(), })
+  Ok({ ..result, flags: submessage.flags() | ACKNACK_FLAG_LITTLE_ENDIAN, })
 }
 
 ///|
@@ -521,9 +548,6 @@ pub fn GapSubmessage::from_submessage(
   if submessage.id() != SubmessageId::Gap {
     return Err("expected an RTPS GAP submessage")
   }
-  if (submessage.flags() & GAP_FLAG_LITTLE_ENDIAN) == 0 {
-    return Err("only little-endian RTPS GAP is supported")
-  }
   if submessage.payload.length() < 28 {
     return Err("an RTPS GAP body is shorter than its fixed fields")
   }
@@ -537,9 +561,18 @@ pub fn GapSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let gap_start = reliability_read_i64(submessage.payload, 8)
-  let gap_list_base = reliability_read_i64(submessage.payload, 16)
-  let gap_list_num_bits = reliability_read_u32(submessage.payload, 24)
+  let little_endian = (submessage.flags() & GAP_FLAG_LITTLE_ENDIAN) != 0
+  let gap_start = reliability_read_i64(submessage.payload, 8, little_endian)
+  let gap_list_base = reliability_read_i64(
+    submessage.payload,
+    16,
+    little_endian,
+  )
+  let gap_list_num_bits = reliability_read_u32(
+    submessage.payload,
+    24,
+    little_endian,
+  )
   if gap_list_num_bits > 256U {
     return Err("an RTPS GAP bitmap cannot exceed 256 bits")
   }
@@ -550,7 +583,9 @@ pub fn GapSubmessage::from_submessage(
   }
   let gap_list_bitmap : Array[UInt] = []
   for i in 0..<word_count {
-    gap_list_bitmap.push(reliability_read_u32(submessage.payload, 28 + i * 4))
+    gap_list_bitmap.push(
+      reliability_read_u32(submessage.payload, 28 + i * 4, little_endian),
+    )
   }
   let result = match
     GapSubmessage::new(
@@ -564,5 +599,5 @@ pub fn GapSubmessage::from_submessage(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ ..result, flags: submessage.flags(), })
+  Ok({ ..result, flags: submessage.flags() | GAP_FLAG_LITTLE_ENDIAN, })
 }

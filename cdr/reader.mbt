@@ -1,22 +1,63 @@
 ///|
-/// A cursor for reading a ROS 2 CDR little-endian payload.
+/// CDR big-endian encapsulation identifier.
+pub const CDR_BE : UInt16 = 0x0000
+
+///|
+/// A cursor for reading a ROS 2 CDR payload.
 pub struct Reader {
   bytes : Bytes
   mut offset : Int
+  little_endian : Bool
 }
 
 ///|
-/// Start reading a CDR little-endian payload.
+/// Start reading a CDR big-endian or little-endian payload.
 pub fn Reader::from_bytes(bytes : Bytes) -> Result[Reader, String] {
   if bytes.length() < ENCAPSULATION_LENGTH {
     return Err("a CDR payload must contain a 4-byte encapsulation header")
   }
   // The final two bytes are encapsulation options. Cyclone DDS sets one of
   // these option bits for otherwise ordinary little-endian CDR payloads.
-  if bytes[0] != 0 || bytes[1] != 1 {
-    return Err("only CDR little-endian encapsulation is supported")
+  if bytes[0] != 0 || (bytes[1] != 0 && bytes[1] != 1) {
+    return Err("only CDR_BE and CDR_LE encapsulations are supported")
   }
-  Ok({ bytes, offset: ENCAPSULATION_LENGTH, })
+  Ok({ bytes, offset: ENCAPSULATION_LENGTH, little_endian: bytes[1] == 1, })
+}
+
+///|
+fn cdr_reader_read_u16(input : BytesView, little_endian : Bool) -> UInt {
+  if little_endian {
+    input[0].to_int().reinterpret_as_uint() |
+    (input[1].to_int().reinterpret_as_uint() << 8)
+  } else {
+    (input[0].to_int().reinterpret_as_uint() << 8) |
+    input[1].to_int().reinterpret_as_uint()
+  }
+}
+
+///|
+fn cdr_reader_read_u32(input : BytesView, little_endian : Bool) -> UInt {
+  if little_endian {
+    input[0].to_int().reinterpret_as_uint() |
+    (input[1].to_int().reinterpret_as_uint() << 8) |
+    (input[2].to_int().reinterpret_as_uint() << 16) |
+    (input[3].to_int().reinterpret_as_uint() << 24)
+  } else {
+    (input[0].to_int().reinterpret_as_uint() << 24) |
+    (input[1].to_int().reinterpret_as_uint() << 16) |
+    (input[2].to_int().reinterpret_as_uint() << 8) |
+    input[3].to_int().reinterpret_as_uint()
+  }
+}
+
+///|
+fn cdr_reader_read_u64(input : BytesView, little_endian : Bool) -> UInt64 {
+  let mut value = 0UL
+  for index in 0..<8 {
+    let shift = if little_endian { index * 8 } else { (7 - index) * 8 }
+    value = value | (input[index].to_int().to_uint64() << shift)
+  }
+  value
 }
 
 ///|
@@ -25,7 +66,8 @@ pub fn Reader::remaining(self : Reader) -> Int {
   self.bytes.length() - self.offset
 }
 
-///| Check for the zero-filled final padding of a CDR aggregate.
+///|
+/// Check for the zero-filled final padding of a CDR aggregate.
 pub fn Reader::remaining_is_zero_padding(
   self : Reader,
   alignment : Int,
@@ -108,11 +150,10 @@ pub fn Reader::read_i16(self : Reader) -> Result[Int, String] {
     Ok(_) =>
       match self.take(2) {
         Err(message) => Err(message)
-        Ok(view) =>
-          match view {
-            [i16le(value)] => Ok(value)
-            _ => Err("invalid CDR int16")
-          }
+        Ok(view) => {
+          let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
+          Ok(if raw >= 32768 { raw - 65536 } else { raw })
+        }
       }
   }
 }
@@ -125,11 +166,7 @@ pub fn Reader::read_u16(self : Reader) -> Result[UInt, String] {
     Ok(_) =>
       match self.take(2) {
         Err(message) => Err(message)
-        Ok(view) =>
-          match view {
-            [u16le(value)] => Ok(value)
-            _ => Err("invalid CDR uint16")
-          }
+        Ok(view) => Ok(cdr_reader_read_u16(view, self.little_endian))
       }
   }
 }
@@ -143,10 +180,7 @@ pub fn Reader::read_i32(self : Reader) -> Result[Int, String] {
       match self.take(4) {
         Err(message) => Err(message)
         Ok(view) =>
-          match view {
-            [u32le(value)] => Ok(value.reinterpret_as_int())
-            _ => Err("invalid CDR int32")
-          }
+          Ok(cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int())
       }
   }
 }
@@ -159,11 +193,7 @@ pub fn Reader::read_u32(self : Reader) -> Result[UInt, String] {
     Ok(_) =>
       match self.take(4) {
         Err(message) => Err(message)
-        Ok(view) =>
-          match view {
-            [u32le(value)] => Ok(value)
-            _ => Err("invalid CDR uint32")
-          }
+        Ok(view) => Ok(cdr_reader_read_u32(view, self.little_endian))
       }
   }
 }
@@ -177,10 +207,9 @@ pub fn Reader::read_i64(self : Reader) -> Result[Int64, String] {
       match self.take(8) {
         Err(message) => Err(message)
         Ok(view) =>
-          match view {
-            [u64le(value)] => Ok(value.reinterpret_as_int64())
-            _ => Err("invalid CDR int64")
-          }
+          Ok(
+            cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64(),
+          )
       }
   }
 }
@@ -193,11 +222,7 @@ pub fn Reader::read_u64(self : Reader) -> Result[UInt64, String] {
     Ok(_) =>
       match self.take(8) {
         Err(message) => Err(message)
-        Ok(view) =>
-          match view {
-            [u64le(value)] => Ok(value)
-            _ => Err("invalid CDR uint64")
-          }
+        Ok(view) => Ok(cdr_reader_read_u64(view, self.little_endian))
       }
   }
 }
@@ -211,10 +236,11 @@ pub fn Reader::read_f32(self : Reader) -> Result[Float, String] {
       match self.take(4) {
         Err(message) => Err(message)
         Ok(view) =>
-          match view {
-            [u32le(value)] => Ok(Float::reinterpret_from_uint(value))
-            _ => Err("invalid CDR float32")
-          }
+          Ok(
+            Float::reinterpret_from_uint(
+              cdr_reader_read_u32(view, self.little_endian),
+            ),
+          )
       }
   }
 }
@@ -228,10 +254,9 @@ pub fn Reader::read_f64(self : Reader) -> Result[Double, String] {
       match self.take(8) {
         Err(message) => Err(message)
         Ok(view) =>
-          match view {
-            [u64le(value)] => Ok(value.reinterpret_as_double())
-            _ => Err("invalid CDR float64")
-          }
+          Ok(
+            cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double(),
+          )
       }
   }
 }
