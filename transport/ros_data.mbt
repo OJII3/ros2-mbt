@@ -23,6 +23,13 @@ pub fn RosPublisher::new_for_subscription(
     subscription.type_name() != topic.dds_type_name() {
     return Err("the discovered subscription does not match the ROS topic")
   }
+  let qos = match subscription.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT {
+    return Err("the discovered subscription is not best effort")
+  }
   let writer = match
     DataWriter::new_for_subscription(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,

@@ -63,6 +63,33 @@ async test "ROS publisher and subscription validate the topic identity" {
     )
     is Err(_),
   )
+  let reliable_subscription = match
+    topic.to_sedp_with_qos(
+      @rtps.SedpEndpointKind::Subscription,
+      @rtps.Guid::new(prefix, reader_id),
+      @rtps.SedpQos::new(
+        @rtps.RELIABILITY_RELIABLE,
+        @rtps.DURABILITY_VOLATILE,
+        @rtps.HISTORY_KEEP_LAST,
+        1,
+      ),
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  reliable_subscription.add_unicast_locator(receiver_locator)
+  assert_true(
+    RosPublisher::new_for_subscription(
+      topic,
+      sender,
+      prefix,
+      @rtps.VendorId::new(1, 15),
+      writer_id,
+      reliable_subscription,
+      1L,
+    )
+    is Err(_),
+  )
   sender.close()
   receiver.close()
 }
