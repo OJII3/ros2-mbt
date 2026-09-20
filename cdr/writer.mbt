@@ -176,3 +176,32 @@ pub fn Writer::write_string(self : Writer, value : String) -> Unit {
   self.write_byte_array(encoded)
   self.write_u8(0)
 }
+
+///|
+/// Write a UTF-8 CDR string if it fits within a character-count bound.
+pub fn Writer::write_bounded_string(
+  self : Writer,
+  value : String,
+  maximum_length : Int,
+) -> Result[Unit, String] {
+  if maximum_length < 0 {
+    return Err("a CDR string bound must not be negative")
+  }
+  if cdr_utf8_character_count(value) > maximum_length {
+    return Err("CDR string exceeds its character bound")
+  }
+  self.write_string(value)
+  Ok(())
+}
+
+///|
+fn cdr_utf8_character_count(value : String) -> Int {
+  let encoded = @utf8.encode(value)
+  let mut count = 0
+  for byte in encoded {
+    if byte < 0x80 || byte > 0xBF {
+      count += 1
+    }
+  }
+  count
+}

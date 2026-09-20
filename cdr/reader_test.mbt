@@ -80,6 +80,18 @@ test "CDR reader round trips strings and sequences" {
 }
 
 ///|
+test "CDR reader enforces bounded string character counts" {
+  let writer = Writer::new()
+  writer.write_string("猫犬")
+  let reader = Reader::from_bytes(writer.to_bytes()).unwrap()
+  assert_true(reader.read_bounded_string(1) is Err(_))
+
+  let reader = Reader::from_bytes(writer.to_bytes()).unwrap()
+  assert_eq(reader.read_bounded_string(2), Ok("猫犬"))
+  assert_eq(reader.remaining(), 0)
+}
+
+///|
 test "CDR reader accepts little-endian encapsulation options" {
   let reader = match Reader::from_bytes(
     b"\x00\x01\x00\x01\x02\x00\x00\x00x\x00",

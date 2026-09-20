@@ -51,3 +51,12 @@ test "CDR writer accepts non-ASCII UTF-8 strings" {
     b"\x00\x01\x00\x00\x10\x00\x00\x00こんにちは\x00",
   )
 }
+
+///|
+test "CDR writer enforces bounded string character counts" {
+  let writer = Writer::new()
+  assert_eq(writer.write_bounded_string("猫", 1), Ok(()))
+  let before = writer.to_bytes()
+  assert_true(writer.write_bounded_string("猫犬", 1) is Err(_))
+  assert_eq(writer.to_bytes(), before)
+}

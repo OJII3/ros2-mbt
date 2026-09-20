@@ -22,6 +22,7 @@ pub struct Reader {
 }
 pub fn Reader::from_bytes(Bytes) -> Result[Self, String]
 pub fn Reader::read_bool(Self) -> Result[Bool, String]
+pub fn Reader::read_bounded_string(Self, Int) -> Result[String, String]
 pub fn Reader::read_byte_array(Self, Int) -> Result[Bytes, String]
 pub fn Reader::read_byte_sequence(Self) -> Result[Bytes, String]
 pub fn Reader::read_f32(Self) -> Result[Float, String]
@@ -46,6 +47,7 @@ pub fn Writer::new() -> Self
 pub fn Writer::to_bytes(Self) -> Bytes
 pub fn Writer::with_capacity(Int) -> Self
 pub fn Writer::write_bool(Self, Bool) -> Unit
+pub fn Writer::write_bounded_string(Self, String, Int) -> Result[Unit, String]
 pub fn Writer::write_byte_array(Self, Bytes) -> Unit
 pub fn Writer::write_byte_sequence(Self, Bytes) -> Unit
 pub fn Writer::write_f32(Self, Float) -> Unit

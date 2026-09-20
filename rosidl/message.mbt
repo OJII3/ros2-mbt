@@ -664,11 +664,11 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     "::write_cdr(self : " +
     self.type_name +
-    ", writer : @cdr.Writer) -> Unit {\n"
+    ", writer : @cdr.Writer) -> Result[Unit, String] {\n"
   for field in self.fields {
     output += rosidl_generate_writer(field)
   }
-  output += "}\n\n"
+  output += "  Ok(())\n}\n\n"
   output += "///|\n"
   output += "pub fn " +
     self.type_name +
@@ -688,10 +688,13 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     "::to_cdr_bytes(self : " +
     self.type_name +
-    ") -> Bytes {\n"
+    ") -> Result[Bytes, String] {\n"
   output += "  let writer = @cdr.Writer::new()\n"
-  output += "  self.write_cdr(writer)\n"
-  output += "  writer.to_bytes()\n}\n\n"
+  output += "  match self.write_cdr(writer) {\n"
+  output += "    Ok(_) => ()\n"
+  output += "    Err(message) => return Err(message)\n"
+  output += "  }\n"
+  output += "  Ok(writer.to_bytes())\n}\n\n"
   output += "///|\n"
   output += "pub fn " +
     self.type_name +
@@ -735,14 +738,17 @@ fn rosidl_generate_writer(field : MessageField) -> String {
   }
   match field.collection {
     MessageFieldCollection::Scalar =>
-      "  writer." + codec_method + "(self." + field.name + ")\n"
+      rosidl_generate_writer_call(
+        field,
+        codec_method,
+        "self." + field.name,
+        "  ",
+      )
     MessageFieldCollection::FixedArray(_) =>
       "  for value in self." +
       field.name +
       " {\n" +
-      "    writer." +
-      codec_method +
-      "(value)\n" +
+      rosidl_generate_writer_call(field, codec_method, "value", "    ") +
       "  }\n"
     MessageFieldCollection::Sequence =>
       "  writer.write_u32(self." +
@@ -751,9 +757,7 @@ fn rosidl_generate_writer(field : MessageField) -> String {
       "  for value in self." +
       field.name +
       " {\n" +
-      "    writer." +
-      codec_method +
-      "(value)\n" +
+      rosidl_generate_writer_call(field, codec_method, "value", "    ") +
       "  }\n"
     MessageFieldCollection::BoundedSequence(_) =>
       "  writer.write_u32(self." +
@@ -762,10 +766,26 @@ fn rosidl_generate_writer(field : MessageField) -> String {
       "  for value in self." +
       field.name +
       " {\n" +
-      "    writer." +
-      codec_method +
-      "(value)\n" +
+      rosidl_generate_writer_call(field, codec_method, "value", "    ") +
       "  }\n"
+  }
+}
+
+///|
+fn rosidl_generate_writer_call(
+  field : MessageField,
+  codec_method : String,
+  value : String,
+  indent : String,
+) -> String {
+  match field.string_upper_bound {
+    Some(bound) =>
+      indent + "match writer.write_bounded_string(" + value + ", " +
+      bound.to_string() + ") {\n" +
+      indent + "  Ok(_) => ()\n" +
+      indent + "  Err(message) => return Err(message)\n" +
+      indent + "}\n"
+    None => indent + "writer." + codec_method + "(" + value + ")\n"
   }
 }
 
@@ -775,6 +795,10 @@ fn rosidl_generate_reader(
   nested_types : Array[MessageTypeReference],
 ) -> String {
   let codec_method = rosidl_reader_method(field.type_name)
+  let codec_call = match field.string_upper_bound {
+    Some(bound) => "reader.read_bounded_string(" + bound.to_string() + ")"
+    None => "reader." + codec_method + "()"
+  }
   let base = rosidl_moon_type_for_field(field.type_name, nested_types).unwrap()
   if rosidl_moon_type(field.type_name) is Err(_) {
     return rosidl_generate_nested_reader(field, base)
@@ -783,9 +807,7 @@ fn rosidl_generate_reader(
     MessageFieldCollection::Scalar =>
       "  let " +
       field.name +
-      " = match reader." +
-      codec_method +
-      "() {\n" +
+      " = match " + codec_call + " {\n" +
       "    Ok(value) => value\n" +
       "    Err(message) => return Err(message)\n" +
       "  }\n"
@@ -800,9 +822,7 @@ fn rosidl_generate_reader(
       " {\n" +
       "    " +
       field.name +
-      ".push(match reader." +
-      codec_method +
-      "() {\n" +
+      ".push(match " + codec_call + " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -831,9 +851,7 @@ fn rosidl_generate_reader(
       "_length {\n" +
       "    " +
       field.name +
-      ".push(match reader." +
-      codec_method +
-      "() {\n" +
+      ".push(match " + codec_call + " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -869,9 +887,7 @@ fn rosidl_generate_reader(
       "_length {\n" +
       "    " +
       field.name +
-      ".push(match reader." +
-      codec_method +
-      "() {\n" +
+      ".push(match " + codec_call + " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -883,12 +899,12 @@ fn rosidl_generate_reader(
 fn rosidl_generate_nested_writer(field : MessageField) -> String {
   match field.collection {
     MessageFieldCollection::Scalar =>
-      "  self." + field.name + ".write_cdr(writer)\n"
+      rosidl_generate_nested_writer_call("self." + field.name, "  ")
     MessageFieldCollection::FixedArray(_) =>
       "  for value in self." +
       field.name +
       " {\n" +
-      "    value.write_cdr(writer)\n" +
+      rosidl_generate_nested_writer_call("value", "    ") +
       "  }\n"
     MessageFieldCollection::Sequence
     | MessageFieldCollection::BoundedSequence(_) =>
@@ -898,9 +914,17 @@ fn rosidl_generate_nested_writer(field : MessageField) -> String {
       "  for value in self." +
       field.name +
       " {\n" +
-      "    value.write_cdr(writer)\n" +
+      rosidl_generate_nested_writer_call("value", "    ") +
       "  }\n"
   }
+}
+
+///|
+fn rosidl_generate_nested_writer_call(value : String, indent : String) -> String {
+  indent + "match " + value + ".write_cdr(writer) {\n" +
+  indent + "  Ok(_) => ()\n" +
+  indent + "  Err(message) => return Err(message)\n" +
+  indent + "}\n"
 }
 
 ///|

@@ -176,8 +176,12 @@ test "ROS message parser preserves bounded string metadata and array shapes" {
   let generated = definition.generate_moonbit()
   assert_true(generated.contains("text : String"))
   assert_true(generated.contains("labels : Array[String]"))
-  assert_true(generated.contains("writer.write_string(self.text)"))
-  assert_true(generated.contains("reader.read_string()"))
+  assert_true(generated.contains("writer.write_bounded_string(self.text, 12)"))
+  assert_true(generated.contains("reader.read_bounded_string(12)"))
+  assert_true(generated.contains("-> Result[Unit, String]"))
+  assert_true(generated.contains("-> Result[Bytes, String]"))
+  assert_true(generated.contains("writer.write_bounded_string(value, 8)"))
+  assert_true(generated.contains("reader.read_bounded_string(8)"))
 
   let unbounded = parse_message("demo", "msg", "Strings", "string text").unwrap()
   let larger_bound = parse_message(
@@ -216,6 +220,7 @@ test "ROS message generator handles nested message fields" {
   assert_true(generated.contains("self.position.write_cdr(writer)"))
   assert_true(generated.contains("Vector3::read_cdr(reader)"))
   assert_true(generated.contains("bounded_length > 2"))
+  assert_true(generated.contains("match self.position.write_cdr(writer)"))
 }
 
 ///|

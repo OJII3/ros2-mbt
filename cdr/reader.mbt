@@ -304,3 +304,22 @@ pub fn Reader::read_string(self : Reader) -> Result[String, String] {
     _ => Err("invalid UTF-8 in CDR string")
   }
 }
+
+///|
+/// Read a UTF-8 CDR string and enforce its maximum number of characters.
+pub fn Reader::read_bounded_string(
+  self : Reader,
+  maximum_length : Int,
+) -> Result[String, String] {
+  if maximum_length < 0 {
+    return Err("a CDR string bound must not be negative")
+  }
+  let value = match self.read_string() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if cdr_utf8_character_count(value) > maximum_length {
+    return Err("CDR string exceeds its character bound")
+  }
+  Ok(value)
+}
