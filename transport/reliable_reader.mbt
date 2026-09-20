@@ -123,9 +123,11 @@ pub struct ReliableDataReader {
   writer_id : @rtps.EntityId
   mut next_acknack_count : UInt
   mut next_nackfrag_count : UInt
-  samples : Array[@rtps.DataSubmessage]
-  gaps : Array[@rtps.GapSubmessage]
-  fragments : Array[ReliableFragmentedSample]
+  mut samples : Array[Int64]
+  mut gaps : Array[@rtps.GapSubmessage]
+  mut fragments : Array[ReliableFragmentedSample]
+  mut acknowledged_through : Int64
+  mut accepted_sample_count : Int
 }
 
 ///|
@@ -142,6 +144,8 @@ pub fn ReliableDataReader::new(
     samples: [],
     gaps: [],
     fragments: [],
+    acknowledged_through: 0L,
+    accepted_sample_count: 0,
   }
 }
 
@@ -162,7 +166,51 @@ pub fn ReliableDataReader::next_nackfrag_count(
 ///|
 /// Return the number of DATA samples accepted so far.
 pub fn ReliableDataReader::sample_count(self : ReliableDataReader) -> Int {
-  self.samples.length()
+  self.accepted_sample_count
+}
+
+///|
+/// Check received, irrelevant, or cumulatively acknowledged sequence state.
+fn ReliableDataReader::has_received_sequence(
+  self : ReliableDataReader,
+  sequence_number : Int64,
+) -> Bool {
+  sequence_number <= self.acknowledged_through ||
+  reliable_reader_has_sequence(self.samples, sequence_number) ||
+  reliable_reader_gap_contains_sequence(self.gaps, sequence_number)
+}
+
+///|
+/// Release receive state covered by a successful cumulative ACKNACK base.
+fn ReliableDataReader::advance_acknowledged_through(
+  self : ReliableDataReader,
+  sequence_number : Int64,
+) -> Unit {
+  if sequence_number <= self.acknowledged_through {
+    return
+  }
+  self.acknowledged_through = sequence_number
+  let retained_samples : Array[Int64] = []
+  for sample_sequence_number in self.samples {
+    if sample_sequence_number > sequence_number {
+      retained_samples.push(sample_sequence_number)
+    }
+  }
+  self.samples = retained_samples
+  let retained_fragments : Array[ReliableFragmentedSample] = []
+  for fragment in self.fragments {
+    if fragment.sequence_number > sequence_number {
+      retained_fragments.push(fragment)
+    }
+  }
+  self.fragments = retained_fragments
+  let retained_gaps : Array[@rtps.GapSubmessage] = []
+  for gap in self.gaps {
+    if !reliable_reader_gap_is_covered_through(gap, sequence_number) {
+      retained_gaps.push(gap)
+    }
+  }
+  self.gaps = retained_gaps
 }
 
 ///|
@@ -178,12 +226,11 @@ pub fn ReliableDataReader::accept_data(
   if data.writer_id() != self.writer_id {
     return Err("the DATA sample comes from a different RTPS writer")
   }
-  for sample in self.samples {
-    if sample.writer_sequence_number() == data.writer_sequence_number() {
-      return Ok(())
-    }
+  if self.has_received_sequence(data.writer_sequence_number()) {
+    return Ok(())
   }
-  self.samples.push(data)
+  self.samples.push(data.writer_sequence_number())
+  self.accepted_sample_count += 1
   Ok(())
 }
 
@@ -200,7 +247,17 @@ pub fn ReliableDataReader::accept_gap(
   if gap.writer_id() != self.writer_id {
     return Err("the GAP comes from a different RTPS writer")
   }
+  if reliable_reader_gap_is_covered_through(gap, self.acknowledged_through) {
+    return Ok(())
+  }
   self.gaps.push(gap)
+  let retained_fragments : Array[ReliableFragmentedSample] = []
+  for fragment in self.fragments {
+    if !gap.contains_sequence(fragment.sequence_number) {
+      retained_fragments.push(fragment)
+    }
+  }
+  self.fragments = retained_fragments
   Ok(())
 }
 
@@ -217,7 +274,7 @@ pub fn ReliableDataReader::accept_data_frag(
   if fragment.writer_id() != self.writer_id {
     return Err("the DATA_FRAG comes from a different RTPS writer")
   }
-  if reliable_reader_has_sequence(self.samples, fragment.writer_sequence_number()) {
+  if self.has_received_sequence(fragment.writer_sequence_number()) {
     return Ok(None)
   }
   let mut index : Int? = None
@@ -246,7 +303,15 @@ pub fn ReliableDataReader::accept_data_frag(
     return Ok(None)
   }
   let data = self.fragments[index].to_data()
-  self.samples.push(data)
+  let retained_fragments : Array[ReliableFragmentedSample] = []
+  for i in 0..<self.fragments.length() {
+    if i != index {
+      retained_fragments.push(self.fragments[i])
+    }
+  }
+  self.fragments = retained_fragments
+  self.samples.push(data.writer_sequence_number())
+  self.accepted_sample_count += 1
   Ok(Some(data))
 }
 
@@ -263,6 +328,9 @@ pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(
   }
   if heartbeat.writer_id() != self.writer_id {
     return Err("the HEARTBEAT_FRAG comes from a different RTPS writer")
+  }
+  if self.has_received_sequence(heartbeat.writer_sequence_number()) {
+    return Ok([])
   }
   let mut fragmented_sample : ReliableFragmentedSample? = None
   for fragment in self.fragments {
@@ -337,15 +405,30 @@ pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(
 
 ///|
 fn reliable_reader_has_sequence(
-  samples : Array[@rtps.DataSubmessage],
+  samples : Array[Int64],
   sequence_number : Int64,
 ) -> Bool {
   for sample in samples {
-    if sample.writer_sequence_number() == sequence_number {
+    if sample == sequence_number {
       return true
     }
   }
   false
+}
+
+///|
+/// Check whether a GAP's entire sequence range is cumulatively acknowledged.
+fn reliable_reader_gap_is_covered_through(
+  gap : @rtps.GapSubmessage,
+  acknowledged_through : Int64,
+) -> Bool {
+  let bitmap_base = gap.gap_list_base()
+  let num_bits = gap.gap_list_num_bits().to_int64()
+  if num_bits == 0L {
+    return acknowledged_through >= bitmap_base - 1L
+  }
+  acknowledged_through >= bitmap_base &&
+  acknowledged_through - bitmap_base >= num_bits - 1L
 }
 
 ///|
@@ -380,8 +463,7 @@ pub fn ReliableDataReader::acknacks_for_heartbeat(
   let mut first_missing : Int64? = None
   let mut sequence_number = heartbeat.first_sequence_number()
   while sequence_number <= last_sequence_number && first_missing is None {
-    if !reliable_reader_has_sequence(self.samples, sequence_number) &&
-      !reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
+    if !self.has_received_sequence(sequence_number) {
       first_missing = Some(sequence_number)
     } else if sequence_number < last_sequence_number {
       sequence_number += 1L
@@ -405,8 +487,7 @@ pub fn ReliableDataReader::acknacks_for_heartbeat(
   }
   for offset in 0..<range {
     let sequence_number = bitmap_base + offset.to_int64()
-    if reliable_reader_has_sequence(self.samples, sequence_number) ||
-      reliable_reader_gap_contains_sequence(self.gaps, sequence_number) {
+    if self.has_received_sequence(sequence_number) {
       continue
     }
     let word_index = offset / 32
@@ -426,6 +507,7 @@ pub fn ReliableDataReader::acknacks_for_heartbeat(
     Err(message) => return Err(message)
   }
   self.next_acknack_count += 1U
+  self.advance_acknowledged_through(bitmap_base - 1L)
   Ok([acknack])
 }
 

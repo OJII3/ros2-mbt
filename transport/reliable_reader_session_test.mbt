@@ -123,11 +123,11 @@ async test "reliable reader session receives discovered publication data" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match reader.receive_data() {
+  let (heartbeat, _) = match reader.receive_heartbeat() {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match reader.receive_heartbeat() {
+  let (decoded, source) = match reader.receive_data() {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -147,6 +147,7 @@ async test "reliable reader session receives discovered publication data" {
   assert_eq(acknack.bitmap_base(), 2L)
   assert_eq(acknack.num_bits(), 0U)
   assert_eq(acknack.bitmap(), [])
+  assert_eq(reader.state.samples.length(), 0)
   assert_eq(reader.sample_count(), 1)
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()

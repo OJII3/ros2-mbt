@@ -10,6 +10,8 @@ pub struct ReliableDataReaderSession {
   destinations : Array[@socket.Addr]
   writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
+  mut pending_samples : Array[(@rtps.DataSubmessage, @socket.Addr)]
+  mut pending_sample_index : Int
 }
 
 ///|
@@ -45,6 +47,8 @@ pub fn ReliableDataReaderSession::new_for_publication(
     destinations,
     writer_prefix: publication.endpoint_guid().prefix(),
     state: ReliableDataReader::new(reader_id, writer_id),
+    pending_samples: [],
+    pending_sample_index: 0,
   })
 }
 
@@ -83,6 +87,16 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
   control_writer : ReliableDataWriter?,
 ) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String] {
   while true {
+    match self.take_pending_sample() {
+      Some((data, source)) => {
+        let identity = match data.sample_identity(self.writer_prefix) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        return Ok((data, identity, source))
+      }
+      None => ()
+    }
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
@@ -301,8 +315,18 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Ok(value) => value
             Err(_) => continue
           }
+          if data.reader_id() != self.state.reader_id &&
+            data.reader_id() != @rtps.EntityId::unknown() {
+            continue
+          }
+          let already_received = self.state.has_received_sequence(
+            data.writer_sequence_number(),
+          )
           match self.state.accept_data(data) {
-            Ok(_) => ()
+            Ok(_) =>
+              if !already_received {
+                self.pending_samples.push((data, source))
+              }
             Err(_) => ()
           }
         }
@@ -314,7 +338,15 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Ok(value) => value
             Err(_) => continue
           }
-          ignore(self.state.accept_data_frag(fragment))
+          if fragment.reader_id() != self.state.reader_id &&
+            fragment.reader_id() != @rtps.EntityId::unknown() {
+            continue
+          }
+          match self.state.accept_data_frag(fragment) {
+            Ok(Some(data)) => self.pending_samples.push((data, source))
+            Ok(None) => ()
+            Err(_) => ()
+          }
         }
         @rtps.SubmessageId::Heartbeat => {
           if message.header().guid_prefix() != self.writer_prefix {
@@ -366,6 +398,23 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
     }
   }
   Err("reliable reader stopped")
+}
+
+///|
+/// Return the next DATA sample consumed while servicing control traffic.
+fn ReliableDataReaderSession::take_pending_sample(
+  self : ReliableDataReaderSession,
+) -> (@rtps.DataSubmessage, @socket.Addr)? {
+  if self.pending_sample_index >= self.pending_samples.length() {
+    return None
+  }
+  let result = self.pending_samples[self.pending_sample_index]
+  self.pending_sample_index += 1
+  if self.pending_sample_index == self.pending_samples.length() {
+    self.pending_samples = []
+    self.pending_sample_index = 0
+  }
+  Some(result)
 }
 
 ///|

@@ -43,6 +43,8 @@ test "reliable reader creates an ACKNACK for missing samples" {
   assert_eq(complete_acknack.bitmap_base(), 4L)
   assert_eq(complete_acknack.num_bits(), 0U)
   assert_eq(complete_acknack.bitmap(), [])
+  assert_eq(reader.samples.length(), 0)
+  assert_eq(reader.sample_count(), 3)
 }
 
 ///|
@@ -93,6 +95,8 @@ test "reliable reader limits ACKNACK to the first missing window" {
   assert_eq(next_acknack.bitmap(), [0xFFFFFFFFU, 0xFFF00000U])
   assert_eq(next_acknack.count(), 2U)
   assert_eq(reader.next_acknack_count(), 3U)
+  assert_eq(reader.samples.length(), 0)
+  assert_eq(reader.sample_count(), 256)
 }
 
 ///|
@@ -200,6 +204,7 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
   assert_eq(data.writer_sequence_number(), 9L)
   assert_eq(data.serialized_payload(), b"abcdefghij")
   assert_eq(reader.sample_count(), 1)
+  assert_eq(reader.fragments.length(), 0)
 }
 
 ///|
@@ -278,6 +283,23 @@ test "reliable reader requests missing DATA_FRAGs" {
   assert_eq(nackfrag.bitmap(), [0x60000000U])
   assert_eq(nackfrag.count(), 1U)
   assert_eq(reader.next_nackfrag_count(), 2U)
+  reader
+  .accept_gap(
+    @rtps.GapSubmessage::new(reader_id, writer_id, 10L, 11L, 0U, []).unwrap(),
+  )
+  .unwrap()
+  let heartbeat = @rtps.HeartbeatSubmessage::new(
+    reader_id,
+    writer_id,
+    10L,
+    10L,
+    2U,
+  ).unwrap()
+  let acknack = reader.acknack_for_heartbeat(heartbeat).unwrap()
+  assert_eq(acknack.bitmap_base(), 11L)
+  assert_eq(acknack.num_bits(), 0U)
+  assert_eq(reader.fragments.length(), 0)
+  assert_eq(reader.gaps.length(), 0)
 }
 
 ///|
