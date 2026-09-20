@@ -759,7 +759,12 @@ fn rosidl_generate_writer(field : MessageField) -> String {
       " {\n" +
       rosidl_generate_writer_call(field, codec_method, "value", "    ") +
       "  }\n"
-    MessageFieldCollection::BoundedSequence(_) =>
+    MessageFieldCollection::BoundedSequence(bound) =>
+      "  if self." +
+      field.name +
+      ".length() > " +
+      bound.to_string() +
+      " {\n    return Err(\"generated ROS bounded sequence exceeds its bound\")\n  }\n" +
       "  writer.write_u32(self." +
       field.name +
       ".length().reinterpret_as_uint())\n" +
@@ -906,8 +911,21 @@ fn rosidl_generate_nested_writer(field : MessageField) -> String {
       " {\n" +
       rosidl_generate_nested_writer_call("value", "    ") +
       "  }\n"
-    MessageFieldCollection::Sequence
-    | MessageFieldCollection::BoundedSequence(_) =>
+    MessageFieldCollection::Sequence =>
+      "  writer.write_u32(self." +
+      field.name +
+      ".length().reinterpret_as_uint())\n" +
+      "  for value in self." +
+      field.name +
+      " {\n" +
+      rosidl_generate_nested_writer_call("value", "    ") +
+      "  }\n"
+    MessageFieldCollection::BoundedSequence(bound) =>
+      "  if self." +
+      field.name +
+      ".length() > " +
+      bound.to_string() +
+      " {\n    return Err(\"generated ROS bounded sequence exceeds its bound\")\n  }\n" +
       "  writer.write_u32(self." +
       field.name +
       ".length().reinterpret_as_uint())\n" +

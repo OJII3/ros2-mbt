@@ -147,6 +147,12 @@ test "ROS message generator handles bounded sequences" {
   )
   let generated = definition.generate_moonbit()
   assert_true(generated.contains("writer.write_u32(self.values.length()"))
+  assert_true(generated.contains("if self.values.length() > 3"))
+  assert_true(
+    generated.contains(
+      "generated ROS bounded sequence exceeds its bound",
+    ),
+  )
   assert_true(generated.contains("values_length > 3"))
 }
 
@@ -221,6 +227,7 @@ test "ROS message generator handles nested message fields" {
   assert_true(generated.contains("Vector3::read_cdr(reader)"))
   assert_true(generated.contains("bounded_length > 2"))
   assert_true(generated.contains("match self.position.write_cdr(writer)"))
+  assert_true(generated.contains("if self.bounded.length() > 2"))
 }
 
 ///|
