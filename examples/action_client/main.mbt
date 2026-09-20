@@ -123,11 +123,12 @@ async fn request_goal_cancel(
   client : @transport.RosServiceClient,
   goal_id : Bytes,
 ) -> Result[Int, String] {
-  let writer = @cdr.Writer::new()
-  writer.write_byte_array(goal_id)
-  writer.write_i32(0)
-  writer.write_u32(0U)
-  let identity = match client.request(writer.to_bytes()) {
+  let goal_info = match @ros.RosActionGoalInfo::new(goal_id, 0, 0U) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let request = @ros.RosCancelGoalRequest::new(goal_info)
+  let identity = match client.request(request.to_cdr_bytes()) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -135,40 +136,20 @@ async fn request_goal_cancel(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let reader = match @cdr.Reader::from_bytes(payload) {
+  let response = match @ros.RosCancelGoalResponse::from_cdr_bytes(payload) {
     Ok(value) => value
     Err(message) => return Err(message)
-  }
-  let return_code = match reader.read_i8() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let goals_canceling_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => return Err(message)
-  }
-  if goals_canceling_length <= 0 ||
-    goals_canceling_length > reader.remaining() / 24 {
-    return Err("invalid CancelGoal goals_canceling sequence")
   }
   let mut found_goal = false
-  for _ in 0..<goals_canceling_length {
-    let canceled_goal_id = match reader.read_byte_array(16) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    match (reader.read_i32(), reader.read_u32()) {
-      (Ok(_), Ok(_)) => ()
-      (Err(message), _) | (_, Err(message)) => return Err(message)
-    }
-    if canceled_goal_id == goal_id {
+  for canceled_goal in response.goals_canceling() {
+    if canceled_goal.goal_id() == goal_id {
       found_goal = true
     }
   }
   if !found_goal {
     return Err("CancelGoal response did not include the requested goal")
   }
-  Ok(return_code)
+  Ok(response.return_code())
 }
 
 ///|
@@ -245,30 +226,15 @@ async fn receive_goal_status(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let reader = match @cdr.Reader::from_bytes(payload) {
+    let status_array = match
+      @ros.RosActionGoalStatusArray::from_cdr_bytes(payload) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let status_count = match reader.read_u32() {
-      Ok(value) => value.reinterpret_as_int()
-      Err(message) => return Err(message)
-    }
-    if status_count < 0 || status_count > reader.remaining() / 25 {
-      return Err("invalid GoalStatusArray status_list length")
-    }
-    for _ in 0..<status_count {
-      let received_goal_id = match reader.read_byte_array(16) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      let status = match
-        (reader.read_i32(), reader.read_u32(), reader.read_i8()) {
-        (Ok(_), Ok(_), Ok(value)) => value
-        (Err(message), _, _) | (_, Err(message), _) | (_, _, Err(message)) =>
-          return Err(message)
-      }
-      if received_goal_id == goal_id && status == expected_status {
-        return Ok(status)
+    for goal_status in status_array.status_list() {
+      if goal_status.goal_info().goal_id() == goal_id &&
+        goal_status.status() == expected_status {
+        return Ok(goal_status.status())
       }
     }
   }
