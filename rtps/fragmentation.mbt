@@ -44,9 +44,7 @@ pub fn HeartbeatFragSubmessage::new(
 }
 
 ///|
-pub fn HeartbeatFragSubmessage::flags(
-  self : HeartbeatFragSubmessage,
-) -> Byte {
+pub fn HeartbeatFragSubmessage::flags(self : HeartbeatFragSubmessage) -> Byte {
   self.flags
 }
 
@@ -79,9 +77,7 @@ pub fn HeartbeatFragSubmessage::last_fragment_number(
 }
 
 ///|
-pub fn HeartbeatFragSubmessage::count(
-  self : HeartbeatFragSubmessage,
-) -> UInt {
+pub fn HeartbeatFragSubmessage::count(self : HeartbeatFragSubmessage) -> UInt {
   self.count
 }
 
@@ -109,11 +105,7 @@ pub fn HeartbeatFragSubmessage::to_payload(
 pub fn HeartbeatFragSubmessage::to_submessage(
   self : HeartbeatFragSubmessage,
 ) -> Submessage {
-  Submessage::new(
-    SubmessageId::HeartbeatFrag,
-    self.flags,
-    self.to_payload(),
-  )
+  Submessage::new(SubmessageId::HeartbeatFrag, self.flags, self.to_payload())
 }
 
 ///|
@@ -277,7 +269,9 @@ pub fn NackFragSubmessage::to_payload(self : NackFragSubmessage) -> Bytes {
 }
 
 ///|
-pub fn NackFragSubmessage::to_submessage(self : NackFragSubmessage) -> Submessage {
+pub fn NackFragSubmessage::to_submessage(
+  self : NackFragSubmessage,
+) -> Submessage {
   Submessage::new(SubmessageId::NackFrag, self.flags, self.to_payload())
 }
 
@@ -341,12 +335,7 @@ pub fn NackFragSubmessage::from_submessage(
   )
   let result = match
     NackFragSubmessage::new(
-      reader_id,
-      writer_id,
-      writer_sequence_number,
-      bitmap_base,
-      num_bits,
-      bitmap,
+      reader_id, writer_id, writer_sequence_number, bitmap_base, num_bits, bitmap,
       count,
     ) {
     Ok(value) => value

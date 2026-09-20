@@ -12,8 +12,9 @@ test "Cyclone DDS service payload header round trips" {
   assert_eq(encoded[4], 9)
   assert_eq(encoded[12], 12)
   assert_eq(encoded[20], 2)
-  let (decoded_header, decoded_body) =
-    @ros.ros_service_payload_from_cdr(encoded).unwrap()
+  let (decoded_header, decoded_body) = @ros.ros_service_payload_from_cdr(
+    encoded,
+  ).unwrap()
   assert_eq(decoded_header, header)
   assert_eq(decoded_body, body_writer.to_bytes())
 }
@@ -173,35 +174,41 @@ test "ROS service SEDP can advertise request and response type hashes" {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
   let request_guid = @rtps.Guid::new(
-    prefix, @rtps.EntityId::new(b"req", 0xC7).unwrap(),
+    prefix,
+    @rtps.EntityId::new(b"req", 0xC7).unwrap(),
   )
   let response_guid = @rtps.Guid::new(
-    prefix, @rtps.EntityId::new(b"res", 0xC2).unwrap(),
+    prefix,
+    @rtps.EntityId::new(b"res", 0xC2).unwrap(),
   )
   let request_hash = "RIHS01_request_hash"
   let response_hash = "RIHS01_response_hash"
-  let request = service.request_to_sedp_with_qos_and_type_hash(
-    @rtps.SedpEndpointKind::Subscription,
-    request_guid,
-    @rtps.SedpQos::new(
-      @rtps.RELIABILITY_RELIABLE,
-      @rtps.DURABILITY_VOLATILE,
-      @rtps.HISTORY_KEEP_LAST,
-      10,
-    ),
-    request_hash,
-  ).unwrap()
-  let response = service.response_to_sedp_with_qos_and_type_hash(
-    @rtps.SedpEndpointKind::Publication,
-    response_guid,
-    @rtps.SedpQos::new(
-      @rtps.RELIABILITY_RELIABLE,
-      @rtps.DURABILITY_VOLATILE,
-      @rtps.HISTORY_KEEP_LAST,
-      10,
-    ),
-    response_hash,
-  ).unwrap()
+  let request = service
+    .request_to_sedp_with_qos_and_type_hash(
+      @rtps.SedpEndpointKind::Subscription,
+      request_guid,
+      @rtps.SedpQos::new(
+        @rtps.RELIABILITY_RELIABLE,
+        @rtps.DURABILITY_VOLATILE,
+        @rtps.HISTORY_KEEP_LAST,
+        10,
+      ),
+      request_hash,
+    )
+    .unwrap()
+  let response = service
+    .response_to_sedp_with_qos_and_type_hash(
+      @rtps.SedpEndpointKind::Publication,
+      response_guid,
+      @rtps.SedpQos::new(
+        @rtps.RELIABILITY_RELIABLE,
+        @rtps.DURABILITY_VOLATILE,
+        @rtps.HISTORY_KEEP_LAST,
+        10,
+      ),
+      response_hash,
+    )
+    .unwrap()
   assert_eq(request.type_hash(), Ok(Some(request_hash)))
   assert_eq(response.type_hash(), Ok(Some(response_hash)))
 }

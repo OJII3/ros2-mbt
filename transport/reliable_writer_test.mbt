@@ -98,12 +98,12 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
 
 ///|
 async test "reliable writer directs discovered endpoint traffic" {
-  let local_prefix = @rtps.GuidPrefix::from_array(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  ).unwrap()
-  let remote_prefix = @rtps.GuidPrefix::from_array(
-    [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
-  ).unwrap()
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -133,9 +133,7 @@ async test "reliable writer directs discovered endpoint traffic" {
   }
   let (message, _) = receiver.receive_message().unwrap()
   assert_eq(message.destination_guid_prefix(), Ok(Some(remote_prefix)))
-  let data = @rtps.DataSubmessage::from_submessage(
-    message.submessages()[1],
-  ).unwrap()
+  let data = @rtps.DataSubmessage::from_submessage(message.submessages()[1]).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
   writer.close()
   receiver.close()
@@ -246,7 +244,7 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
     1L,
   ).unwrap()
   let payload : Array[Byte] = []
-  for index in 0..<(3010) {
+  for index in 0..<3010 {
     payload.push((index % 251).to_byte())
   }
   match writer.write(Bytes::from_array(payload)) {
@@ -312,22 +310,16 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   ).unwrap()
   assert_eq(retransmitted.fragment_starting_number(), 2U)
   assert_eq(retransmitted.serialized_payload().length(), 1200)
-  writer.handle_acknack(
-    @rtps.AckNackSubmessage::new(
-      reader_id,
-      writer_id,
-      2L,
-      0U,
-      [],
-      2U,
-    ).unwrap(),
-  ).unwrap()
+  writer
+  .handle_acknack(
+    @rtps.AckNackSubmessage::new(reader_id, writer_id, 2L, 0U, [], 2U).unwrap(),
+  )
+  .unwrap()
   assert_eq(writer.history_length(), 0)
   writer.handle_nackfrag(nackfrag).unwrap()
-  let after_acknowledgement = @async.with_timeout_opt(
-    20,
-    async fn() { receiver.receive_message() },
-  )
+  let after_acknowledgement = @async.with_timeout_opt(20, async fn() {
+    receiver.receive_message()
+  })
   assert_true(after_acknowledgement is None)
   writer.close()
   receiver.close()

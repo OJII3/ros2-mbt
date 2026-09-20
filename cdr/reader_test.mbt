@@ -127,9 +127,8 @@ test "CDR reader enforces bounded string character counts" {
 
 ///|
 test "CDR reader accepts little-endian encapsulation options" {
-  let reader = match Reader::from_bytes(
-    b"\x00\x01\x00\x01\x02\x00\x00\x00x\x00",
-  ) {
+  let reader = match
+    Reader::from_bytes(b"\x00\x01\x00\x01\x02\x00\x00\x00x\x00") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -160,9 +159,7 @@ test "CDR reader rejects malformed payloads" {
 
 ///|
 test "CDR reader rejects overflowing sequence and string lengths" {
-  let malformed_payload = Bytes::from_array([
-    0, 1, 0, 0, 0xFC, 0xFF, 0xFF, 0x7F,
-  ])
+  let malformed_payload = Bytes::from_array([0, 1, 0, 0, 0xFC, 0xFF, 0xFF, 0x7F])
   let sequence_reader = Reader::from_bytes(malformed_payload).unwrap()
   assert_true(sequence_reader.read_byte_sequence() is Err(_))
 

@@ -147,7 +147,8 @@ pub async fn RosParticipant::new_ddsi(
       return Err(message)
     }
   }
-  let result = match RosParticipant::from_discovery_session(session, user_socket) {
+  let result = match
+    RosParticipant::from_discovery_session(session, user_socket) {
     Ok(value) => value
     Err(message) => {
       spdp_send_socket.close()
@@ -735,7 +736,8 @@ pub async fn RosParticipant::announce_spdp_forever(
   Ok(())
 }
 
-///| Send SEDP/SPDP disposal samples and close all participant sockets.
+///|
+/// Send SEDP/SPDP disposal samples and close all participant sockets.
 pub async fn RosParticipant::dispose_and_close(
   self : RosParticipant,
 ) -> Result[Unit, String] {
@@ -764,7 +766,8 @@ pub async fn RosParticipant::dispose_and_close(
   }
 }
 
-///| Forget a removed ROS graph publication and its reliable reader.
+///|
+/// Forget a removed ROS graph publication and its reliable reader.
 fn RosParticipant::forget_graph_publication(
   self : RosParticipant,
   endpoint_guid : @rtps.Guid,
@@ -782,7 +785,8 @@ fn RosParticipant::forget_graph_publication(
   self.graph_subscriptions = subscriptions
 }
 
-///| Forget a removed ROS graph subscription and its reliable writer.
+///|
+/// Forget a removed ROS graph subscription and its reliable writer.
 fn RosParticipant::forget_graph_subscription(
   self : RosParticipant,
   endpoint_guid : @rtps.Guid,
@@ -800,7 +804,8 @@ fn RosParticipant::forget_graph_subscription(
   self.graph_publishers = publishers
 }
 
-///| Forget all ROS graph sessions owned by one remote participant.
+///|
+/// Forget all ROS graph sessions owned by one remote participant.
 fn RosParticipant::forget_graph_participant(
   self : RosParticipant,
   participant_prefix : @rtps.GuidPrefix,
@@ -829,7 +834,8 @@ fn RosParticipant::forget_graph_participant(
   self.graph_publishers = publishers
 }
 
-///| Ensure one already-known ROS graph publication has a reliable reader.
+///|
+/// Ensure one already-known ROS graph publication has a reliable reader.
 fn RosParticipant::ensure_ros_discovery_publication(
   self : RosParticipant,
   publication : @rtps.SedpEndpointData,
@@ -864,7 +870,8 @@ fn RosParticipant::ensure_ros_discovery_publication(
   Ok(())
 }
 
-///| Ensure one already-known ROS graph subscription has a reliable writer.
+///|
+/// Ensure one already-known ROS graph subscription has a reliable writer.
 async fn RosParticipant::ensure_ros_discovery_subscription(
   self : RosParticipant,
   subscription : @rtps.SedpEndpointData,
@@ -899,19 +906,21 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
   if announce_initial {
     let info = match self.latest_graph_info {
       Some(info) => Some(info)
-      None => match self.configured_ros_discovery_info() {
-        Ok(info) => {
-          self.latest_graph_info = Some(info)
-          Some(info)
+      None =>
+        match self.configured_ros_discovery_info() {
+          Ok(info) => {
+            self.latest_graph_info = Some(info)
+            Some(info)
+          }
+          Err(_) => None
         }
-        Err(_) => None
-      }
     }
     match info {
-      Some(info) => match publisher.announce_once(info) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
-      }
+      Some(info) =>
+        match publisher.announce_once(info) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
       None => ()
     }
   }
@@ -920,7 +929,8 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
   Ok(())
 }
 
-///| Reconcile graph endpoints received before local graph endpoints were set up.
+///|
+/// Reconcile graph endpoints received before local graph endpoints were set up.
 async fn RosParticipant::reconcile_ros_discovery_endpoints(
   self : RosParticipant,
 ) -> Result[Unit, String] {

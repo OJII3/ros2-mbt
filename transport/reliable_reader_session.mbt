@@ -108,7 +108,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::AckNack => {
+        @rtps.SubmessageId::AckNack =>
           match control_writer {
             Some(writer) => {
               let acknack = match
@@ -129,8 +129,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             }
             None => ()
           }
-        }
-        @rtps.SubmessageId::NackFrag => {
+        @rtps.SubmessageId::NackFrag =>
           match control_writer {
             Some(writer) => {
               let nackfrag = match
@@ -151,7 +150,6 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             }
             None => ()
           }
-        }
         @rtps.SubmessageId::Data => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
@@ -180,7 +178,8 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
-          let fragment = match @rtps.DataFragSubmessage::from_submessage(submessage) {
+          let fragment = match
+            @rtps.DataFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
           }
@@ -334,7 +333,8 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
-          let fragment = match @rtps.DataFragSubmessage::from_submessage(submessage) {
+          let fragment = match
+            @rtps.DataFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(_) => continue
           }
@@ -430,10 +430,9 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat(
     for destination in self.destinations {
       match
         self.socket.send_message(
-          acknack.to_message(
-            self.guid_prefix,
-            self.vendor_id,
-          ).with_destination_guid_prefix(self.writer_prefix),
+          acknack
+          .to_message(self.guid_prefix, self.vendor_id)
+          .with_destination_guid_prefix(self.writer_prefix),
           destination,
         ) {
         Ok(_) => ()
@@ -457,10 +456,9 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
     for destination in self.destinations {
       match
         self.socket.send_message(
-          nackfrag.to_message(
-            self.guid_prefix,
-            self.vendor_id,
-          ).with_destination_guid_prefix(self.writer_prefix),
+          nackfrag
+          .to_message(self.guid_prefix, self.vendor_id)
+          .with_destination_guid_prefix(self.writer_prefix),
           destination,
         ) {
         Ok(_) => ()

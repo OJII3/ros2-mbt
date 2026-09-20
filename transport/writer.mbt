@@ -66,15 +66,16 @@ pub fn DataWriter::new_for_subscription(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let writer = match DataWriter::new(
-    socket,
-    guid_prefix,
-    vendor_id,
-    subscription.endpoint_guid().entity_id(),
-    writer_id,
-    destinations[0],
-    first_sequence_number,
-  ) {
+  let writer = match
+    DataWriter::new(
+      socket,
+      guid_prefix,
+      vendor_id,
+      subscription.endpoint_guid().entity_id(),
+      writer_id,
+      destinations[0],
+      first_sequence_number,
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -120,7 +121,9 @@ pub async fn DataWriter::write(
     for destination in self.destinations {
       match
         self.socket.send_message(
-          self.message_for_reader(data.to_message(self.guid_prefix, self.vendor_id)),
+          self.message_for_reader(
+            data.to_message(self.guid_prefix, self.vendor_id),
+          ),
           destination,
         ) {
         Ok(_) => ()

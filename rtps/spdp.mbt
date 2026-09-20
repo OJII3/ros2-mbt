@@ -244,14 +244,16 @@ fn spdp_read_duration(value : Bytes) -> Result[(Int, UInt), String] {
     [u32le(result)] => result
     _ => return Err("invalid SPDP lease duration")
   }
-  Ok((
-    seconds.reinterpret_as_int(),
-    if nanoseconds == 0xFFFFFFFFU {
-      nanoseconds
-    } else {
-      qos_fraction_to_nanoseconds(nanoseconds)
-    },
-  ))
+  Ok(
+    (
+      seconds.reinterpret_as_int(),
+      if nanoseconds == 0xFFFFFFFFU {
+        nanoseconds
+      } else {
+        qos_fraction_to_nanoseconds(nanoseconds)
+      },
+    ),
+  )
 }
 
 ///|
@@ -505,12 +507,7 @@ pub fn SpdpParticipantData::to_dispose_data_submessage(
   writer_id : EntityId,
   writer_sequence_number : Int64,
 ) -> DataSubmessage {
-  DataSubmessage::new(
-    reader_id,
-    writer_id,
-    writer_sequence_number,
-    b"",
-  )
+  DataSubmessage::new(reader_id, writer_id, writer_sequence_number, b"")
   .with_key(self.participant_guid.to_bytes())
   .with_status_info(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)
 }

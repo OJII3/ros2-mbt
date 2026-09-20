@@ -481,7 +481,9 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
   }
   for destination in destinations {
     let endpoint_message = match
-      endpoint.to_message(vendor_id, reader_id, writer_id, writer_sequence_number) {
+      endpoint.to_message(
+        vendor_id, reader_id, writer_id, writer_sequence_number,
+      ) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
@@ -504,10 +506,9 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
     }
     match
       self.send_message(
-        heartbeat.to_message(
-          endpoint.participant_guid().prefix(),
-          vendor_id,
-        ).with_destination_guid_prefix(
+        heartbeat
+        .to_message(endpoint.participant_guid().prefix(), vendor_id)
+        .with_destination_guid_prefix(
           remote_participant.participant_guid().prefix(),
         ),
         destination,
@@ -519,7 +520,8 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
   Ok(())
 }
 
-///| Send an SEDP endpoint dispose sample to all advertised metatraffic locators.
+///|
+/// Send an SEDP endpoint dispose sample to all advertised metatraffic locators.
 pub async fn Udp::send_sedp_dispose_to_participant(
   self : Udp,
   endpoint : @rtps.SedpEndpointData,
@@ -532,7 +534,8 @@ pub async fn Udp::send_sedp_dispose_to_participant(
   )
 }
 
-///| Send an SEDP endpoint dispose with an explicit reliable HEARTBEAT count.
+///|
+/// Send an SEDP endpoint dispose with an explicit reliable HEARTBEAT count.
 pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(
   self : Udp,
   endpoint : @rtps.SedpEndpointData,
@@ -558,34 +561,28 @@ pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(
     Err(message) => return Err(message)
   }
   for destination in destinations {
-    let endpoint_message = endpoint.to_dispose_data_submessage(
-      reader_id,
-      writer_id,
-      writer_sequence_number,
-    ).to_message(
-      endpoint.participant_guid().prefix(),
-      vendor_id,
-    ).with_destination_guid_prefix(
-      remote_participant.participant_guid().prefix(),
-    )
+    let endpoint_message = endpoint
+      .to_dispose_data_submessage(reader_id, writer_id, writer_sequence_number)
+      .to_message(endpoint.participant_guid().prefix(), vendor_id)
+      .with_destination_guid_prefix(
+        remote_participant.participant_guid().prefix(),
+      )
     match self.send_message(endpoint_message, destination) {
       Ok(_) => ()
       Err(message) => return Err(message)
     }
     let heartbeat = match
       @rtps.HeartbeatSubmessage::new(
-        reader_id, writer_id, writer_sequence_number, writer_sequence_number,
-        heartbeat_count,
+        reader_id, writer_id, writer_sequence_number, writer_sequence_number, heartbeat_count,
       ) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     match
       self.send_message(
-        heartbeat.to_message(
-          endpoint.participant_guid().prefix(),
-          vendor_id,
-        ).with_destination_guid_prefix(
+        heartbeat
+        .to_message(endpoint.participant_guid().prefix(), vendor_id)
+        .with_destination_guid_prefix(
           remote_participant.participant_guid().prefix(),
         ),
         destination,
@@ -666,10 +663,11 @@ pub async fn Udp::receive_discovery(
             Err(_) => continue
           }
           match status {
-            Some(value) if
-              (value &
-                (@rtps.STATUS_INFO_DISPOSED |
-                  @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+            Some(value) if (
+                value &
+                (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)
+              ) !=
+              0U => {
               if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
                 continue
               }
@@ -678,7 +676,9 @@ pub async fn Udp::receive_discovery(
                 Ok(value) => value
                 Err(_) => continue
               }
-              return Ok((DiscoveryEvent::EndpointRemoved(kind, endpoint_guid), source))
+              return Ok(
+                (DiscoveryEvent::EndpointRemoved(kind, endpoint_guid), source),
+              )
             }
             _ => ()
           }
@@ -700,10 +700,11 @@ pub async fn Udp::receive_discovery(
             Err(_) => continue
           }
           match status {
-            Some(value) if
-              (value &
-                (@rtps.STATUS_INFO_DISPOSED |
-                  @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+            Some(value) if (
+                value &
+                (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)
+              ) !=
+              0U => {
               if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
                 continue
               }
@@ -712,7 +713,9 @@ pub async fn Udp::receive_discovery(
                 Ok(value) => value
                 Err(_) => continue
               }
-              return Ok((DiscoveryEvent::ParticipantRemoved(participant_guid), source))
+              return Ok(
+                (DiscoveryEvent::ParticipantRemoved(participant_guid), source),
+              )
             }
             _ => ()
           }

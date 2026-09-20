@@ -125,10 +125,7 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
-      service,
-      request_writer_id,
-      response_reader_id,
-      "RIHS01_000c5fd92d6b2e1a05949348f584d6d652adea1e92d691792011ac2273508302",
+      service, request_writer_id, response_reader_id, "RIHS01_000c5fd92d6b2e1a05949348f584d6d652adea1e92d691792011ac2273508302",
       "RIHS01_de5c030d4af33cba2749310b249737b631594703f9300495f48bffb2b44dcc2f",
     ) {
     Ok(_) => ()
@@ -157,7 +154,9 @@ async fn main {
     }
   }
   let service_wire_format = match
-    participant.graph().participant_vendor_id(response_publication.participant_guid()) {
+    participant
+    .graph()
+    .participant_vendor_id(response_publication.participant_guid()) {
     Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
       @transport.RosServiceWireFormat::CycloneDdsPayload
     _ => @transport.RosServiceWireFormat::DdsRpcInline

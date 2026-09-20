@@ -127,7 +127,8 @@ pub fn SedpQos::with_data_representation(
   { ..self, data_representation: representations, }
 }
 
-///| Set the offered/requested deadline in seconds and nanoseconds.
+///|
+/// Set the offered/requested deadline in seconds and nanoseconds.
 pub fn SedpQos::with_deadline(
   self : SedpQos,
   seconds : Int,
@@ -143,7 +144,8 @@ pub fn SedpQos::with_deadline(
   })
 }
 
-///| Set the liveliness policy and lease duration in seconds and nanoseconds.
+///|
+/// Set the liveliness policy and lease duration in seconds and nanoseconds.
 pub fn SedpQos::with_liveliness(
   self : SedpQos,
   kind : UInt,
@@ -167,9 +169,13 @@ pub fn SedpQos::with_liveliness(
 ///|
 fn sedp_duration_is_valid(seconds : Int, nanoseconds : UInt) -> Bool {
   seconds >= 0 &&
-  (nanoseconds < 1_000_000_000U ||
-    (seconds == SEDP_QOS_DURATION_INFINITE_SECONDS &&
-      nanoseconds == SEDP_QOS_DURATION_INFINITE_FRACTION))
+  (
+    nanoseconds < 1_000_000_000U ||
+    (
+      seconds == SEDP_QOS_DURATION_INFINITE_SECONDS &&
+      nanoseconds == SEDP_QOS_DURATION_INFINITE_FRACTION
+    )
+  )
 }
 
 ///|
@@ -198,12 +204,14 @@ pub fn SedpQos::data_representation(self : SedpQos) -> Array[UInt16] {
   self.data_representation
 }
 
-///| Return the deadline seconds component.
+///|
+/// Return the deadline seconds component.
 pub fn SedpQos::deadline_seconds(self : SedpQos) -> Int {
   self.deadline_seconds
 }
 
-///| Return the raw RTPS 2^-32 seconds fraction of the deadline.
+///|
+/// Return the raw RTPS 2^-32 seconds fraction of the deadline.
 pub fn SedpQos::deadline_fraction(self : SedpQos) -> UInt {
   self.deadline_fraction
 }
@@ -213,12 +221,14 @@ pub fn SedpQos::liveliness(self : SedpQos) -> UInt {
   self.liveliness
 }
 
-///| Return the liveliness lease seconds component.
+///|
+/// Return the liveliness lease seconds component.
 pub fn SedpQos::liveliness_lease_seconds(self : SedpQos) -> Int {
   self.liveliness_lease_seconds
 }
 
-///| Return the raw RTPS 2^-32 seconds fraction of the liveliness lease.
+///|
+/// Return the raw RTPS 2^-32 seconds fraction of the liveliness lease.
 pub fn SedpQos::liveliness_lease_fraction(self : SedpQos) -> UInt {
   self.liveliness_lease_fraction
 }
@@ -568,8 +578,9 @@ pub fn SedpEndpointData::qos(
   if history == HISTORY_KEEP_LAST && depth <= 0 {
     return Err("SEDP keep-last history depth must be positive")
   }
-  let qos = SedpQos::new(reliability, durability, history, depth)
-    .with_data_representation(data_representation)
+  let qos = SedpQos::new(reliability, durability, history, depth).with_data_representation(
+    data_representation,
+  )
   Ok({
     ..qos,
     deadline_seconds,
@@ -925,12 +936,7 @@ pub fn SedpEndpointData::to_dispose_data_submessage(
   writer_id : EntityId,
   writer_sequence_number : Int64,
 ) -> DataSubmessage {
-  DataSubmessage::new(
-    reader_id,
-    writer_id,
-    writer_sequence_number,
-    b"",
-  )
+  DataSubmessage::new(reader_id, writer_id, writer_sequence_number, b"")
   .with_key(self.endpoint_guid.to_bytes())
   .with_status_info(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)
 }

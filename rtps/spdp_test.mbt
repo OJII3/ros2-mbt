@@ -160,7 +160,9 @@ test "SPDP parser requires a participant GUID" {
 ///|
 test "SPDP parser rejects invalid participant lease durations" {
   let parameters = ParameterList::new()
-  parameters.add(Parameter::new(PID_PARTICIPANT_GUID, spdp_test_guid().unwrap().to_bytes()))
+  parameters.add(
+    Parameter::new(PID_PARTICIPANT_GUID, spdp_test_guid().unwrap().to_bytes()),
+  )
   parameters.add(
     Parameter::new(
       PID_PARTICIPANT_LEASE_DURATION,
@@ -221,8 +223,14 @@ test "SPDP DATA accepts an unencapsulated ParameterList" {
     BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
-  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
+  let reader_id = EntityId::new(
+    b"rdr",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = EntityId::new(
+    b"wrt",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
   let cdr = participant.to_cdr_bytes()
   let data = DataSubmessage::new(reader_id, writer_id, 1L, cdr[4:].to_owned())
   let decoded = SpdpParticipantData::from_data_submessage(data).unwrap()
@@ -232,10 +240,17 @@ test "SPDP DATA accepts an unencapsulated ParameterList" {
 ///|
 test "SPDP extracts a participant GUID from key-only data" {
   let guid = spdp_test_guid().unwrap()
-  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
-  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
-  let data = DataSubmessage::new(reader_id, writer_id, 2L, b"")
-    .with_key(guid.to_bytes())
+  let reader_id = EntityId::new(
+    b"rdr",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = EntityId::new(
+    b"wrt",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let data = DataSubmessage::new(reader_id, writer_id, 2L, b"").with_key(
+    guid.to_bytes(),
+  )
   assert_eq(
     SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
     guid,
@@ -253,8 +268,14 @@ test "SPDP builds a participant dispose DATA sample" {
     0,
     BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
   )
-  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
-  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
+  let reader_id = EntityId::new(
+    b"rdr",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = EntityId::new(
+    b"wrt",
+    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
   let data = participant.to_dispose_data_submessage(reader_id, writer_id, 3L)
   assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
   assert_eq(

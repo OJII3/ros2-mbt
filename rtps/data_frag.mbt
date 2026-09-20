@@ -39,7 +39,8 @@ pub fn DataFragSubmessage::new(
     return Err("an RTPS DATA_FRAG sequence number must be positive")
   }
   if fragments_in_submessage == (0 : UInt16) ||
-    fragment_size == (0 : UInt16) || sample_size == 0U {
+    fragment_size == (0 : UInt16) ||
+    sample_size == 0U {
     return Err("an RTPS DATA_FRAG fragment size must be positive")
   }
   let fragment_size_int = fragment_size.to_int()
@@ -55,13 +56,16 @@ pub fn DataFragSubmessage::new(
   let payload_length = serialized_payload.length()
   let max_payload_length = fragment_size_int * fragments_count
   let payload_offset = (starting_int - 1) * fragment_size_int
-  if payload_length == 0 || payload_length > max_payload_length ||
+  if payload_length == 0 ||
+    payload_length > max_payload_length ||
     payload_offset + payload_length > sample_size_int {
     return Err("an RTPS DATA_FRAG payload has an invalid length")
   }
   if payload_length < max_payload_length &&
-    (last_fragment != total_fragments ||
-      payload_length != sample_size_int - payload_offset) {
+    (
+      last_fragment != total_fragments ||
+      payload_length != sample_size_int - payload_offset
+    ) {
     return Err("only the final RTPS DATA_FRAG may be short")
   }
   Ok({

@@ -96,17 +96,13 @@ async test "discovery service expires participants after the SPDP lease" {
   let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = socket.local_addr()
   let session = DiscoverySession::new(
-    socket,
-    local_participant,
-    reader_id,
-    writer_id,
-    receiver_address,
-    1L,
+    socket, local_participant, reader_id, writer_id, receiver_address, 1L,
   ).unwrap()
   let service = DiscoveryService::new(session)
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  sender.send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)
-    .unwrap()
+  sender
+  .send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)
+  .unwrap()
   let (_, first_event) = service.receive_once().unwrap()
   assert_true(first_event is DiscoveryEvent::Participant(_))
   assert_eq(service.graph().participant_count(), 1)
@@ -116,27 +112,29 @@ async test "discovery service expires participants after the SPDP lease" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  sender.send_sedp(
+  sender
+  .send_sedp(
     publication,
     @rtps.VendorId::new(1, 15),
     @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
     @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
     1L,
     receiver_address,
-  ).unwrap()
+  )
+  .unwrap()
   let (_, publication_event) = service.receive_once().unwrap()
   assert_true(publication_event is DiscoveryEvent::Publication(_))
   assert_eq(service.graph().publication_count(), 1)
 
   @async.sleep(300)
-  sender.send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
-    .unwrap()
+  sender
+  .send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
+  .unwrap()
   let (_, refresh_event) = service.receive_once().unwrap()
   assert_true(refresh_event is DiscoveryEvent::Participant(_))
-  let before_expiry = @async.with_timeout_opt(
-    300,
-    async fn() { service.receive_once() },
-  )
+  let before_expiry = @async.with_timeout_opt(300, async fn() {
+    service.receive_once()
+  })
   assert_true(before_expiry is None)
 
   let (_, event) = service.receive_once().unwrap()
@@ -511,7 +509,10 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   assert_eq(disposed_data.writer_sequence_number(), 3L)
-  assert_eq(disposed_data.serialized_payload(), endpoint.endpoint_guid().to_bytes())
+  assert_eq(
+    disposed_data.serialized_payload(),
+    endpoint.endpoint_guid().to_bytes(),
+  )
   assert_eq(
     disposed_data.status_info(),
     Ok(Some(@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)),

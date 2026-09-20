@@ -36,8 +36,7 @@ fn reliable_fragmented_sample_new(
     reader_id: fragment.reader_id(),
     writer_id: fragment.writer_id(),
     sequence_number: fragment.writer_sequence_number(),
-    data_flags: fragment.flags() &
-      (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY),
+    data_flags: fragment.flags() & (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY),
     fragment_size,
     sample_size,
     inline_qos: fragment.inline_qos(),
@@ -63,14 +62,15 @@ fn ReliableFragmentedSample::accept_fragment(
   let payload = fragment.serialized_payload()
   let payload_offset = (starting - 1) * self.fragment_size
   let max_payload_length = self.fragment_size * count
-  if starting < 1 || last > total || payload.length() == 0 ||
+  if starting < 1 ||
+    last > total ||
+    payload.length() == 0 ||
     payload.length() > max_payload_length ||
     payload_offset + payload.length() > self.sample_size {
     return Err("RTPS DATA_FRAG payload has an invalid fragment range")
   }
   if payload.length() < max_payload_length &&
-    (last != total ||
-      payload.length() != self.sample_size - payload_offset) {
+    (last != total || payload.length() != self.sample_size - payload_offset) {
     return Err("only the final RTPS DATA_FRAG may be short")
   }
   if self.inline_qos.length() == 0 && fragment.inline_qos().length() > 0 {
@@ -118,6 +118,7 @@ fn ReliableFragmentedSample::to_data(
   }
 }
 
+///|
 pub struct ReliableDataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
@@ -342,8 +343,7 @@ pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(
   let result : Array[@rtps.NackFragSubmessage] = []
   let mut bitmap_base = 1U
   while bitmap_base <= heartbeat.last_fragment_number() {
-    let remaining =
-      (heartbeat.last_fragment_number() - bitmap_base + 1U).reinterpret_as_int()
+    let remaining = (heartbeat.last_fragment_number() - bitmap_base + 1U).reinterpret_as_int()
     let num_bits = if remaining > 256 { 256 } else { remaining }
     let word_count = (num_bits + 31) / 32
     let bitmap : Array[UInt] = []

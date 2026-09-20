@@ -82,10 +82,9 @@ fn qos_nanoseconds_to_fraction(nanoseconds : UInt) -> UInt {
   if nanoseconds >= 1_000_000_000U {
     return 0xFFFFFFFFU
   }
-  let mut fraction = (
-    nanoseconds.to_uint64() * (1U.to_uint64() << 32) /
-    1_000_000_000U.to_uint64()
-  ).to_uint()
+  let mut fraction = (nanoseconds.to_uint64() *
+  (1U.to_uint64() << 32) /
+  1_000_000_000U.to_uint64()).to_uint()
   while qos_fraction_to_nanoseconds(fraction) < nanoseconds {
     fraction += 1U
   }

@@ -39,9 +39,8 @@ fn reliable_writer_fragment_data(
   if payload.length() == 0 {
     return Err("cannot fragment an empty RTPS DATA payload")
   }
-  let fragment_count =
-    (payload.length() + RELIABLE_WRITER_FRAGMENT_SIZE - 1) /
-      RELIABLE_WRITER_FRAGMENT_SIZE
+  let fragment_count = (payload.length() + RELIABLE_WRITER_FRAGMENT_SIZE - 1) /
+    RELIABLE_WRITER_FRAGMENT_SIZE
   let fragments : Array[@rtps.DataFragSubmessage] = []
   for index in 0..<fragment_count {
     let offset = index * RELIABLE_WRITER_FRAGMENT_SIZE
@@ -75,6 +74,7 @@ fn reliable_writer_fragment_data(
   Ok(fragments)
 }
 
+///|
 pub struct ReliableDataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
@@ -382,7 +382,9 @@ async fn ReliableDataWriter::write_data(
   for destination in self.destinations {
     match
       self.socket.send_message(
-        self.message_for_reader(data.to_message(self.guid_prefix, self.vendor_id)),
+        self.message_for_reader(
+          data.to_message(self.guid_prefix, self.vendor_id),
+        ),
         destination,
       ) {
       Ok(_) => ()
@@ -636,7 +638,8 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       if submessage.id() != @rtps.SubmessageId::NackFrag {
         continue
       }
-      let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
+      let nackfrag = match
+        @rtps.NackFragSubmessage::from_submessage(submessage) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
@@ -679,7 +682,8 @@ pub async fn ReliableDataWriter::receive_control(
     for submessage in message.submessages() {
       match submessage.id() {
         @rtps.SubmessageId::AckNack => {
-          let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
+          let acknack = match
+            @rtps.AckNackSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(message) => return Err(message)
           }
@@ -698,7 +702,8 @@ pub async fn ReliableDataWriter::receive_control(
           }
         }
         @rtps.SubmessageId::NackFrag => {
-          let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
+          let nackfrag = match
+            @rtps.NackFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(message) => return Err(message)
           }

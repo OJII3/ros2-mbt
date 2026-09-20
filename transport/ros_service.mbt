@@ -77,6 +77,7 @@ fn validate_service_endpoint_pair(
   Ok(())
 }
 
+///|
 /// Service payload wire format used by the remote ROS 2 implementation.
 pub(all) enum RosServiceWireFormat {
   DdsRpcInline
@@ -88,8 +89,7 @@ fn service_payload_client_id(guid : @rtps.Guid) -> UInt64 {
   let bytes = guid.to_bytes()
   let mut value = 0L.reinterpret_as_uint64()
   for index in 0..<8 {
-    value = value |
-      (bytes[index].to_int().to_uint64() << (index * 8))
+    value = value | (bytes[index].to_int().to_uint64() << (index * 8))
   }
   value
 }
@@ -122,12 +122,21 @@ pub fn RosServiceClient::new(
   first_request_sequence_number : Int64,
 ) -> Result[RosServiceClient, String] {
   RosServiceClient::new_with_wire_format(
-    service, request_socket, response_socket, guid_prefix, vendor_id, request_writer_id,
-    request_subscription, response_reader_id, response_publication,
-    first_request_sequence_number, RosServiceWireFormat::DdsRpcInline,
+    service,
+    request_socket,
+    response_socket,
+    guid_prefix,
+    vendor_id,
+    request_writer_id,
+    request_subscription,
+    response_reader_id,
+    response_publication,
+    first_request_sequence_number,
+    RosServiceWireFormat::DdsRpcInline,
   )
 }
 
+///|
 /// Create a client with an explicit service payload wire format.
 pub fn RosServiceClient::new_with_wire_format(
   service : @ros.RosService,
@@ -209,12 +218,20 @@ pub fn RosServiceClient::new_with_shared_socket(
   first_request_sequence_number : Int64,
 ) -> Result[RosServiceClient, String] {
   RosServiceClient::new_with_shared_socket_and_wire_format(
-    service, socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
-    response_reader_id, response_publication, first_request_sequence_number,
+    service,
+    socket,
+    guid_prefix,
+    vendor_id,
+    request_writer_id,
+    request_subscription,
+    response_reader_id,
+    response_publication,
+    first_request_sequence_number,
     RosServiceWireFormat::DdsRpcInline,
   )
 }
 
+///|
 /// Create a client on one shared socket with an explicit wire format.
 pub fn RosServiceClient::new_with_shared_socket_and_wire_format(
   service : @ros.RosService,
@@ -302,7 +319,8 @@ pub async fn RosServiceClient::receive_response(
     RosServiceWireFormat::DdsRpcInline => {
       let received = if self.shared_socket {
         self.response_reader.receive_related_data_with_writer(
-          request_identity, self.request_writer,
+          request_identity,
+          self.request_writer,
         )
       } else {
         self.response_reader.receive_related_data(request_identity)
@@ -388,12 +406,21 @@ pub fn RosServiceServer::new(
   first_response_sequence_number : Int64,
 ) -> Result[RosServiceServer, String] {
   RosServiceServer::new_with_wire_format(
-    service, request_socket, response_socket, guid_prefix, vendor_id, request_reader_id,
-    request_publication, response_writer_id, response_subscription,
-    first_response_sequence_number, RosServiceWireFormat::DdsRpcInline,
+    service,
+    request_socket,
+    response_socket,
+    guid_prefix,
+    vendor_id,
+    request_reader_id,
+    request_publication,
+    response_writer_id,
+    response_subscription,
+    first_response_sequence_number,
+    RosServiceWireFormat::DdsRpcInline,
   )
 }
 
+///|
 /// Create a server with an explicit service payload wire format.
 pub fn RosServiceServer::new_with_wire_format(
   service : @ros.RosService,
@@ -472,12 +499,20 @@ pub fn RosServiceServer::new_with_shared_socket(
   first_response_sequence_number : Int64,
 ) -> Result[RosServiceServer, String] {
   RosServiceServer::new_with_shared_socket_and_wire_format(
-    service, socket, guid_prefix, vendor_id, request_reader_id, request_publication,
-    response_writer_id, response_subscription, first_response_sequence_number,
+    service,
+    socket,
+    guid_prefix,
+    vendor_id,
+    request_reader_id,
+    request_publication,
+    response_writer_id,
+    response_subscription,
+    first_response_sequence_number,
     RosServiceWireFormat::DdsRpcInline,
   )
 }
 
+///|
 /// Create a server on one shared socket with an explicit wire format.
 pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
   service : @ros.RosService,
@@ -494,7 +529,8 @@ pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
   let server = match
     RosServiceServer::new_with_wire_format(
       service, socket, socket, guid_prefix, vendor_id, request_reader_id, request_publication,
-      response_writer_id, response_subscription, first_response_sequence_number, wire_format,
+      response_writer_id, response_subscription, first_response_sequence_number,
+      wire_format,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -531,7 +567,7 @@ pub async fn RosServiceServer::receive_request(
         Ok(value) => value
         Err(_) => identity
       }
-    Ok(None) => {
+    Ok(None) =>
       match self.wire_format {
         RosServiceWireFormat::DdsRpcInline => identity
         RosServiceWireFormat::CycloneDdsPayload => {
@@ -544,7 +580,6 @@ pub async fn RosServiceServer::receive_request(
           return Ok((payload, identity, source))
         }
       }
-    }
     Err(_) => identity
   }
   Ok((data.serialized_payload(), response_identity, source))
@@ -569,13 +604,14 @@ pub async fn RosServiceServer::respond(
       }
       self.pending_payload_header = None
     }
-    None => match
-      self.response_writer.write_with_related_sample_identity(
-        serialized_response, request_identity,
-      ) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
-    }
+    None =>
+      match
+        self.response_writer.write_with_related_sample_identity(
+          serialized_response, request_identity,
+        ) {
+        Ok(_) => ()
+        Err(message) => return Err(message)
+      }
   }
   self.response_writer.send_heartbeat()
 }

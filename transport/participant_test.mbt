@@ -153,8 +153,8 @@ async test "ROS participant rejects an invalid DDSI domain before binding" {
       0x7F000001U,
       60,
       1L,
-  )
-  is Err(_),
+    )
+    is Err(_),
   )
 }
 
@@ -197,79 +197,88 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   let node = RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
   ).unwrap()
-  node.register_ros_discovery_info(
+  node
+  .register_ros_discovery_info(
     @rtps.EntityId::new(b"gph", 0xC2).unwrap(),
     @rtps.EntityId::new(b"gph", 0xC7).unwrap(),
-  ).unwrap()
+  )
+  .unwrap()
   let remote_subscription = @ros.ros_discovery_info_to_sedp(
     @rtps.SedpEndpointKind::Subscription,
-    @rtps.Guid::new(
-      remote_prefix,
-      @rtps.EntityId::new(b"sub", 0xC7).unwrap(),
-    ),
+    @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"sub", 0xC7).unwrap()),
   ).unwrap()
   remote_subscription.add_unicast_locator(node.user_locator())
   let remote_publication = @ros.ros_discovery_info_to_sedp(
     @rtps.SedpEndpointKind::Publication,
-    @rtps.Guid::new(
-      remote_prefix,
-      @rtps.EntityId::new(b"pub", 0xC2).unwrap(),
-    ),
+    @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
   ).unwrap()
   remote_publication.add_unicast_locator(node.user_locator())
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let destination = node.discovery.session.socket.local_addr()
   let vendor_id = @rtps.VendorId::new(1, 15)
-  let publication_data = remote_publication.to_data_submessage_with_vendor(
-    vendor_id,
-    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
-    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
-    1L,
-  ).unwrap()
-  sender.send_data(publication_data, remote_prefix, vendor_id, destination).unwrap()
+  let publication_data = remote_publication
+    .to_data_submessage_with_vendor(
+      vendor_id,
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      1L,
+    )
+    .unwrap()
+  sender
+  .send_data(publication_data, remote_prefix, vendor_id, destination)
+  .unwrap()
   ignore(node.receive_discovery_once().unwrap())
-  let subscription_data = remote_subscription.to_data_submessage_with_vendor(
-    vendor_id,
-    @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
-    @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
-    1L,
-  ).unwrap()
-  sender.send_data(subscription_data, remote_prefix, vendor_id, destination).unwrap()
+  let subscription_data = remote_subscription
+    .to_data_submessage_with_vendor(
+      vendor_id,
+      @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
+      1L,
+    )
+    .unwrap()
+  sender
+  .send_data(subscription_data, remote_prefix, vendor_id, destination)
+  .unwrap()
   ignore(node.receive_discovery_once().unwrap())
   assert_eq(node.graph_publishers.length(), 1)
   assert_eq(node.graph_subscriptions.length(), 1)
   let publication_dispose = @rtps.DataSubmessage::new(
-    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
-    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
-    2L,
-    b"",
-  ).with_key(remote_publication.endpoint_guid().to_bytes())
-  .with_status_info(@rtps.STATUS_INFO_DISPOSED)
-  sender.send_data(publication_dispose, remote_prefix, vendor_id, destination).unwrap()
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      2L,
+      b"",
+    )
+    .with_key(remote_publication.endpoint_guid().to_bytes())
+    .with_status_info(@rtps.STATUS_INFO_DISPOSED)
+  sender
+  .send_data(publication_dispose, remote_prefix, vendor_id, destination)
+  .unwrap()
   ignore(node.receive_discovery_once().unwrap())
   let subscription_dispose = @rtps.DataSubmessage::new(
-    @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
-    @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
-    2L,
-    b"",
-  ).with_key(remote_subscription.endpoint_guid().to_bytes())
-  .with_status_info(@rtps.STATUS_INFO_DISPOSED)
-  sender.send_data(subscription_dispose, remote_prefix, vendor_id, destination).unwrap()
+      @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
+      2L,
+      b"",
+    )
+    .with_key(remote_subscription.endpoint_guid().to_bytes())
+    .with_status_info(@rtps.STATUS_INFO_DISPOSED)
+  sender
+  .send_data(subscription_dispose, remote_prefix, vendor_id, destination)
+  .unwrap()
   ignore(node.receive_discovery_once().unwrap())
   assert_eq(node.graph_publishers.length(), 0)
   assert_eq(node.graph_subscriptions.length(), 0)
-  let reappeared_publication = remote_publication.to_data_submessage_with_vendor(
-    vendor_id,
-    @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
-    @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
-    3L,
-  ).unwrap()
-  sender.send_data(
-    reappeared_publication,
-    remote_prefix,
-    vendor_id,
-    destination,
-  ).unwrap()
+  let reappeared_publication = remote_publication
+    .to_data_submessage_with_vendor(
+      vendor_id,
+      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      3L,
+    )
+    .unwrap()
+  sender
+  .send_data(reappeared_publication, remote_prefix, vendor_id, destination)
+  .unwrap()
   ignore(node.receive_discovery_once().unwrap())
   assert_eq(node.graph_subscriptions.length(), 1)
   node.close()
@@ -382,8 +391,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     1,
   )
   assert_true(node.register_endpoint(node.local_endpoints()[0]) is Err(_))
-  match
-    node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) {
+  match node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -420,12 +428,9 @@ async test "ROS participant registers a topic endpoint with its type hash" {
   let node = RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
   ).unwrap()
-  let topic = @ros.RosTopic::new(
-    "/chatter", "std_msgs", "msg", "String",
-  ).unwrap()
+  let topic = @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let writer_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
-  let type_hash =
-    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  let type_hash = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
   match
     node.register_topic_endpoint_with_type_hash(
       topic,
@@ -442,10 +447,7 @@ async test "ROS participant registers a topic endpoint with its type hash" {
   for parameter in node.local_endpoints()[0].extra_parameters() {
     if parameter.id() == @rtps.PID_USER_DATA {
       found = true
-      assert_eq(
-        parameter,
-        @rtps.qos_user_data_type_hash(type_hash),
-      )
+      assert_eq(parameter, @rtps.qos_user_data_type_hash(type_hash))
     }
   }
   assert_true(found)
@@ -479,11 +481,7 @@ async test "ROS participant registers service client endpoints" {
   let response_hash = "RIHS01_response_hash"
   match
     node.register_service_client_with_type_hashes(
-      service,
-      request_writer_id,
-      response_reader_id,
-      request_hash,
-      response_hash,
+      service, request_writer_id, response_reader_id, request_hash, response_hash,
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -861,13 +859,13 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     "/late_topic", "std_msgs", "msg", "String",
   ).unwrap()
   publisher
-    .register_topic_endpoint(
-      late_topic,
-      @rtps.SedpEndpointKind::Publication,
-      late_writer_id,
-      @rtps.SedpQos::default(),
-    )
-    .unwrap()
+  .register_topic_endpoint(
+    late_topic,
+    @rtps.SedpEndpointKind::Publication,
+    late_writer_id,
+    @rtps.SedpQos::default(),
+  )
+  .unwrap()
   let refreshed_info = match publisher.latest_graph_info {
     Some(value) => value
     None => fail("automatic ROS graph information was not refreshed")
@@ -884,9 +882,14 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     decoded_refreshed.node_entities_info_seq()[0].writer_gid_seq().length(),
     2,
   )
-  publisher.unregister_endpoint(
-    @rtps.Guid::new(publisher.participant().participant_guid().prefix(), late_writer_id),
-  ).unwrap()
+  publisher
+  .unregister_endpoint(
+    @rtps.Guid::new(
+      publisher.participant().participant_guid().prefix(),
+      late_writer_id,
+    ),
+  )
+  .unwrap()
   let (decoded_removed, _) = match subscriber.receive_ros_discovery_info(0) {
     Ok(value) => value
     Err(message) => fail(message)

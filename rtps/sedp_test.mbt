@@ -117,10 +117,7 @@ test "SEDP endpoint data round trips required fields and locators" {
     }
   }
   assert_true(decoded_user_data_found)
-  assert_eq(
-    decoded.type_hash(),
-    Ok(Some("RIHS01_000102")),
-  )
+  assert_eq(decoded.type_hash(), Ok(Some("RIHS01_000102")))
   let reencoded = match decoded.to_cdr_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -273,8 +270,9 @@ test "SEDP extracts an endpoint GUID from key-only data" {
   let endpoint_guid = @rtps.Guid::new(prefix, endpoint_id)
   let reader_id = @rtps.EntityId::new(b"rea", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wri", 0xC2).unwrap()
-  let data = @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"")
-    .with_key(endpoint_guid.to_bytes())
+  let data = @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"").with_key(
+    endpoint_guid.to_bytes(),
+  )
   assert_eq(
     @rtps.SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
     endpoint_guid,
@@ -455,9 +453,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   compatible_subscription.add_parameter(
     qos_liveliness(LIVELINESS_AUTOMATIC, 4, 0U),
   )
-  assert_true(
-    publication.qos_compatible_with(compatible_subscription).unwrap(),
-  )
+  assert_true(publication.qos_compatible_with(compatible_subscription).unwrap())
 
   let deadline_too_strict = SedpEndpointData::new(
     SedpEndpointKind::Subscription,
@@ -466,12 +462,8 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   deadline_too_strict.add_parameter(qos_deadline(0, 500_000_000U))
-  deadline_too_strict.add_parameter(
-    qos_liveliness(LIVELINESS_AUTOMATIC, 4, 0U),
-  )
-  assert_false(
-    publication.qos_compatible_with(deadline_too_strict).unwrap(),
-  )
+  deadline_too_strict.add_parameter(qos_liveliness(LIVELINESS_AUTOMATIC, 4, 0U))
+  assert_false(publication.qos_compatible_with(deadline_too_strict).unwrap())
 
   let liveliness_too_strict = SedpEndpointData::new(
     SedpEndpointKind::Subscription,
@@ -483,9 +475,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   liveliness_too_strict.add_parameter(
     qos_liveliness(LIVELINESS_MANUAL_BY_TOPIC, 4, 0U),
   )
-  assert_false(
-    publication.qos_compatible_with(liveliness_too_strict).unwrap(),
-  )
+  assert_false(publication.qos_compatible_with(liveliness_too_strict).unwrap())
 
   let lease_too_strict = SedpEndpointData::new(
     SedpEndpointKind::Subscription,
@@ -494,9 +484,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   lease_too_strict.add_parameter(qos_deadline(2, 0U))
-  lease_too_strict.add_parameter(
-    qos_liveliness(LIVELINESS_AUTOMATIC, 2, 0U),
-  )
+  lease_too_strict.add_parameter(qos_liveliness(LIVELINESS_AUTOMATIC, 2, 0U))
   assert_false(publication.qos_compatible_with(lease_too_strict).unwrap())
 }
 
@@ -518,7 +506,10 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   liveliness_endpoint.add_parameter(
-    Parameter::new(PID_LIVELINESS, b"\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+    Parameter::new(
+      PID_LIVELINESS,
+      b"\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+    ),
   )
   assert_true(liveliness_endpoint.qos() is Err(_))
 }
@@ -553,10 +544,7 @@ test "SEDP omitted reliability defaults depend on endpoint kind" {
     "example_interfaces::srv::dds_::AddTwoInts_Response_",
   ).unwrap()
   publication.add_parameter(qos_durability(DURABILITY_VOLATILE))
-  assert_eq(
-    publication.qos().unwrap().reliability(),
-    RELIABILITY_RELIABLE,
-  )
+  assert_eq(publication.qos().unwrap().reliability(), RELIABILITY_RELIABLE)
 
   let subscription = SedpEndpointData::new(
     SedpEndpointKind::Subscription,
@@ -565,10 +553,7 @@ test "SEDP omitted reliability defaults depend on endpoint kind" {
     "example_interfaces::srv::dds_::AddTwoInts_Request_",
   ).unwrap()
   subscription.add_parameter(qos_durability(DURABILITY_VOLATILE))
-  assert_eq(
-    subscription.qos().unwrap().reliability(),
-    RELIABILITY_BEST_EFFORT,
-  )
+  assert_eq(subscription.qos().unwrap().reliability(), RELIABILITY_BEST_EFFORT)
 }
 
 ///|
@@ -645,7 +630,8 @@ test "SEDP rejects overflowing variable-length fields" {
     SedpEndpointData::from_parameter_list(
       SedpEndpointKind::Publication,
       parameters,
-    ) is Err(_),
+    )
+    is Err(_),
   )
 
   let parameters = ParameterList::new()
@@ -657,7 +643,8 @@ test "SEDP rejects overflowing variable-length fields" {
     SedpEndpointData::from_parameter_list(
       SedpEndpointKind::Publication,
       parameters,
-    ) is Err(_),
+    )
+    is Err(_),
   )
 }
 

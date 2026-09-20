@@ -253,28 +253,34 @@ fn cdr_utf16_code_units(value : String) -> Result[Array[UInt], String] {
     } else if first >= 0xE0 && first <= 0xEF && index + 2 < bytes.length() {
       let second = bytes[index + 1].to_int()
       let third = bytes[index + 2].to_int()
-      if second < 0x80 || second > 0xBF || third < 0x80 || third > 0xBF ||
+      if second < 0x80 ||
+        second > 0xBF ||
+        third < 0x80 ||
+        third > 0xBF ||
         (first == 0xE0 && second < 0xA0) ||
         (first == 0xED && second >= 0xA0) {
         return Err("invalid UTF-8 in CDR wide string")
       }
-      (
-        ((first & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F),
-        3,
-      )
+      (((first & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F), 3)
     } else if first >= 0xF0 && first <= 0xF4 && index + 3 < bytes.length() {
       let second = bytes[index + 1].to_int()
       let third = bytes[index + 2].to_int()
       let fourth = bytes[index + 3].to_int()
-      if second < 0x80 || second > 0xBF || third < 0x80 || third > 0xBF ||
-        fourth < 0x80 || fourth > 0xBF ||
+      if second < 0x80 ||
+        second > 0xBF ||
+        third < 0x80 ||
+        third > 0xBF ||
+        fourth < 0x80 ||
+        fourth > 0xBF ||
         (first == 0xF0 && second < 0x90) ||
         (first == 0xF4 && second > 0x8F) {
         return Err("invalid UTF-8 in CDR wide string")
       }
       (
-        ((first & 0x07) << 18) | ((second & 0x3F) << 12) |
-        ((third & 0x3F) << 6) | (fourth & 0x3F),
+        ((first & 0x07) << 18) |
+        ((second & 0x3F) << 12) |
+        ((third & 0x3F) << 6) |
+        (fourth & 0x3F),
         4,
       )
     } else {

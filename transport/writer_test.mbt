@@ -73,9 +73,7 @@ async test "best-effort data writer uses all supported endpoint locators" {
     @rtps.Locator::new(
       @rtps.LOCATOR_KIND_UDP_V6,
       0U,
-      Bytes::from_array([
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      ]),
+      Bytes::from_array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]),
     ).unwrap(),
   )
   subscription.add_unicast_locator(
@@ -101,9 +99,7 @@ async test "best-effort data writer uses all supported endpoint locators" {
   writer.write(b"payload").unwrap()
   let (message, _) = receiver.receive_message().unwrap()
   assert_eq(message.destination_guid_prefix(), Ok(Some(prefix)))
-  let data = @rtps.DataSubmessage::from_submessage(
-    message.submessages()[1],
-  ).unwrap()
+  let data = @rtps.DataSubmessage::from_submessage(message.submessages()[1]).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
   let (second_data, _) = second_receiver.receive_data().unwrap()
   assert_eq(second_data.serialized_payload(), b"payload")
@@ -132,7 +128,7 @@ async test "best-effort data writer fragments large samples" {
   ).unwrap()
   let reader = DataReader::new(receiver, reader_id, writer_id)
   let payload : Array[Byte] = []
-  for index in 0..<(3010) {
+  for index in 0..<3010 {
     payload.push((index % 251).to_byte())
   }
   let expected = Bytes::from_array(payload)

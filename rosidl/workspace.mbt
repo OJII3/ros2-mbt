@@ -291,19 +291,23 @@ pub fn MessageWorkspace::generate_moonbit(
     output += definition.generate_moonbit()
     match definition.type_hash() {
       Ok(_) => ()
-      Err(_) => match
-        self.type_hash(
-          definition.package_name(),
-          definition.interface_namespace(),
-          definition.type_name(),
-        ) {
-        Ok(type_hash) => {
-          output += "\n///|\n"
-          output += "pub const " + definition.type_name() +
-            "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+      Err(_) =>
+        match
+          self.type_hash(
+            definition.package_name(),
+            definition.interface_namespace(),
+            definition.type_name(),
+          ) {
+          Ok(type_hash) => {
+            output += "\n///|\n"
+            output += "pub const " +
+              definition.type_name() +
+              "_TYPE_HASH : String = \"" +
+              type_hash +
+              "\"\n"
+          }
+          Err(_) => ()
         }
-        Err(_) => ()
-      }
     }
     output += "\n"
   }
@@ -341,14 +345,18 @@ pub fn MessageWorkspace::generate_message_moonbit(
     definition.generate_moonbit()
   match definition.type_hash() {
     Ok(_) => ()
-    Err(_) => match self.type_hash(package_name, interface_namespace, type_name) {
-      Ok(type_hash) => {
-        output += "\n///|\n"
-        output += "pub const " + definition.type_name() +
-          "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+    Err(_) =>
+      match self.type_hash(package_name, interface_namespace, type_name) {
+        Ok(type_hash) => {
+          output += "\n///|\n"
+          output += "pub const " +
+            definition.type_name() +
+            "_TYPE_HASH : String = \"" +
+            type_hash +
+            "\"\n"
+        }
+        Err(_) => ()
       }
-      Err(_) => ()
-    }
   }
   Ok(output)
 }
@@ -430,12 +438,7 @@ pub fn MessageWorkspace::generate_service_moonbit(
     }
   }
   let service = match
-    parse_service_with_types(
-      package_name,
-      service_name,
-      source,
-      nested_types,
-    ) {
+    parse_service_with_types(package_name, service_name, source, nested_types) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -450,8 +453,11 @@ pub fn MessageWorkspace::generate_service_moonbit(
           Err(message) => return Err(message)
         }
         output += "\n///|\n"
-        output += "pub const " + definition.type_name() +
-          "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+        output += "pub const " +
+          definition.type_name() +
+          "_TYPE_HASH : String = \"" +
+          type_hash +
+          "\"\n"
       }
     }
   }
@@ -463,8 +469,11 @@ pub fn MessageWorkspace::generate_service_moonbit(
         Err(message) => return Err(message)
       }
       output += "\n///|\n"
-      output += "pub const " + service.service_name() +
-        "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+      output += "pub const " +
+        service.service_name() +
+        "_TYPE_HASH : String = \"" +
+        type_hash +
+        "\"\n"
     }
   }
   Ok(output)
@@ -487,12 +496,7 @@ pub fn MessageWorkspace::generate_action_moonbit(
     Err(message) => return Err(message)
   }
   let goal_descriptor = match
-    MessageSource::new(
-      package_name,
-      "msg",
-      action_name + "_Goal",
-      goal_source,
-    ) {
+    MessageSource::new(package_name, "msg", action_name + "_Goal", goal_source) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -575,19 +579,16 @@ pub fn MessageWorkspace::generate_action_moonbit(
     }
   }
   let action = match
-    parse_action_with_types(
-      package_name,
-      action_name,
-      source,
-      nested_types,
-    ) {
+    parse_action_with_types(package_name, action_name, source, nested_types) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let uuid_import = match self.import_for("unique_identifier_msgs") {
     Some(value) => value
     None =>
-      return Err("missing MoonBit import for ROS package: unique_identifier_msgs")
+      return Err(
+        "missing MoonBit import for ROS package: unique_identifier_msgs",
+      )
   }
   let time_import = match self.import_for("builtin_interfaces") {
     Some(value) => value
@@ -622,11 +623,12 @@ pub fn MessageWorkspace::generate_action_moonbit(
   }
   for source in action_sources {
     if rosidl_workspace_source_index(
-      hash_workspace.sources,
-      package_name,
-      "action",
-      source.type_name,
-    ) < 0 {
+        hash_workspace.sources,
+        package_name,
+        "action",
+        source.type_name,
+      ) <
+      0 {
       match hash_workspace.add_source(source) {
         Ok(_) => ()
         Err(message) => return Err(message)
@@ -647,8 +649,11 @@ pub fn MessageWorkspace::generate_action_moonbit(
           Err(message) => return Err(message)
         }
         output += "\n///|\n"
-        output += "pub const " + definition.type_name() +
-          "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+        output += "pub const " +
+          definition.type_name() +
+          "_TYPE_HASH : String = \"" +
+          type_hash +
+          "\"\n"
       }
     }
   }
@@ -658,8 +663,11 @@ pub fn MessageWorkspace::generate_action_moonbit(
       Err(message) => return Err(message)
     }
     output += "\n///|\n"
-    output += "pub const " + definition.type_name() +
-      "_TYPE_HASH : String = \"" + type_hash + "\"\n"
+    output += "pub const " +
+      definition.type_name() +
+      "_TYPE_HASH : String = \"" +
+      type_hash +
+      "\"\n"
   }
   Ok(output)
 }
@@ -709,7 +717,8 @@ fn MessageWorkspace::reference_for(
       owner.package_name,
       "action",
       referenced_type,
-    ) >= 0 {
+    ) >=
+    0 {
     "action"
   } else if owner.interface_namespace == "srv" ||
     owner.interface_namespace == "action" {

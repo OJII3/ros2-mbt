@@ -371,13 +371,18 @@ pub fn ServiceDefinition::response(
 ///|
 /// Generate request and response MoonBit CDR codecs for a ROS service.
 pub fn ServiceDefinition::generate_moonbit(self : ServiceDefinition) -> String {
-  let output = self.request.generate_moonbit() + "\n" +
+  let output = self.request.generate_moonbit() +
+    "\n" +
     self.response.generate_moonbit()
   match self.type_hash() {
-    Ok(type_hash) => output +
+    Ok(type_hash) =>
+      output +
       "\n///|\n" +
-      "pub const " + self.service_name + "_TYPE_HASH : String = \"" +
-      type_hash + "\"\n"
+      "pub const " +
+      self.service_name +
+      "_TYPE_HASH : String = \"" +
+      type_hash +
+      "\"\n"
     Err(_) => output
   }
 }
@@ -464,10 +469,7 @@ pub fn parse_message_with_types(
     if default_source.length() > 0 {
       let default_value = match
         rosidl_field_default_literal(
-          base_type,
-          string_upper_bound,
-          collection,
-          default_source,
+          base_type, string_upper_bound, collection, default_source,
         ) {
         Ok(value) => value
         Err(message) => return Err(message)
@@ -582,7 +584,8 @@ fn rosidl_words(line : String) -> Array[String] {
   words
 }
 
-///| Return the trimmed suffix after a fixed number of whitespace-delimited words.
+///|
+/// Return the trimmed suffix after a fixed number of whitespace-delimited words.
 fn rosidl_text_after_words(line : String, word_count : Int) -> String {
   let bytes = @utf8.encode(line)
   let mut completed_words = 0
@@ -593,11 +596,7 @@ fn rosidl_text_after_words(line : String, word_count : Int) -> String {
         completed_words += 1
         in_word = false
         if completed_words == word_count {
-          return rosidl_trim(
-            @utf8.decode(bytes[index:]) catch {
-              _ => ""
-            },
-          )
+          return rosidl_trim(@utf8.decode(bytes[index:]) catch { _ => "" })
         }
       }
     } else if !in_word {
@@ -607,15 +606,13 @@ fn rosidl_text_after_words(line : String, word_count : Int) -> String {
   ""
 }
 
-///| Find an assignment separator before any field default value.
+///|
+/// Find an assignment separator before any field default value.
 fn rosidl_assignment_index(line : String) -> Int {
   let bytes = @utf8.encode(line)
   for index in 0..<bytes.length() {
-    if bytes[index] == b'=' &&
-      (index == 0 || bytes[index - 1] != b'<') {
-      let declaration_source = @utf8.decode(bytes[:index]) catch {
-        _ => ""
-      }
+    if bytes[index] == b'=' && (index == 0 || bytes[index - 1] != b'<') {
+      let declaration_source = @utf8.decode(bytes[:index]) catch { _ => "" }
       if rosidl_words(declaration_source).length() == 2 {
         return index
       }
@@ -659,21 +656,25 @@ fn rosidl_parse_field_type(
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok((
-        base_type,
-        string_upper_bound,
-        MessageFieldCollection::BoundedSequence(bound),
-      ))
+      Ok(
+        (
+          base_type,
+          string_upper_bound,
+          MessageFieldCollection::BoundedSequence(bound),
+        ),
+      )
     } else {
       let length = match rosidl_positive_int(inner) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok((
-        base_type,
-        string_upper_bound,
-        MessageFieldCollection::FixedArray(length),
-      ))
+      Ok(
+        (
+          base_type,
+          string_upper_bound,
+          MessageFieldCollection::FixedArray(length),
+        ),
+      )
     }
   }
 }
@@ -686,8 +687,7 @@ fn rosidl_parse_base_field_type(
   if parts.length() == 1 {
     return Ok((type_spec, None))
   }
-  if parts.length() != 2 ||
-    (parts[0] != "string" && parts[0] != "wstring") {
+  if parts.length() != 2 || (parts[0] != "string" && parts[0] != "wstring") {
     return Err("ROS bounded strings must use the string<=N or wstring<=N form")
   }
   let bound = match rosidl_positive_int(parts[1].to_owned()) {
@@ -744,8 +744,11 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   match self.type_hash() {
     Ok(type_hash) => {
       output += "///|\n"
-      output += "pub const " + self.type_name + "_TYPE_HASH : String = \"" +
-        type_hash + "\"\n\n"
+      output += "pub const " +
+        self.type_name +
+        "_TYPE_HASH : String = \"" +
+        type_hash +
+        "\"\n\n"
     }
     Err(_) => ()
   }
@@ -774,7 +777,11 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   }
   output += "  }\n}\n\n"
   output += "///|\n"
-  output += "pub fn " + self.type_name + "::default() -> " + self.type_name + " {\n"
+  output += "pub fn " +
+    self.type_name +
+    "::default() -> " +
+    self.type_name +
+    " {\n"
   for field in self.fields {
     output += rosidl_generate_default_field(field, self.nested_types)
   }
@@ -879,16 +886,30 @@ fn rosidl_generate_default_field(
     None =>
       match field.collection {
         MessageFieldCollection::Scalar =>
-          "  let " + field.name + " : " + field_type + " = " +
-          rosidl_default_scalar(field, nested_types) + "\n"
-        MessageFieldCollection::FixedArray(length) => {
-          "  let " + field.name + " : " + field_type + " = []\n" +
-          "  for _ in 0..<" + length.to_string() + " {\n" +
-          "    " + field.name + ".push(" +
-          rosidl_default_scalar(field, nested_types) + ")\n" +
+          "  let " +
+          field.name +
+          " : " +
+          field_type +
+          " = " +
+          rosidl_default_scalar(field, nested_types) +
+          "\n"
+        MessageFieldCollection::FixedArray(length) =>
+          "  let " +
+          field.name +
+          " : " +
+          field_type +
+          " = []\n" +
+          "  for _ in 0..<" +
+          length.to_string() +
+          " {\n" +
+          "    " +
+          field.name +
+          ".push(" +
+          rosidl_default_scalar(field, nested_types) +
+          ")\n" +
           "  }\n"
-        }
-        MessageFieldCollection::Sequence | MessageFieldCollection::BoundedSequence(_) =>
+        MessageFieldCollection::Sequence
+        | MessageFieldCollection::BoundedSequence(_) =>
           "  let " + field.name + " : " + field_type + " = []\n"
       }
   }
@@ -901,14 +922,21 @@ fn rosidl_default_scalar(
 ) -> String {
   match field.type_name {
     "bool" => "false"
-    "byte" | "char" | "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32" =>
-      "0"
+    "byte"
+    | "char"
+    | "int8"
+    | "uint8"
+    | "int16"
+    | "uint16"
+    | "int32"
+    | "uint32" => "0"
     "int64" => "0L"
     "uint64" => "0UL"
     "float32" => "0.0F"
     "float64" => "0.0"
     "string" | "wstring" => "\"\""
-    _ => rosidl_moon_type_for_field(field.type_name, nested_types).unwrap() +
+    _ =>
+      rosidl_moon_type_for_field(field.type_name, nested_types).unwrap() +
       "::default()"
   }
 }
@@ -975,17 +1003,34 @@ fn rosidl_generate_writer_call(
       } else {
         "write_bounded_string"
       }
-      indent + "match writer." + bounded_method + "(" + value + ", " +
-      bound.to_string() + ") {\n" +
-      indent + "  Ok(_) => ()\n" +
-      indent + "  Err(message) => return Err(message)\n" +
-      indent + "}\n"
+      indent +
+      "match writer." +
+      bounded_method +
+      "(" +
+      value +
+      ", " +
+      bound.to_string() +
+      ") {\n" +
+      indent +
+      "  Ok(_) => ()\n" +
+      indent +
+      "  Err(message) => return Err(message)\n" +
+      indent +
+      "}\n"
     }
     None if field.type_name == "wstring" =>
-      indent + "match writer." + codec_method + "(" + value + ") {\n" +
-      indent + "  Ok(_) => ()\n" +
-      indent + "  Err(message) => return Err(message)\n" +
-      indent + "}\n"
+      indent +
+      "match writer." +
+      codec_method +
+      "(" +
+      value +
+      ") {\n" +
+      indent +
+      "  Ok(_) => ()\n" +
+      indent +
+      "  Err(message) => return Err(message)\n" +
+      indent +
+      "}\n"
     None => indent + "writer." + codec_method + "(" + value + ")\n"
   })
 }
@@ -1005,12 +1050,16 @@ fn rosidl_generate_writer_range_check(
   if condition.length() == 0 {
     return ""
   }
-  indent + "if " + condition + " {\n" +
+  indent +
+  "if " +
+  condition +
+  " {\n" +
   indent +
   "  return Err(\"generated ROS " +
   field.type_name +
   " value is out of range\")\n" +
-  indent + "}\n"
+  indent +
+  "}\n"
 }
 
 ///|
@@ -1038,7 +1087,9 @@ fn rosidl_generate_reader(
     MessageFieldCollection::Scalar =>
       "  let " +
       field.name +
-      " = match " + codec_call + " {\n" +
+      " = match " +
+      codec_call +
+      " {\n" +
       "    Ok(value) => value\n" +
       "    Err(message) => return Err(message)\n" +
       "  }\n"
@@ -1053,7 +1104,9 @@ fn rosidl_generate_reader(
       " {\n" +
       "    " +
       field.name +
-      ".push(match " + codec_call + " {\n" +
+      ".push(match " +
+      codec_call +
+      " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -1082,7 +1135,9 @@ fn rosidl_generate_reader(
       "_length {\n" +
       "    " +
       field.name +
-      ".push(match " + codec_call + " {\n" +
+      ".push(match " +
+      codec_call +
+      " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -1118,7 +1173,9 @@ fn rosidl_generate_reader(
       "_length {\n" +
       "    " +
       field.name +
-      ".push(match " + codec_call + " {\n" +
+      ".push(match " +
+      codec_call +
+      " {\n" +
       "      Ok(value) => value\n" +
       "      Err(message) => return Err(message)\n" +
       "    })\n" +
@@ -1164,11 +1221,20 @@ fn rosidl_generate_nested_writer(field : MessageField) -> String {
 }
 
 ///|
-fn rosidl_generate_nested_writer_call(value : String, indent : String) -> String {
-  indent + "match " + value + ".write_cdr(writer) {\n" +
-  indent + "  Ok(_) => ()\n" +
-  indent + "  Err(message) => return Err(message)\n" +
-  indent + "}\n"
+fn rosidl_generate_nested_writer_call(
+  value : String,
+  indent : String,
+) -> String {
+  indent +
+  "match " +
+  value +
+  ".write_cdr(writer) {\n" +
+  indent +
+  "  Ok(_) => ()\n" +
+  indent +
+  "  Err(message) => return Err(message)\n" +
+  indent +
+  "}\n"
 }
 
 ///|
@@ -1350,8 +1416,7 @@ fn rosidl_type_reference_name(value : String) -> Bool {
     return rosidl_identifier(parts[0].to_owned()) &&
       rosidl_identifier(parts[1].to_owned())
   }
-  if parts.length() != 3 ||
-    (parts[1] != "msg" && parts[1] != "srv") {
+  if parts.length() != 3 || (parts[1] != "msg" && parts[1] != "srv") {
     return false
   }
   rosidl_identifier(parts[0].to_owned()) &&
@@ -1477,22 +1542,20 @@ fn rosidl_field_default_literal(
 ) -> Result[String, String] {
   match collection {
     MessageFieldCollection::Scalar =>
-      rosidl_field_scalar_default_literal(
-        type_name, string_upper_bound, value,
-      )
-    MessageFieldCollection::FixedArray(_) |
-    MessageFieldCollection::Sequence |
-    MessageFieldCollection::BoundedSequence(_) => {
+      rosidl_field_scalar_default_literal(type_name, string_upper_bound, value)
+    MessageFieldCollection::FixedArray(_)
+    | MessageFieldCollection::Sequence
+    | MessageFieldCollection::BoundedSequence(_) => {
       let elements = match rosidl_array_default_elements(type_name, value) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
       match collection {
-        MessageFieldCollection::FixedArray(expected) if
-          elements.length() != expected =>
+        MessageFieldCollection::FixedArray(expected) if elements.length() !=
+          expected =>
           return Err("ROS fixed-array defaults must match the declared length")
-        MessageFieldCollection::BoundedSequence(maximum) if
-          elements.length() > maximum =>
+        MessageFieldCollection::BoundedSequence(maximum) if elements.length() >
+          maximum =>
           return Err("ROS bounded-sequence defaults exceed their bound")
         _ => ()
       }
@@ -1503,7 +1566,9 @@ fn rosidl_field_default_literal(
         }
         literal += match
           rosidl_field_scalar_default_literal(
-            type_name, string_upper_bound, elements[index],
+            type_name,
+            string_upper_bound,
+            elements[index],
           ) {
           Ok(value) => value
           Err(message) => return Err(message)
@@ -1520,8 +1585,7 @@ fn rosidl_array_default_elements(
   value : String,
 ) -> Result[Array[String], String] {
   let bytes = @utf8.encode(value)
-  if bytes.length() < 2 || bytes[0] != b'[' ||
-    bytes[bytes.length() - 1] != b']' {
+  if bytes.length() < 2 || bytes[0] != b'[' || bytes[bytes.length() - 1] != b']' {
     return Err("ROS array defaults must be enclosed in brackets")
   }
   let end = bytes.length() - 1
@@ -1547,11 +1611,7 @@ fn rosidl_array_default_elements(
       quote = byte.to_int()
     } else if byte == b',' {
       elements.push(
-        rosidl_trim(
-          @utf8.decode(bytes[element_start:index]) catch {
-            _ => ""
-          },
-        ),
+        rosidl_trim(@utf8.decode(bytes[element_start:index]) catch { _ => "" }),
       )
       element_start = index + 1
     }
@@ -1560,11 +1620,7 @@ fn rosidl_array_default_elements(
     return Err("ROS string-array defaults contain an unterminated quote")
   }
   elements.push(
-    rosidl_trim(
-      @utf8.decode(bytes[element_start:end]) catch {
-        _ => ""
-      },
-    ),
+    rosidl_trim(@utf8.decode(bytes[element_start:end]) catch { _ => "" }),
   )
   Ok(elements)
 }
@@ -1581,13 +1637,12 @@ fn rosidl_field_scalar_default_literal(
       Err(message) => return Err(message)
     }
     match string_upper_bound {
-      Some(bound) if
-        (if type_name == "wstring" {
+      Some(bound) if (if type_name == "wstring" {
           rosidl_utf16_unit_count(decoded)
         } else {
           rosidl_utf8_character_count(decoded)
-        }) > bound =>
-        return Err("ROS string defaults exceed their declared bound")
+        }) >
+        bound => return Err("ROS string defaults exceed their declared bound")
       _ => ()
     }
     return Ok(rosidl_moonbit_string_literal(decoded))
@@ -1625,9 +1680,7 @@ fn rosidl_ascii_lower(value : String) -> String {
   for index in 0..<bytes.length() {
     let byte = bytes[index]
     if byte >= 65 && byte <= 90 {
-      result += @utf8.decode(bytes[segment_start:index]) catch {
-        _ => ""
-      }
+      result += @utf8.decode(bytes[segment_start:index]) catch { _ => "" }
       result += @utf8.decode(
         Bytes::from_array([(byte.to_int() + 32).to_byte()]),
       ) catch {
@@ -1636,9 +1689,7 @@ fn rosidl_ascii_lower(value : String) -> String {
       segment_start = index + 1
     }
   }
-  result + (@utf8.decode(bytes[segment_start:]) catch {
-    _ => ""
-  })
+  result + (@utf8.decode(bytes[segment_start:]) catch { _ => "" })
 }
 
 ///|
@@ -1653,8 +1704,10 @@ fn rosidl_string_constant_literal(value : String) -> Result[String, String] {
 fn rosidl_string_constant_value(value : String) -> Result[String, String] {
   let bytes = @utf8.encode(value)
   let quoted = bytes.length() >= 2 &&
-    ((bytes[0] == b'"' && bytes[bytes.length() - 1] == b'"') ||
-    (bytes[0] == b'\'' && bytes[bytes.length() - 1] == b'\''))
+    (
+      (bytes[0] == b'"' && bytes[bytes.length() - 1] == b'"') ||
+      (bytes[0] == b'\'' && bytes[bytes.length() - 1] == b'\'')
+    )
   let string_value = if !quoted {
     value
   } else {
@@ -1670,21 +1723,15 @@ fn rosidl_string_constant_value(value : String) -> Result[String, String] {
         }
       }
       if bytes[index] == b'\\' && index + 1 < end && bytes[index + 1] == quote {
-        result += @utf8.decode(bytes[segment_start:index]) catch {
-          _ => ""
-        }
-        result += @utf8.decode(Bytes::from_array([quote])) catch {
-          _ => ""
-        }
+        result += @utf8.decode(bytes[segment_start:index]) catch { _ => "" }
+        result += @utf8.decode(Bytes::from_array([quote])) catch { _ => "" }
         index += 2
         segment_start = index
       } else {
         index += 1
       }
     }
-    result + (@utf8.decode(bytes[segment_start:end]) catch {
-      _ => ""
-    })
+    result + (@utf8.decode(bytes[segment_start:end]) catch { _ => "" })
   }
   Ok(string_value)
 }
@@ -1704,16 +1751,12 @@ fn rosidl_moonbit_string_literal(value : String) -> String {
       _ => ""
     }
     if escape.length() > 0 {
-      result += @utf8.decode(bytes[segment_start:index]) catch {
-        _ => ""
-      }
+      result += @utf8.decode(bytes[segment_start:index]) catch { _ => "" }
       result += escape
       segment_start = index + 1
     }
   }
-  result + (@utf8.decode(bytes[segment_start:]) catch {
-    _ => ""
-  }) + "\""
+  result + (@utf8.decode(bytes[segment_start:]) catch { _ => "" }) + "\""
 }
 
 ///|
@@ -1798,8 +1841,7 @@ fn rosidl_float_literal(value : String) -> Bool {
   }
   if index < bytes.length() && (bytes[index] == b'e' || bytes[index] == b'E') {
     index += 1
-    if index < bytes.length() &&
-      (bytes[index] == b'+' || bytes[index] == b'-') {
+    if index < bytes.length() && (bytes[index] == b'+' || bytes[index] == b'-') {
       index += 1
     }
     let (after_exponent, exponent_digits) = rosidl_float_digits(bytes, index)
@@ -1821,8 +1863,10 @@ fn rosidl_float_digits(bytes : Bytes, start : Int) -> (Int, Int) {
       digits += 1
       index += 1
     } else if byte == b'_' {
-      if digits == 0 || index + 1 >= bytes.length() ||
-        bytes[index + 1] < 48 || bytes[index + 1] > 57 {
+      if digits == 0 ||
+        index + 1 >= bytes.length() ||
+        bytes[index + 1] < 48 ||
+        bytes[index + 1] > 57 {
         return (index, -1)
       }
       index += 1
@@ -1843,11 +1887,7 @@ fn rosidl_normalize_float_literal(value : String) -> String {
       break
     }
   }
-  let mantissa_start = if bytes[0] == b'+' || bytes[0] == b'-' {
-    1
-  } else {
-    0
-  }
+  let mantissa_start = if bytes[0] == b'+' || bytes[0] == b'-' { 1 } else { 0 }
   let mut has_dot = false
   for index in mantissa_start..<exponent_index {
     if bytes[index] == b'.' {

@@ -105,10 +105,12 @@ test "discovery graph removes a participant and its endpoints" {
     .length(),
     1,
   )
-  graph.ingest(DiscoveryEvent::EndpointRemoved(
-    @rtps.SedpEndpointKind::Publication,
-    publication.endpoint_guid(),
-  ))
+  graph.ingest(
+    DiscoveryEvent::EndpointRemoved(
+      @rtps.SedpEndpointKind::Publication,
+      publication.endpoint_guid(),
+    ),
+  )
   assert_eq(
     graph.ros_participants()[0].node_entities_info_seq()[0]
     .writer_gid_seq()

@@ -1,17 +1,10 @@
 ///|
 test "ROS action descriptor maps all five endpoints" {
-  let action = RosAction::new(
-    "/fibonacci",
-    "example_interfaces",
-    "Fibonacci",
-  ).unwrap()
+  let action = RosAction::new("/fibonacci", "example_interfaces", "Fibonacci").unwrap()
   assert_eq(action.ros_name(), "/fibonacci")
 
   let send_goal = action.send_goal_service()
-  assert_eq(
-    send_goal.ros_name(),
-    "/fibonacci/_action/send_goal",
-  )
+  assert_eq(send_goal.ros_name(), "/fibonacci/_action/send_goal")
   assert_eq(
     send_goal.dds_request_name(),
     "rq/fibonacci/_action/send_goalRequest",
@@ -72,18 +65,13 @@ test "ROS action descriptor maps all five endpoints" {
   let status = action.status_topic()
   assert_eq(status.ros_name(), "/fibonacci/_action/status")
   assert_eq(status.dds_name(), "rt/fibonacci/_action/status")
-  assert_eq(
-    status.dds_type_name(),
-    "action_msgs::msg::dds_::GoalStatusArray_",
-  )
+  assert_eq(status.dds_type_name(), "action_msgs::msg::dds_::GoalStatusArray_")
 }
 
 ///|
 test "ROS service default namespace remains srv" {
   let service = RosService::new(
-    "/add_two_ints",
-    "example_interfaces",
-    "AddTwoInts",
+    "/add_two_ints", "example_interfaces", "AddTwoInts",
   ).unwrap()
   assert_eq(
     service.dds_request_type_name(),

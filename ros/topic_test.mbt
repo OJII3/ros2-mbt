@@ -95,29 +95,25 @@ test "ROS topic descriptor advertises deadline and liveliness QoS" {
   ]).unwrap()
   let entity_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
   let qos = @rtps.SedpQos::default()
-    .with_deadline(2, 500_000_000U).unwrap()
-    .with_liveliness(
-      @rtps.LIVELINESS_MANUAL_BY_TOPIC,
-      5,
-      250_000_000U,
-    ).unwrap()
-  let endpoint = topic.to_sedp_with_qos(
-    @rtps.SedpEndpointKind::Publication,
-    @rtps.Guid::new(prefix, entity_id),
-    qos,
-  ).unwrap()
+    .with_deadline(2, 500_000_000U)
+    .unwrap()
+    .with_liveliness(@rtps.LIVELINESS_MANUAL_BY_TOPIC, 5, 250_000_000U)
+    .unwrap()
+  let endpoint = topic
+    .to_sedp_with_qos(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, entity_id),
+      qos,
+    )
+    .unwrap()
   let decoded_qos = endpoint.qos().unwrap()
   assert_eq(decoded_qos.deadline_seconds(), 2)
   assert_eq(decoded_qos.deadline_fraction(), 0x80000000U)
   assert_eq(decoded_qos.liveliness(), @rtps.LIVELINESS_MANUAL_BY_TOPIC)
   assert_eq(decoded_qos.liveliness_lease_seconds(), 5)
   assert_eq(decoded_qos.liveliness_lease_fraction(), 0x40000000U)
-  assert_true(
-    qos.with_deadline(0, 1_000_000_000U) is Err(_),
-  )
-  assert_true(
-    qos.with_liveliness(3U, 1, 0U) is Err(_),
-  )
+  assert_true(qos.with_deadline(0, 1_000_000_000U) is Err(_))
+  assert_true(qos.with_liveliness(3U, 1, 0U) is Err(_))
 }
 
 ///|
@@ -133,29 +129,30 @@ test "ROS topic descriptor advertises its supported data representation" {
     @rtps.HISTORY_KEEP_LAST,
     10,
   ).with_data_representation([@rtps.DATA_REPRESENTATION_XCDR1])
-  let endpoint = topic.to_sedp_with_qos(
-    @rtps.SedpEndpointKind::Publication,
-    @rtps.Guid::new(prefix, entity_id),
-    qos,
-  ).unwrap()
+  let endpoint = topic
+    .to_sedp_with_qos(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, entity_id),
+      qos,
+    )
+    .unwrap()
   let decoded_qos = endpoint.qos().unwrap()
-  assert_eq(
-    decoded_qos.data_representation(),
-    [@rtps.DATA_REPRESENTATION_XCDR1],
-  )
+  assert_eq(decoded_qos.data_representation(), [@rtps.DATA_REPRESENTATION_XCDR1])
   assert_true(
     topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, entity_id),
       qos.with_data_representation([@rtps.DATA_REPRESENTATION_XCDR2]),
-    ) is Err(_),
+    )
+    is Err(_),
   )
   assert_true(
     topic.to_sedp_with_qos(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, entity_id),
       qos.with_data_representation([]),
-    ) is Err(_),
+    )
+    is Err(_),
   )
 }
 
@@ -166,14 +163,15 @@ test "ROS topic descriptor advertises its RIHS01 type hash" {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
   let entity_id = @rtps.EntityId::new(b"pub", 0xC2).unwrap()
-  let type_hash =
-    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
-  let endpoint = topic.to_sedp_with_qos_and_type_hash(
-    @rtps.SedpEndpointKind::Publication,
-    @rtps.Guid::new(prefix, entity_id),
-    @rtps.SedpQos::default(),
-    type_hash,
-  ).unwrap()
+  let type_hash = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  let endpoint = topic
+    .to_sedp_with_qos_and_type_hash(
+      @rtps.SedpEndpointKind::Publication,
+      @rtps.Guid::new(prefix, entity_id),
+      @rtps.SedpQos::default(),
+      type_hash,
+    )
+    .unwrap()
   let expected = @rtps.qos_user_data_type_hash(type_hash).value()
   let mut found = false
   for parameter in endpoint.extra_parameters() {

@@ -246,6 +246,7 @@ fn parameter_normalize_data_representation(value : Bytes) -> Bytes {
 }
 
 ///|
+
 ///|
 /// Normalize known CDR fields for parsers that use little-endian values.
 fn parameter_normalize_big_endian_value(id : UInt16, value : Bytes) -> Bytes {
@@ -288,7 +289,7 @@ fn parameter_normalize_big_endian_value(id : UInt16, value : Bytes) -> Bytes {
 ///|
 fn append_parameter(bytes : Array[Byte], parameter : Parameter) -> Unit {
   let value = parameter.value
-  let padded_length = ((value.length() + 3) / 4) * 4
+  let padded_length = (value.length() + 3) / 4 * 4
   append_u16_le(bytes, parameter.id)
   append_u16_le(bytes, padded_length.to_uint16())
   for i in 0..<value.length() {
@@ -344,8 +345,7 @@ fn ParameterList::from_bytes_with_endianness(
   let mut offset = 0
   while offset + 4 <= input.length() {
     let id = read_u16_with_endianness(input, offset, little_endian)
-    let length =
-      read_u16_with_endianness(input, offset + 2, little_endian).to_int()
+    let length = read_u16_with_endianness(input, offset + 2, little_endian).to_int()
     offset += 4
     if id == PID_SENTINEL {
       if length != 0 {

@@ -214,8 +214,9 @@ test "RTPS DATA carries status info" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
   let status = STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key")
-    .with_status_info(status)
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_status_info(
+    status,
+  )
   let decoded = DataSubmessage::from_submessage(
     Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
   ).unwrap()
@@ -227,8 +228,9 @@ test "RTPS DATA carries status info" {
 test "RTPS DATA supports key-only payloads" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key")
-    .with_key(b"endpoint-key")
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_key(
+    b"endpoint-key",
+  )
   assert_eq(data.flags() & DATA_FLAG_DATA, 0x00)
   assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
   let decoded = DataSubmessage::from_submessage(
@@ -316,7 +318,9 @@ test "RTPS DATA_FRAG round trips a final multi-fragment payload" {
     10U,
     b"efghij",
   ).unwrap()
-  let submessage = Submessage::from_bytes(data_frag.to_submessage().to_bytes().unwrap()).unwrap().0
+  let submessage = Submessage::from_bytes(
+      data_frag.to_submessage().to_bytes().unwrap(),
+    ).unwrap().0
   let decoded = DataFragSubmessage::from_submessage(submessage).unwrap()
   assert_eq(decoded.writer_sequence_number(), 7L)
   assert_eq(decoded.fragment_starting_number(), 2U)
@@ -341,6 +345,7 @@ test "RTPS DATA_FRAG rejects a short non-final fragment" {
       (4 : Int).to_uint16(),
       10U,
       b"abc",
-    ) is Err(_),
+    )
+    is Err(_),
   )
 }

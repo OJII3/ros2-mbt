@@ -67,10 +67,12 @@ pub fn WideStrings::read_cdr(
   }
   let values : Array[String] = []
   for _ in 0..<values_length {
-    values.push(match reader.read_wstring() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    })
+    values.push(
+      match reader.read_wstring() {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      },
+    )
   }
   Ok(WideStrings::new(data, bounded, values))
 }
@@ -86,7 +88,9 @@ pub fn WideStrings::to_cdr_bytes(self : WideStrings) -> Result[Bytes, String] {
 }
 
 ///|
-pub fn WideStrings::from_cdr_bytes(input : Bytes) -> Result[WideStrings, String] {
+pub fn WideStrings::from_cdr_bytes(
+  input : Bytes,
+) -> Result[WideStrings, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
     Err(message) => return Err(message)

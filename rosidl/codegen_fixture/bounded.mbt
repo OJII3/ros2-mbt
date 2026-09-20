@@ -8,12 +8,8 @@ pub struct Bounded {
 pub const Bounded_TYPE_HASH : String = "RIHS01_69505d1f37dd3187aa9337a7c6103be470f44c1341711181175e5e5e6bb951f5"
 
 ///|
-pub fn Bounded::new(
-  values : Array[Int],
-) -> Bounded {
-  {
-    values,
-  }
+pub fn Bounded::new(values : Array[Int]) -> Bounded {
+  { values, }
 }
 
 ///|
@@ -22,7 +18,10 @@ pub fn Bounded::values(self : Bounded) -> Array[Int] {
 }
 
 ///|
-pub fn Bounded::write_cdr(self : Bounded, writer : @cdr.Writer) -> Result[Unit, String] {
+pub fn Bounded::write_cdr(
+  self : Bounded,
+  writer : @cdr.Writer,
+) -> Result[Unit, String] {
   if self.values.length() > 3 {
     return Err("generated ROS bounded sequence exceeds its bound")
   }
@@ -47,14 +46,14 @@ pub fn Bounded::read_cdr(reader : @cdr.Reader) -> Result[Bounded, String] {
   }
   let values : Array[Int] = []
   for _ in 0..<values_length {
-    values.push(match reader.read_i32() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    })
+    values.push(
+      match reader.read_i32() {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      },
+    )
   }
-  Ok(Bounded::new(
-    values,
-  ))
+  Ok(Bounded::new(values))
 }
 
 ///|

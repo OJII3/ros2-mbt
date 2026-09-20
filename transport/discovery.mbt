@@ -194,7 +194,8 @@ pub async fn DiscoverySession::announce_once(
   self.announce_once_on(self.socket)
 }
 
-///| Send the local participant dispose through a caller-provided socket.
+///|
+/// Send the local participant dispose through a caller-provided socket.
 async fn DiscoverySession::dispose_once_on(
   self : DiscoverySession,
   socket : Udp,
@@ -221,14 +222,16 @@ async fn DiscoverySession::dispose_once_on(
   }
 }
 
-///| Send a key-only SPDP dispose sample for the local participant.
+///|
+/// Send a key-only SPDP dispose sample for the local participant.
 pub async fn DiscoverySession::dispose_once(
   self : DiscoverySession,
 ) -> Result[Unit, String] {
   self.dispose_once_on(self.socket)
 }
 
-///| Send one SPDP announcement through a caller-provided socket.
+///|
+/// Send one SPDP announcement through a caller-provided socket.
 async fn DiscoverySession::announce_once_on(
   self : DiscoverySession,
   socket : Udp,
@@ -384,7 +387,8 @@ fn DiscoverySession::sedp_reader_index(
   Ok(self.sedp_readers.length() - 1)
 }
 
-///| Locate or create fragment assembly state for one remote SPDP writer.
+///|
+/// Locate or create fragment assembly state for one remote SPDP writer.
 fn DiscoverySession::spdp_fragment_reader_index(
   self : DiscoverySession,
   writer_prefix : @rtps.GuidPrefix,
@@ -480,10 +484,11 @@ fn discovery_spdp_lease_milliseconds(
   if seconds < 0 || nanoseconds >= 1_000_000_000U {
     return None
   }
-  let fractional_milliseconds = (
-    nanoseconds.to_uint64() + 999_999U.to_uint64()
-  ) / 1_000_000U.to_uint64()
-  Some(seconds.to_int64() * 1000L + fractional_milliseconds.reinterpret_as_int64())
+  let fractional_milliseconds = (nanoseconds.to_uint64() + 999_999U.to_uint64()) /
+    1_000_000U.to_uint64()
+  Some(
+    seconds.to_int64() * 1000L + fractional_milliseconds.reinterpret_as_int64(),
+  )
 }
 
 ///|
@@ -509,11 +514,10 @@ fn DiscoverySession::advance_expired_participant_lease(
     }
     if remote.lease_remaining_ms > remote.lease_segment_ms.to_int64() {
       remote.lease_remaining_ms -= remote.lease_segment_ms.to_int64()
-      remote.lease_segment_ms =
-        discovery_lease_timer_segment(remote.lease_remaining_ms)
-      remote.lease_timer = Some(
-        @async.Timer::Timer(remote.lease_segment_ms),
+      remote.lease_segment_ms = discovery_lease_timer_segment(
+        remote.lease_remaining_ms,
       )
+      remote.lease_timer = Some(@async.Timer::Timer(remote.lease_segment_ms))
       return false
     }
     return true
@@ -605,14 +609,15 @@ fn DiscoverySession::remember_sedp_sample(
       kind.builtin_reader_id(),
       kind.builtin_writer_id(),
       sequence_number,
-  ) {
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   self.remember_sedp_data(kind, sequence_number, sample)
 }
 
-///| Retain one SEDP DATA sample for ACKNACK-driven retransmission.
+///|
+/// Retain one SEDP DATA sample for ACKNACK-driven retransmission.
 fn DiscoverySession::remember_sedp_data(
   self : DiscoverySession,
   kind : @rtps.SedpEndpointKind,
@@ -631,7 +636,8 @@ fn DiscoverySession::remember_sedp_data(
   Ok(())
 }
 
-///| Retain one SEDP endpoint dispose sample for ACKNACK-driven retransmission.
+///|
+/// Retain one SEDP endpoint dispose sample for ACKNACK-driven retransmission.
 fn DiscoverySession::remember_sedp_dispose_sample(
   self : DiscoverySession,
   endpoint : @rtps.SedpEndpointData,
@@ -660,7 +666,8 @@ fn DiscoverySession::record_sedp_data(
   ignore(self.sedp_readers[index].reader.accept_data(data))
 }
 
-///| Dispatch one parsed SEDP sample as a publication, subscription, or removal.
+///|
+/// Dispatch one parsed SEDP sample as a publication, subscription, or removal.
 fn DiscoverySession::dispatch_sedp_data(
   self : DiscoverySession,
   events : Array[DiscoveryEvent],
@@ -674,9 +681,10 @@ fn DiscoverySession::dispatch_sedp_data(
     Err(_) => return
   }
   match status {
-    Some(value) if
-      (value &
-        (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+    Some(value) if (
+        value & (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)
+      ) !=
+      0U => {
       if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
         return
       }
@@ -702,7 +710,8 @@ fn DiscoverySession::dispatch_sedp_data(
   }
 }
 
-///| Dispatch a parsed SPDP announcement or participant removal.
+///|
+/// Dispatch a parsed SPDP announcement or participant removal.
 fn DiscoverySession::dispatch_spdp_data(
   self : DiscoverySession,
   events : Array[DiscoveryEvent],
@@ -713,9 +722,10 @@ fn DiscoverySession::dispatch_spdp_data(
     Err(_) => return
   }
   match status {
-    Some(value) if
-      (value &
-        (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+    Some(value) if (
+        value & (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)
+      ) !=
+      0U => {
       if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
         return
       }
@@ -729,8 +739,8 @@ fn DiscoverySession::dispatch_spdp_data(
     }
     _ =>
       match @rtps.SpdpParticipantData::from_data_submessage(data) {
-        Ok(participant) if
-          participant.domain_id() == self.participant.domain_id() => {
+        Ok(participant) if participant.domain_id() ==
+          self.participant.domain_id() => {
           self.remember_remote_participant(participant)
           events.push(DiscoveryEvent::Participant(participant))
         }
@@ -787,10 +797,12 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     }
     match
       socket.send_message(
-        acknack.to_message(
+        acknack
+        .to_message(
           self.participant.participant_guid().prefix(),
           self.participant.vendor_id(),
-        ).with_destination_guid_prefix(writer_prefix),
+        )
+        .with_destination_guid_prefix(writer_prefix),
         destination,
       ) {
       Ok(_) => ()
@@ -800,7 +812,8 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
   Ok(())
 }
 
-///| Send NACK_FRAG requests for missing fragments in a reliable SEDP sample.
+///|
+/// Send NACK_FRAG requests for missing fragments in a reliable SEDP sample.
 async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
   self : DiscoverySession,
   socket_index : Int,
@@ -817,7 +830,8 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
     heartbeat.reader_id() != @rtps.EntityId::unknown() {
     return Ok(())
   }
-  let index = match self.sedp_reader_index(writer_prefix, heartbeat.writer_id()) {
+  let index = match
+    self.sedp_reader_index(writer_prefix, heartbeat.writer_id()) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -835,10 +849,12 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
   for nackfrag in nackfrags {
     match
       socket.send_message(
-        nackfrag.to_message(
+        nackfrag
+        .to_message(
           self.participant.participant_guid().prefix(),
           self.participant.vendor_id(),
-        ).with_destination_guid_prefix(writer_prefix),
+        )
+        .with_destination_guid_prefix(writer_prefix),
         destination,
       ) {
       Ok(_) => ()
@@ -860,9 +876,7 @@ fn discovery_acknack_bitmap_contains(
 
 ///|
 /// Return whether an ACKNACK requests any missing samples.
-fn discovery_acknack_has_requests(
-  acknack : @rtps.AckNackSubmessage,
-) -> Bool {
+fn discovery_acknack_has_requests(acknack : @rtps.AckNackSubmessage) -> Bool {
   for offset in 0..<acknack.num_bits().reinterpret_as_int() {
     if discovery_acknack_bitmap_contains(acknack.bitmap(), offset) {
       return true
@@ -908,10 +922,12 @@ async fn DiscoverySession::retransmit_sedp_acknack(
       }
       match
         socket.send_message(
-          sample.to_message(
+          sample
+          .to_message(
             self.participant.participant_guid().prefix(),
             self.participant.vendor_id(),
-          ).with_destination_guid_prefix(reader_prefix),
+          )
+          .with_destination_guid_prefix(reader_prefix),
           source,
         ) {
         Ok(_) => ()
@@ -931,9 +947,8 @@ async fn DiscoverySession::decode_message(
   socket_index : Int,
 ) -> Result[Array[DiscoveryEvent], String] {
   match message.destination_guid_prefix() {
-    Ok(Some(destination)) if
-      destination != self.participant.participant_guid().prefix() =>
-      return Ok([])
+    Ok(Some(destination)) if destination !=
+      self.participant.participant_guid().prefix() => return Ok([])
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -941,8 +956,8 @@ async fn DiscoverySession::decode_message(
   for submessage in message.submessages() {
     match submessage.id() {
       @rtps.SubmessageId::Data => {
-        if (submessage.flags() &
-          (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY)) == 0x00 {
+        if (submessage.flags() & (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY)) ==
+          0x00 {
           continue
         }
         let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -964,14 +979,13 @@ async fn DiscoverySession::decode_message(
           }
           Err(_) => {
             if data.writer_id() != self.writer_id ||
-              (data.reader_id() != self.reader_id &&
-                data.reader_id() != @rtps.EntityId::unknown()) {
+              (
+                data.reader_id() != self.reader_id &&
+                data.reader_id() != @rtps.EntityId::unknown()
+              ) {
               continue
             }
-            self.dispatch_spdp_data(
-              events,
-              data,
-            )
+            self.dispatch_spdp_data(events, data)
           }
         }
       }
@@ -981,7 +995,8 @@ async fn DiscoverySession::decode_message(
           Ok(value) => value
           Err(_) => continue
         }
-        match @rtps.SedpEndpointKind::from_builtin_writer_id(fragment.writer_id()) {
+        match
+          @rtps.SedpEndpointKind::from_builtin_writer_id(fragment.writer_id()) {
           Ok(kind) => {
             if fragment.reader_id() != kind.builtin_reader_id() &&
               fragment.reader_id() != @rtps.EntityId::unknown() {
@@ -1013,24 +1028,24 @@ async fn DiscoverySession::decode_message(
           }
           Err(_) => {
             if fragment.writer_id() != self.writer_id ||
-              (fragment.reader_id() != self.reader_id &&
-                fragment.reader_id() != @rtps.EntityId::unknown()) {
+              (
+                fragment.reader_id() != self.reader_id &&
+                fragment.reader_id() != @rtps.EntityId::unknown()
+              ) {
               continue
             }
             let reader_index = self.spdp_fragment_reader_index(
               message.header().guid_prefix(),
             )
             let data = match
-              self.spdp_fragment_readers[reader_index].reader.accept_data_frag(fragment) {
+              self.spdp_fragment_readers[reader_index].reader.accept_data_frag(
+                fragment,
+              ) {
               Ok(value) => value
               Err(_) => continue
             }
             match data {
-              Some(data) =>
-                self.dispatch_spdp_data(
-                  events,
-                  data,
-                )
+              Some(data) => self.dispatch_spdp_data(events, data)
               None => ()
             }
           }
@@ -1045,7 +1060,9 @@ async fn DiscoverySession::decode_message(
         if @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id())
           is Ok(_) {
           let kind = match
-            @rtps.SedpEndpointKind::from_builtin_writer_id(heartbeat.writer_id()) {
+            @rtps.SedpEndpointKind::from_builtin_writer_id(
+              heartbeat.writer_id(),
+            ) {
             Ok(value) => value
             Err(_) => continue
           }
@@ -1153,10 +1170,12 @@ pub async fn DiscoverySession::receive_once(
       Ok(DiscoveryReceiveOutcome::ParticipantLeaseExpired(participant_guid)) =>
         if self.advance_expired_participant_lease(participant_guid) {
           self.forget_remote_participant(participant_guid)
-          return Ok((
-            DiscoveryEvent::ParticipantRemoved(participant_guid),
-            @socket.Addr::new(0, 0),
-          ))
+          return Ok(
+            (
+              DiscoveryEvent::ParticipantRemoved(participant_guid),
+              @socket.Addr::new(0, 0),
+            ),
+          )
         }
       Err(message) => return Err(message)
     }

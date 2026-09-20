@@ -44,11 +44,7 @@ pub fn InfoDestinationSubmessage::to_payload(
 pub fn InfoDestinationSubmessage::to_submessage(
   self : InfoDestinationSubmessage,
 ) -> Submessage {
-  Submessage::new(
-    SubmessageId::InfoDestination,
-    self.flags,
-    self.to_payload(),
-  )
+  Submessage::new(SubmessageId::InfoDestination, self.flags, self.to_payload())
 }
 
 ///|

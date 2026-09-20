@@ -293,16 +293,10 @@ test "RTPS reliability codecs reject invalid ranges" {
 ///|
 test "RTPS fragment reliability codecs round trip" {
   let (reader_id, writer_id) = reliability_test_ids().unwrap()
-  let heartbeat = HeartbeatFragSubmessage::new(
-    reader_id,
-    writer_id,
-    9L,
-    7U,
-    3U,
-  ).unwrap()
+  let heartbeat = HeartbeatFragSubmessage::new(reader_id, writer_id, 9L, 7U, 3U).unwrap()
   let heartbeat_submessage = Submessage::from_bytes(
-    heartbeat.to_submessage().to_bytes().unwrap(),
-  ).unwrap().0
+      heartbeat.to_submessage().to_bytes().unwrap(),
+    ).unwrap().0
   let decoded_heartbeat = HeartbeatFragSubmessage::from_submessage(
     heartbeat_submessage,
   ).unwrap()
@@ -320,8 +314,8 @@ test "RTPS fragment reliability codecs round trip" {
     4U,
   ).unwrap()
   let nack_submessage = Submessage::from_bytes(
-    nack.to_submessage().to_bytes().unwrap(),
-  ).unwrap().0
+      nack.to_submessage().to_bytes().unwrap(),
+    ).unwrap().0
   let decoded_nack = NackFragSubmessage::from_submessage(nack_submessage).unwrap()
   assert_eq(decoded_nack.writer_sequence_number(), 9L)
   assert_eq(decoded_nack.bitmap_base(), 1U)

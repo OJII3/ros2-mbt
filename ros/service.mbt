@@ -8,6 +8,7 @@ pub struct RosService {
   dds_response_type_name : String
 } derive(Eq, Debug)
 
+///|
 /// The request identity wrapper used by rmw_cyclonedds_cpp service topics.
 pub struct RosServicePayloadHeader {
   client_id : UInt64
@@ -36,6 +37,7 @@ pub fn RosServicePayloadHeader::sequence_number(
   self.sequence_number
 }
 
+///|
 /// Serialize a service payload with the Cyclone DDS request identity header.
 pub fn RosServicePayloadHeader::to_cdr_payload(
   self : RosServicePayloadHeader,
@@ -53,6 +55,7 @@ pub fn RosServicePayloadHeader::to_cdr_payload(
   }
 }
 
+///|
 /// Deserialize a Cyclone DDS service identity header and restore the payload
 /// to the ordinary ROS 2 CDR shape expected by the application.
 pub fn ros_service_payload_from_cdr(
@@ -76,10 +79,12 @@ pub fn ros_service_payload_from_cdr(
   }
   let body_writer = @cdr.Writer::new()
   body_writer.write_byte_array(body)
-  Ok((
-    RosServicePayloadHeader::new(client_id, sequence_number),
-    body_writer.to_bytes(),
-  ))
+  Ok(
+    (
+      RosServicePayloadHeader::new(client_id, sequence_number),
+      body_writer.to_bytes(),
+    ),
+  )
 }
 
 ///|
@@ -90,10 +95,7 @@ pub fn RosService::new(
   service_name : String,
 ) -> Result[RosService, String] {
   RosService::new_with_interface_namespace(
-    ros_name,
-    package_name,
-    "srv",
-    service_name,
+    ros_name, package_name, "srv", service_name,
   )
 }
 
@@ -215,7 +217,9 @@ pub fn RosService::request_to_sedp_with_qos_and_type_hash(
   qos : @rtps.SedpQos,
   type_hash : String,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.request_to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+  self
+  .request_to_sedp_with_qos(kind, endpoint_guid, qos)
+  .map(fn(endpoint) {
     endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
     endpoint
   })
@@ -293,7 +297,9 @@ pub fn RosService::response_to_sedp_with_qos_and_type_hash(
   qos : @rtps.SedpQos,
   type_hash : String,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.response_to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+  self
+  .response_to_sedp_with_qos(kind, endpoint_guid, qos)
+  .map(fn(endpoint) {
     endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
     endpoint
   })

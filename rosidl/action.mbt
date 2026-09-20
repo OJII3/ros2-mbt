@@ -22,9 +22,7 @@ pub fn ActionDefinition::new(
     return Err("ROS action package and type must be identifiers")
   }
   if !rosidl_action_message_identity(goal, package_name, action_name, "Goal") ||
-    !rosidl_action_message_identity(
-      result, package_name, action_name, "Result",
-    ) ||
+    !rosidl_action_message_identity(result, package_name, action_name, "Result") ||
     !rosidl_action_message_identity(
       feedback, package_name, action_name, "Feedback",
     ) {
@@ -66,18 +64,14 @@ pub fn ActionDefinition::result(self : ActionDefinition) -> MessageDefinition {
 }
 
 ///|
-pub fn ActionDefinition::feedback(
-  self : ActionDefinition,
-) -> MessageDefinition {
+pub fn ActionDefinition::feedback(self : ActionDefinition) -> MessageDefinition {
   self.feedback
 }
 
 ///|
 /// Generate MoonBit codecs for an action's goal, result, and feedback
 /// messages. ROS action service wrappers and transport are separate layers.
-pub fn ActionDefinition::generate_moonbit(
-  self : ActionDefinition,
-) -> String {
+pub fn ActionDefinition::generate_moonbit(self : ActionDefinition) -> String {
   self.goal.generate_moonbit() +
   "\n\n" +
   self.result.generate_moonbit() +
@@ -99,19 +93,12 @@ fn ActionDefinition::protocol_messages(
   let goal_name = self.goal.type_name()
   let result_name = self.result.type_name()
   let feedback_name = self.feedback.type_name()
-  let uuid_reference = MessageTypeReference::new(
-    uuid_ros_type,
-    uuid_moon_type,
-  )
-  let time_reference = MessageTypeReference::new(
-    time_ros_type,
-    time_moon_type,
-  )
+  let uuid_reference = MessageTypeReference::new(uuid_ros_type, uuid_moon_type)
+  let time_reference = MessageTypeReference::new(time_ros_type, time_moon_type)
   let goal_reference = MessageTypeReference::new(goal_name, goal_name)
   let result_reference = MessageTypeReference::new(result_name, result_name)
   let feedback_reference = MessageTypeReference::new(
-    feedback_name,
-    feedback_name,
+    feedback_name, feedback_name,
   )
   let send_goal_request = match
     MessageDefinition::new_with_types(
@@ -181,10 +168,7 @@ fn ActionDefinition::protocol_messages(
     Err(message) => return Err(message)
   }
   Ok([
-    send_goal_request,
-    send_goal_response,
-    get_result_request,
-    get_result_response,
+    send_goal_request, send_goal_response, get_result_request, get_result_response,
     feedback_message,
   ])
 }
@@ -262,7 +246,9 @@ fn rosidl_action_sections(
       section_index += 1
       continue
     }
-    sections[section_index] = sections[section_index] + raw_line.to_owned() + "\n"
+    sections[section_index] = sections[section_index] +
+      raw_line.to_owned() +
+      "\n"
   }
   if section_index != 2 {
     return Err("ROS action definitions must contain two --- separators")

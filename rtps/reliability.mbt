@@ -589,12 +589,7 @@ pub fn GapSubmessage::from_submessage(
   }
   let result = match
     GapSubmessage::new(
-      reader_id,
-      writer_id,
-      gap_start,
-      gap_list_base,
-      gap_list_num_bits,
-      gap_list_bitmap,
+      reader_id, writer_id, gap_start, gap_list_base, gap_list_num_bits, gap_list_bitmap,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)

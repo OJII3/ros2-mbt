@@ -28,10 +28,7 @@ test "RTPS QoS durations encode nanoseconds as NTP fractions" {
     qos_deadline(3, 500_000_000U).value(),
     b"\x03\x00\x00\x00\x00\x00\x00\x80",
   )
-  assert_eq(
-    qos_deadline(0, 2U).value(),
-    b"\x00\x00\x00\x00\x09\x00\x00\x00",
-  )
+  assert_eq(qos_deadline(0, 2U).value(), b"\x00\x00\x00\x00\x09\x00\x00\x00")
   assert_eq(
     qos_liveliness(LIVELINESS_AUTOMATIC, 3, 500_000_000U).value(),
     b"\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x80",
@@ -58,8 +55,7 @@ test "RTPS QoS helper parameter identifiers" {
 
 ///|
 test "RTPS QoS helper encodes ROS type hash user data" {
-  let type_hash =
-    "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+  let type_hash = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
   let parameter = qos_user_data_type_hash(type_hash)
   assert_eq(parameter.id(), PID_USER_DATA)
   assert_eq(parameter.value(), @utf8.encode("typehash=" + type_hash + ";"))

@@ -74,7 +74,8 @@ async fn DiscoveryService::send_sedp_to_participant(
   )
 }
 
-///| Send one SEDP endpoint dispose sample to a participant.
+///|
+/// Send one SEDP endpoint dispose sample to a participant.
 async fn DiscoveryService::send_sedp_dispose_to_participant(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
@@ -82,8 +83,7 @@ async fn DiscoveryService::send_sedp_dispose_to_participant(
   sequence_number : Int64,
   heartbeat_count : UInt,
 ) -> Result[Unit, String] {
-  match
-    self.session.remember_sedp_dispose_sample(endpoint, sequence_number) {
+  match self.session.remember_sedp_dispose_sample(endpoint, sequence_number) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -189,7 +189,8 @@ pub async fn DiscoveryService::announce_sedp_to_all(
   Ok(())
 }
 
-///| Send a local SEDP endpoint dispose sample to every discovered participant.
+///|
+/// Send a local SEDP endpoint dispose sample to every discovered participant.
 pub async fn DiscoveryService::dispose_sedp_to_all(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
@@ -311,7 +312,8 @@ pub async fn DiscoveryService::receive_once(
   Ok((source, event))
 }
 
-///| Use the participant's default data locator when SEDP omits endpoint locators.
+///|
+/// Use the participant's default data locator when SEDP omits endpoint locators.
 fn DiscoveryService::endpoint_with_participant_locator(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,

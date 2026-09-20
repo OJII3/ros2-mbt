@@ -7,7 +7,8 @@ pub struct DiscoveryGraph {
   mut ros_participants : Array[@ros.ParticipantEntitiesInfo]
 }
 
-///| Remove one endpoint GID from all retained ROS graph snapshots.
+///|
+/// Remove one endpoint GID from all retained ROS graph snapshots.
 fn DiscoveryGraph::remove_ros_endpoint(
   self : DiscoveryGraph,
   endpoint_guid : @rtps.Guid,
@@ -191,6 +192,7 @@ pub fn DiscoveryGraph::participants(
   self.participants
 }
 
+///|
 /// Return the vendor ID of the participant owning an endpoint GUID prefix.
 pub fn DiscoveryGraph::participant_vendor_id(
   self : DiscoveryGraph,

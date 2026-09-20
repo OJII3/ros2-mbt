@@ -131,10 +131,7 @@ async test "reliable ROS service client and server correlate a response" {
   ).unwrap()
   match
     ack_sender.send_acknack(
-      request_acknack,
-      server_prefix,
-      vendor_id,
-      client_address,
+      request_acknack, server_prefix, vendor_id, client_address,
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -188,9 +185,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   let server_prefix = service_test_prefix([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
   let vendor_id = @rtps.VendorId::new(1, 15)
   let action = @ros.RosAction::new(
-    "/fibonacci",
-    "example_interfaces",
-    "Fibonacci",
+    "/fibonacci", "example_interfaces", "Fibonacci",
   ).unwrap()
   let service = action.send_goal_service()
   let client_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -212,7 +207,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
       client_response_guid,
     )
     .unwrap()
-  client_request.add_unicast_locator(service_test_endpoint_locator(client_socket))
+  client_request.add_unicast_locator(
+    service_test_endpoint_locator(client_socket),
+  )
   let server_request = service
     .request_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
@@ -220,7 +217,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
       server_response_guid,
     )
     .unwrap()
-  server_request.add_unicast_locator(service_test_endpoint_locator(server_socket))
+  server_request.add_unicast_locator(
+    service_test_endpoint_locator(server_socket),
+  )
   let server_response = service
     .response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Publication,
@@ -228,7 +227,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
       server_request_guid,
     )
     .unwrap()
-  server_response.add_unicast_locator(service_test_endpoint_locator(server_socket))
+  server_response.add_unicast_locator(
+    service_test_endpoint_locator(server_socket),
+  )
   let client_response = service
     .response_to_sedp_with_related_endpoint(
       @rtps.SedpEndpointKind::Subscription,
@@ -236,28 +237,16 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
       client_request_guid,
     )
     .unwrap()
-  client_response.add_unicast_locator(service_test_endpoint_locator(client_socket))
+  client_response.add_unicast_locator(
+    service_test_endpoint_locator(client_socket),
+  )
   let client = RosServiceClient::new_with_shared_socket(
-    service,
-    client_socket,
-    client_prefix,
-    vendor_id,
-    client_request_id,
-    server_request,
-    client_response_id,
-    server_response,
-    1L,
+    service, client_socket, client_prefix, vendor_id, client_request_id, server_request,
+    client_response_id, server_response, 1L,
   ).unwrap()
   let server = RosServiceServer::new_with_shared_socket(
-    service,
-    server_socket,
-    server_prefix,
-    vendor_id,
-    server_request_id,
-    client_request,
-    server_response_id,
-    client_response,
-    1L,
+    service, server_socket, server_prefix, vendor_id, server_request_id, client_request,
+    server_response_id, client_response, 1L,
   ).unwrap()
   let request_identity = client.request(b"serialized Fibonacci goal").unwrap()
   let (request, received_identity, _) = server.receive_request().unwrap()
@@ -271,12 +260,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
     [0x80000000U],
     1U,
   ).unwrap()
-  ack_sender.send_acknack(
-    request_acknack,
-    server_prefix,
-    vendor_id,
-    client_address,
-  ).unwrap()
+  ack_sender
+  .send_acknack(request_acknack, server_prefix, vendor_id, client_address)
+  .unwrap()
   @async.sleep(10)
   server.respond(request_identity, b"accepted goal response").unwrap()
   let (response, _) = client.receive_response(request_identity).unwrap()

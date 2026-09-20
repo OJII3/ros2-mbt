@@ -86,9 +86,7 @@ async test "best-effort reader accepts its discovered publication" {
     @rtps.InfoDestinationSubmessage::new(other_prefix).to_submessage(),
   )
   wrong_destination.add(
-    @rtps.DataSubmessage::new(
-      reader_id, writer_id, 1L, b"wrong destination",
-    ).to_submessage(),
+    @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"wrong destination").to_submessage(),
   )
   match
     sender.send_message(

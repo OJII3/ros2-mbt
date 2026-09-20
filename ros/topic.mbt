@@ -121,7 +121,9 @@ pub fn RosTopic::to_sedp_with_qos_and_type_hash(
   qos : @rtps.SedpQos,
   type_hash : String,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  self.to_sedp_with_qos(kind, endpoint_guid, qos).map(fn(endpoint) {
+  self
+  .to_sedp_with_qos(kind, endpoint_guid, qos)
+  .map(fn(endpoint) {
     endpoint.add_parameter(@rtps.qos_user_data_type_hash(type_hash))
     endpoint
   })

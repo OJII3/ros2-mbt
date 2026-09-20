@@ -67,12 +67,7 @@ async test "reliable reader session receives discovered publication data" {
   }
   match
     sender.send_data(
-      @rtps.DataSubmessage::new(
-        other_reader_id,
-        writer_id,
-        1L,
-        b"other reader",
-      ),
+      @rtps.DataSubmessage::new(other_reader_id, writer_id, 1L, b"other reader"),
       prefix,
       @rtps.VendorId::new(1, 15),
       receiver.local_addr(),
@@ -156,9 +151,9 @@ async test "reliable reader session receives discovered publication data" {
 
 ///|
 async test "reliable reader session applies GAP before acknowledging HEARTBEAT" {
-  let prefix = @rtps.GuidPrefix::from_array(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -181,14 +176,9 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
     reader_id,
     publication,
   ).unwrap()
-  let gap = @rtps.GapSubmessage::new(
-    reader_id,
-    writer_id,
-    2L,
-    4L,
-    5U,
-    [0x90000000U],
-  ).unwrap()
+  let gap = @rtps.GapSubmessage::new(reader_id, writer_id, 2L, 4L, 5U, [
+    0x90000000U,
+  ]).unwrap()
   match
     sender.send_message(
       gap.to_message(prefix, @rtps.VendorId::new(1, 15)),
@@ -198,11 +188,7 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
     Err(message) => fail(message)
   }
   let heartbeat = @rtps.HeartbeatSubmessage::new(
-    reader_id,
-    writer_id,
-    1L,
-    5L,
-    1U,
+    reader_id, writer_id, 1L, 5L, 1U,
   ).unwrap()
   match
     sender.send_heartbeat(
@@ -226,9 +212,9 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
 
 ///|
 async test "reliable reader session limits ACKNACK to the first missing window" {
-  let prefix = @rtps.GuidPrefix::from_array(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -252,11 +238,7 @@ async test "reliable reader session limits ACKNACK to the first missing window" 
     publication,
   ).unwrap()
   let heartbeat = @rtps.HeartbeatSubmessage::new(
-    reader_id,
-    writer_id,
-    1L,
-    300L,
-    1U,
+    reader_id, writer_id, 1L, 300L, 1U,
   ).unwrap()
   sender
   .send_heartbeat(
@@ -271,28 +253,19 @@ async test "reliable reader session limits ACKNACK to the first missing window" 
   assert_eq(received.last_sequence_number(), 300L)
   assert_eq(first.bitmap_base(), 1L)
   assert_eq(first.num_bits(), 256U)
-  assert_eq(
-    first.bitmap(),
-    [
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-      0xFFFFFFFFU,
-    ],
-  )
+  assert_eq(first.bitmap(), [
+    0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU,
+    0xFFFFFFFFU, 0xFFFFFFFFU,
+  ])
   reader.close()
   sender.close()
 }
 
 ///|
 async test "reliable reader session sends NACK_FRAG windows for a large sample" {
-  let prefix = @rtps.GuidPrefix::from_array(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -317,13 +290,7 @@ async test "reliable reader session sends NACK_FRAG windows for a large sample" 
   ).unwrap()
   sender
   .send_heartbeat_frag(
-    @rtps.HeartbeatFragSubmessage::new(
-      reader_id,
-      writer_id,
-      10L,
-      300U,
-      1U,
-    ).unwrap(),
+    @rtps.HeartbeatFragSubmessage::new(reader_id, writer_id, 10L, 300U, 1U).unwrap(),
     prefix,
     @rtps.VendorId::new(1, 15),
     receiver.local_addr(),
@@ -351,9 +318,9 @@ async test "reliable reader session sends NACK_FRAG windows for a large sample" 
 
 ///|
 async test "reliable reader session reassembles DATA_FRAG over UDP" {
-  let prefix = @rtps.GuidPrefix::from_array(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  ).unwrap()
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -377,15 +344,15 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
     publication,
   ).unwrap()
   let first_fragment = @rtps.DataFragSubmessage::new(
-      reader_id,
-      writer_id,
-      4L,
-      1U,
-      (1 : Int).to_uint16(),
-      (4 : Int).to_uint16(),
-      10U,
-      b"abcd",
-    ).unwrap()
+    reader_id,
+    writer_id,
+    4L,
+    1U,
+    (1 : Int).to_uint16(),
+    (4 : Int).to_uint16(),
+    10U,
+    b"abcd",
+  ).unwrap()
   match
     sender.send_message(
       first_fragment.to_message(prefix, @rtps.VendorId::new(1, 15)),
@@ -395,11 +362,7 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
     Err(message) => fail(message)
   }
   let heartbeat = @rtps.HeartbeatFragSubmessage::new(
-    reader_id,
-    writer_id,
-    4L,
-    3U,
-    1U,
+    reader_id, writer_id, 4L, 3U, 1U,
   ).unwrap()
   match
     sender.send_heartbeat_frag(

@@ -1,4 +1,5 @@
-///| Generated from demo/msg/Defaulted.msg
+///|
+/// Generated from demo/msg/Defaulted.msg
 pub struct Defaulted {
   enabled : Bool
   count : Int

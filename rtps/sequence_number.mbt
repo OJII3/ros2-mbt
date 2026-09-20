@@ -1,4 +1,5 @@
-///| Serialize an RTPS SequenceNumber_t as high int32 followed by low uint32.
+///|
+/// Serialize an RTPS SequenceNumber_t as high int32 followed by low uint32.
 fn append_sequence_number_le(bytes : Array[Byte], value : Int64) -> Unit {
   let encoded = value.reinterpret_as_uint64()
   let high = encoded >> 32

@@ -4,8 +4,11 @@ pub const RIHS01_PREFIX : String = "RIHS01_"
 
 ///|
 fn rosidl_hash_type_name(definition : MessageDefinition) -> String {
-  definition.package_name() + "/" + definition.interface_namespace() + "/" +
-    definition.type_name()
+  definition.package_name() +
+  "/" +
+  definition.interface_namespace() +
+  "/" +
+  definition.type_name()
 }
 
 ///|
@@ -38,9 +41,7 @@ fn rosidl_hash_json_quote(value : String) -> String {
     match byte {
       b'"' => result += "\\\""
       b'\\' => result += "\\\\"
-      _ => result += @utf8.decode(Bytes::from_array([byte])) catch {
-        _ => ""
-      }
+      _ => result += @utf8.decode(Bytes::from_array([byte])) catch { _ => "" }
     }
   }
   result + "\""
@@ -52,19 +53,21 @@ fn rosidl_hash_field_type_json(
   nested_type_name : String,
 ) -> Result[String, String] {
   let base_type_id = match field.string_upper_bound() {
-    Some(_) => match field.type_name() {
-      "string" => 21
-      "wstring" => 22
-      _ => return Err("a string upper bound requires a string field")
-    }
+    Some(_) =>
+      match field.type_name() {
+        "string" => 21
+        "wstring" => 22
+        _ => return Err("a string upper bound requires a string field")
+      }
     None =>
       match rosidl_hash_primitive_type_id(field.type_name()) {
         Ok(value) => value
-        Err(_) => if nested_type_name.length() > 0 {
-          1
-        } else {
-          return Err("a nested ROS field needs a resolved type description")
-        }
+        Err(_) =>
+          if nested_type_name.length() > 0 {
+            1
+          } else {
+            return Err("a nested ROS field needs a resolved type description")
+          }
       }
   }
   let (type_id, capacity) = match field.collection() {
@@ -83,11 +86,15 @@ fn rosidl_hash_field_type_json(
     None => 0
   }
   Ok(
-    "{\"type_id\": " + type_id.to_string() +
-      ", \"capacity\": " + capacity.to_string() +
-      ", \"string_capacity\": " + string_capacity.to_string() +
-      ", \"nested_type_name\": " +
-      rosidl_hash_json_quote(type_name) + "}",
+    "{\"type_id\": " +
+    type_id.to_string() +
+    ", \"capacity\": " +
+    capacity.to_string() +
+    ", \"string_capacity\": " +
+    string_capacity.to_string() +
+    ", \"nested_type_name\": " +
+    rosidl_hash_json_quote(type_name) +
+    "}",
   )
 }
 
@@ -111,8 +118,11 @@ fn rosidl_hash_individual_json(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    result += "{\"name\": " + rosidl_hash_json_quote(field.name()) +
-      ", \"type\": " + field_type + "}"
+    result += "{\"name\": " +
+      rosidl_hash_json_quote(field.name()) +
+      ", \"type\": " +
+      field_type +
+      "}"
   }
   Ok(result + "]}")
 }
@@ -146,10 +156,10 @@ fn rosidl_hash_sort_definitions(
     sorted.push(definition)
     let mut index = sorted.length() - 1
     while index > 0 &&
-      rosidl_hash_string_less(
-        rosidl_hash_type_name(sorted[index]),
-        rosidl_hash_type_name(sorted[index - 1]),
-      ) {
+          rosidl_hash_string_less(
+            rosidl_hash_type_name(sorted[index]),
+            rosidl_hash_type_name(sorted[index - 1]),
+          ) {
       let previous = sorted[index - 1]
       sorted[index - 1] = sorted[index]
       sorted[index] = previous
@@ -169,15 +179,15 @@ fn rosidl_hash_json(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let mut result = "{\"type_description\": " + top +
+  let mut result = "{\"type_description\": " +
+    top +
     ", \"referenced_type_descriptions\": ["
   for index in 0..<references.length() {
     if index > 0 {
       result += ", "
     }
     let (reference, field_names) = references[index]
-    let individual = match
-      rosidl_hash_individual_json(reference, field_names) {
+    let individual = match rosidl_hash_individual_json(reference, field_names) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
@@ -207,80 +217,21 @@ fn rosidl_sha256(input : Bytes) -> Bytes {
   }
 
   let constants : Array[UInt] = [
-    0x428A2F98U,
-    0x71374491U,
-    0xB5C0FBCFU,
-    0xE9B5DBA5U,
-    0x3956C25BU,
-    0x59F111F1U,
-    0x923F82A4U,
-    0xAB1C5ED5U,
-    0xD807AA98U,
-    0x12835B01U,
-    0x243185BEU,
-    0x550C7DC3U,
-    0x72BE5D74U,
-    0x80DEB1FEU,
-    0x9BDC06A7U,
-    0xC19BF174U,
-    0xE49B69C1U,
-    0xEFBE4786U,
-    0x0FC19DC6U,
-    0x240CA1CCU,
-    0x2DE92C6FU,
-    0x4A7484AAU,
-    0x5CB0A9DCU,
-    0x76F988DAU,
-    0x983E5152U,
-    0xA831C66DU,
-    0xB00327C8U,
-    0xBF597FC7U,
-    0xC6E00BF3U,
-    0xD5A79147U,
-    0x06CA6351U,
-    0x14292967U,
-    0x27B70A85U,
-    0x2E1B2138U,
-    0x4D2C6DFCU,
-    0x53380D13U,
-    0x650A7354U,
-    0x766A0ABBU,
-    0x81C2C92EU,
-    0x92722C85U,
-    0xA2BFE8A1U,
-    0xA81A664BU,
-    0xC24B8B70U,
-    0xC76C51A3U,
-    0xD192E819U,
-    0xD6990624U,
-    0xF40E3585U,
-    0x106AA070U,
-    0x19A4C116U,
-    0x1E376C08U,
-    0x2748774CU,
-    0x34B0BCB5U,
-    0x391C0CB3U,
-    0x4ED8AA4AU,
-    0x5B9CCA4FU,
-    0x682E6FF3U,
-    0x748F82EEU,
-    0x78A5636FU,
-    0x84C87814U,
-    0x8CC70208U,
-    0x90BEFFFAU,
-    0xA4506CEBU,
-    0xBEF9A3F7U,
-    0xC67178F2U,
+    0x428A2F98U, 0x71374491U, 0xB5C0FBCFU, 0xE9B5DBA5U, 0x3956C25BU, 0x59F111F1U,
+    0x923F82A4U, 0xAB1C5ED5U, 0xD807AA98U, 0x12835B01U, 0x243185BEU, 0x550C7DC3U,
+    0x72BE5D74U, 0x80DEB1FEU, 0x9BDC06A7U, 0xC19BF174U, 0xE49B69C1U, 0xEFBE4786U,
+    0x0FC19DC6U, 0x240CA1CCU, 0x2DE92C6FU, 0x4A7484AAU, 0x5CB0A9DCU, 0x76F988DAU,
+    0x983E5152U, 0xA831C66DU, 0xB00327C8U, 0xBF597FC7U, 0xC6E00BF3U, 0xD5A79147U,
+    0x06CA6351U, 0x14292967U, 0x27B70A85U, 0x2E1B2138U, 0x4D2C6DFCU, 0x53380D13U,
+    0x650A7354U, 0x766A0ABBU, 0x81C2C92EU, 0x92722C85U, 0xA2BFE8A1U, 0xA81A664BU,
+    0xC24B8B70U, 0xC76C51A3U, 0xD192E819U, 0xD6990624U, 0xF40E3585U, 0x106AA070U,
+    0x19A4C116U, 0x1E376C08U, 0x2748774CU, 0x34B0BCB5U, 0x391C0CB3U, 0x4ED8AA4AU,
+    0x5B9CCA4FU, 0x682E6FF3U, 0x748F82EEU, 0x78A5636FU, 0x84C87814U, 0x8CC70208U,
+    0x90BEFFFAU, 0xA4506CEBU, 0xBEF9A3F7U, 0xC67178F2U,
   ]
   let hash : Array[UInt] = [
-    0x6A09E667U,
-    0xBB67AE85U,
-    0x3C6EF372U,
-    0xA54FF53AU,
-    0x510E527FU,
-    0x9B05688CU,
-    0x1F83D9ABU,
-    0x5BE0CD19U,
+    0x6A09E667U, 0xBB67AE85U, 0x3C6EF372U, 0xA54FF53AU, 0x510E527FU, 0x9B05688CU,
+    0x1F83D9ABU, 0x5BE0CD19U,
   ]
   let mut block = 0
   while block < padding.length() {
@@ -289,18 +240,20 @@ fn rosidl_sha256(input : Bytes) -> Bytes {
       let offset = block + index * 4
       words.push(
         (padding[offset].to_int().reinterpret_as_uint() << 24) |
-          (padding[offset + 1].to_int().reinterpret_as_uint() << 16) |
-          (padding[offset + 2].to_int().reinterpret_as_uint() << 8) |
-          padding[offset + 3].to_int().reinterpret_as_uint(),
+        (padding[offset + 1].to_int().reinterpret_as_uint() << 16) |
+        (padding[offset + 2].to_int().reinterpret_as_uint() << 8) |
+        padding[offset + 3].to_int().reinterpret_as_uint(),
       )
     }
     for index in 16..<64 {
       let value15 = words[index - 15]
       let value2 = words[index - 2]
       let sigma0 = rosidl_sha256_rotr(value15, 7) ^
-        rosidl_sha256_rotr(value15, 18) ^ (value15 >> 3)
+        rosidl_sha256_rotr(value15, 18) ^
+        (value15 >> 3)
       let sigma1 = rosidl_sha256_rotr(value2, 17) ^
-        rosidl_sha256_rotr(value2, 19) ^ (value2 >> 10)
+        rosidl_sha256_rotr(value2, 19) ^
+        (value2 >> 10)
       words.push(words[index - 16] + sigma0 + words[index - 7] + sigma1)
     }
     let mut a = hash[0]
@@ -313,11 +266,13 @@ fn rosidl_sha256(input : Bytes) -> Bytes {
     let mut h = hash[7]
     for index in 0..<64 {
       let sigma1 = rosidl_sha256_rotr(e, 6) ^
-        rosidl_sha256_rotr(e, 11) ^ rosidl_sha256_rotr(e, 25)
+        rosidl_sha256_rotr(e, 11) ^
+        rosidl_sha256_rotr(e, 25)
       let choose = (e & f) ^ ((e ^ 0xFFFFFFFFU) & g)
       let temporary1 = h + sigma1 + choose + constants[index] + words[index]
       let sigma0 = rosidl_sha256_rotr(a, 2) ^
-        rosidl_sha256_rotr(a, 13) ^ rosidl_sha256_rotr(a, 22)
+        rosidl_sha256_rotr(a, 13) ^
+        rosidl_sha256_rotr(a, 22)
       let majority = (a & b) ^ (a & c) ^ (b & c)
       let temporary2 = sigma0 + majority
       h = g
@@ -407,7 +362,8 @@ fn rosidl_hash_with_references(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let json = match rosidl_hash_json(definition, root_field_names, reference_json) {
+  let json = match
+    rosidl_hash_json(definition, root_field_names, reference_json) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -426,12 +382,12 @@ pub fn MessageDefinition::type_hash(
         "MessageDefinition::type_hash needs a MessageWorkspace for nested fields",
       )
   }
-  let individual = match
-    rosidl_hash_individual_json(self, nested_type_names) {
+  let individual = match rosidl_hash_individual_json(self, nested_type_names) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let json = "{\"type_description\": " + individual +
+  let json = "{\"type_description\": " +
+    individual +
     ", \"referenced_type_descriptions\": []}"
   Ok(rosidl_hash_string(json))
 }
@@ -453,15 +409,10 @@ fn rosidl_service_hash_definitions(
   let time_type_name = "builtin_interfaces/msg/Time"
 
   let time = match
-    MessageDefinition::new(
-      "builtin_interfaces",
-      "msg",
-      "Time",
-      [
-        MessageField::new("int32", "sec"),
-        MessageField::new("uint32", "nanosec"),
-      ],
-    ) {
+    MessageDefinition::new("builtin_interfaces", "msg", "Time", [
+      MessageField::new("int32", "sec"),
+      MessageField::new("uint32", "nanosec"),
+    ]) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -589,7 +540,8 @@ fn rosidl_workspace_type_name_for_field(
           owner.package_name(),
           "action",
           type_name,
-        ) >= 0 {
+        ) >=
+        0 {
         "action"
       } else if owner.interface_namespace() == "srv" ||
         owner.interface_namespace() == "action" {
@@ -598,14 +550,15 @@ fn rosidl_workspace_type_name_for_field(
         owner.interface_namespace()
       }
       if rosidl_workspace_source_index(
-        workspace.sources,
-        resolved_package,
-        resolved_namespace,
-        type_name,
-      ) < 0 {
+          workspace.sources,
+          resolved_package,
+          resolved_namespace,
+          type_name,
+        ) <
+        0 {
         return Err(
           "cannot calculate a type hash without the nested ROS message source: " +
-            field.type_name(),
+          field.type_name(),
         )
       }
       Ok(resolved_package + "/" + resolved_namespace + "/" + type_name)
@@ -630,14 +583,16 @@ fn rosidl_service_workspace_type_name_for_field(
       }
       let parts = field.type_name().split("/").collect()
       if parts.length() == 1 && owner.interface_namespace() == "srv" {
-        let local_message_name = owner.package_name() + "/msg/" +
+        let local_message_name = owner.package_name() +
+          "/msg/" +
           field.type_name()
         if rosidl_workspace_source_index(
-          workspace.sources,
-          owner.package_name(),
-          "msg",
-          field.type_name(),
-        ) >= 0 {
+            workspace.sources,
+            owner.package_name(),
+            "msg",
+            field.type_name(),
+          ) >=
+          0 {
           return Ok(local_message_name)
         }
       }
@@ -761,7 +716,11 @@ fn rosidl_workspace_resolve_type_name(
   if parts.length() != 3 {
     return Err("an internal ROS type hash reference is not fully qualified")
   }
-  workspace.resolve(parts[0].to_owned(), parts[1].to_owned(), parts[2].to_owned())
+  workspace.resolve(
+    parts[0].to_owned(),
+    parts[1].to_owned(),
+    parts[2].to_owned(),
+  )
 }
 
 ///|

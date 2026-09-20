@@ -45,7 +45,10 @@ pub fn DataReader::new_for_publication_with_prefix(
   publication : @rtps.SedpEndpointData,
 ) -> Result[DataReader, String] {
   data_reader_for_publication(
-    socket, Some(participant_prefix), reader_id, publication,
+    socket,
+    Some(participant_prefix),
+    reader_id,
+    publication,
   )
 }
 
@@ -83,10 +86,11 @@ pub async fn DataReader::receive(
       Err(message) => return Err(message)
     }
     match message.destination_guid_prefix() {
-      Ok(Some(destination)) => match self.participant_prefix {
-        Some(prefix) if destination != prefix => continue
-        _ => ()
-      }
+      Ok(Some(destination)) =>
+        match self.participant_prefix {
+          Some(prefix) if destination != prefix => continue
+          _ => ()
+        }
       Ok(None) => ()
       Err(_) => continue
     }

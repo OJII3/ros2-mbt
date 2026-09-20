@@ -108,8 +108,8 @@ async fn discover_parameter_services(
       get_request_subscription, get_response_publication, set_request_subscription,
       set_response_publication, list_request_subscription, list_response_publication,
       get_parameter_types_request_subscription, get_parameter_types_response_publication,
-      set_atomically_request_subscription, set_atomically_response_publication,
-      describe_request_subscription, describe_response_publication,
+      set_atomically_request_subscription, set_atomically_response_publication, describe_request_subscription,
+      describe_response_publication,
     ) {
     (
       Some(get_request_subscription),
@@ -503,8 +503,7 @@ async fn main {
   }
   let describe_service = match
     @ros.RosService::new(
-      "/demo/moon_parameter_server/describe_parameters", "rcl_interfaces",
-      "DescribeParameters",
+      "/demo/moon_parameter_server/describe_parameters", "rcl_interfaces", "DescribeParameters",
     ) {
     Ok(value) => value
     Err(message) => {
@@ -639,9 +638,7 @@ async fn main {
   }
   match
     participant.register_service_client_with_type_hashes(
-      describe_service,
-      describe_request_writer_id,
-      describe_response_reader_id,
+      describe_service, describe_request_writer_id, describe_response_reader_id,
       "RIHS01_05dd1c2bc87dec2627105c8070d6f9725c781a4f2ab852975bf105462b82b644",
       "RIHS01_ad6747319613c6131589e062e095b469a46cc764f7d0f12a001a49e6cd893995",
     ) {
