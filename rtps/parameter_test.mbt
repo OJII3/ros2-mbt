@@ -15,6 +15,19 @@ test "RTPS parameter list round trip" {
 }
 
 ///|
+test "RTPS DATA parameter list accepts a payload without encapsulation" {
+  let parameters = ParameterList::new()
+  parameters.add(Parameter::new(PID_PROTOCOL_VERSION, b"\x02\x03\x00\x00"))
+  parameters.add(Parameter::new(PID_VENDOR_ID, b"\x01\x0F\x00\x00"))
+  let encoded = parameters.to_cdr_bytes()
+  let decoded = match ParameterList::from_data_bytes(encoded[4:].to_owned()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded.values(), parameters.values())
+}
+
+///|
 test "RTPS parameter list pads values to four bytes" {
   let parameters = ParameterList::new()
   parameters.add(Parameter::new(0x8000, b"abc"))

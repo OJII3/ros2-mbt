@@ -714,7 +714,12 @@ pub fn SedpEndpointData::from_data_submessage(
   kind : SedpEndpointKind,
   data : DataSubmessage,
 ) -> Result[SedpEndpointData, String] {
-  SedpEndpointData::from_cdr_bytes(kind, data.serialized_payload())
+  let parameters = match
+    ParameterList::from_data_bytes(data.serialized_payload()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  SedpEndpointData::from_parameter_list(kind, parameters)
 }
 
 ///|

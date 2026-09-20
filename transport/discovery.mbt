@@ -552,6 +552,10 @@ async fn DiscoverySession::decode_message(
   for submessage in message.submessages() {
     match submessage.id() {
       @rtps.SubmessageId::Data => {
+        if (submessage.flags() &
+          (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY)) == 0x00 {
+          continue
+        }
         let data = match @rtps.DataSubmessage::from_submessage(submessage) {
           Ok(value) => value
           Err(_) => continue

@@ -104,6 +104,26 @@ test "SPDP participant data creates a DATA submessage" {
 }
 
 ///|
+test "SPDP DATA accepts an unencapsulated ParameterList" {
+  let guid = spdp_test_guid().unwrap()
+  let participant = SpdpParticipantData::new(
+    guid,
+    VendorId::new(1, 15),
+    0,
+    60,
+    0,
+    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()
+  let writer_id = EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap()
+  let cdr = participant.to_cdr_bytes()
+  let data = DataSubmessage::new(reader_id, writer_id, 1L, cdr[4:].to_owned())
+  let decoded = SpdpParticipantData::from_data_submessage(data).unwrap()
+  assert_eq(decoded.to_cdr_bytes(), cdr)
+}
+
+///|
 test "SPDP extracts a participant GUID from key-only data" {
   let guid = spdp_test_guid().unwrap()
   let reader_id = EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap()

@@ -124,6 +124,79 @@ async test "discovery session repeats SPDP announcements" {
 }
 
 ///|
+async test "discovery session ignores DATA without payload or key" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let writer_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, writer_id),
+    @rtps.VendorId::new(1, 15),
+    0U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, writer_id),
+    @rtps.VendorId::new(1, 15),
+    0U,
+    60,
+    0U,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let session = DiscoverySession::new(
+    receiver,
+    local_participant,
+    reader_id,
+    writer_id,
+    sender.local_addr(),
+    1L,
+  ).unwrap()
+  let message = @rtps.Message::new(
+    @rtps.Header::new(remote_prefix, @rtps.VendorId::new(1, 15)),
+  )
+  message.add(
+    @rtps.Submessage::new(
+      @rtps.SubmessageId::Data,
+      @rtps.DATA_FLAG_LITTLE_ENDIAN | @rtps.DATA_FLAG_INLINE_QOS,
+      @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"").to_payload(),
+    ),
+  )
+  message.add(
+    remote_participant
+    .to_data_submessage(reader_id, writer_id, 1L)
+    .to_submessage(),
+  )
+  sender.send_message(message, session.socket.local_addr()).unwrap()
+  let (event, _) = session.receive_once().unwrap()
+  match event {
+    DiscoveryEvent::Participant(decoded) =>
+      assert_eq(decoded.to_cdr_bytes(), remote_participant.to_cdr_bytes())
+    DiscoveryEvent::Publication(_) => fail("expected the SPDP participant")
+    DiscoveryEvent::Subscription(_) => fail("expected the SPDP participant")
+    DiscoveryEvent::EndpointRemoved(_, _) => fail("expected the SPDP participant")
+    DiscoveryEvent::ParticipantRemoved(_) => fail("expected the SPDP participant")
+  }
+  session.close()
+  sender.close()
+}
+
+///|
 async test "discovery session ignores SPDP from another domain" {
   let local_prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,

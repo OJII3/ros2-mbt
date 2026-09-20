@@ -426,3 +426,29 @@ test "SEDP does not duplicate direction-specific standard parameters" {
   }
   assert_eq(count, 1)
 }
+
+///|
+test "SEDP DATA accepts an unencapsulated ParameterList" {
+  let endpoint_guid = sedp_test_guid(0xC2).unwrap()
+  let endpoint = SedpEndpointData::new(
+    SedpEndpointKind::Publication,
+    endpoint_guid,
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  let encoded = endpoint.to_cdr_bytes().unwrap()
+  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
+  let data = DataSubmessage::new(
+    reader_id,
+    writer_id,
+    1L,
+    encoded[4:].to_owned(),
+  )
+  let decoded = SedpEndpointData::from_data_submessage(
+    SedpEndpointKind::Publication,
+    data,
+  ).unwrap()
+  assert_eq(decoded.endpoint_guid(), endpoint_guid)
+  assert_eq(decoded.topic_name(), "rt/chatter")
+}

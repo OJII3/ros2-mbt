@@ -263,3 +263,22 @@ pub fn ParameterList::from_cdr_bytes(
     Err(message) => Err(message)
   }
 }
+
+/// Parse a ParameterList carried directly in an RTPS DATA payload.
+///
+/// RTPS implementations use both the PL_CDR_LE encapsulation form and the
+/// DATA form whose payload starts at the first parameter identifier. Keep
+/// `from_cdr_bytes` strict for standalone CDR values, while accepting both
+/// wire forms at the DATA boundary.
+pub fn ParameterList::from_data_bytes(
+  input : Bytes,
+) -> Result[ParameterList, String] {
+  if input.length() >= 4 &&
+    input[0] == 0 && input[1] == 3 && input[2] == 0 && input[3] == 0 {
+    return ParameterList::from_cdr_bytes(input)
+  }
+  match ParameterList::from_bytes(input) {
+    Ok((parameters, _)) => Ok(parameters)
+    Err(message) => Err(message)
+  }
+}

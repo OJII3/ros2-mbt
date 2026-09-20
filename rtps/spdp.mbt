@@ -440,7 +440,12 @@ pub fn SpdpParticipantData::from_cdr_bytes(
 pub fn SpdpParticipantData::from_data_submessage(
   data : DataSubmessage,
 ) -> Result[SpdpParticipantData, String] {
-  SpdpParticipantData::from_cdr_bytes(data.serialized_payload())
+  let parameters = match
+    ParameterList::from_data_bytes(data.serialized_payload()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  SpdpParticipantData::from_parameter_list(parameters)
 }
 
 ///|
