@@ -64,7 +64,10 @@ test "SEDP endpoint data round trips required fields and locators" {
     }
     if parameter.id() == PID_USER_DATA {
       user_data_found = true
-      assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
+      assert_eq(
+        parameter.value(),
+        b"\x18\x00\x00\x00typehash=RIHS01_000102;\x00",
+      )
     }
   }
   assert_true(key_hash_found)

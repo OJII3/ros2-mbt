@@ -461,6 +461,40 @@ fn sedp_string(value : String) -> Result[Bytes, String] {
 }
 
 ///|
+/// Encode a DDS octet sequence used by PID_USER_DATA.
+fn sedp_octet_sequence(value : Bytes) -> Bytes {
+  let bytes : Array[Byte] = []
+  let length = sedp_u32_le(value.length().reinterpret_as_uint())
+  for byte in length {
+    bytes.push(byte)
+  }
+  for byte in value {
+    bytes.push(byte)
+  }
+  Bytes::from_array(bytes)
+}
+
+///|
+/// Decode a DDS octet sequence used by PID_USER_DATA.
+fn sedp_read_octet_sequence(value : Bytes) -> Result[Bytes, String] {
+  if value.length() < 4 {
+    return Err("SEDP USER_DATA is missing its length")
+  }
+  let length = match value[0:4] {
+    [u32le(result)] => result.reinterpret_as_int()
+    _ => return Err("SEDP USER_DATA has an invalid length")
+  }
+  if length < 0 || 4 + length > value.length() {
+    return Err("SEDP USER_DATA length is outside the parameter")
+  }
+  let bytes : Array[Byte] = []
+  for byte in value[4:4 + length] {
+    bytes.push(byte)
+  }
+  Ok(Bytes::from_array(bytes))
+}
+
+///|
 fn sedp_required(
   parameters : ParameterList,
   id : UInt16,
@@ -563,7 +597,13 @@ pub fn SedpEndpointData::to_parameter_list(
     parameters.add(qos_expects_inline_qos(false))
   }
   for parameter in self.extra_parameters {
-    parameters.add(parameter)
+    if parameter.id() == PID_USER_DATA {
+      parameters.add(
+        Parameter::new(PID_USER_DATA, sedp_octet_sequence(parameter.value())),
+      )
+    } else {
+      parameters.add(parameter)
+    }
   }
   Ok(parameters)
 }
@@ -782,6 +822,16 @@ pub fn SedpEndpointData::from_parameter_list(
             Ok(value) => value
             Err(message) => return Err(message)
           },
+        )
+      PID_USER_DATA =>
+        result.extra_parameters.push(
+          Parameter::new(
+            PID_USER_DATA,
+            match sedp_read_octet_sequence(parameter.value()) {
+              Ok(value) => value
+              Err(message) => return Err(message)
+            },
+          ),
         )
       _ if !sedp_is_identity_parameter(parameter.id()) =>
         result.extra_parameters.push(parameter)
