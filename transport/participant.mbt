@@ -115,7 +115,7 @@ pub async fn RosParticipant::new_ddsi(
   let discovery_send_socket = Udp::bind(@socket.Addr::new(0, 0))
   let spdp_send_socket = Udp::bind(@socket.Addr::new(0, 0))
   match interface_addr {
-    Some(address) =>
+    Some(address) => {
       match discovery_send_socket.set_multicast_interface(address) {
         Ok(_) => ()
         Err(message) => {
@@ -125,6 +125,16 @@ pub async fn RosParticipant::new_ddsi(
           return Err(message)
         }
       }
+      match spdp_send_socket.set_multicast_interface(address) {
+        Ok(_) => ()
+        Err(message) => {
+          discovery_receive_socket.close()
+          discovery_send_socket.close()
+          spdp_send_socket.close()
+          return Err(message)
+        }
+      }
+    }
     None => ()
   }
   let metatraffic_socket = match
