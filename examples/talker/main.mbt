@@ -141,7 +141,7 @@ async fn main {
       return
     }
   }
-  let writer_id = match @rtps.EntityId::new(b"\x00\x00\x2A", 0xC2) {
+  let writer_id = match @rtps.EntityId::new(b"\x00\x00\x2A", 0x03) {
     Ok(value) => value
     Err(message) => {
       println(message)

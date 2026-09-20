@@ -58,14 +58,14 @@ async fn main {
       return
     }
   }
-  let request_writer_id = match @rtps.EntityId::new(b"\x00\x00\x2E", 0xC2) {
+  let request_writer_id = match @rtps.EntityId::new(b"\x00\x00\x2E", 0x03) {
     Ok(value) => value
     Err(message) => {
       println(message)
       return
     }
   }
-  let response_reader_id = match @rtps.EntityId::new(b"\x00\x00\x2F", 0xC7) {
+  let response_reader_id = match @rtps.EntityId::new(b"\x00\x00\x2F", 0x04) {
     Ok(value) => value
     Err(message) => {
       println(message)
