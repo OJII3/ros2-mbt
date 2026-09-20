@@ -1,5 +1,5 @@
 ///|
-/// Reliable receive state for one remote SEDP builtin writer.
+/// Reliable receive state for one remote discovery builtin writer.
 struct DiscoveryRemoteDataReader {
   writer_prefix : @rtps.GuidPrefix
   writer_id : @rtps.EntityId

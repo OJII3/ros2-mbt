@@ -1073,6 +1073,61 @@ async test "discovery session reassembles fragmented SPDP participant data" {
       assert_eq(publication.topic_name(), "rt/marker")
     _ => fail("expected the coalesced SEDP publication")
   }
+  let dispose = remote_participant.to_dispose_data_submessage(
+    reader_id,
+    participant_id,
+    2L,
+  )
+  let key_payload = dispose.serialized_payload()
+  let first_key_payload : Array[Byte] = []
+  let final_key_payload : Array[Byte] = []
+  for index in 0..<8 {
+    first_key_payload.push(key_payload[index])
+    final_key_payload.push(key_payload[index + 8])
+  }
+  let final_key_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    participant_id,
+    2L,
+    2U,
+    1U.to_uint16(),
+    8U.to_uint16(),
+    key_payload.length().reinterpret_as_uint(),
+    Bytes::from_array(final_key_payload),
+  ).unwrap()
+  let first_key_fragment = @rtps.DataFragSubmessage::new(
+    reader_id,
+    participant_id,
+    2L,
+    1U,
+    1U.to_uint16(),
+    8U.to_uint16(),
+    key_payload.length().reinterpret_as_uint(),
+    Bytes::from_array(first_key_payload),
+  ).unwrap().with_inline_qos(dispose.inline_qos())
+  let fragmented_dispose = @rtps.Message::new(
+    @rtps.Header::new(remote_prefix, vendor_id),
+  )
+  fragmented_dispose.add(
+    @rtps.Submessage::new(
+      @rtps.SubmessageId::DataFrag,
+      (final_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+      final_key_fragment.to_payload(),
+    ),
+  )
+  fragmented_dispose.add(
+    @rtps.Submessage::new(
+      @rtps.SubmessageId::DataFrag,
+      (first_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+      first_key_fragment.to_payload(),
+    ),
+  )
+  sender.send_message(fragmented_dispose, session.socket.local_addr()).unwrap()
+  match session.receive_once().unwrap().0 {
+    DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+      assert_eq(participant_guid, remote_participant.participant_guid())
+    _ => fail("expected the reassembled SPDP participant removal")
+  }
   session.close()
   sender.close()
 }
