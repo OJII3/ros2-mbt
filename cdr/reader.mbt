@@ -54,7 +54,9 @@ fn Reader::take(self : Reader, length : Int) -> Result[BytesView, String] {
 
 ///|
 fn Reader::align(self : Reader, alignment : Int) -> Result[Unit, String] {
-  let remainder = self.offset % alignment
+  // The encapsulation header is not part of the CDR stream used for
+  // alignment. XCDR1 therefore aligns from the first byte after the header.
+  let remainder = (self.offset - ENCAPSULATION_LENGTH) % alignment
   let padding = if remainder == 0 { 0 } else { alignment - remainder }
   match self.take(padding) {
     Ok(_) => Ok(())

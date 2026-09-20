@@ -16,7 +16,18 @@ test "CDR writer writes floating point values" {
   writer.write_f64(1.0)
   assert_eq(
     writer.to_bytes(),
-    b"\x00\x01\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x00\x00\x00\xF0\x3F",
+    b"\x00\x01\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x3F",
+  )
+}
+
+///|
+test "CDR aligns aggregate fields after the encapsulation header" {
+  let writer = Writer::new()
+  writer.write_i64(2L)
+  writer.write_i64(3L)
+  assert_eq(
+    writer.to_bytes(),
+    b"\x00\x01\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00",
   )
 }
 

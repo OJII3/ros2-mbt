@@ -22,7 +22,7 @@ test "geometry_msgs Twist CDR round trip" {
     Vector3::new(-4.5, 5.0, 6.75),
   )
   let encoded = message.to_cdr_bytes()
-  assert_eq(encoded.length(), 56)
+  assert_eq(encoded.length(), 52)
   let decoded = match Twist::from_cdr_bytes(encoded) {
     Ok(value) => value
     Err(message) => fail(message)

@@ -41,7 +41,9 @@ pub fn Writer::with_capacity(size_hint : Int) -> Writer {
 
 ///|
 fn Writer::align(self : Writer, alignment : Int) -> Unit {
-  let remainder = self.buffer.length() % alignment
+  // The encapsulation header is not part of the CDR stream used for
+  // alignment. XCDR1 therefore aligns from the first byte after the header.
+  let remainder = (self.buffer.length() - ENCAPSULATION_LENGTH) % alignment
   if remainder != 0 {
     let padding = alignment - remainder
     for _ in 0..<padding {
