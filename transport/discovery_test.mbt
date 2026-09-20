@@ -962,6 +962,122 @@ async test "discovery session requests missing SEDP fragments" {
 }
 
 ///|
+async test "discovery session reassembles fragmented SPDP participant data" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let participant_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let local_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(local_prefix, participant_id),
+    vendor_id,
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let session = DiscoverySession::new(
+    receiver,
+    local_participant,
+    reader_id,
+    participant_id,
+    sender.local_addr(),
+    1L,
+  ).unwrap()
+  let remote_participant = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, participant_id),
+    vendor_id,
+    0,
+    60,
+    0,
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+  )
+  let payload = remote_participant
+    .to_data_submessage(reader_id, participant_id, 1L)
+    .serialized_payload()
+  let fragment_size = (payload.length() + 1) / 2
+  let first_payload : Array[Byte] = []
+  let final_payload : Array[Byte] = []
+  for index in 0..<fragment_size {
+    first_payload.push(payload[index])
+  }
+  for index in fragment_size..<payload.length() {
+    final_payload.push(payload[index])
+  }
+  let message = @rtps.Message::new(@rtps.Header::new(remote_prefix, vendor_id))
+  message.add(
+    @rtps.DataFragSubmessage::new(
+      reader_id,
+      participant_id,
+      1L,
+      2U,
+      1U.to_uint16(),
+      fragment_size.to_uint16(),
+      payload.length().reinterpret_as_uint(),
+      Bytes::from_array(final_payload),
+    ).unwrap().to_submessage(),
+  )
+  message.add(
+    @rtps.DataFragSubmessage::new(
+      reader_id,
+      participant_id,
+      1L,
+      1U,
+      1U.to_uint16(),
+      fragment_size.to_uint16(),
+      payload.length().reinterpret_as_uint(),
+      Bytes::from_array(first_payload),
+    ).unwrap().to_submessage(),
+  )
+  let marker = @rtps.SedpEndpointData::new(
+    @rtps.SedpEndpointKind::Publication,
+    @rtps.Guid::new(
+      remote_prefix,
+      @rtps.EntityId::new(b"pub", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
+    ),
+    "rt/marker",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  message.add(
+    marker
+    .to_data_submessage(
+      @rtps.EntityId::unknown(),
+      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
+      1L,
+    )
+    .unwrap()
+    .to_submessage(),
+  )
+  sender.send_message(message, session.socket.local_addr()).unwrap()
+  match session.receive_once().unwrap().0 {
+    DiscoveryEvent::Participant(discovered) =>
+      assert_eq(discovered.participant_guid(), remote_participant.participant_guid())
+    _ => fail("expected the reassembled SPDP participant")
+  }
+  match session.receive_once().unwrap().0 {
+    DiscoveryEvent::Publication(publication) =>
+      assert_eq(publication.topic_name(), "rt/marker")
+    _ => fail("expected the coalesced SEDP publication")
+  }
+  session.close()
+  sender.close()
+}
+
+///|
 async test "discovery session filters SEDP data for another builtin reader" {
   let local_prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,

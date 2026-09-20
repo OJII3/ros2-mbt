@@ -1,6 +1,6 @@
 ///|
 /// Reliable receive state for one remote SEDP builtin writer.
-struct DiscoverySedpReader {
+struct DiscoveryRemoteDataReader {
   writer_prefix : @rtps.GuidPrefix
   writer_id : @rtps.EntityId
   reader : ReliableDataReader
@@ -23,7 +23,8 @@ pub struct DiscoverySession {
   writer_id : @rtps.EntityId
   destination : @socket.Addr
   mut next_sequence_number : Int64
-  sedp_readers : Array[DiscoverySedpReader]
+  mut sedp_readers : Array[DiscoveryRemoteDataReader]
+  mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
   mut remote_participants : Array[@rtps.SpdpParticipantData]
   mut pending_events : Array[(DiscoveryEvent, @socket.Addr)]
@@ -52,6 +53,7 @@ pub fn DiscoverySession::new(
     destination,
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
+    spdp_fragment_readers: [],
     sedp_writers: [],
     remote_participants: [],
     pending_events: [],
@@ -86,6 +88,7 @@ pub fn DiscoverySession::new_with_receive_sockets(
     destination,
     next_sequence_number: first_sequence_number,
     sedp_readers: [],
+    spdp_fragment_readers: [],
     sedp_writers: [],
     remote_participants: [],
     pending_events: [],
@@ -337,6 +340,24 @@ fn DiscoverySession::sedp_reader_index(
   Ok(self.sedp_readers.length() - 1)
 }
 
+///| Locate or create fragment assembly state for one remote SPDP writer.
+fn DiscoverySession::spdp_fragment_reader_index(
+  self : DiscoverySession,
+  writer_prefix : @rtps.GuidPrefix,
+) -> Int {
+  for index in 0..<self.spdp_fragment_readers.length() {
+    if self.spdp_fragment_readers[index].writer_prefix == writer_prefix {
+      return index
+    }
+  }
+  self.spdp_fragment_readers.push({
+    writer_prefix,
+    writer_id: self.writer_id,
+    reader: ReliableDataReader::new(self.reader_id, self.writer_id),
+  })
+  self.spdp_fragment_readers.length() - 1
+}
+
 ///|
 /// Retain the latest SPDP locators for one remote participant.
 fn DiscoverySession::remember_remote_participant(
@@ -366,6 +387,20 @@ fn DiscoverySession::forget_remote_participant(
     }
   }
   self.remote_participants = remaining
+  let sedp_readers : Array[DiscoveryRemoteDataReader] = []
+  for reader in self.sedp_readers {
+    if reader.writer_prefix != participant_guid.prefix() {
+      sedp_readers.push(reader)
+    }
+  }
+  self.sedp_readers = sedp_readers
+  let spdp_fragment_readers : Array[DiscoveryRemoteDataReader] = []
+  for reader in self.spdp_fragment_readers {
+    if reader.writer_prefix != participant_guid.prefix() {
+      spdp_fragment_readers.push(reader)
+    }
+  }
+  self.spdp_fragment_readers = spdp_fragment_readers
 }
 
 ///|
@@ -510,6 +545,43 @@ fn DiscoverySession::dispatch_sedp_data(
             },
           )
         Err(_) => ()
+      }
+  }
+}
+
+///| Dispatch a parsed SPDP announcement or participant removal.
+fn DiscoverySession::dispatch_spdp_data(
+  self : DiscoverySession,
+  events : Array[DiscoveryEvent],
+  data : @rtps.DataSubmessage,
+) -> Unit {
+  let status = match data.status_info() {
+    Ok(value) => value
+    Err(_) => return
+  }
+  match status {
+    Some(value) if
+      (value &
+        (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
+      if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
+        return
+      }
+      match @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
+        Ok(participant_guid) => {
+          self.forget_remote_participant(participant_guid)
+          events.push(DiscoveryEvent::ParticipantRemoved(participant_guid))
+        }
+        Err(_) => ()
+      }
+    }
+    _ =>
+      match @rtps.SpdpParticipantData::from_data_submessage(data) {
+        Ok(participant) if
+          participant.domain_id() == self.participant.domain_id() => {
+          self.remember_remote_participant(participant)
+          events.push(DiscoveryEvent::Participant(participant))
+        }
+        _ => ()
       }
   }
 }
@@ -743,38 +815,10 @@ async fn DiscoverySession::decode_message(
                 data.reader_id() != @rtps.EntityId::unknown()) {
               continue
             }
-            let status = match data.status_info() {
-              Ok(value) => value
-              Err(_) => continue
-            }
-            match status {
-              Some(value) if
-                (value &
-                  (@rtps.STATUS_INFO_DISPOSED |
-                    @rtps.STATUS_INFO_UNREGISTERED)) != 0U => {
-                if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
-                  continue
-                }
-                match
-                  @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
-                  Ok(participant_guid) => {
-                    self.forget_remote_participant(participant_guid)
-                    events.push(DiscoveryEvent::ParticipantRemoved(participant_guid))
-                  }
-                  Err(_) => ()
-                }
-              }
-              _ =>
-                match @rtps.SpdpParticipantData::from_data_submessage(data) {
-                  Ok(participant) if
-                    participant.domain_id() == self.participant.domain_id() => {
-                    self.remember_remote_participant(participant)
-                    events.push(DiscoveryEvent::Participant(participant))
-                  }
-                  Err(_) => ()
-                  _ => ()
-                }
-            }
+            self.dispatch_spdp_data(
+              events,
+              data,
+            )
           }
         }
       }
@@ -784,37 +828,59 @@ async fn DiscoverySession::decode_message(
           Ok(value) => value
           Err(_) => continue
         }
-        let kind = match
-          @rtps.SedpEndpointKind::from_builtin_writer_id(fragment.writer_id()) {
-          Ok(value) => value
-          Err(_) => continue
-        }
-        if fragment.reader_id() != kind.builtin_reader_id() &&
-          fragment.reader_id() != @rtps.EntityId::unknown() {
-          continue
-        }
-        let reader_index = match
-          self.sedp_reader_index(
-            message.header().guid_prefix(),
-            fragment.writer_id(),
-          ) {
-          Ok(value) => value
-          Err(_) => continue
-        }
-        let data = match
-          self.sedp_readers[reader_index].reader.accept_data_frag(fragment) {
-          Ok(value) => value
-          Err(_) => continue
-        }
-        match data {
-          Some(data) =>
-            self.dispatch_sedp_data(
-              events,
+        match @rtps.SedpEndpointKind::from_builtin_writer_id(fragment.writer_id()) {
+          Ok(kind) => {
+            if fragment.reader_id() != kind.builtin_reader_id() &&
+              fragment.reader_id() != @rtps.EntityId::unknown() {
+              continue
+            }
+            let reader_index = match
+              self.sedp_reader_index(
+                message.header().guid_prefix(),
+                fragment.writer_id(),
+              ) {
+              Ok(value) => value
+              Err(_) => continue
+            }
+            let data = match
+              self.sedp_readers[reader_index].reader.accept_data_frag(fragment) {
+              Ok(value) => value
+              Err(_) => continue
+            }
+            match data {
+              Some(data) =>
+                self.dispatch_sedp_data(
+                  events,
+                  message.header().guid_prefix(),
+                  kind,
+                  data,
+                )
+              None => ()
+            }
+          }
+          Err(_) => {
+            if fragment.writer_id() != self.writer_id ||
+              (fragment.reader_id() != self.reader_id &&
+                fragment.reader_id() != @rtps.EntityId::unknown()) {
+              continue
+            }
+            let reader_index = self.spdp_fragment_reader_index(
               message.header().guid_prefix(),
-              kind,
-              data,
             )
-          None => ()
+            let data = match
+              self.spdp_fragment_readers[reader_index].reader.accept_data_frag(fragment) {
+              Ok(value) => value
+              Err(_) => continue
+            }
+            match data {
+              Some(data) =>
+                self.dispatch_spdp_data(
+                  events,
+                  data,
+                )
+              None => ()
+            }
+          }
         }
       }
       @rtps.SubmessageId::Heartbeat => {

@@ -24,7 +24,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - SEDPの`PID_DATA_REPRESENTATION`解析と、XCDR1/XCDR2集合によるendpoint互換性判定
 - SEDP endpoint GUIDに対応する`PID_KEY_HASH`の広告・解析
 - SEDP publication/subscription向け標準パラメータ（型サイズ、inline QoS期待値）の広告
-- reliable SEDP DATA_FRAG の受信再構成、HEARTBEAT_FRAGへのNACK_FRAG応答と HEARTBEAT への ACKNACK 応答
+- SPDP/SEDP DATA_FRAG の受信再構成、reliable SEDPのHEARTBEAT_FRAGへのNACK_FRAG応答と HEARTBEAT への ACKNACK 応答
 - SEDP ACKNACK に対する送信済み discovery DATA の再送
 - `DiscoverySession`による、1 RTPS datagram内の複数SPDP/SEDP DATA eventの順次dispatch（publication/subscription判定を含む）
 - SPDP announcement の sequence number 管理と async periodic session helper
@@ -129,7 +129,7 @@ Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64
 ## Roadmap
 
 1. UDP multicast/unicast transport（基本送受信、SPDP multicast helper、単発 discovery packet は実装済み）
-2. SPDP participant discovery（packet codec、受信 dispatch、周期 announcement は実装済み）
+2. SPDP participant discovery（packet codec、DATA/DATA_FRAG受信 dispatch、周期 announcement は実装済み）
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
