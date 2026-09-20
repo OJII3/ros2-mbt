@@ -64,6 +64,10 @@ test "DDSI participant helper advertises standard locators" {
     Err(message) => fail(message)
   }
   assert_eq(participant.domain_id(), 0U)
+  assert_eq(
+    participant.participant_guid().entity_id().to_bytes(),
+    b"\x00\x00\x01\xC1",
+  )
   assert_eq(participant.lease_seconds(), 60)
   assert_eq(participant.builtin_endpoint_set(), 0x0000003FU)
   assert_eq(participant.metatraffic_unicast_locators().length(), 1)

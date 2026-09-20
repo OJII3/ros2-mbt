@@ -166,7 +166,7 @@ pub fn new_ddsi_participant(
   ip : UInt,
   lease_seconds : Int,
 ) -> Result[@rtps.SpdpParticipantData, String] {
-  let participant_entity_id = match @rtps.EntityId::new(b"\x00\x01\x00", 0xC1) {
+  let participant_entity_id = match @rtps.EntityId::new(b"\x00\x00\x01", 0xC1) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
