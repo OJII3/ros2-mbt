@@ -772,6 +772,25 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     refreshed_info.node_entities_info_seq()[0].writer_gid_seq().length(),
     2,
   )
+  let (decoded_refreshed, _) = match subscriber.receive_ros_discovery_info(0) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    decoded_refreshed.node_entities_info_seq()[0].writer_gid_seq().length(),
+    2,
+  )
+  publisher.unregister_endpoint(
+    @rtps.Guid::new(publisher.participant().participant_guid().prefix(), late_writer_id),
+  ).unwrap()
+  let (decoded_removed, _) = match subscriber.receive_ros_discovery_info(0) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(
+    decoded_removed.node_entities_info_seq()[0].writer_gid_seq().length(),
+    1,
+  )
   publisher.close()
   subscriber.close()
 }
