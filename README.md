@@ -113,7 +113,7 @@ direnv exec . moon run examples/listener
 
 `examples/talker` はSPDP/SEDPで `/chatter` の購読者を発見した後、相手のreliability QoSに合わせて `std_msgs/msg/String` を5件送信します。`examples/listener` もpublicationのQoSに応じたreaderを選択し、5件受信してCDRを復号します。両exampleともnode identityを設定し、endpoint登録・発見時の`ros_discovery_info`を自動更新します。`ROS2_MBT_IP` はMoonBit participantがDDSI locatorとして広告するローカルIPv4アドレスで、未設定時は `127.0.0.1` です。`ROS_DOMAIN_ID` はROS 2側と一致させ、未設定時は `0` です。ROS 2側のDDS実装と到達可能なネットワークで実行してください。macOSでは、依存しているUDP multicast socketの同一ポート共有がOSの負荷分散対象になるため、同一ホスト上で複数participantを動かす検証は不安定です。Cyclone DDS 11.0.1とのtalker-listener双方向実通信は、固定unicast discoveryを使った検証で確認済みです。Fast DDSおよびROS 2 CLIとの実通信試験は未実施です。
 
-serviceの動作確認は、MoonBit serverに対してROS 2 CLIから呼び出すか、ROS 2 serverを起動してMoonBit clientから呼び出します。
+serviceの動作確認は、MoonBit serverに対してROS 2 CLIまたはDDS clientから呼び出すか、ROS 2 serverを起動してMoonBit clientから呼び出します。
 
 ```sh
 ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service_server
@@ -124,6 +124,7 @@ ROS2_MBT_IP=192.168.1.20 ROS_DOMAIN_ID=0 direnv exec . moon run examples/service
 ```
 
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
+Cyclone DDS 11.0.1で生成した同じIDLのrequest writer / response readerとのrequest/reply相互運用は、固定unicast discoveryで確認済みです。ROS 2 CLIとのservice実通信、およびMoonBit clientから外部ROS 2/Cyclone serverを呼び出す試験は未実施です。
 
 ## Roadmap
 
@@ -132,5 +133,5 @@ service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCの
 3. SEDP endpoint discovery（packet codec、受信 dispatch、participant locator への単発・周期送信は実装済み）
 4. `DATA` / `DATA_FRAG` submessage と ROS topic mapping（best-effort/reliable reader adapter まで実装済み）
 5. `geometry_msgs/Twist`などのROS message codec（primitive・scalar constants・固定配列・bounded/sequence・nested type codegen・複数ファイル依存解決は実装済み）
-6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み）
-7. Cyclone DDS / Fast DDSとのtalker-listener相互運用テスト（Cyclone DDS 11.0.1の双方向検証済み、Fast DDSは未実施）
+6. ROS service の request/reply facade と `.srv` codec（実装済み、loopback test 済み、Cyclone DDS 11.0.1 clientとのrequest/reply検証済み）
+7. Cyclone DDS / Fast DDSとのtopic・service相互運用テスト（Cyclone DDS 11.0.1のtalker-listener双方向とMoonBit service server検証済み、Fast DDSは未実施）
