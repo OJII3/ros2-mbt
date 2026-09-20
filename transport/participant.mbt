@@ -12,6 +12,8 @@ pub struct RosParticipant {
   mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
+  mut ros_node_namespace : String?
+  mut ros_node_name : String?
   mut latest_graph_info : @ros.ParticipantEntitiesInfo?
   mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
   mut graph_publisher_guids : Array[@rtps.Guid]
@@ -72,6 +74,8 @@ pub fn RosParticipant::from_discovery_session(
     spdp_socket: None,
     graph_publication_id: None,
     graph_subscription_id: None,
+    ros_node_namespace: None,
+    ros_node_name: None,
     latest_graph_info: None,
     graph_publishers: [],
     graph_publisher_guids: [],
@@ -211,6 +215,63 @@ pub fn RosParticipant::participant_entities_info(
 }
 
 ///|
+/// Return a graph-discovery sample for the configured ROS node identity.
+fn RosParticipant::configured_ros_discovery_info(
+  self : RosParticipant,
+) -> Result[@ros.ParticipantEntitiesInfo, String] {
+  match (self.ros_node_namespace, self.ros_node_name) {
+    (Some(node_namespace), Some(node_name)) =>
+      self.participant_entities_info(node_namespace, node_name)
+    _ => Err("the ROS node identity has not been configured")
+  }
+}
+
+///|
+/// Refresh the cached graph-discovery sample and publish it when possible.
+async fn RosParticipant::refresh_ros_discovery_info(
+  self : RosParticipant,
+) -> Result[Unit, String] {
+  let info = match self.configured_ros_discovery_info() {
+    Ok(value) => value
+    Err(message) if message == "the ROS node identity has not been configured" => {
+      self.latest_graph_info = None
+      return Ok(())
+    }
+    Err(message) => return Err(message)
+  }
+  self.latest_graph_info = Some(info)
+  if self.graph_publication_id is None {
+    return Ok(())
+  }
+  for publisher in self.graph_publishers {
+    match publisher.announce_once(info) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Configure the ROS node identity used for automatic graph discovery.
+///
+/// The current endpoint set is cached immediately. Subsequent endpoint
+/// registration and removal refresh this sample automatically.
+pub async fn RosParticipant::set_ros_node_identity(
+  self : RosParticipant,
+  node_namespace : String,
+  node_name : String,
+) -> Result[Unit, String] {
+  match @ros.NodeEntitiesInfo::new(node_namespace, node_name) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  self.ros_node_namespace = Some(node_namespace)
+  self.ros_node_name = Some(node_name)
+  self.refresh_ros_discovery_info()
+}
+
+///|
 /// Register and announce one local SEDP endpoint.
 ///
 /// The participant GUID in the endpoint is normalized to the local participant
@@ -229,9 +290,11 @@ pub async fn RosParticipant::register_endpoint(
     }
   }
   self.local_endpoints.push(registered)
-  // A graph sample generated before this endpoint was registered is stale.
-  self.latest_graph_info = None
-  self.discovery.announce_sedp_to_all(registered)
+  match self.discovery.announce_sedp_to_all(registered) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  self.refresh_ros_discovery_info()
 }
 
 ///|
@@ -264,17 +327,23 @@ pub async fn RosParticipant::unregister_endpoint(
   self.local_endpoints = remaining
   let prefix = self.participant.participant_guid().prefix()
   match self.graph_publication_id {
-    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) =>
+    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) => {
       self.graph_publication_id = None
+      self.graph_publishers = []
+      self.graph_publisher_guids = []
+      self.latest_graph_info = None
+    }
     _ => ()
   }
   match self.graph_subscription_id {
-    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) =>
+    Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) => {
       self.graph_subscription_id = None
+      self.graph_subscriptions = []
+      self.graph_subscription_guids = []
+    }
     _ => ()
   }
-  self.latest_graph_info = None
-  Ok(())
+  self.refresh_ros_discovery_info()
 }
 
 ///|
@@ -839,7 +908,17 @@ pub async fn RosParticipant::receive_discovery_once(
                 Ok(value) => value
                 Err(message) => return Err(message)
               }
-              match self.latest_graph_info {
+              let info = match self.latest_graph_info {
+                Some(info) => Some(info)
+                None => match self.configured_ros_discovery_info() {
+                  Ok(info) => {
+                    self.latest_graph_info = Some(info)
+                    Some(info)
+                  }
+                  Err(_) => None
+                }
+              }
+              match info {
                 Some(info) => match publisher.announce_once(info) {
                   Ok(_) => ()
                   Err(message) => return Err(message)

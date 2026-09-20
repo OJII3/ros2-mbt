@@ -306,6 +306,8 @@ pub struct RosParticipant {
   mut spdp_socket : Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
+  mut ros_node_namespace : String?
+  mut ros_node_name : String?
   mut latest_graph_info : @ros.ParticipantEntitiesInfo?
   mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
   mut graph_publisher_guids : Array[@rtps.Guid]
@@ -341,6 +343,7 @@ pub async fn RosParticipant::register_topic_endpoint(Self, @ros.RosTopic, @rtps.
 pub async fn RosParticipant::register_topic_endpoint_with_type_hash(Self, @ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos, String) -> Result[Unit, String]
 pub fn RosParticipant::ros_discovery_publisher_count(Self) -> Int
 pub fn RosParticipant::ros_discovery_subscription_count(Self) -> Int
+pub async fn RosParticipant::set_ros_node_identity(Self, String, String) -> Result[Unit, String]
 pub async fn RosParticipant::unregister_endpoint(Self, @rtps.Guid) -> Result[Unit, String]
 pub fn RosParticipant::user_locator(Self) -> @rtps.Locator
 

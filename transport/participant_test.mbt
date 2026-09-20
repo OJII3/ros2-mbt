@@ -206,6 +206,11 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  match node.set_ros_node_identity("/demo", "talker") {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
+  assert_true(node.latest_graph_info is Some(_))
   let writer_id = match @rtps.EntityId::new(b"pub", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -226,6 +231,14 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Err(message) => fail(message)
   }
   assert_eq(node.local_endpoints().length(), 1)
+  let automatic_info = match node.latest_graph_info {
+    Some(value) => value
+    None => fail("automatic ROS graph information was not cached")
+  }
+  assert_eq(
+    automatic_info.node_entities_info_seq()[0].writer_gid_seq().length(),
+    1,
+  )
   assert_eq(
     node.local_endpoints()[0].participant_guid(),
     participant.participant_guid(),
@@ -279,6 +292,14 @@ async test "ROS participant registers and retains local SEDP endpoints" {
   assert_eq(node.local_endpoints().length(), 2)
   assert_true(
     node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) is Err(_),
+  )
+  let cleared_info = match node.latest_graph_info {
+    Some(value) => value
+    None => fail("automatic ROS graph information was not refreshed")
+  }
+  assert_eq(
+    cleared_info.node_entities_info_seq()[0].writer_gid_seq().length(),
+    0,
   )
   node.close()
 }
@@ -631,6 +652,10 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(value) => value
     Err(message) => fail(message)
   }
+  match publisher.set_ros_node_identity("/demo", "talker") {
+    Ok(_) => ()
+    Err(message) => fail(message)
+  }
   let writer_id = match @rtps.EntityId::new(b"pub", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -676,7 +701,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_true(publisher.publish_ros_discovery_info(info) is Err(_))
+  assert_true(publisher.latest_graph_info is Some(_))
   match publisher.announce_spdp_once() {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -739,7 +764,14 @@ async test "ROS participant automatically announces endpoints after SPDP" {
       @rtps.SedpQos::default(),
     )
     .unwrap()
-  assert_true(publisher.latest_graph_info is None)
+  let refreshed_info = match publisher.latest_graph_info {
+    Some(value) => value
+    None => fail("automatic ROS graph information was not refreshed")
+  }
+  assert_eq(
+    refreshed_info.node_entities_info_seq()[0].writer_gid_seq().length(),
+    2,
+  )
   publisher.close()
   subscriber.close()
 }
