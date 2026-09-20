@@ -30,6 +30,7 @@ jobs:
             exit 1
           fi
           echo "ROS2_MBT_IP=$runner_ip" >> "$GITHUB_ENV"
+          echo "ROS2_MBT_MULTICAST_IP=$runner_ip" >> "$GITHUB_ENV"
 
       - name: Update MoonBit package registry
         run: nix develop . --command moon update

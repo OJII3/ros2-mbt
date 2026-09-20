@@ -20,18 +20,38 @@ pub async fn Udp::bind(addr : @socket.Addr) -> Udp {
 
 ///|
 /// Bind a socket that receives only the specified multicast group.
-pub async fn Udp::multicast(group : @socket.Addr) -> Udp {
-  { server: @socket.UdpServer::multicast(group), }
+pub async fn Udp::multicast(
+  group : @socket.Addr,
+  interface_addr? : @socket.Addr,
+) -> Udp {
+  { server: @socket.UdpServer::multicast(group, interface_addr?), }
+}
+
+///|
+/// Select the IPv4 interface used when sending multicast packets.
+pub fn Udp::set_multicast_interface(
+  self : Udp,
+  interface_addr : @socket.Addr,
+) -> Result[Unit, String] {
+  try {
+    self.server.set_multicast_interface(interface_addr)
+    Ok(())
+  } catch {
+    _ => Err("could not select the UDP multicast interface")
+  }
 }
 
 ///|
 /// Bind to the DDSI-RTPS SPDP multicast port for a domain.
-pub async fn Udp::ddsi_spdp_multicast(domain_id : UInt) -> Result[Udp, String] {
+pub async fn Udp::ddsi_spdp_multicast(
+  domain_id : UInt,
+  interface_addr? : @socket.Addr,
+) -> Result[Udp, String] {
   let address = match ddsi_default_spdp_multicast_addr(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::multicast(address))
+  Ok(Udp::multicast(address, interface_addr?))
 }
 
 ///|
@@ -51,12 +71,15 @@ pub async fn Udp::ddsi_spdp_unicast(
 
 ///|
 /// Bind to the DDSI-RTPS user-data multicast port for a domain.
-pub async fn Udp::ddsi_user_multicast(domain_id : UInt) -> Result[Udp, String] {
+pub async fn Udp::ddsi_user_multicast(
+  domain_id : UInt,
+  interface_addr? : @socket.Addr,
+) -> Result[Udp, String] {
   let address = match ddsi_default_user_multicast_addr(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::multicast(address))
+  Ok(Udp::multicast(address, interface_addr?))
 }
 
 ///|

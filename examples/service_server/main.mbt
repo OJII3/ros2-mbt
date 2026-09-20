@@ -97,6 +97,7 @@ async fn main {
       config.ip,
       60,
       1L,
+      multicast_interface?=config.multicast_interface,
     ) {
     Ok(value) => value
     Err(message) => {

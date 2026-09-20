@@ -94,6 +94,7 @@ pub async fn RosParticipant::new_ddsi(
   ip : UInt,
   lease_seconds : Int,
   first_sequence_number : Int64,
+  multicast_interface? : UInt,
 ) -> Result[RosParticipant, String] {
   let participant = match
     new_ddsi_participant(
@@ -102,12 +103,30 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let discovery_receive_socket = match Udp::ddsi_spdp_multicast(domain_id) {
+  let interface_addr = match multicast_interface {
+    Some(ip) => Some(@socket.Addr::new(ip, 0))
+    None => None
+  }
+  let discovery_receive_socket = match
+    Udp::ddsi_spdp_multicast(domain_id, interface_addr?) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let discovery_send_socket = Udp::bind(@socket.Addr::new(0, 0))
   let spdp_send_socket = Udp::bind(@socket.Addr::new(0, 0))
+  match interface_addr {
+    Some(address) =>
+      match discovery_send_socket.set_multicast_interface(address) {
+        Ok(_) => ()
+        Err(message) => {
+          discovery_receive_socket.close()
+          discovery_send_socket.close()
+          spdp_send_socket.close()
+          return Err(message)
+        }
+      }
+    None => ()
+  }
   let metatraffic_socket = match
     Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
     Ok(value) => value

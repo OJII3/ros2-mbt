@@ -576,6 +576,7 @@ pub fn SedpEndpointData::type_hash(Self) -> Result[String?, String]
 pub fn SedpEndpointData::type_name(Self) -> String
 pub fn SedpEndpointData::unicast_locators(Self) -> Array[Locator]
 pub fn SedpEndpointData::with_participant_guid(Self, Guid) -> Self
+pub fn SedpEndpointData::with_unicast_locators(Self, Array[Locator]) -> Self
 
 pub(all) enum SedpEndpointKind {
   Publication

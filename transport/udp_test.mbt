@@ -22,6 +22,19 @@ async test "UDP exposes its bound address as an RTPS locator" {
 }
 
 ///|
+async test "UDP multicast sockets can use an explicit IPv4 interface" {
+  let loopback = @socket.Addr::new(0x7F000001U, 0)
+  let receiver = Udp::multicast(
+    @socket.Addr::new(0xEFFF2A01U, 0),
+    interface_addr=loopback,
+  )
+  let sender = Udp::bind(loopback)
+  assert_eq(sender.set_multicast_interface(loopback), Ok(()))
+  sender.close()
+  receiver.close()
+}
+
+///|
 async test "UDP DDSI constructors reject invalid domains before binding" {
   assert_true(Udp::ddsi_spdp_unicast(300, 0, 0x7F000001U) is Err(_))
   assert_true(Udp::ddsi_user_unicast(300, 0, 0x7F000001U) is Err(_))

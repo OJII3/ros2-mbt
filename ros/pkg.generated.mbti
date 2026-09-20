@@ -23,6 +23,8 @@ pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
 
 pub const ROS_DISCOVERY_INFO_TOPIC_NAME : String = "ros_discovery_info"
 
+pub const ROS_DISCOVERY_INFO_TYPE_HASH : String = "RIHS01_91a0593bacdcc50ea9bdcf849a938b128412cc1ea821245c663bcd26f83c295e"
+
 pub const ROS_DISCOVERY_INFO_TYPE_NAME : String = "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_"
 
 pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03

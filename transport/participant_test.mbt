@@ -171,6 +171,7 @@ async test "ROS participant can send SPDP with DDSI multicast discovery" {
     0x7F000001U,
     60,
     1L,
+    multicast_interface=0x7F000001U,
   ).unwrap()
   participant.announce_spdp_once().unwrap()
   participant.close()

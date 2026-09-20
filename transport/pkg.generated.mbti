@@ -384,7 +384,7 @@ pub fn RosParticipant::from_sockets(Udp, Udp, @rtps.SpdpParticipantData, UInt, I
 pub fn RosParticipant::graph(Self) -> DiscoveryGraph
 pub fn RosParticipant::into_parts(Self) -> (DiscoveryService, Udp)
 pub fn RosParticipant::local_endpoints(Self) -> Array[@rtps.SedpEndpointData]
-pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64) -> Result[Self, String]
+pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64, multicast_interface? : UInt) -> Result[Self, String]
 pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
 pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@ros.ParticipantEntitiesInfo, String]
 pub async fn RosParticipant::publish_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo) -> Result[Unit, String]
@@ -475,14 +475,14 @@ pub struct Udp {
 }
 pub async fn Udp::bind(@socket.Addr) -> Self
 pub fn Udp::close(Self) -> Unit
-pub async fn Udp::ddsi_spdp_multicast(UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
 pub async fn Udp::ddsi_spdp_unicast(UInt, UInt, UInt) -> Result[Self, String]
-pub async fn Udp::ddsi_user_multicast(UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_user_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
 pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub fn Udp::local_unicast_locator(Self) -> Result[@rtps.Locator, String]
-pub async fn Udp::multicast(@socket.Addr) -> Self
+pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.Addr) -> Self
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
 pub async fn Udp::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
@@ -508,6 +508,7 @@ pub async fn Udp::send_sedp_to_participant(Self, @rtps.SedpEndpointData, @rtps.V
 pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
+pub fn Udp::set_multicast_interface(Self, @socket.Addr) -> Result[Unit, String]
 
 // Type aliases
 
