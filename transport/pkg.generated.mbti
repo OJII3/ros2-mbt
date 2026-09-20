@@ -316,15 +316,20 @@ pub struct RosActionClient {
   feedback_subscription : ReliableRosSubscription
   status_subscription : ReliableRosSubscription
 }
+pub async fn RosActionClient::cancel_goal(Self, RosActionGoalHandle) -> Result[@ros.RosCancelGoalResponse, String]
 pub fn RosActionClient::close(Self) -> Unit
+pub async fn RosActionClient::get_result(Self, RosActionGoalHandle) -> Result[Bytes, String]
 pub fn RosActionClient::new(@ros.RosAction, RosServiceClient, RosServiceClient, RosServiceClient, ReliableRosSubscription, ReliableRosSubscription) -> Result[Self, String]
 pub async fn RosActionClient::receive_feedback(Self, Bytes) -> Result[Bytes, String]
+pub async fn RosActionClient::receive_goal_feedback(Self, RosActionGoalHandle) -> Result[Bytes, String]
 pub async fn RosActionClient::receive_goal_status(Self, Bytes, Int) -> Result[@ros.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_goal_terminal_status(Self, RosActionGoalHandle) -> Result[@ros.RosActionGoalStatus, String]
 pub async fn RosActionClient::receive_next_goal_status(Self, Bytes) -> Result[@ros.RosActionGoalStatus, String]
 pub async fn RosActionClient::receive_terminal_goal_status(Self, Bytes) -> Result[@ros.RosActionGoalStatus, String]
 pub async fn RosActionClient::request_cancel_goal(Self, Bytes) -> Result[@ros.RosCancelGoalResponse, String]
 pub async fn RosActionClient::request_get_result(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::request_send_goal(Self, Bytes) -> Result[Bytes, String]
+pub async fn RosActionClient::send_goal(Self, Bytes, Bytes) -> Result[RosActionGoalHandle, String]
 
 pub struct RosActionEndpoints {
   send_goal_request_subscription : @rtps.SedpEndpointData
@@ -345,6 +350,13 @@ pub fn RosActionEndpoints::get_result_response_publication(Self) -> @rtps.SedpEn
 pub fn RosActionEndpoints::send_goal_request_subscription(Self) -> @rtps.SedpEndpointData
 pub fn RosActionEndpoints::send_goal_response_publication(Self) -> @rtps.SedpEndpointData
 pub fn RosActionEndpoints::status_publication(Self) -> @rtps.SedpEndpointData
+
+pub struct RosActionGoalHandle {
+  goal_id : Bytes
+  accepted : Bool
+}
+pub fn RosActionGoalHandle::accepted(Self) -> Bool
+pub fn RosActionGoalHandle::goal_id(Self) -> Bytes
 
 pub struct RosParticipant {
   participant : @rtps.SpdpParticipantData

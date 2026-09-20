@@ -11,6 +11,23 @@ pub struct RosActionClient {
 }
 
 ///|
+/// A goal submitted through a `RosActionClient`.
+pub struct RosActionGoalHandle {
+  goal_id : Bytes
+  accepted : Bool
+}
+
+///|
+pub fn RosActionGoalHandle::goal_id(self : RosActionGoalHandle) -> Bytes {
+  self.goal_id
+}
+
+///|
+pub fn RosActionGoalHandle::accepted(self : RosActionGoalHandle) -> Bool {
+  self.accepted
+}
+
+///|
 /// Combine the five transport endpoints for one ROS 2 action client.
 pub fn RosActionClient::new(
   action : @ros.RosAction,
@@ -58,6 +75,40 @@ pub async fn RosActionClient::request_send_goal(
 }
 
 ///|
+/// Submit a generated goal payload and return its reusable goal handle.
+pub async fn RosActionClient::send_goal(
+  self : RosActionClient,
+  goal_id : Bytes,
+  serialized_goal : Bytes,
+) -> Result[RosActionGoalHandle, String] {
+  let request_payload = match
+    ros_action_send_goal_request(goal_id, serialized_goal) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let response_payload = match self.request_send_goal(request_payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let response_reader = match @cdr.Reader::from_bytes(response_payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let accepted = match response_reader.read_bool() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match (response_reader.read_i32(), response_reader.read_u32()) {
+    (Ok(_), Ok(_)) => ()
+    (Err(message), _) | (_, Err(message)) => return Err(message)
+  }
+  if !response_reader.remaining_is_zero_padding(4) {
+    return Err("trailing bytes after SendGoal response")
+  }
+  Ok({ goal_id, accepted, })
+}
+
+///|
 /// Send a generated action-specific GetResult request and return its response.
 pub async fn RosActionClient::request_get_result(
   self : RosActionClient,
@@ -83,6 +134,32 @@ pub async fn RosActionClient::request_cancel_goal(
     Err(message) => return Err(message)
   }
   @ros.RosCancelGoalResponse::from_cdr_bytes(payload)
+}
+
+///|
+/// Cancel an accepted goal using its handle.
+pub async fn RosActionClient::cancel_goal(
+  self : RosActionClient,
+  goal : RosActionGoalHandle,
+) -> Result[@ros.RosCancelGoalResponse, String] {
+  if !goal.accepted() {
+    return Err("cannot cancel a goal that was not accepted")
+  }
+  self.request_cancel_goal(goal.goal_id())
+}
+
+///|
+/// Request the action-specific result for an accepted goal handle.
+pub async fn RosActionClient::get_result(
+  self : RosActionClient,
+  goal : RosActionGoalHandle,
+) -> Result[Bytes, String] {
+  if !goal.accepted() {
+    return Err("cannot get a result for a goal that was not accepted")
+  }
+  let request_writer = @cdr.Writer::new()
+  request_writer.write_byte_array(goal.goal_id())
+  self.request_get_result(request_writer.to_bytes())
 }
 
 ///|
@@ -112,6 +189,36 @@ pub async fn RosActionClient::receive_feedback(
     }
   }
   Err("action feedback receive loop stopped")
+}
+
+///|
+/// Receive the action-specific Feedback payload for an accepted goal.
+pub async fn RosActionClient::receive_goal_feedback(
+  self : RosActionClient,
+  goal : RosActionGoalHandle,
+) -> Result[Bytes, String] {
+  if !goal.accepted() {
+    return Err("cannot receive feedback for a goal that was not accepted")
+  }
+  let payload = match self.receive_feedback(goal.goal_id()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let reader = match @cdr.Reader::from_bytes(payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match reader.read_byte_array(16) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let feedback_payload = match reader.read_byte_array(reader.remaining()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let writer = @cdr.Writer::new()
+  writer.write_byte_array(feedback_payload)
+  Ok(writer.to_bytes())
 }
 
 ///|
@@ -158,6 +265,18 @@ pub async fn RosActionClient::receive_terminal_goal_status(
     }
   }
   Err("GoalStatusArray receive loop stopped before a terminal status")
+}
+
+///|
+/// Wait for an accepted goal handle to reach a terminal status.
+pub async fn RosActionClient::receive_goal_terminal_status(
+  self : RosActionClient,
+  goal : RosActionGoalHandle,
+) -> Result[@ros.RosActionGoalStatus, String] {
+  if !goal.accepted() {
+    return Err("cannot wait for the status of a goal that was not accepted")
+  }
+  self.receive_terminal_goal_status(goal.goal_id())
 }
 
 ///|
@@ -208,4 +327,62 @@ async fn ros_action_client_request(
     Err(message) => return Err(message)
   }
   Ok(payload)
+}
+
+///|
+fn ros_action_send_goal_request(
+  goal_id : Bytes,
+  serialized_goal : Bytes,
+) -> Result[Bytes, String] {
+  if goal_id.length() != 16 {
+    return Err("an action goal ID must contain exactly 16 bytes")
+  }
+  match @cdr.Reader::from_bytes(serialized_goal) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  if serialized_goal[0] != 0 || serialized_goal[1] != 1 {
+    return Err("an action goal payload must use little-endian ROS CDR")
+  }
+  let writer = @cdr.Writer::new()
+  writer.write_byte_array(goal_id)
+  writer.write_byte_array(serialized_goal[4:].to_owned())
+  Ok(writer.to_bytes())
+}
+
+///|
+test "action SendGoal request wraps a generated goal payload" {
+  let goal_id = Bytes::from_array([
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+  ])
+  let goal_writer = @cdr.Writer::new()
+  goal_writer.write_i32(6)
+  let request = ros_action_send_goal_request(goal_id, goal_writer.to_bytes()).unwrap()
+  assert_eq(
+    request,
+    Bytes::from_array([
+      0, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 6, 0, 0,
+      0,
+    ]),
+  )
+}
+
+///|
+test "action SendGoal request rejects invalid IDs and CDR encapsulations" {
+  let goal_id = Bytes::from_array([
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+  ])
+  let goal_writer = @cdr.Writer::new()
+  goal_writer.write_i32(6)
+  let goal = goal_writer.to_bytes()
+  assert_true(
+    ros_action_send_goal_request(Bytes::from_array([1]), goal) is Err(_),
+  )
+  assert_true(
+    ros_action_send_goal_request(
+      goal_id,
+      Bytes::from_array([0, 0, 0, 0, 0, 0, 0, 0]),
+    )
+    is Err(_),
+  )
 }
