@@ -1,0 +1,20 @@
+///|
+pub using @compiler {
+  RIHS01_PREFIX,
+  parse_action,
+  parse_action_with_types,
+  parse_message,
+  parse_message_with_types,
+  parse_service,
+  parse_service_with_types,
+  type ActionDefinition,
+  type MessageConstant,
+  type MessageDefinition,
+  type MessageField,
+  type MessageFieldCollection,
+  type MessageImport,
+  type MessageSource,
+  type MessageTypeReference,
+  type MessageWorkspace,
+  type ServiceDefinition,
+}

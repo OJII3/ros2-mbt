@@ -2,158 +2,47 @@
 package "kainaproject/ros2_mbt/rosidl"
 
 import {
-  "moonbitlang/core/debug",
+  "kainaproject/ros2_mbt/rosidl/compiler",
 }
 
 // Values
 pub const RIHS01_PREFIX : String = "RIHS01_"
 
-pub fn parse_action(String, String, String) -> Result[ActionDefinition, String]
+pub fn parse_action(String, String, String) -> Result[@compiler.ActionDefinition, String]
 
-pub fn parse_action_with_types(String, String, String, Array[MessageTypeReference]) -> Result[ActionDefinition, String]
+pub fn parse_action_with_types(String, String, String, Array[@compiler.MessageTypeReference]) -> Result[@compiler.ActionDefinition, String]
 
-pub fn parse_message(String, String, String, String) -> Result[MessageDefinition, String]
+pub fn parse_message(String, String, String, String) -> Result[@compiler.MessageDefinition, String]
 
-pub fn parse_message_with_types(String, String, String, String, Array[MessageTypeReference]) -> Result[MessageDefinition, String]
+pub fn parse_message_with_types(String, String, String, String, Array[@compiler.MessageTypeReference]) -> Result[@compiler.MessageDefinition, String]
 
-pub fn parse_service(String, String, String) -> Result[ServiceDefinition, String]
+pub fn parse_service(String, String, String) -> Result[@compiler.ServiceDefinition, String]
 
-pub fn parse_service_with_types(String, String, String, Array[MessageTypeReference]) -> Result[ServiceDefinition, String]
+pub fn parse_service_with_types(String, String, String, Array[@compiler.MessageTypeReference]) -> Result[@compiler.ServiceDefinition, String]
 
 // Errors
 
 // Types and methods
-pub struct ActionDefinition {
-  package_name : String
-  action_name : String
-  goal : MessageDefinition
-  result : MessageDefinition
-  feedback : MessageDefinition
-} derive(Eq, @debug.Debug)
-pub fn ActionDefinition::action_name(Self) -> String
-pub fn ActionDefinition::feedback(Self) -> MessageDefinition
-pub fn ActionDefinition::generate_moonbit(Self) -> String
-pub fn ActionDefinition::goal(Self) -> MessageDefinition
-pub fn ActionDefinition::new(String, String, MessageDefinition, MessageDefinition, MessageDefinition) -> Result[Self, String]
-pub fn ActionDefinition::package_name(Self) -> String
-pub fn ActionDefinition::result(Self) -> MessageDefinition
-
-pub struct MessageConstant {
-  type_name : String
-  name : String
-  value : String
-} derive(Eq, @debug.Debug)
-pub fn MessageConstant::name(Self) -> String
-pub fn MessageConstant::new(String, String, String) -> Self
-pub fn MessageConstant::type_name(Self) -> String
-pub fn MessageConstant::value(Self) -> String
-
-pub struct MessageDefinition {
-  package_name : String
-  interface_namespace : String
-  type_name : String
-  fields : Array[MessageField]
-  constants : Array[MessageConstant]
-  nested_types : Array[MessageTypeReference]
-} derive(Eq, @debug.Debug)
-pub fn MessageDefinition::constants(Self) -> Array[MessageConstant]
-pub fn MessageDefinition::fields(Self) -> Array[MessageField]
-pub fn MessageDefinition::generate_moonbit(Self) -> String
-pub fn MessageDefinition::interface_namespace(Self) -> String
-pub fn MessageDefinition::nested_types(Self) -> Array[MessageTypeReference]
-pub fn MessageDefinition::new(String, String, String, Array[MessageField]) -> Result[Self, String]
-pub fn MessageDefinition::new_with_types(String, String, String, Array[MessageField], Array[MessageTypeReference]) -> Result[Self, String]
-pub fn MessageDefinition::package_name(Self) -> String
-pub fn MessageDefinition::type_hash(Self) -> Result[String, String]
-pub fn MessageDefinition::type_name(Self) -> String
-pub fn MessageDefinition::with_constants(Self, Array[MessageConstant]) -> Result[Self, String]
-
-pub struct MessageField {
-  type_name : String
-  name : String
-  collection : MessageFieldCollection
-  string_upper_bound : Int?
-  default_value : String?
-} derive(Eq, @debug.Debug)
-pub fn MessageField::collection(Self) -> MessageFieldCollection
-pub fn MessageField::default_value(Self) -> String?
-pub fn MessageField::name(Self) -> String
-pub fn MessageField::new(String, String) -> Self
-pub fn MessageField::string_upper_bound(Self) -> Int?
-pub fn MessageField::type_name(Self) -> String
-pub fn MessageField::with_collection(Self, MessageFieldCollection) -> Self
-pub fn MessageField::with_string_upper_bound(Self, Int) -> Self
-
-pub(all) enum MessageFieldCollection {
-  Scalar
-  FixedArray(Int)
-  Sequence
-  BoundedSequence(Int)
-} derive(Eq, @debug.Debug)
-
-pub struct MessageImport {
-  ros_package_name : String
-  moon_package_path : String
-  moon_alias : String
-} derive(Eq, @debug.Debug)
-pub fn MessageImport::moon_alias(Self) -> String
-pub fn MessageImport::moon_package_path(Self) -> String
-pub fn MessageImport::new(String, String, String) -> Result[Self, String]
-pub fn MessageImport::ros_package_name(Self) -> String
-
-pub struct MessageSource {
-  package_name : String
-  interface_namespace : String
-  type_name : String
-  source : String
-} derive(Eq, @debug.Debug)
-pub fn MessageSource::interface_namespace(Self) -> String
-pub fn MessageSource::new(String, String, String, String) -> Result[Self, String]
-pub fn MessageSource::package_name(Self) -> String
-pub fn MessageSource::source(Self) -> String
-pub fn MessageSource::type_name(Self) -> String
-
-pub struct MessageTypeReference {
-  ros_name : String
-  moon_name : String
-} derive(Eq, @debug.Debug)
-pub fn MessageTypeReference::moon_name(Self) -> String
-pub fn MessageTypeReference::new(String, String) -> Self
-pub fn MessageTypeReference::ros_name(Self) -> String
-
-pub struct MessageWorkspace {
-  sources : Array[MessageSource]
-  imports : Array[MessageImport]
-}
-pub fn MessageWorkspace::add_import(Self, MessageImport) -> Result[Unit, String]
-pub fn MessageWorkspace::add_source(Self, MessageSource) -> Result[Unit, String]
-pub fn MessageWorkspace::dependency_order(Self, String, String) -> Result[Array[MessageSource], String]
-pub fn MessageWorkspace::generate_action_moonbit(Self, String, String, String) -> Result[String, String]
-pub fn MessageWorkspace::generate_message_moonbit(Self, String, String, String) -> Result[String, String]
-pub fn MessageWorkspace::generate_moonbit(Self, String, String) -> Result[String, String]
-pub fn MessageWorkspace::generate_service_moonbit(Self, String, String, String) -> Result[String, String]
-pub fn MessageWorkspace::import_count(Self) -> Int
-pub fn MessageWorkspace::new() -> Self
-pub fn MessageWorkspace::resolve(Self, String, String, String) -> Result[MessageDefinition, String]
-pub fn MessageWorkspace::service_type_hash(Self, ServiceDefinition) -> Result[String, String]
-pub fn MessageWorkspace::source_count(Self) -> Int
-pub fn MessageWorkspace::type_hash(Self, String, String, String) -> Result[String, String]
-pub fn MessageWorkspace::type_hash_for_definition(Self, MessageDefinition) -> Result[String, String]
-
-pub struct ServiceDefinition {
-  package_name : String
-  service_name : String
-  request : MessageDefinition
-  response : MessageDefinition
-} derive(Eq, @debug.Debug)
-pub fn ServiceDefinition::generate_moonbit(Self) -> String
-pub fn ServiceDefinition::new(String, String, MessageDefinition, MessageDefinition) -> Result[Self, String]
-pub fn ServiceDefinition::package_name(Self) -> String
-pub fn ServiceDefinition::request(Self) -> MessageDefinition
-pub fn ServiceDefinition::response(Self) -> MessageDefinition
-pub fn ServiceDefinition::service_name(Self) -> String
-pub fn ServiceDefinition::type_hash(Self) -> Result[String, String]
 
 // Type aliases
+pub using @compiler {type ActionDefinition}
+
+pub using @compiler {type MessageConstant}
+
+pub using @compiler {type MessageDefinition}
+
+pub using @compiler {type MessageField}
+
+pub using @compiler {type MessageFieldCollection}
+
+pub using @compiler {type MessageImport}
+
+pub using @compiler {type MessageSource}
+
+pub using @compiler {type MessageTypeReference}
+
+pub using @compiler {type MessageWorkspace}
+
+pub using @compiler {type ServiceDefinition}
 
 // Traits
