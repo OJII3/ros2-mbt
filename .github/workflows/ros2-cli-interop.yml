@@ -9,49 +9,120 @@ on:
 permissions:
   contents: read
 
+env:
+  ROS_DOMAIN_ID: "42"
+  ROS_AUTOMATIC_DISCOVERY_RANGE: SUBNET
+
 jobs:
-  ros2-cli-interop:
+  build-image:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
-    env:
-      ROS_DOMAIN_ID: "42"
-      ROS_AUTOMATIC_DISCOVERY_RANGE: SUBNET
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Nix
-        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | podman login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
-      - name: Cache Nix store
-        uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
-        with:
-          use-flakehub: false
-          use-gha-cache: true
-
-      - name: Select runner IPv4 address
+      - name: Build and publish candidate image with registry cache
         run: |
-          runner_ip=$(ip -4 route get 239.255.0.1 | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}')
-          if [[ -z "$runner_ip" ]]; then
-            echo "Could not determine the runner IPv4 address for multicast discovery" >&2
-            exit 1
-          fi
-          echo "ROS2_MBT_IP=$runner_ip" >> "$GITHUB_ENV"
-          echo "ROS2_MBT_MULTICAST_IP=$runner_ip" >> "$GITHUB_ENV"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          cache="${image}-buildcache"
+          local_image="localhost/ros2-mbt-jazzy:${GITHUB_SHA}"
 
-      - name: Update MoonBit package registry
-        run: nix develop . --command moon update
+          podman build \
+            --layers \
+            --cache-from "$cache" \
+            --cache-to "$cache" \
+            --file podman/ros2-jazzy/Containerfile \
+            --tag "$local_image" \
+            podman/ros2-jazzy
 
-      - name: Check MoonBit formatting
-        run: nix develop . --command moon fmt --check
+          podman tag "$local_image" "$image:$GITHUB_SHA"
+          podman push "$image:$GITHUB_SHA"
 
-      - name: Run native test suite
-        run: nix develop . --command moon test --target native
+  test-published-image:
+    needs: build-image
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Verify ROS 2 CLI topic and service interoperability
-        run: nix develop .#ros2 --command bash scripts/ros2_cli_interop.sh
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | podman login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
-      - name: Verify ROS 2 Action interoperability
-        run: nix develop .#ros2 --command bash scripts/ros2_action_interop.sh
+      - name: Pull candidate image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          local_image="localhost/ros2-mbt-jazzy:${GITHUB_SHA}"
+          podman pull "$image:$GITHUB_SHA"
+          podman tag "$image:$GITHUB_SHA" "$local_image"
 
-      - name: Verify ROS 2 Parameter interoperability
-        run: nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
+      - name: Run CI in Podman
+        env:
+          ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
+          ROS2_MBT_PODMAN_BUILD: "0"
+        run: bash scripts/ros2_podman_interop.sh
+
+  test-pull-request:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | podman login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build candidate image with registry cache
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          cache="${image}-buildcache"
+          local_image="localhost/ros2-mbt-jazzy:${GITHUB_SHA}"
+          podman build \
+            --layers \
+            --cache-from "$cache" \
+            --file podman/ros2-jazzy/Containerfile \
+            --tag "$local_image" \
+            podman/ros2-jazzy
+
+      - name: Run CI in Podman
+        env:
+          ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
+          ROS2_MBT_PODMAN_BUILD: "0"
+        run: bash scripts/ros2_podman_interop.sh
+
+  promote-main-image:
+    needs: test-published-image
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | podman login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Promote tested image to main
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          podman pull "$image:$GITHUB_SHA"
+          podman tag "$image:$GITHUB_SHA" "$image:main"
+          podman push "$image:main"
