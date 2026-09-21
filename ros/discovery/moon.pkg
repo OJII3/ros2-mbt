@@ -1,5 +1,5 @@
 import {
-  "ojii3/ros2_mbt/rtps",
+  "ojii3/ros2-mbt/rtps",
 }
 
 options(

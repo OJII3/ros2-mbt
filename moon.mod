@@ -1,10 +1,10 @@
-name = "ojii3/ros2_mbt"
+name = "ojii3/ros2-mbt"
 
 version = "0.1.0"
 
 readme = "README.md"
 
-repository = "https://github.com/OJII3/ros2.mbt"
+repository = "https://github.com/OJII3/ros2-mbt"
 
 license = "MIT"
 

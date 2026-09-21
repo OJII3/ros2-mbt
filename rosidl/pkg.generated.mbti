@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2_mbt/rosidl"
+package "ojii3/ros2-mbt/rosidl"
 
 import {
-  "ojii3/ros2_mbt/rosidl/compiler",
+  "ojii3/ros2-mbt/rosidl/compiler",
 }
 
 // Values

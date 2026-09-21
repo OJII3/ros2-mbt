@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2_mbt/ros/messages/builtin_interfaces"
+package "ojii3/ros2-mbt/ros/messages/builtin_interfaces"
 
 import {
-  "ojii3/ros2_mbt/cdr",
+  "ojii3/ros2-mbt/cdr",
   "moonbitlang/core/debug",
 }
 
