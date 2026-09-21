@@ -30,6 +30,7 @@ wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
 wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
 wstring_publisher_log="$tmp_dir/wstring-topic-pub.log"
 moon_service_log="$tmp_dir/moonbit-service-server.log"
+service_graph_observer_log="$tmp_dir/ros-service-graph-observer.log"
 service_call_log="$tmp_dir/ros2-service-call.log"
 ros_service_log="$tmp_dir/ros2-service-server.log"
 moon_client_log="$tmp_dir/moonbit-service-client.log"
@@ -39,6 +40,7 @@ talker_pid=""
 listener_pid=""
 publisher_pid=""
 moon_service_pid=""
+service_graph_observer_pid=""
 ros_service_pid=""
 moon_client_pid=""
 
@@ -68,6 +70,10 @@ cleanup() {
     kill -- "-$moon_service_pid" 2>/dev/null || true
     wait "$moon_service_pid" 2>/dev/null || true
   fi
+  if [[ -n "$service_graph_observer_pid" ]]; then
+    kill -- "-$service_graph_observer_pid" 2>/dev/null || true
+    wait "$service_graph_observer_pid" 2>/dev/null || true
+  fi
   if [[ -n "$ros_service_pid" ]]; then
     kill -- "-$ros_service_pid" 2>/dev/null || true
     wait "$ros_service_pid" 2>/dev/null || true
@@ -83,7 +89,8 @@ cleanup() {
       "$publisher_first_publisher_log" \
       "$wstring_talker_log" "$wstring_echo_log" \
       "$wstring_listener_log" "$wstring_publisher_log" \
-      "$moon_service_log" "$service_call_log" "$ros_service_log" \
+      "$moon_service_log" "$service_graph_observer_log" \
+      "$service_call_log" "$ros_service_log" \
       "$moon_client_log" 2>/dev/null || true
   fi
   rm -rf -- "$tmp_dir"
@@ -290,12 +297,28 @@ fi
 
 # Start the lazy ROS CLI graph daemon before the MoonBit service server.
 timeout --kill-after=1s 5s ros2 node list --spin-time 0.25 >/dev/null
+timeout --kill-after=2s 60s python3 -u \
+  "$script_dir/ros2_service_graph_interop_observer.py" \
+  >"$service_graph_observer_log" 2>&1 &
+service_graph_observer_pid=$!
+for _ in {1..40}; do
+  if grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
+    break
+  fi
+  sleep 0.25
+done
+if ! grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
+  echo "ROS 2 service graph observer did not start"
+  exit 1
+fi
 
 timeout --kill-after=2s 45s nix develop --command moon run examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
 wait_for_ros_endpoint "/demo/moon_add_two_ints_server" "$moon_service_pid" \
   "Service Servers" "/add_two_ints"
+wait "$service_graph_observer_pid"
+service_graph_observer_pid=""
 timeout --kill-after=2s 45s ros2 service call /add_two_ints \
   example_interfaces/srv/AddTwoInts "{a: 2, b: 3}" \
   >"$service_call_log" 2>&1
