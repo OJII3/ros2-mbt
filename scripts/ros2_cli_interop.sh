@@ -14,6 +14,11 @@ if ! command -v ros2 >/dev/null 2>&1; then
   echo "ROS 2 CLI not found; use nix develop .#ros2 or source /opt/ros/jazzy/setup.bash" >&2
   exit 127
 fi
+if command -v moon >/dev/null 2>&1; then
+  moon_command=(moon run)
+else
+  moon_command=(nix develop --command moon run)
+fi
 
 tmp_dir=$(mktemp -d)
 echo_log="$tmp_dir/topic-echo.log"
@@ -172,7 +177,7 @@ if [[ "$(uname -s)" == "Linux" || "${ROS2_MBT_VERIFY_ROS_GRAPH:-0}" == "1" ]]; t
     "$script_dir/ros2_graph_interop_observer.py" >"$graph_observer_log" 2>&1 &
   graph_observer_pid=$!
 fi
-timeout --kill-after=2s 45s nix develop --command moon run examples/talker \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$talker_log" 2>&1 &
 talker_pid=$!
 
@@ -200,7 +205,7 @@ fi
 # later subscriber is discovered, rather than relying on startup order.
 ROS_DOMAIN_ID="$startup_order_ros_domain_id"
 export ROS_DOMAIN_ID
-timeout --kill-after=2s 45s nix develop --command moon run examples/talker \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$publisher_first_talker_log" 2>&1 &
 talker_pid=$!
 sleep 1
@@ -223,7 +228,7 @@ fi
 ROS_DOMAIN_ID="$base_ros_domain_id"
 export ROS_DOMAIN_ID
 
-timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
   >"$listener_log" 2>&1 &
 listener_pid=$!
 
@@ -254,7 +259,7 @@ if ! kill -0 "$publisher_pid" 2>/dev/null; then
   echo "ROS 2 publisher exited before the later MoonBit subscriber started"
   exit 1
 fi
-timeout --kill-after=2s 45s nix develop --command moon run examples/listener \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
   >"$publisher_first_listener_log" 2>&1 &
 listener_pid=$!
 wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
@@ -274,7 +279,7 @@ timeout --kill-after=2s 45s ros2 topic echo /wide_chatter \
   example_interfaces/msg/WString --qos-reliability reliable --once \
   >"$wstring_echo_log" 2>&1 &
 echo_pid=$!
-timeout --kill-after=2s 45s nix develop --command moon run \
+timeout --kill-after=2s 45s "${moon_command[@]}" \
   examples/wstring_talker >"$wstring_talker_log" 2>&1 &
 talker_pid=$!
 wait_for_ros_endpoint "/demo/moon_wstring_talker" "$talker_pid" \
@@ -288,7 +293,7 @@ if ! grep -Fq "wide こんにちは 🙂 #" "$wstring_echo_log"; then
   exit 1
 fi
 
-timeout --kill-after=2s 45s nix develop --command moon run \
+timeout --kill-after=2s 45s "${moon_command[@]}" \
   examples/wstring_listener >"$wstring_listener_log" 2>&1 &
 listener_pid=$!
 wait_for_ros_endpoint "/demo/moon_wstring_listener" "$listener_pid" \
@@ -320,7 +325,7 @@ if ! grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
   exit 1
 fi
 
-timeout --kill-after=2s 45s nix develop --command moon run examples/service_server \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
 ROS2_MBT_NO_DAEMON=1 wait_for_ros_endpoint \
@@ -343,7 +348,7 @@ ros2 run demo_nodes_cpp add_two_ints_server >"$ros_service_log" 2>&1 &
 ros_service_pid=$!
 wait_for_ros_endpoint "/add_two_ints_server" "$ros_service_pid" \
   "Service Servers" "/add_two_ints"
-timeout --kill-after=2s 45s nix develop --command moon run examples/service_client \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/service_client \
   >"$moon_client_log" 2>&1 &
 moon_client_pid=$!
 wait "$moon_client_pid"

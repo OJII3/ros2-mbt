@@ -156,6 +156,19 @@ Parameter相互運用テストは`rclpy` nodeの標準parameter serviceを使い
 nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
 ```
 
+PodmanでLinux上の検証一式を実行する場合は、次を使います。macOSでは事前にPodman machineを初期化・起動してください。ROS 2とMoonBitの両方を同じコンテナ内で実行するため、macOSホストとPodman VMの間でDDS multicastを通す必要はありません。ソースは読み取り専用でマウントし、コンテナ内の一時領域にコピーしてテストします。
+
+```sh
+# macOS: 初回のみ
+podman machine init
+# macOS: machineが停止しているとき
+podman machine start
+# Linuxではmachineの起動は不要
+bash scripts/ros2_podman_interop.sh
+```
+
+このスクリプトはROS 2 Jazzy `ros-base` imageにテスト用interface/demo packageとMoonBit toolchainを加え、format、check、native test、topic/service、Action、Parameter相互運用を順に実行します。
+
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
 Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みですが、ROS graph全体の相互運用は未確認です。
 

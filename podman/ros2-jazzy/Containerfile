@@ -1,0 +1,18 @@
+FROM docker.io/library/ros:jazzy-ros-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    iproute2 \
+    ros-jazzy-action-tutorials-interfaces \
+    ros-jazzy-demo-nodes-cpp \
+    ros-jazzy-example-interfaces \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+
+ENV PATH="/root/.moon/bin:${PATH}"
