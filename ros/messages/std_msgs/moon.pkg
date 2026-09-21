@@ -1,5 +1,6 @@
 import {
   "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
 }
 
 options(

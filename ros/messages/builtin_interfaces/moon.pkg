@@ -1,6 +1,5 @@
 import {
   "kainaproject/ros2_mbt/cdr",
-  "kainaproject/ros2_mbt/ros/messages/std_msgs",
 }
 
 options(
