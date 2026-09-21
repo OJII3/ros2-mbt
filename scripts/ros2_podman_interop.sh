@@ -24,7 +24,9 @@ podman run --rm \
   --entrypoint /bin/bash \
   "$image" -lc '
     set -euo pipefail
+    set +u
     source /opt/ros/jazzy/setup.bash
+    set -u
     mkdir -p /tmp/ros2-mbt
     tar \
       --exclude=.git \
