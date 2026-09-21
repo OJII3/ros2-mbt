@@ -98,4 +98,3 @@ fn DiscoverySession::record_sedp_gap(
   }
   ignore(self.sedp_readers[index].reader.accept_gap(gap))
 }
-

@@ -172,4 +172,3 @@ async fn DiscoverySession::retransmit_sedp_acknack(
   }
   Ok(())
 }
-

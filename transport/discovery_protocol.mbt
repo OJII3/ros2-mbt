@@ -201,4 +201,3 @@ async fn DiscoverySession::decode_message(
   }
   Ok(events)
 }
-

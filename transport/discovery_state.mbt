@@ -363,4 +363,3 @@ fn DiscoverySession::record_sedp_data(
   }
   ignore(self.sedp_readers[index].reader.accept_data(data))
 }
-
