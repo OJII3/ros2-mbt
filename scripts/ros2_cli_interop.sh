@@ -228,15 +228,23 @@ fi
 ROS_DOMAIN_ID="$base_ros_domain_id"
 export ROS_DOMAIN_ID
 
+timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
+  --wait-matching-subscriptions 1 /chatter std_msgs/msg/String \
+  "{data: 'hello from ROS 2'}" >"$publisher_log" 2>&1 &
+publisher_pid=$!
+sleep 1
+if ! kill -0 "$publisher_pid" 2>/dev/null; then
+  echo "ROS 2 publisher exited before the MoonBit listener started"
+  exit 1
+fi
+
 timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
   >"$listener_log" 2>&1 &
 listener_pid=$!
 
 wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
-
-timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
-  /chatter std_msgs/msg/String "{data: 'hello from ROS 2'}" \
-  >"$publisher_log" 2>&1
+wait "$publisher_pid"
+publisher_pid=""
 wait "$listener_pid"
 listener_pid=""
 
