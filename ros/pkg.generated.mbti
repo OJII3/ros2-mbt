@@ -2,8 +2,14 @@
 package "kainaproject/ros2_mbt/ros"
 
 import {
-  "kainaproject/ros2_mbt/rtps",
-  "moonbitlang/core/debug",
+  "kainaproject/ros2_mbt/ros/endpoints",
+  "kainaproject/ros2_mbt/ros/messages/action_msgs",
+  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/rmw_dds_common",
+  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "kainaproject/ros2_mbt/ros/names",
+  "kainaproject/ros2_mbt/rtps/core",
+  "kainaproject/ros2_mbt/rtps/discovery",
 }
 
 // Values
@@ -33,11 +39,11 @@ pub const ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND : Byte = 0x04
 
 pub const STD_MSGS_STRING_TYPE_HASH : String = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
 
-pub fn ros_discovery_info_to_sedp(@rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
+pub fn ros_discovery_info_to_sedp(@discovery.SedpEndpointKind, @core.Guid) -> Result[@discovery.SedpEndpointData, String]
 
-pub fn ros_name_to_dds(String, DdsTopicKind) -> Result[String, String]
+pub fn ros_name_to_dds(String, @names.DdsTopicKind) -> Result[String, String]
 
-pub fn ros_service_payload_from_cdr(Bytes) -> Result[(RosServicePayloadHeader, Bytes), String]
+pub fn ros_service_payload_from_cdr(Bytes) -> Result[(@endpoints.RosServicePayloadHeader, Bytes), String]
 
 pub fn ros_service_request_to_dds(String) -> Result[String, String]
 
@@ -49,185 +55,43 @@ pub fn ros_type_path_to_dds(String) -> Result[String, String]
 
 pub fn ros_type_to_dds(String, String, String) -> Result[String, String]
 
-pub fn validate_ros_discovery_info_endpoint(@rtps.SedpEndpointData, @rtps.SedpEndpointKind) -> Result[Unit, String]
+pub fn validate_ros_discovery_info_endpoint(@discovery.SedpEndpointData, @discovery.SedpEndpointKind) -> Result[Unit, String]
 
 // Errors
 
 // Types and methods
-pub(all) enum DdsTopicKind {
-  Topic
-  ServiceRequest
-  ServiceResponse
-} derive(Eq, @debug.Debug)
-
-pub struct Gid {
-  data : Bytes
-} derive(Eq, @debug.Debug)
-pub fn Gid::data(Self) -> Bytes
-pub fn Gid::from_guid(@rtps.Guid) -> Self
-pub fn Gid::new(Bytes) -> Result[Self, String]
-
-pub struct NodeEntitiesInfo {
-  node_namespace : String
-  node_name : String
-  reader_gid_seq : Array[Gid]
-  writer_gid_seq : Array[Gid]
-} derive(Eq, @debug.Debug)
-pub fn NodeEntitiesInfo::add_reader_gid(Self, Gid) -> Unit
-pub fn NodeEntitiesInfo::add_writer_gid(Self, Gid) -> Unit
-pub fn NodeEntitiesInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn NodeEntitiesInfo::new(String, String) -> Result[Self, String]
-pub fn NodeEntitiesInfo::node_name(Self) -> String
-pub fn NodeEntitiesInfo::node_namespace(Self) -> String
-pub fn NodeEntitiesInfo::reader_gid_seq(Self) -> Array[Gid]
-pub fn NodeEntitiesInfo::to_cdr_bytes(Self) -> Bytes
-pub fn NodeEntitiesInfo::writer_gid_seq(Self) -> Array[Gid]
-
-pub struct ParticipantEntitiesInfo {
-  gid : Gid
-  node_entities_info_seq : Array[NodeEntitiesInfo]
-} derive(Eq, @debug.Debug)
-pub fn ParticipantEntitiesInfo::add_node(Self, NodeEntitiesInfo) -> Unit
-pub fn ParticipantEntitiesInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn ParticipantEntitiesInfo::gid(Self) -> Gid
-pub fn ParticipantEntitiesInfo::new(Gid) -> Self
-pub fn ParticipantEntitiesInfo::node_entities_info_seq(Self) -> Array[NodeEntitiesInfo]
-pub fn ParticipantEntitiesInfo::to_cdr_bytes(Self) -> Bytes
-
-pub struct RosAction {
-  ros_name : String
-  send_goal_service : RosService
-  get_result_service : RosService
-  cancel_goal_service : RosService
-  feedback_topic : RosTopic
-  status_topic : RosTopic
-}
-pub fn RosAction::cancel_goal_service(Self) -> RosService
-pub fn RosAction::feedback_topic(Self) -> RosTopic
-pub fn RosAction::get_result_service(Self) -> RosService
-pub fn RosAction::new(String, String, String) -> Result[Self, String]
-pub fn RosAction::ros_name(Self) -> String
-pub fn RosAction::send_goal_service(Self) -> RosService
-pub fn RosAction::status_topic(Self) -> RosTopic
-
-pub struct RosActionGoalInfo {
-  goal_id : Bytes
-  stamp_sec : Int
-  stamp_nanosec : UInt
-} derive(Eq, @debug.Debug)
-pub fn RosActionGoalInfo::goal_id(Self) -> Bytes
-pub fn RosActionGoalInfo::new(Bytes, Int, UInt) -> Result[Self, String]
-pub fn RosActionGoalInfo::stamp_nanosec(Self) -> UInt
-pub fn RosActionGoalInfo::stamp_sec(Self) -> Int
-
-pub struct RosActionGoalStatus {
-  goal_info : RosActionGoalInfo
-  status : Int
-} derive(Eq, @debug.Debug)
-pub fn RosActionGoalStatus::goal_info(Self) -> RosActionGoalInfo
-pub fn RosActionGoalStatus::is_terminal(Self) -> Bool
-pub fn RosActionGoalStatus::new(RosActionGoalInfo, Int) -> Result[Self, String]
-pub fn RosActionGoalStatus::status(Self) -> Int
-
-pub struct RosActionGoalStatusArray {
-  status_list : Array[RosActionGoalStatus]
-} derive(Eq, @debug.Debug)
-pub fn RosActionGoalStatusArray::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn RosActionGoalStatusArray::new(Array[RosActionGoalStatus]) -> Self
-pub fn RosActionGoalStatusArray::status_list(Self) -> Array[RosActionGoalStatus]
-pub fn RosActionGoalStatusArray::to_cdr_bytes(Self) -> Bytes
-
-pub struct RosCancelGoalRequest {
-  goal_info : RosActionGoalInfo
-} derive(Eq, @debug.Debug)
-pub fn RosCancelGoalRequest::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn RosCancelGoalRequest::goal_info(Self) -> RosActionGoalInfo
-pub fn RosCancelGoalRequest::new(RosActionGoalInfo) -> Self
-pub fn RosCancelGoalRequest::to_cdr_bytes(Self) -> Bytes
-
-pub struct RosCancelGoalResponse {
-  return_code : Int
-  goals_canceling : Array[RosActionGoalInfo]
-} derive(Eq, @debug.Debug)
-pub fn RosCancelGoalResponse::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn RosCancelGoalResponse::goals_canceling(Self) -> Array[RosActionGoalInfo]
-pub fn RosCancelGoalResponse::new(Int, Array[RosActionGoalInfo]) -> Result[Self, String]
-pub fn RosCancelGoalResponse::return_code(Self) -> Int
-pub fn RosCancelGoalResponse::to_cdr_bytes(Self) -> Bytes
-
-pub struct RosService {
-  ros_name : String
-  dds_request_name : String
-  dds_response_name : String
-  dds_request_type_name : String
-  dds_response_type_name : String
-} derive(Eq, @debug.Debug)
-pub fn RosService::dds_request_name(Self) -> String
-pub fn RosService::dds_request_type_name(Self) -> String
-pub fn RosService::dds_response_name(Self) -> String
-pub fn RosService::dds_response_type_name(Self) -> String
-pub fn RosService::new(String, String, String) -> Result[Self, String]
-pub fn RosService::new_with_interface_namespace(String, String, String, String) -> Result[Self, String]
-pub fn RosService::request_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::request_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::request_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::request_to_sedp_with_related_endpoint(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::response_to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::response_to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::response_to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::response_to_sedp_with_related_endpoint(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosService::ros_name(Self) -> String
-
-pub struct RosServicePayloadHeader {
-  client_id : UInt64
-  sequence_number : Int64
-} derive(Eq, @debug.Debug)
-pub fn RosServicePayloadHeader::client_id(Self) -> UInt64
-pub fn RosServicePayloadHeader::new(UInt64, Int64) -> Self
-pub fn RosServicePayloadHeader::sequence_number(Self) -> Int64
-pub fn RosServicePayloadHeader::to_cdr_payload(Self, Bytes) -> Result[Bytes, String]
-
-pub struct RosTopic {
-  ros_name : String
-  dds_name : String
-  dds_type_name : String
-}
-pub fn RosTopic::dds_name(Self) -> String
-pub fn RosTopic::dds_type_name(Self) -> String
-pub fn RosTopic::new(String, String, String, String) -> Result[Self, String]
-pub fn RosTopic::ros_name(Self) -> String
-pub fn RosTopic::to_sedp(Self, @rtps.SedpEndpointKind, @rtps.Guid) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosTopic::to_sedp_with_qos(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos) -> Result[@rtps.SedpEndpointData, String]
-pub fn RosTopic::to_sedp_with_qos_and_type_hash(Self, @rtps.SedpEndpointKind, @rtps.Guid, @rtps.SedpQos, String) -> Result[@rtps.SedpEndpointData, String]
-
-pub struct StringMessage {
-  data : String
-}
-pub fn StringMessage::data(Self) -> String
-pub fn StringMessage::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn StringMessage::new(String) -> Self
-pub fn StringMessage::to_cdr_bytes(Self) -> Bytes
-
-pub struct Twist {
-  linear : Vector3
-  angular : Vector3
-} derive(Eq, @debug.Debug)
-pub fn Twist::angular(Self) -> Vector3
-pub fn Twist::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn Twist::linear(Self) -> Vector3
-pub fn Twist::new(Vector3, Vector3) -> Self
-pub fn Twist::to_cdr_bytes(Self) -> Bytes
-
-pub struct Vector3 {
-  x : Double
-  y : Double
-  z : Double
-} derive(Eq, @debug.Debug)
-pub fn Vector3::new(Double, Double, Double) -> Self
-pub fn Vector3::x(Self) -> Double
-pub fn Vector3::y(Self) -> Double
-pub fn Vector3::z(Self) -> Double
 
 // Type aliases
+pub using @names {type DdsTopicKind}
+
+pub using @rmw_dds_common {type Gid}
+
+pub using @rmw_dds_common {type NodeEntitiesInfo}
+
+pub using @rmw_dds_common {type ParticipantEntitiesInfo}
+
+pub using @endpoints {type RosAction}
+
+pub using @action_msgs {type RosActionGoalInfo}
+
+pub using @action_msgs {type RosActionGoalStatus}
+
+pub using @action_msgs {type RosActionGoalStatusArray}
+
+pub using @action_msgs {type RosCancelGoalRequest}
+
+pub using @action_msgs {type RosCancelGoalResponse}
+
+pub using @endpoints {type RosService}
+
+pub using @endpoints {type RosServicePayloadHeader}
+
+pub using @endpoints {type RosTopic}
+
+pub using @std_msgs {type StringMessage}
+
+pub using @geometry_msgs {type Twist}
+
+pub using @geometry_msgs {type Vector3}
 
 // Traits

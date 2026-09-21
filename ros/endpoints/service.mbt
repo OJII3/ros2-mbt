@@ -108,16 +108,16 @@ pub fn RosService::new_with_interface_namespace(
   interface_namespace : String,
   service_name : String,
 ) -> Result[RosService, String] {
-  let dds_request_name = match ros_service_request_to_dds(ros_name) {
+  let dds_request_name = match @names.ros_service_request_to_dds(ros_name) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let dds_response_name = match ros_service_response_to_dds(ros_name) {
+  let dds_response_name = match @names.ros_service_response_to_dds(ros_name) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let dds_request_type_name = match
-    ros_type_to_dds(
+    @names.ros_type_to_dds(
       package_name,
       interface_namespace,
       service_name + "_Request",
@@ -126,7 +126,7 @@ pub fn RosService::new_with_interface_namespace(
     Err(message) => return Err(message)
   }
   let dds_response_type_name = match
-    ros_type_to_dds(
+    @names.ros_type_to_dds(
       package_name,
       interface_namespace,
       service_name + "_Response",

@@ -14,12 +14,12 @@ pub fn RosTopic::new(
   interface_namespace : String,
   type_name : String,
 ) -> Result[RosTopic, String] {
-  let dds_name = match ros_topic_to_dds(ros_name) {
+  let dds_name = match @names.ros_topic_to_dds(ros_name) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let dds_type_name = match
-    ros_type_to_dds(package_name, interface_namespace, type_name) {
+    @names.ros_type_to_dds(package_name, interface_namespace, type_name) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
