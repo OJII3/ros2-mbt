@@ -7,14 +7,7 @@ import time
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-from rmw_dds_common.msg import ParticipantEntitiesInfo
 from rclpy.node import Node
-from rclpy.qos import (
-    DurabilityPolicy,
-    HistoryPolicy,
-    QoSProfile,
-    ReliabilityPolicy,
-)
 
 
 EXPECTED_CHATTER_WRITER_GID = bytes(
@@ -25,41 +18,17 @@ EXPECTED_CHATTER_WRITER_GID = bytes(
 class RosGraphObserver(Node):
     def __init__(self) -> None:
         super().__init__("moonbit_ros_graph_observer")
-        self.matched_graph = False
-        self.graph_samples = 0
         self.moon_talker_writer_gids: list[str] = []
-        graph_qos = QoSProfile(
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-        )
-        self._subscription = self.create_subscription(
-            ParticipantEntitiesInfo,
-            "ros_discovery_info",
-            self.observe,
-            graph_qos,
-        )
 
-    def observe(self, message: ParticipantEntitiesInfo) -> None:
-        self.graph_samples += 1
-        for node_info in message.node_entities_info_seq:
-            if (
-                node_info.node_namespace != "/demo"
-                or node_info.node_name != "moon_talker"
-            ):
-                continue
-            writer_gids = [
-                bytes(gid.data).hex() for gid in node_info.writer_gid_seq
-            ]
-            self.moon_talker_writer_gids = writer_gids
-            if EXPECTED_CHATTER_WRITER_GID.hex() in writer_gids:
-                self.matched_graph = True
-                print(
-                    "ROS_DISCOVERY_INFO_MATCHED /demo/moon_talker /chatter",
-                    flush=True,
-                )
-                return
+    def observe(self) -> bool:
+        publishers = self.get_publishers_info_by_topic("/chatter")
+        self.moon_talker_writer_gids = [
+            bytes(endpoint.endpoint_gid).hex()
+            for endpoint in publishers
+            if endpoint.node_namespace == "/demo"
+            and endpoint.node_name == "moon_talker"
+        ]
+        return EXPECTED_CHATTER_WRITER_GID.hex() in self.moon_talker_writer_gids
 
 
 def main() -> int:
@@ -67,18 +36,18 @@ def main() -> int:
     node = RosGraphObserver()
     deadline = time.monotonic() + float(os.environ.get("ROS2_MBT_GRAPH_TIMEOUT", "40"))
     graph_publishers: list[str] = []
-    graph_subscriptions: list[str] = []
+    discovered_nodes: list[tuple[str, str]] = []
     try:
-        while rclpy.ok() and not node.matched_graph and time.monotonic() < deadline:
+        while rclpy.ok() and time.monotonic() < deadline:
+            if node.observe():
+                break
             rclpy.spin_once(node, timeout_sec=0.2)
         if rclpy.ok():
+            discovered_nodes = node.get_node_names_and_namespaces()
             graph_publishers = [
-                f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
-                for endpoint in node.get_publishers_info_by_topic("ros_discovery_info")
-            ]
-            graph_subscriptions = [
-                f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}"
-                for endpoint in node.get_subscriptions_info_by_topic("ros_discovery_info")
+                f"{endpoint.node_namespace}/{endpoint.node_name}:{endpoint.topic_type}:"
+                f"{bytes(endpoint.endpoint_gid).hex()}"
+                for endpoint in node.get_publishers_info_by_topic("/chatter")
             ]
     except ExternalShutdownException:
         pass
@@ -86,16 +55,16 @@ def main() -> int:
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
-    if not node.matched_graph:
+    if EXPECTED_CHATTER_WRITER_GID.hex() not in node.moon_talker_writer_gids:
         print(
             "ROS 2 graph observer timed out: "
-            f"graph_samples={node.graph_samples}, "
-            f"discovered_publishers={graph_publishers}, "
-            f"discovered_subscriptions={graph_subscriptions}, "
-            f"moon_talker_writer_gids={node.moon_talker_writer_gids}",
+            f"discovered_chatter_publishers={graph_publishers}, "
+            f"moon_talker_writer_gids={node.moon_talker_writer_gids}, "
+            f"discovered_nodes={discovered_nodes}",
             file=sys.stderr,
         )
         return 1
+    print("ROS_DISCOVERY_INFO_MATCHED /demo/moon_talker /chatter", flush=True)
     return 0
 
 
