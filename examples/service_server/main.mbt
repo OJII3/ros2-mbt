@@ -48,7 +48,7 @@ async fn announce_ros_graph_info(
 ) -> Result[Unit, String] {
   let mut quiet_periods = 0
   println("Waiting for ROS graph discovery readers")
-  while participant.ros_discovery_publisher_count() == 0 || quiet_periods < 4 {
+  while participant.ros_discovery_publisher_count() == 0 || quiet_periods < 12 {
     let graph_publisher_count = participant.ros_discovery_publisher_count()
     let received = if graph_publisher_count > 0 {
       @async.with_timeout_opt(250, async fn() {

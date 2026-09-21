@@ -9,7 +9,7 @@ async fn discover_publication(
   // Other ROS graph readers can arrive after the first matching endpoints.
   while remote_publication is None ||
         participant.ros_discovery_publisher_count() == 0 ||
-        quiet_periods < 4 {
+        quiet_periods < 12 {
     let graph_publisher_count = participant.ros_discovery_publisher_count()
     let received = if remote_publication is Some(_) && graph_publisher_count > 0 {
       @async.with_timeout_opt(250, async fn() {

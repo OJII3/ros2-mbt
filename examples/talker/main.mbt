@@ -9,7 +9,7 @@ async fn discover_subscription(
   // Other ROS graph readers can arrive after the first matching endpoints.
   while remote_subscription is None ||
         participant.ros_discovery_publisher_count() == 0 ||
-        quiet_periods < 4 {
+        quiet_periods < 12 {
     let graph_publisher_count = participant.ros_discovery_publisher_count()
     let received = if remote_subscription is Some(_) &&
       graph_publisher_count > 0 {
