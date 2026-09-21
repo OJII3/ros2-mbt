@@ -12,10 +12,12 @@ if ! command -v podman >/dev/null 2>&1; then
   exit 127
 fi
 
-podman build \
-  --file "$repo_dir/podman/ros2-jazzy/Containerfile" \
-  --tag "$image" \
-  "$repo_dir/podman/ros2-jazzy"
+if [[ "${ROS2_MBT_PODMAN_BUILD:-1}" != "0" ]]; then
+  podman build \
+    --file "$repo_dir/podman/ros2-jazzy/Containerfile" \
+    --tag "$image" \
+    "$repo_dir/podman/ros2-jazzy"
+fi
 
 podman run --rm \
   --volume "$repo_dir:/source:ro" \
