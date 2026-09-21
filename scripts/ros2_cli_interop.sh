@@ -288,6 +288,9 @@ if [[ "$received_count" -ne 5 ]]; then
   exit 1
 fi
 
+# Start the lazy ROS CLI graph daemon before the MoonBit service server.
+timeout --kill-after=1s 5s ros2 node list --spin-time 0.25 >/dev/null
+
 timeout --kill-after=2s 45s nix develop --command moon run examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
