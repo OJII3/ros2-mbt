@@ -1,7 +1,7 @@
 ///|
 async test "ROS publisher and subscription validate the topic identity" {
   let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -12,7 +12,7 @@ async test "ROS publisher and subscription validate the topic identity" {
     1,
   )
   let other_topic = match
-    @ros.RosTopic::new("/other", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/other", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -29,8 +29,8 @@ async test "ROS publisher and subscription validate the topic identity" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -105,7 +105,7 @@ async test "ROS publisher and subscription validate the topic identity" {
 ///|
 async test "ROS publisher and subscription exchange a CDR payload" {
   let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -128,8 +128,8 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -178,7 +178,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let message = @ros.StringMessage::new("hello from the ROS facade")
+  let message = @ros_types.StringMessage::new("hello from the ROS facade")
   match publisher.publish(message.to_cdr_bytes()) {
     Ok(_) => ()
     Err(error) => fail(error)
@@ -187,7 +187,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(error) => fail(error)
   }
-  let decoded = match @ros.StringMessage::from_cdr_bytes(payload) {
+  let decoded = match @ros_types.StringMessage::from_cdr_bytes(payload) {
     Ok(value) => value
     Err(error) => fail(error)
   }

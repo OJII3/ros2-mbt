@@ -1,15 +1,15 @@
 ///|
 /// A reliable ROS topic publisher backed by a discovered subscription.
 pub struct ReliableRosPublisher {
-  topic : @ros.RosTopic
-  writer : ReliableDataWriter
+  topic : @ros_types.RosTopic
+  writer : @wire.ReliableDataWriter
 }
 
 ///|
 /// Create a reliable publisher for a matching discovered subscription.
 pub fn ReliableRosPublisher::new_for_subscription(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   writer_id : @rtps.EntityId,
@@ -28,7 +28,7 @@ pub fn ReliableRosPublisher::new_for_subscription(
     return Err("the discovered subscription is not reliable")
   }
   let writer = match
-    ReliableDataWriter::new_for_subscription(
+    @wire.ReliableDataWriter::new_for_subscription(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
     ) {
     Ok(value) => value
@@ -41,7 +41,7 @@ pub fn ReliableRosPublisher::new_for_subscription(
 /// Return the ROS topic represented by this publisher.
 pub fn ReliableRosPublisher::topic(
   self : ReliableRosPublisher,
-) -> @ros.RosTopic {
+) -> @ros_types.RosTopic {
   self.topic
 }
 
@@ -127,15 +127,15 @@ pub fn ReliableRosPublisher::close(self : ReliableRosPublisher) -> Unit {
 ///|
 /// A reliable ROS topic subscription backed by a discovered publication.
 pub struct ReliableRosSubscription {
-  topic : @ros.RosTopic
-  reader : ReliableDataReaderSession
+  topic : @ros_types.RosTopic
+  reader : @wire.ReliableDataReaderSession
 }
 
 ///|
 /// Create a reliable subscription for a matching discovered publication.
 pub fn ReliableRosSubscription::new_for_publication(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   reader_id : @rtps.EntityId,
@@ -153,7 +153,7 @@ pub fn ReliableRosSubscription::new_for_publication(
     return Err("the discovered publication is not reliable")
   }
   let reader = match
-    ReliableDataReaderSession::new_for_publication(
+    @wire.ReliableDataReaderSession::new_for_publication(
       socket, guid_prefix, vendor_id, reader_id, publication,
     ) {
     Ok(value) => value
@@ -166,7 +166,7 @@ pub fn ReliableRosSubscription::new_for_publication(
 /// Return the ROS topic represented by this subscription.
 pub fn ReliableRosSubscription::topic(
   self : ReliableRosSubscription,
-) -> @ros.RosTopic {
+) -> @ros_types.RosTopic {
   self.topic
 }
 

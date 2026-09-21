@@ -80,7 +80,7 @@ fn DiscoverySession::sedp_reader_index(
   self.sedp_readers.push({
     writer_prefix,
     writer_id,
-    reader: ReliableDataReader::new(kind.builtin_reader_id(), writer_id),
+    reader: @wire.ReliableDataReader::new(kind.builtin_reader_id(), writer_id),
   })
   Ok(self.sedp_readers.length() - 1)
 }
@@ -99,7 +99,7 @@ fn DiscoverySession::spdp_fragment_reader_index(
   self.spdp_fragment_readers.push({
     writer_prefix,
     writer_id: self.writer_id,
-    reader: ReliableDataReader::new(self.reader_id, self.writer_id),
+    reader: @wire.ReliableDataReader::new(self.reader_id, self.writer_id),
   })
   self.spdp_fragment_readers.length() - 1
 }
@@ -269,12 +269,35 @@ fn DiscoverySession::acknowledgement_destination(
     if participant.participant_guid().prefix() != participant_prefix {
       continue
     }
-    match udp_locator_to_addrs(participant.metatraffic_unicast_locators()) {
+    match
+      discovery_udp_locator_to_addrs(participant.metatraffic_unicast_locators()) {
       Ok(addresses) if addresses.length() > 0 => return addresses[0]
       _ => ()
     }
   }
   source
+}
+
+///|
+fn discovery_udp_locator_to_addrs(
+  locators : Array[@rtps.Locator],
+) -> Result[Array[@socket.Addr], String] {
+  let addresses : Array[@socket.Addr] = []
+  for locator in locators {
+    if locator.kind() != @rtps.LOCATOR_KIND_UDP_V4 {
+      continue
+    }
+    let address = locator.address()
+    let ip = (address[12].to_int().reinterpret_as_uint() << 24) |
+      (address[13].to_int().reinterpret_as_uint() << 16) |
+      (address[14].to_int().reinterpret_as_uint() << 8) |
+      address[15].to_int().reinterpret_as_uint()
+    addresses.push(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
+  }
+  if addresses.length() == 0 {
+    return Err("no supported UDP/IPv4 locators were advertised")
+  }
+  Ok(addresses)
 }
 
 ///|

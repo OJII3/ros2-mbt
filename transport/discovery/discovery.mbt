@@ -3,7 +3,7 @@
 struct DiscoveryRemoteDataReader {
   writer_prefix : @rtps.GuidPrefix
   writer_id : @rtps.EntityId
-  reader : ReliableDataReader
+  reader : @wire.ReliableDataReader
 }
 
 ///|
@@ -44,8 +44,8 @@ fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
 ///|
 /// State for periodically announcing one local participant through SPDP.
 pub struct DiscoverySession {
-  socket : Udp
-  receive_sockets : Array[Udp]
+  socket : @wire.Udp
+  receive_sockets : Array[@wire.Udp]
   participant : @rtps.SpdpParticipantData
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
@@ -55,14 +55,14 @@ pub struct DiscoverySession {
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
   mut remote_participants : Array[DiscoveryRemoteParticipant]
-  mut pending_events : Array[(DiscoveryEvent, @socket.Addr)]
+  mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
   mut pending_event_index : Int
 }
 
 ///|
 /// Create a discovery session with the first SPDP sequence number to send.
 pub fn DiscoverySession::new(
-  socket : Udp,
+  socket : @wire.Udp,
   participant : @rtps.SpdpParticipantData,
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
@@ -96,8 +96,8 @@ pub fn DiscoverySession::new(
 /// unicast metatraffic port for SEDP. The primary socket remains the send
 /// socket; all sockets are raced when receiving discovery events.
 pub fn DiscoverySession::new_with_receive_sockets(
-  socket : Udp,
-  receive_sockets : Array[Udp],
+  socket : @wire.Udp,
+  receive_sockets : Array[@wire.Udp],
   participant : @rtps.SpdpParticipantData,
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
@@ -127,13 +127,13 @@ pub fn DiscoverySession::new_with_receive_sockets(
 ///|
 /// Create a default DDSI session with an additional metatraffic receiver.
 pub fn DiscoverySession::new_default_with_receive_sockets(
-  socket : Udp,
-  receive_sockets : Array[Udp],
+  socket : @wire.Udp,
+  receive_sockets : Array[@wire.Udp],
   participant : @rtps.SpdpParticipantData,
   domain_id : UInt,
   first_sequence_number : Int64,
 ) -> Result[DiscoverySession, String] {
-  let destination = match ddsi_default_spdp_multicast_addr(domain_id) {
+  let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -161,12 +161,12 @@ pub fn DiscoverySession::new_default_with_receive_sockets(
 ///|
 /// Create an SPDP session using the DDSI-RTPS default multicast destination.
 pub fn DiscoverySession::new_default(
-  socket : Udp,
+  socket : @wire.Udp,
   participant : @rtps.SpdpParticipantData,
   domain_id : UInt,
   first_sequence_number : Int64,
 ) -> Result[DiscoverySession, String] {
-  let destination = match ddsi_default_spdp_multicast_addr(domain_id) {
+  let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -198,6 +198,14 @@ pub fn DiscoverySession::next_sequence_number(self : DiscoverySession) -> Int64 
 }
 
 ///|
+/// Return the local participant announced by this session.
+pub fn DiscoverySession::participant(
+  self : DiscoverySession,
+) -> @rtps.SpdpParticipantData {
+  self.participant
+}
+
+///|
 /// Send one SPDP participant announcement and advance its sequence number.
 pub async fn DiscoverySession::announce_once(
   self : DiscoverySession,
@@ -209,7 +217,7 @@ pub async fn DiscoverySession::announce_once(
 /// Send the local participant dispose through a caller-provided socket.
 async fn DiscoverySession::dispose_once_on(
   self : DiscoverySession,
-  socket : Udp,
+  socket : @wire.Udp,
 ) -> Result[Unit, String] {
   let sequence_number = self.next_sequence_number
   let data = self.participant.to_dispose_data_submessage(
@@ -245,7 +253,7 @@ pub async fn DiscoverySession::dispose_once(
 /// Send one SPDP announcement through a caller-provided socket.
 async fn DiscoverySession::announce_once_on(
   self : DiscoverySession,
-  socket : Udp,
+  socket : @wire.Udp,
 ) -> Result[Unit, String] {
   let sequence_number = self.next_sequence_number
   match
@@ -316,7 +324,7 @@ pub async fn DiscoverySession::announce_forever(
 /// A participant-lease expiry has no packet source and uses `0.0.0.0:0`.
 pub async fn DiscoverySession::receive_once(
   self : DiscoverySession,
-) -> Result[(DiscoveryEvent, @socket.Addr), String] {
+) -> Result[(@wire.DiscoveryEvent, @socket.Addr), String] {
   while true {
     if self.pending_event_index < self.pending_events.length() {
       let event = self.pending_events[self.pending_event_index]
@@ -342,7 +350,7 @@ pub async fn DiscoverySession::receive_once(
           self.forget_remote_participant(participant_guid)
           return Ok(
             (
-              DiscoveryEvent::ParticipantRemoved(participant_guid),
+              @wire.DiscoveryEvent::ParticipantRemoved(participant_guid),
               @socket.Addr::new(0, 0),
             ),
           )

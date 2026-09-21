@@ -1,13 +1,13 @@
 ///|
 /// A reliable publisher for `rmw_dds_common/msg/ParticipantEntitiesInfo`.
 pub struct ReliableRosDiscoveryPublisher {
-  writer : ReliableDataWriter
+  writer : @wire.ReliableDataWriter
 }
 
 ///|
 /// Create a graph-discovery publisher for a matching discovered subscription.
 pub fn ReliableRosDiscoveryPublisher::new_for_subscription(
-  socket : Udp,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   writer_id : @rtps.EntityId,
@@ -15,7 +15,7 @@ pub fn ReliableRosDiscoveryPublisher::new_for_subscription(
   first_sequence_number : Int64,
 ) -> Result[ReliableRosDiscoveryPublisher, String] {
   match
-    @ros.validate_ros_discovery_info_endpoint(
+    @ros_types.validate_ros_discovery_info_endpoint(
       subscription,
       @rtps.SedpEndpointKind::Subscription,
     ) {
@@ -23,7 +23,7 @@ pub fn ReliableRosDiscoveryPublisher::new_for_subscription(
     Err(message) => return Err(message)
   }
   let writer = match
-    ReliableDataWriter::new_for_subscription(
+    @wire.ReliableDataWriter::new_for_subscription(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
     ) {
     Ok(value) => value
@@ -52,7 +52,7 @@ pub fn ReliableRosDiscoveryPublisher::history_length(
 /// Publish one graph-discovery sample and retain it for retransmission.
 pub async fn ReliableRosDiscoveryPublisher::publish(
   self : ReliableRosDiscoveryPublisher,
-  info : @ros.ParticipantEntitiesInfo,
+  info : @ros_types.ParticipantEntitiesInfo,
 ) -> Result[Unit, String] {
   self.writer.write(info.to_cdr_bytes())
 }
@@ -61,7 +61,7 @@ pub async fn ReliableRosDiscoveryPublisher::publish(
 /// Publish one graph-discovery sample and announce it with a HEARTBEAT.
 pub async fn ReliableRosDiscoveryPublisher::announce_once(
   self : ReliableRosDiscoveryPublisher,
-  info : @ros.ParticipantEntitiesInfo,
+  info : @ros_types.ParticipantEntitiesInfo,
 ) -> Result[Unit, String] {
   match self.publish(info) {
     Ok(_) => self.writer.send_heartbeat()
@@ -113,20 +113,20 @@ pub fn ReliableRosDiscoveryPublisher::close(
 ///|
 /// A reliable subscription for `rmw_dds_common/msg/ParticipantEntitiesInfo`.
 pub struct ReliableRosDiscoverySubscription {
-  reader : ReliableDataReaderSession
+  reader : @wire.ReliableDataReaderSession
 }
 
 ///|
 /// Create a graph-discovery subscription for a matching publication.
 pub fn ReliableRosDiscoverySubscription::new_for_publication(
-  socket : Udp,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[ReliableRosDiscoverySubscription, String] {
   match
-    @ros.validate_ros_discovery_info_endpoint(
+    @ros_types.validate_ros_discovery_info_endpoint(
       publication,
       @rtps.SedpEndpointKind::Publication,
     ) {
@@ -134,7 +134,7 @@ pub fn ReliableRosDiscoverySubscription::new_for_publication(
     Err(message) => return Err(message)
   }
   let reader = match
-    ReliableDataReaderSession::new_for_publication(
+    @wire.ReliableDataReaderSession::new_for_publication(
       socket, guid_prefix, vendor_id, reader_id, publication,
     ) {
     Ok(value) => value
@@ -147,13 +147,15 @@ pub fn ReliableRosDiscoverySubscription::new_for_publication(
 /// Receive and decode one graph-discovery sample.
 pub async fn ReliableRosDiscoverySubscription::receive(
   self : ReliableRosDiscoverySubscription,
-) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String] {
+) -> Result[(@ros_types.ParticipantEntitiesInfo, @socket.Addr), String] {
   let (data, source) = match self.reader.receive_data() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let info = match
-    @ros.ParticipantEntitiesInfo::from_cdr_bytes(data.serialized_payload()) {
+    @ros_types.ParticipantEntitiesInfo::from_cdr_bytes(
+      data.serialized_payload(),
+    ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

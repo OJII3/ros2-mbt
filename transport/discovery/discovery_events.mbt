@@ -2,7 +2,7 @@
 /// Dispatch one parsed SEDP sample as a publication, subscription, or removal.
 fn DiscoverySession::dispatch_sedp_data(
   self : DiscoverySession,
-  events : Array[DiscoveryEvent],
+  events : Array[@wire.DiscoveryEvent],
   writer_prefix : @rtps.GuidPrefix,
   kind : @rtps.SedpEndpointKind,
   data : @rtps.DataSubmessage,
@@ -22,7 +22,9 @@ fn DiscoverySession::dispatch_sedp_data(
       }
       match @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
         Ok(endpoint_guid) =>
-          events.push(DiscoveryEvent::EndpointRemoved(kind, endpoint_guid))
+          events.push(
+            @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
+          )
         Err(_) => ()
       }
     }
@@ -32,9 +34,9 @@ fn DiscoverySession::dispatch_sedp_data(
           events.push(
             match kind {
               @rtps.SedpEndpointKind::Publication =>
-                DiscoveryEvent::Publication(endpoint)
+                @wire.DiscoveryEvent::Publication(endpoint)
               @rtps.SedpEndpointKind::Subscription =>
-                DiscoveryEvent::Subscription(endpoint)
+                @wire.DiscoveryEvent::Subscription(endpoint)
             },
           )
         Err(_) => ()
@@ -46,7 +48,7 @@ fn DiscoverySession::dispatch_sedp_data(
 /// Dispatch a parsed SPDP announcement or participant removal.
 fn DiscoverySession::dispatch_spdp_data(
   self : DiscoverySession,
-  events : Array[DiscoveryEvent],
+  events : Array[@wire.DiscoveryEvent],
   data : @rtps.DataSubmessage,
 ) -> Unit {
   let status = match data.status_info() {
@@ -64,7 +66,9 @@ fn DiscoverySession::dispatch_spdp_data(
       match @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
         Ok(participant_guid) => {
           self.forget_remote_participant(participant_guid)
-          events.push(DiscoveryEvent::ParticipantRemoved(participant_guid))
+          events.push(
+            @wire.DiscoveryEvent::ParticipantRemoved(participant_guid),
+          )
         }
         Err(_) => ()
       }
@@ -78,7 +82,7 @@ fn DiscoverySession::dispatch_spdp_data(
         Ok(participant) =>
           if participant.domain_id() == self.participant.domain_id() {
             self.remember_remote_participant(participant)
-            events.push(DiscoveryEvent::Participant(participant))
+            events.push(@wire.DiscoveryEvent::Participant(participant))
           }
         Err(_) => ()
       }

@@ -5,16 +5,16 @@
 /// serialization remain explicit in the existing topic facades.
 pub struct RosParticipant {
   participant : @rtps.SpdpParticipantData
-  discovery : DiscoveryService
-  user_socket : Udp
+  discovery : @discovery.DiscoveryService
+  user_socket : @wire.Udp
   user_locator : @rtps.Locator
   mut local_endpoints : Array[@rtps.SedpEndpointData]
-  mut spdp_socket : Udp?
+  mut spdp_socket : @wire.Udp?
   mut graph_publication_id : @rtps.EntityId?
   mut graph_subscription_id : @rtps.EntityId?
   mut ros_node_namespace : String?
   mut ros_node_name : String?
-  mut latest_graph_info : @ros.ParticipantEntitiesInfo?
+  mut latest_graph_info : @ros_types.ParticipantEntitiesInfo?
   mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
   mut graph_publisher_guids : Array[@rtps.Guid]
   mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
@@ -28,14 +28,14 @@ pub struct RosParticipant {
 /// binding. The discovery session still announces to the DDSI multicast
 /// address for `domain_id`.
 pub fn RosParticipant::from_sockets(
-  discovery_socket : Udp,
-  user_socket : Udp,
+  discovery_socket : @wire.Udp,
+  user_socket : @wire.Udp,
   participant : @rtps.SpdpParticipantData,
   domain_id : UInt,
   first_sequence_number : Int64,
 ) -> Result[RosParticipant, String] {
   let session = match
-    DiscoverySession::new_default(
+    @discovery.DiscoverySession::new_default(
       discovery_socket, participant, domain_id, first_sequence_number,
     ) {
     Ok(value) => value
@@ -53,8 +53,8 @@ pub fn RosParticipant::from_sockets(
 /// This is useful for custom discovery destinations and deterministic unicast
 /// tests. The session's participant data is used as the local identity.
 pub fn RosParticipant::from_discovery_session(
-  session : DiscoverySession,
-  user_socket : Udp,
+  session : @discovery.DiscoverySession,
+  user_socket : @wire.Udp,
 ) -> Result[RosParticipant, String] {
   let user_locator = match user_socket.local_unicast_locator() {
     Ok(value) => value
@@ -64,10 +64,10 @@ pub fn RosParticipant::from_discovery_session(
       return Err(message)
     }
   }
-  let participant = session.participant
+  let participant = session.participant()
   Ok({
     participant,
-    discovery: DiscoveryService::new(session),
+    discovery: @discovery.DiscoveryService::new(session),
     user_socket,
     user_locator,
     local_endpoints: [],
@@ -97,7 +97,7 @@ pub async fn RosParticipant::new_ddsi(
   multicast_interface? : UInt,
 ) -> Result[RosParticipant, String] {
   let participant = match
-    new_ddsi_participant(
+    @wire.new_ddsi_participant(
       guid_prefix, vendor_id, domain_id, participant_id, ip, lease_seconds,
     ) {
     Ok(value) => value
@@ -108,12 +108,12 @@ pub async fn RosParticipant::new_ddsi(
     None => None
   }
   let discovery_receive_socket = match
-    Udp::ddsi_spdp_multicast(domain_id, interface_addr?) {
+    @wire.Udp::ddsi_spdp_multicast(domain_id, interface_addr?) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let discovery_send_socket = Udp::bind(@socket.Addr::new(0, 0))
-  let spdp_send_socket = Udp::bind(@socket.Addr::new(0, 0))
+  let discovery_send_socket = @wire.Udp::bind(@socket.Addr::new(0, 0))
+  let spdp_send_socket = @wire.Udp::bind(@socket.Addr::new(0, 0))
   match interface_addr {
     Some(address) => {
       match discovery_send_socket.set_multicast_interface(address) {
@@ -138,7 +138,7 @@ pub async fn RosParticipant::new_ddsi(
     None => ()
   }
   let metatraffic_socket = match
-    Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
+    @wire.Udp::ddsi_spdp_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
       discovery_receive_socket.close()
@@ -148,7 +148,7 @@ pub async fn RosParticipant::new_ddsi(
     }
   }
   let user_socket = match
-    Udp::ddsi_user_unicast(domain_id, participant_id, ip) {
+    @wire.Udp::ddsi_user_unicast(domain_id, participant_id, ip) {
     Ok(value) => value
     Err(message) => {
       discovery_receive_socket.close()
@@ -159,7 +159,7 @@ pub async fn RosParticipant::new_ddsi(
     }
   }
   let session = match
-    DiscoverySession::new_default_with_receive_sockets(
+    @discovery.DiscoverySession::new_default_with_receive_sockets(
       discovery_send_socket,
       [discovery_receive_socket, metatraffic_socket],
       participant,
@@ -204,7 +204,9 @@ pub fn RosParticipant::user_locator(self : RosParticipant) -> @rtps.Locator {
 
 ///|
 /// Return the current discovery graph.
-pub fn RosParticipant::graph(self : RosParticipant) -> DiscoveryGraph {
+pub fn RosParticipant::graph(
+  self : RosParticipant,
+) -> @discovery.DiscoveryGraph {
   self.discovery.graph()
 }
 
@@ -222,23 +224,23 @@ pub fn RosParticipant::participant_entities_info(
   self : RosParticipant,
   node_namespace : String,
   node_name : String,
-) -> Result[@ros.ParticipantEntitiesInfo, String] {
-  let node = match @ros.NodeEntitiesInfo::new(node_namespace, node_name) {
+) -> Result[@ros_types.ParticipantEntitiesInfo, String] {
+  let node = match @ros_types.NodeEntitiesInfo::new(node_namespace, node_name) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   for endpoint in self.local_endpoints {
-    if endpoint.topic_name() == @ros.ROS_DISCOVERY_INFO_TOPIC_NAME {
+    if endpoint.topic_name() == @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME {
       continue
     }
-    let gid = @ros.Gid::from_guid(endpoint.endpoint_guid())
+    let gid = @ros_types.Gid::from_guid(endpoint.endpoint_guid())
     match endpoint.kind() {
       @rtps.SedpEndpointKind::Publication => node.add_writer_gid(gid)
       @rtps.SedpEndpointKind::Subscription => node.add_reader_gid(gid)
     }
   }
-  let info = @ros.ParticipantEntitiesInfo::new(
-    @ros.Gid::from_guid(self.participant.participant_guid()),
+  let info = @ros_types.ParticipantEntitiesInfo::new(
+    @ros_types.Gid::from_guid(self.participant.participant_guid()),
   )
   info.add_node(node)
   Ok(info)
@@ -248,7 +250,7 @@ pub fn RosParticipant::participant_entities_info(
 /// Return a graph-discovery sample for the configured ROS node identity.
 fn RosParticipant::configured_ros_discovery_info(
   self : RosParticipant,
-) -> Result[@ros.ParticipantEntitiesInfo, String] {
+) -> Result[@ros_types.ParticipantEntitiesInfo, String] {
   match (self.ros_node_namespace, self.ros_node_name) {
     (Some(node_namespace), Some(node_name)) =>
       self.participant_entities_info(node_namespace, node_name)
@@ -292,7 +294,7 @@ pub async fn RosParticipant::set_ros_node_identity(
   node_namespace : String,
   node_name : String,
 ) -> Result[Unit, String] {
-  match @ros.NodeEntitiesInfo::new(node_namespace, node_name) {
+  match @ros_types.NodeEntitiesInfo::new(node_namespace, node_name) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -380,7 +382,7 @@ pub async fn RosParticipant::unregister_endpoint(
 /// Create, locate, register, and announce one ROS topic endpoint.
 pub async fn RosParticipant::register_topic_endpoint(
   self : RosParticipant,
-  topic : @ros.RosTopic,
+  topic : @ros_types.RosTopic,
   kind : @rtps.SedpEndpointKind,
   endpoint_id : @rtps.EntityId,
   qos : @rtps.SedpQos,
@@ -403,7 +405,7 @@ pub async fn RosParticipant::register_topic_endpoint(
 /// RIHS01 type hash in the SEDP USER_DATA parameter.
 pub async fn RosParticipant::register_topic_endpoint_with_type_hash(
   self : RosParticipant,
-  topic : @ros.RosTopic,
+  topic : @ros_types.RosTopic,
   kind : @rtps.SedpEndpointKind,
   endpoint_id : @rtps.EntityId,
   qos : @rtps.SedpQos,
@@ -427,7 +429,7 @@ pub async fn RosParticipant::register_topic_endpoint_with_type_hash(
 /// Register a ROS service server with optional request/response type hashes.
 async fn RosParticipant::register_service_server_with_optional_type_hashes(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_reader_id : @rtps.EntityId,
   response_writer_id : @rtps.EntityId,
   request_type_hash : String?,
@@ -477,7 +479,7 @@ async fn RosParticipant::register_service_server_with_optional_type_hashes(
 /// Register the request reader and response writer for a ROS service server.
 pub async fn RosParticipant::register_service_server(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_reader_id : @rtps.EntityId,
   response_writer_id : @rtps.EntityId,
 ) -> Result[Unit, String] {
@@ -494,7 +496,7 @@ pub async fn RosParticipant::register_service_server(
 /// Register a ROS service server and advertise request/response type hashes.
 pub async fn RosParticipant::register_service_server_with_type_hashes(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_reader_id : @rtps.EntityId,
   response_writer_id : @rtps.EntityId,
   request_type_hash : String,
@@ -513,7 +515,7 @@ pub async fn RosParticipant::register_service_server_with_type_hashes(
 /// Register a ROS service client with optional request/response type hashes.
 async fn RosParticipant::register_service_client_with_optional_type_hashes(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_writer_id : @rtps.EntityId,
   response_reader_id : @rtps.EntityId,
   request_type_hash : String?,
@@ -563,7 +565,7 @@ async fn RosParticipant::register_service_client_with_optional_type_hashes(
 /// Register the request writer and response reader for a ROS service client.
 pub async fn RosParticipant::register_service_client(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_writer_id : @rtps.EntityId,
   response_reader_id : @rtps.EntityId,
 ) -> Result[Unit, String] {
@@ -580,7 +582,7 @@ pub async fn RosParticipant::register_service_client(
 /// Register a ROS service client and advertise request/response type hashes.
 pub async fn RosParticipant::register_service_client_with_type_hashes(
   self : RosParticipant,
-  service : @ros.RosService,
+  service : @ros_types.RosService,
   request_writer_id : @rtps.EntityId,
   response_reader_id : @rtps.EntityId,
   request_type_hash : String,
@@ -604,7 +606,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
 ) -> Result[Unit, String] {
   let prefix = self.participant.participant_guid().prefix()
   let publication = match
-    @ros.ros_discovery_info_to_sedp(
+    @ros_types.ros_discovery_info_to_sedp(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, publication_id),
     ) {
@@ -617,7 +619,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
     Err(message) => return Err(message)
   }
   let subscription = match
-    @ros.ros_discovery_info_to_sedp(
+    @ros_types.ros_discovery_info_to_sedp(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(prefix, subscription_id),
     ) {
@@ -655,7 +657,7 @@ pub fn RosParticipant::ros_discovery_subscription_count(
 /// Publish one local graph-discovery sample to every discovered subscription.
 pub async fn RosParticipant::publish_ros_discovery_info(
   self : RosParticipant,
-  info : @ros.ParticipantEntitiesInfo,
+  info : @ros_types.ParticipantEntitiesInfo,
 ) -> Result[Unit, String] {
   self.latest_graph_info = Some(info)
   if self.graph_publishers.length() == 0 {
@@ -675,7 +677,7 @@ pub async fn RosParticipant::publish_ros_discovery_info(
 pub async fn RosParticipant::receive_ros_discovery_info(
   self : RosParticipant,
   index : Int,
-) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String] {
+) -> Result[(@ros_types.ParticipantEntitiesInfo, @socket.Addr), String] {
   if index < 0 || index >= self.graph_subscriptions.length() {
     return Err("ROS graph subscription index is out of range")
   }
@@ -741,7 +743,7 @@ pub async fn RosParticipant::announce_spdp_once(
   self : RosParticipant,
 ) -> Result[Unit, String] {
   match self.spdp_socket {
-    Some(socket) => self.discovery.session.announce_once_on(socket)
+    Some(socket) => self.discovery.announce_once_on(socket)
     None => self.discovery.announce_once()
   }
 }
@@ -780,7 +782,7 @@ pub async fn RosParticipant::dispose_and_close(
     }
   }
   let spdp_result = match self.spdp_socket {
-    Some(socket) => self.discovery.session.dispose_once_on(socket)
+    Some(socket) => self.discovery.dispose_once_on(socket)
     None => self.discovery.session.dispose_once()
   }
   match spdp_result {
@@ -869,8 +871,8 @@ fn RosParticipant::ensure_ros_discovery_publication(
   self : RosParticipant,
   publication : @rtps.SedpEndpointData,
 ) -> Result[Unit, String] {
-  if publication.topic_name() != @ros.ROS_DISCOVERY_INFO_TOPIC_NAME ||
-    publication.type_name() != @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+  if publication.topic_name() != @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME ||
+    publication.type_name() != @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME {
     return Ok(())
   }
   let reader_id = match self.graph_subscription_id {
@@ -906,8 +908,8 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
   subscription : @rtps.SedpEndpointData,
   announce_initial : Bool,
 ) -> Result[Unit, String] {
-  if subscription.topic_name() != @ros.ROS_DISCOVERY_INFO_TOPIC_NAME ||
-    subscription.type_name() != @ros.ROS_DISCOVERY_INFO_TYPE_NAME {
+  if subscription.topic_name() != @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME ||
+    subscription.type_name() != @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME {
     return Ok(())
   }
   let writer_id = match self.graph_publication_id {
@@ -983,13 +985,13 @@ async fn RosParticipant::reconcile_ros_discovery_endpoints(
 /// Receive one SPDP or SEDP event and ingest it into the graph.
 pub async fn RosParticipant::receive_discovery_once(
   self : RosParticipant,
-) -> Result[(@socket.Addr, DiscoveryEvent), String] {
+) -> Result[(@socket.Addr, @wire.DiscoveryEvent), String] {
   let (source, event) = match self.discovery.receive_once() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   match event {
-    DiscoveryEvent::Participant(remote_participant) =>
+    @wire.DiscoveryEvent::Participant(remote_participant) =>
       if remote_participant.participant_guid() !=
         self.participant.participant_guid() {
         for endpoint in self.local_endpoints {
@@ -1000,24 +1002,24 @@ pub async fn RosParticipant::receive_discovery_once(
           }
         }
       }
-    DiscoveryEvent::Publication(publication) =>
+    @wire.DiscoveryEvent::Publication(publication) =>
       match self.ensure_ros_discovery_publication(publication) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
-    DiscoveryEvent::Subscription(subscription) =>
+    @wire.DiscoveryEvent::Subscription(subscription) =>
       match self.ensure_ros_discovery_subscription(subscription, true) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
-    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
+    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
       match kind {
         @rtps.SedpEndpointKind::Publication =>
           self.forget_graph_publication(endpoint_guid)
         @rtps.SedpEndpointKind::Subscription =>
           self.forget_graph_subscription(endpoint_guid)
       }
-    DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+    @wire.DiscoveryEvent::ParticipantRemoved(participant_guid) =>
       self.forget_graph_participant(participant_guid.prefix())
   }
   Ok((source, event))
@@ -1027,7 +1029,7 @@ pub async fn RosParticipant::receive_discovery_once(
 /// Transfer ownership of both underlying services to the caller.
 pub fn RosParticipant::into_parts(
   self : RosParticipant,
-) -> (DiscoveryService, Udp) {
+) -> (@discovery.DiscoveryService, @wire.Udp) {
   match self.spdp_socket {
     Some(socket) => socket.close()
     None => ()

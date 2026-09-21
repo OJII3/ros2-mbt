@@ -19,8 +19,8 @@ test "discovery graph upserts and matches endpoints" {
     0,
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
   )
-  graph.ingest(DiscoveryEvent::Participant(participant))
-  graph.ingest(DiscoveryEvent::Participant(participant))
+  graph.ingest(@wire.DiscoveryEvent::Participant(participant))
+  graph.ingest(@wire.DiscoveryEvent::Participant(participant))
   assert_eq(graph.participant_count(), 1)
 
   let publication_id = match @rtps.EntityId::new(b"pub", 0x02) {
@@ -42,7 +42,7 @@ test "discovery graph upserts and matches endpoints" {
     Err(message) => fail(message)
   }
   publication.add_unicast_locator(locator)
-  graph.ingest(DiscoveryEvent::Publication(publication))
+  graph.ingest(@wire.DiscoveryEvent::Publication(publication))
   let matched = graph.find_publications(
     "rt/chatter", "std_msgs::msg::dds_::String_",
   )
@@ -51,7 +51,7 @@ test "discovery graph upserts and matches endpoints" {
   assert_eq(matched[0].unicast_locators()[0].port(), 9000U)
   assert_eq(graph.find_subscriptions("rt/chatter", "missing").length(), 0)
   graph.ingest(
-    DiscoveryEvent::EndpointRemoved(
+    @wire.DiscoveryEvent::EndpointRemoved(
       @rtps.SedpEndpointKind::Publication,
       publication.endpoint_guid(),
     ),
@@ -89,9 +89,9 @@ test "discovery graph removes a participant and its endpoints" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let graph = DiscoveryGraph::new()
-  graph.ingest(DiscoveryEvent::Participant(participant))
-  graph.ingest(DiscoveryEvent::Publication(publication))
-  graph.ingest(DiscoveryEvent::Subscription(subscription))
+  graph.ingest(@wire.DiscoveryEvent::Participant(participant))
+  graph.ingest(@wire.DiscoveryEvent::Publication(publication))
+  graph.ingest(@wire.DiscoveryEvent::Subscription(subscription))
   let info = @ros.ParticipantEntitiesInfo::new(
     @ros.Gid::from_guid(participant_guid),
   )
@@ -106,7 +106,7 @@ test "discovery graph removes a participant and its endpoints" {
     1,
   )
   graph.ingest(
-    DiscoveryEvent::EndpointRemoved(
+    @wire.DiscoveryEvent::EndpointRemoved(
       @rtps.SedpEndpointKind::Publication,
       publication.endpoint_guid(),
     ),
@@ -118,7 +118,7 @@ test "discovery graph removes a participant and its endpoints" {
     0,
   )
   assert_eq(graph.ros_participant_count(), 1)
-  graph.ingest(DiscoveryEvent::ParticipantRemoved(participant_guid))
+  graph.ingest(@wire.DiscoveryEvent::ParticipantRemoved(participant_guid))
   assert_eq(graph.participant_count(), 0)
   assert_eq(graph.publication_count(), 0)
   assert_eq(graph.subscription_count(), 0)
@@ -195,7 +195,7 @@ test "discovery graph filters publications by basic QoS" {
   subscription.add_parameter(
     @rtps.qos_reliability(@rtps.RELIABILITY_RELIABLE, 0, 0),
   )
-  graph.ingest(DiscoveryEvent::Publication(publication))
+  graph.ingest(@wire.DiscoveryEvent::Publication(publication))
   let matched = match graph.find_compatible_publications(subscription) {
     Ok(value) => value
     Err(message) => fail(message)

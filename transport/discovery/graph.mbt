@@ -53,10 +53,10 @@ pub fn DiscoveryGraph::new() -> DiscoveryGraph {
 /// Insert or replace one participant or endpoint discovery event.
 pub fn DiscoveryGraph::ingest(
   self : DiscoveryGraph,
-  event : DiscoveryEvent,
+  event : @wire.DiscoveryEvent,
 ) -> Unit {
   match event {
-    DiscoveryEvent::Participant(participant) => {
+    @wire.DiscoveryEvent::Participant(participant) => {
       for index in 0..<self.participants.length() {
         if self.participants[index].participant_guid() ==
           participant.participant_guid() {
@@ -66,7 +66,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.participants.push(participant)
     }
-    DiscoveryEvent::Publication(publication) => {
+    @wire.DiscoveryEvent::Publication(publication) => {
       for index in 0..<self.publications.length() {
         if self.publications[index].endpoint_guid() ==
           publication.endpoint_guid() {
@@ -76,7 +76,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.publications.push(publication)
     }
-    DiscoveryEvent::Subscription(subscription) => {
+    @wire.DiscoveryEvent::Subscription(subscription) => {
       for index in 0..<self.subscriptions.length() {
         if self.subscriptions[index].endpoint_guid() ==
           subscription.endpoint_guid() {
@@ -86,7 +86,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.subscriptions.push(subscription)
     }
-    DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
+    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
       match kind {
         @rtps.SedpEndpointKind::Publication => {
           let remaining : Array[@rtps.SedpEndpointData] = []
@@ -109,7 +109,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.remove_ros_endpoint(endpoint_guid)
     }
-    DiscoveryEvent::ParticipantRemoved(participant_guid) => {
+    @wire.DiscoveryEvent::ParticipantRemoved(participant_guid) => {
       let remaining_participants : Array[@rtps.SpdpParticipantData] = []
       for participant in self.participants {
         if participant.participant_guid() != participant_guid {

@@ -2,6 +2,16 @@
 /// Maximum size of one UDP datagram accepted by the RTPS transport.
 pub const MAX_DATAGRAM_SIZE : Int = 65535
 
+///|
+fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
+  for byte in prefix.as_bytes() {
+    if byte != 0 {
+      return false
+    }
+  }
+  true
+}
+
 ///| A small UDP server wrapper for RTPS datagrams.
 
 ///|

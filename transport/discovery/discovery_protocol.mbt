@@ -5,7 +5,7 @@ async fn DiscoverySession::decode_message(
   message : @rtps.Message,
   source : @socket.Addr,
   socket_index : Int,
-) -> Result[Array[DiscoveryEvent], String] {
+) -> Result[Array[@wire.DiscoveryEvent], String] {
   match message.destination_guid_prefix() {
     Ok(Some(destination)) if destination !=
       self.participant.participant_guid().prefix() &&
@@ -13,7 +13,7 @@ async fn DiscoverySession::decode_message(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
-  let events : Array[DiscoveryEvent] = []
+  let events : Array[@wire.DiscoveryEvent] = []
   for submessage in message.submessages() {
     match submessage.id() {
       @rtps.SubmessageId::Data => {

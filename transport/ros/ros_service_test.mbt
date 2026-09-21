@@ -9,7 +9,7 @@ fn service_test_entity(key : Bytes, kind : Byte) -> @rtps.EntityId {
 }
 
 ///|
-fn service_test_endpoint_locator(socket : Udp) -> @rtps.Locator {
+fn service_test_endpoint_locator(socket : @wire.Udp) -> @rtps.Locator {
   socket.local_unicast_locator().unwrap()
 }
 
@@ -19,15 +19,17 @@ async test "reliable ROS service client and server correlate a response" {
   let server_prefix = service_test_prefix([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
   let vendor_id = @rtps.VendorId::new(1, 15)
   let service = match
-    @ros.RosService::new("/add_two_ints", "example_interfaces", "AddTwoInts") {
+    @ros_types.RosService::new(
+      "/add_two_ints", "example_interfaces", "AddTwoInts",
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
 
-  let client_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let server_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let client_address = client_socket.local_addr()
-  let ack_sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
 
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -184,14 +186,14 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   let client_prefix = service_test_prefix([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
   let server_prefix = service_test_prefix([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
   let vendor_id = @rtps.VendorId::new(1, 15)
-  let action = @ros.RosAction::new(
+  let action = @ros_types.RosAction::new(
     "/fibonacci", "example_interfaces", "Fibonacci",
   ).unwrap()
   let service = action.send_goal_service()
-  let client_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let server_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let client_address = client_socket.local_addr()
-  let ack_sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let client_response_id = service_test_entity(b"crs", 0xC7)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -275,7 +277,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
 ///|
 async test "ROS service rejects mismatched related endpoint metadata" {
   let prefix = service_test_prefix([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-  let service = @ros.RosService::new(
+  let service = @ros_types.RosService::new(
     "/add_two_ints", "example_interfaces", "AddTwoInts",
   ).unwrap()
   let request_id = service_test_entity(b"req", 0xC2)
@@ -298,8 +300,8 @@ async test "ROS service rejects mismatched related endpoint metadata" {
       request_guid,
     )
     .unwrap()
-  let request_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let response_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let request_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let response_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   assert_true(
     RosServiceClient::new(
       service,

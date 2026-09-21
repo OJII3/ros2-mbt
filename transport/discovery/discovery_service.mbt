@@ -30,6 +30,24 @@ pub async fn DiscoveryService::announce_once(
 }
 
 ///|
+/// Send one SPDP announcement through a caller-provided socket.
+pub async fn DiscoveryService::announce_once_on(
+  self : DiscoveryService,
+  socket : @wire.Udp,
+) -> Result[Unit, String] {
+  self.session.announce_once_on(socket)
+}
+
+///|
+/// Send the local participant dispose through a caller-provided socket.
+pub async fn DiscoveryService::dispose_once_on(
+  self : DiscoveryService,
+  socket : @wire.Udp,
+) -> Result[Unit, String] {
+  self.session.dispose_once_on(socket)
+}
+
+///|
 /// Advance the sequence and HEARTBEAT counters for one SEDP writer.
 fn DiscoveryService::advance_sedp_counters(
   self : DiscoveryService,
@@ -139,8 +157,8 @@ pub fn DiscoveryService::new_reliable_sedp_writer(
   endpoint : @rtps.SedpEndpointData,
   remote_participant : @rtps.SpdpParticipantData,
   first_sequence_number : Int64,
-) -> Result[ReliableSedpWriter, String] {
-  ReliableSedpWriter::new(
+) -> Result[@wire.ReliableSedpWriter, String] {
+  @wire.ReliableSedpWriter::new(
     self.session.socket,
     self.session.participant.vendor_id(),
     endpoint,
@@ -292,18 +310,18 @@ pub fn DiscoveryService::next_sedp_sequence_number(
 /// Receive one SPDP or SEDP event and upsert it into the graph.
 pub async fn DiscoveryService::receive_once(
   self : DiscoveryService,
-) -> Result[(@socket.Addr, DiscoveryEvent), String] {
+) -> Result[(@socket.Addr, @wire.DiscoveryEvent), String] {
   let (received_event, source) = match self.session.receive_once() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let event = match received_event {
-    DiscoveryEvent::Publication(endpoint) =>
-      DiscoveryEvent::Publication(
+    @wire.DiscoveryEvent::Publication(endpoint) =>
+      @wire.DiscoveryEvent::Publication(
         self.endpoint_with_participant_locator(endpoint),
       )
-    DiscoveryEvent::Subscription(endpoint) =>
-      DiscoveryEvent::Subscription(
+    @wire.DiscoveryEvent::Subscription(endpoint) =>
+      @wire.DiscoveryEvent::Subscription(
         self.endpoint_with_participant_locator(endpoint),
       )
     other => other
@@ -404,7 +422,7 @@ pub async fn DiscoveryService::receive_ros_discovery_info(
 /// sockets or ports.
 pub async fn DiscoveryService::receive_ros_discovery_info_from(
   self : DiscoveryService,
-  socket : Udp,
+  socket : @wire.Udp,
 ) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
   let (info, source) = match socket.receive_ros_discovery_info() {
     Ok(value) => value
@@ -418,7 +436,7 @@ pub async fn DiscoveryService::receive_ros_discovery_info_from(
 /// Receive one graph sample from a reliable discovered publication.
 pub async fn DiscoveryService::receive_ros_discovery_info_reliable(
   self : DiscoveryService,
-  reader : ReliableDataReaderSession,
+  reader : @wire.ReliableDataReaderSession,
 ) -> Result[(@socket.Addr, @ros.ParticipantEntitiesInfo), String] {
   let (data, source) = match reader.receive_data() {
     Ok(value) => value

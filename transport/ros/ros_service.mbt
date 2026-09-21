@@ -97,9 +97,9 @@ fn service_payload_client_id(guid : @rtps.Guid) -> UInt64 {
 ///|
 /// A ROS service client using reliable request/reply DATA endpoints.
 pub struct RosServiceClient {
-  service : @ros.RosService
-  request_writer : ReliableDataWriter
-  response_reader : ReliableDataReaderSession
+  service : @ros_types.RosService
+  request_writer : @wire.ReliableDataWriter
+  response_reader : @wire.ReliableDataReaderSession
   response_reader_guid : @rtps.Guid
   wire_format : RosServiceWireFormat
   payload_client_id : UInt64
@@ -110,9 +110,9 @@ pub struct RosServiceClient {
 /// Create a client from the discovered service request subscription and
 /// response publication.
 pub fn RosServiceClient::new(
-  service : @ros.RosService,
-  request_socket : Udp,
-  response_socket : Udp,
+  service : @ros_types.RosService,
+  request_socket : @wire.Udp,
+  response_socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_writer_id : @rtps.EntityId,
@@ -139,9 +139,9 @@ pub fn RosServiceClient::new(
 ///|
 /// Create a client with an explicit service payload wire format.
 pub fn RosServiceClient::new_with_wire_format(
-  service : @ros.RosService,
-  request_socket : Udp,
-  response_socket : Udp,
+  service : @ros_types.RosService,
+  request_socket : @wire.Udp,
+  response_socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_writer_id : @rtps.EntityId,
@@ -177,7 +177,7 @@ pub fn RosServiceClient::new_with_wire_format(
     Err(message) => return Err(message)
   }
   let request_writer = match
-    ReliableDataWriter::new_for_subscription(
+    @wire.ReliableDataWriter::new_for_subscription(
       request_socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
       first_request_sequence_number,
     ) {
@@ -185,7 +185,7 @@ pub fn RosServiceClient::new_with_wire_format(
     Err(message) => return Err(message)
   }
   let response_reader = match
-    ReliableDataReaderSession::new_for_publication(
+    @wire.ReliableDataReaderSession::new_for_publication(
       response_socket, guid_prefix, vendor_id, response_reader_id, response_publication,
     ) {
     Ok(value) => value
@@ -207,8 +207,8 @@ pub fn RosServiceClient::new_with_wire_format(
 ///|
 /// Create a client using one shared UDP socket for requests and responses.
 pub fn RosServiceClient::new_with_shared_socket(
-  service : @ros.RosService,
-  socket : Udp,
+  service : @ros_types.RosService,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_writer_id : @rtps.EntityId,
@@ -234,8 +234,8 @@ pub fn RosServiceClient::new_with_shared_socket(
 ///|
 /// Create a client on one shared socket with an explicit wire format.
 pub fn RosServiceClient::new_with_shared_socket_and_wire_format(
-  service : @ros.RosService,
-  socket : Udp,
+  service : @ros_types.RosService,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_writer_id : @rtps.EntityId,
@@ -257,7 +257,9 @@ pub fn RosServiceClient::new_with_shared_socket_and_wire_format(
 }
 
 ///|
-pub fn RosServiceClient::service(self : RosServiceClient) -> @ros.RosService {
+pub fn RosServiceClient::service(
+  self : RosServiceClient,
+) -> @ros_types.RosService {
   self.service
 }
 
@@ -281,7 +283,7 @@ pub async fn RosServiceClient::request(
       }
     }
     RosServiceWireFormat::CycloneDdsPayload => {
-      let header = @ros.RosServicePayloadHeader::new(
+      let header = @ros_types.RosServicePayloadHeader::new(
         self.payload_client_id,
         self.request_writer.next_sequence_number(),
       )
@@ -343,7 +345,7 @@ pub async fn RosServiceClient::receive_response(
           Err(message) => return Err(message)
         }
         let (header, payload) = match
-          @ros.ros_service_payload_from_cdr(data.serialized_payload()) {
+          @ros_types.ros_service_payload_from_cdr(data.serialized_payload()) {
           Ok(value) => value
           Err(_) => continue
         }
@@ -382,11 +384,11 @@ pub fn RosServiceClient::close(self : RosServiceClient) -> Unit {
 ///|
 /// A ROS service server using reliable request/reply DATA endpoints.
 pub struct RosServiceServer {
-  service : @ros.RosService
-  request_reader : ReliableDataReaderSession
-  response_writer : ReliableDataWriter
+  service : @ros_types.RosService
+  request_reader : @wire.ReliableDataReaderSession
+  response_writer : @wire.ReliableDataWriter
   wire_format : RosServiceWireFormat
-  mut pending_payload_header : @ros.RosServicePayloadHeader?
+  mut pending_payload_header : @ros_types.RosServicePayloadHeader?
   shared_socket : Bool
 }
 
@@ -394,9 +396,9 @@ pub struct RosServiceServer {
 /// Create a server from the discovered service request publication and
 /// response subscription.
 pub fn RosServiceServer::new(
-  service : @ros.RosService,
-  request_socket : Udp,
-  response_socket : Udp,
+  service : @ros_types.RosService,
+  request_socket : @wire.Udp,
+  response_socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_reader_id : @rtps.EntityId,
@@ -423,9 +425,9 @@ pub fn RosServiceServer::new(
 ///|
 /// Create a server with an explicit service payload wire format.
 pub fn RosServiceServer::new_with_wire_format(
-  service : @ros.RosService,
-  request_socket : Udp,
-  response_socket : Udp,
+  service : @ros_types.RosService,
+  request_socket : @wire.Udp,
+  response_socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_reader_id : @rtps.EntityId,
@@ -461,14 +463,14 @@ pub fn RosServiceServer::new_with_wire_format(
     Err(message) => return Err(message)
   }
   let request_reader = match
-    ReliableDataReaderSession::new_for_publication(
+    @wire.ReliableDataReaderSession::new_for_publication(
       request_socket, guid_prefix, vendor_id, request_reader_id, request_publication,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   let response_writer = match
-    ReliableDataWriter::new_for_subscription(
+    @wire.ReliableDataWriter::new_for_subscription(
       response_socket, guid_prefix, vendor_id, response_writer_id, response_subscription,
       first_response_sequence_number,
     ) {
@@ -488,8 +490,8 @@ pub fn RosServiceServer::new_with_wire_format(
 ///|
 /// Create a server using one shared UDP socket for requests and responses.
 pub fn RosServiceServer::new_with_shared_socket(
-  service : @ros.RosService,
-  socket : Udp,
+  service : @ros_types.RosService,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_reader_id : @rtps.EntityId,
@@ -515,8 +517,8 @@ pub fn RosServiceServer::new_with_shared_socket(
 ///|
 /// Create a server on one shared socket with an explicit wire format.
 pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
-  service : @ros.RosService,
-  socket : Udp,
+  service : @ros_types.RosService,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   request_reader_id : @rtps.EntityId,
@@ -539,7 +541,9 @@ pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
 }
 
 ///|
-pub fn RosServiceServer::service(self : RosServiceServer) -> @ros.RosService {
+pub fn RosServiceServer::service(
+  self : RosServiceServer,
+) -> @ros_types.RosService {
   self.service
 }
 
@@ -572,7 +576,7 @@ pub async fn RosServiceServer::receive_request(
         RosServiceWireFormat::DdsRpcInline => identity
         RosServiceWireFormat::CycloneDdsPayload => {
           let (header, payload) = match
-            @ros.ros_service_payload_from_cdr(data.serialized_payload()) {
+            @ros_types.ros_service_payload_from_cdr(data.serialized_payload()) {
             Ok(value) => value
             Err(message) => return Err(message)
           }
