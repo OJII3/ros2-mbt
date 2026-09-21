@@ -4,8 +4,11 @@ package "kainaproject/ros2_mbt/ros"
 import {
   "kainaproject/ros2_mbt/ros/endpoints",
   "kainaproject/ros2_mbt/ros/messages/action_msgs",
+  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
   "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/nav_msgs",
   "kainaproject/ros2_mbt/ros/messages/rmw_dds_common",
+  "kainaproject/ros2_mbt/ros/messages/sensor_msgs",
   "kainaproject/ros2_mbt/ros/messages/std_msgs",
   "kainaproject/ros2_mbt/ros/names",
   "kainaproject/ros2_mbt/rtps/core",
@@ -13,6 +16,48 @@ import {
 }
 
 // Values
+pub const CameraInfo_TYPE_HASH : String = "RIHS01_b3dfd68ff46c9d56c80fd3bd4ed22c7a4ddce8c8348f2f59c299e73118e7e275"
+
+pub const CompressedImage_TYPE_HASH : String = "RIHS01_15640771531571185e2efc8a100baf923961a4d15d5569652e6cb6691e8e371a"
+
+pub const Duration_TYPE_HASH : String = "RIHS01_e8d009f659816f758b75334ee1a9ca5b5c0b859843261f14c7f937349599d93b"
+
+pub const Header_TYPE_HASH : String = "RIHS01_f49fb3ae2cf070f793645ff749683ac6b06203e41c891e17701b1cb597ce6a01"
+
+pub const Image_TYPE_HASH : String = "RIHS01_d31d41a9a4c4bc8eae9be757b0beed306564f7526c88ea6a4588fb9582527d47"
+
+pub const Imu_TYPE_HASH : String = "RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b"
+
+pub const JointState_TYPE_HASH : String = "RIHS01_a13ee3a330e346c9d87b5aa18d24e11690752bd33a0350f11c5882bc9179260e"
+
+pub const LaserScan_TYPE_HASH : String = "RIHS01_64c191398013af96509d518dac71d5164f9382553fce5c1f8cca5be7924bd828"
+
+pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd3946c1369f817fb4f75677d916d27c17d763c8"
+
+pub const NavSatFix_TYPE_HASH : String = "RIHS01_62223ab3fe210a15976021da7afddc9e200dc9ec75231c1b6a557fc598a65404"
+
+pub const NavSatStatus_TYPE_HASH : String = "RIHS01_d1ed3befa628e09571bd273b888ba1c1fd187c9a5e0006b385d7e5e9095a3204"
+
+pub const OccupancyGrid_TYPE_HASH : String = "RIHS01_8d348150c12913a31ee0ec170fbf25089e4745d17035792a1ba94d6f0bc0cfc7"
+
+pub const Odometry_TYPE_HASH : String = "RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0"
+
+pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b"
+
+pub const PointCloud2_TYPE_HASH : String = "RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5"
+
+pub const PointField_TYPE_HASH : String = "RIHS01_5c6a4750728c2bcfbbf7037225b20b02d4429634732146b742dee1726637ef01"
+
+pub const Point_TYPE_HASH : String = "RIHS01_6963084842a9b04494d6b2941d11444708d892da2f4b09843b9c43f42a7f6881"
+
+pub const PoseStamped_TYPE_HASH : String = "RIHS01_10f3786d7d40fd2b54367835614bff85d4ad3b5dab62bf8bca0cc232d73b4cd8"
+
+pub const PoseWithCovariance_TYPE_HASH : String = "RIHS01_9a7c0fd234b7f45c6098745ecccd773ca1085670e64107135397aee31c02e1bb"
+
+pub const Pose_TYPE_HASH : String = "RIHS01_d501954e9476cea2996984e812054b68026ae0bfae789d9a10b23daf35cc90fa"
+
+pub const Quaternion_TYPE_HASH : String = "RIHS01_8a765f66778c8ff7c8ab94afcc590a2ed5325a1d9a076ffff38fbce36f458684"
+
 pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
 
 pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
@@ -37,7 +82,17 @@ pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03
 
 pub const ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND : Byte = 0x04
 
+pub const RegionOfInterest_TYPE_HASH : String = "RIHS01_ad16bcba5f9131dcdba6fbded19f726f5440e3c513b4fb586dd3027eeed8abb1"
+
 pub const STD_MSGS_STRING_TYPE_HASH : String = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+
+pub const Time_TYPE_HASH : String = "RIHS01_b106235e25a4c5ed35098aa0a61a3ee9c9b18d197f398b0e4206cea9acf9c197"
+
+pub const TransformStamped_TYPE_HASH : String = "RIHS01_0a241f87d04668d94099cbb5ba11691d5ad32c2f29682e4eb5653424bd275206"
+
+pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb20010c43d55374d81bd041f1ba2581fddc"
+
+pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"
 
 pub fn ros_discovery_info_to_sedp(@discovery.SedpEndpointKind, @core.Guid) -> Result[@discovery.SedpEndpointData, String]
 
@@ -62,13 +117,57 @@ pub fn validate_ros_discovery_info_endpoint(@discovery.SedpEndpointData, @discov
 // Types and methods
 
 // Type aliases
+pub using @sensor_msgs {type CameraInfo}
+
+pub using @sensor_msgs {type CompressedImage}
+
 pub using @names {type DdsTopicKind}
+
+pub using @builtin_interfaces {type Duration}
 
 pub using @rmw_dds_common {type Gid}
 
+pub using @std_msgs {type Header}
+
+pub using @sensor_msgs {type Image}
+
+pub using @sensor_msgs {type Imu}
+
+pub using @sensor_msgs {type JointState}
+
+pub using @sensor_msgs {type LaserScan}
+
+pub using @nav_msgs {type MapMetaData}
+
+pub using @sensor_msgs {type NavSatFix}
+
+pub using @sensor_msgs {type NavSatStatus}
+
 pub using @rmw_dds_common {type NodeEntitiesInfo}
 
+pub using @nav_msgs {type OccupancyGrid}
+
+pub using @nav_msgs {type Odometry}
+
 pub using @rmw_dds_common {type ParticipantEntitiesInfo}
+
+pub using @nav_msgs {type Path}
+
+pub using @geometry_msgs {type Point}
+
+pub using @sensor_msgs {type PointCloud2}
+
+pub using @sensor_msgs {type PointField}
+
+pub using @geometry_msgs {type Pose}
+
+pub using @geometry_msgs {type PoseStamped}
+
+pub using @geometry_msgs {type PoseWithCovariance}
+
+pub using @geometry_msgs {type Quaternion}
+
+pub using @sensor_msgs {type RegionOfInterest}
 
 pub using @endpoints {type RosAction}
 
@@ -90,7 +189,15 @@ pub using @endpoints {type RosTopic}
 
 pub using @std_msgs {type StringMessage}
 
+pub using @builtin_interfaces {type Time}
+
+pub using @geometry_msgs {type Transform}
+
+pub using @geometry_msgs {type TransformStamped}
+
 pub using @geometry_msgs {type Twist}
+
+pub using @geometry_msgs {type TwistWithCovariance}
 
 pub using @geometry_msgs {type Vector3}
 

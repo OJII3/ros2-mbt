@@ -1,0 +1,9 @@
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/messages/geometry_msgs" @geometry,
+  "kainaproject/ros2_mbt/ros/messages/std_msgs" @std,
+}
+
+options(
+  "is-main": false,
+)

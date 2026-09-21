@@ -10,6 +10,7 @@ ROS 2そのものをリンクせず、まずはnative backend上でRTPS wire for
 - best-effort/reliable な ROS topic の送受信。発見済み endpoint との接続、fragmentation、QoS に応じた publisher/subscriber を提供。
 - DDS-RPC service、ROS Action client、parameter client。request/reply 相関、Action endpoint discovery、goal feedback/status に対応。
 - `.msg` / `.srv` / `.action` parser と MoonBit CDR codec generator。RIHS01 hash、nested type/import、配列・sequence・string/wstring、定数・default 値に対応。
+- ROS 2 Jazzy 標準メッセージの codec を同梱。Time/Duration、Header、geometry の pose/transform、sensor の IMU・画像・scan・点群・joint/GPS、navigation の odometry・path・occupancy grid に対応。
 - String/WString topic、AddTwoInts service、Fibonacci Action、parameter の実行例。Cyclone DDS、Fast DDS、ROS 2 Jazzy CLI との相互運用テストあり。
 
 ## 開発

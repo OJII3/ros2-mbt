@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros/messages/builtin_interfaces"
+
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const Duration_TYPE_HASH : String = "RIHS01_e8d009f659816f758b75334ee1a9ca5b5c0b859843261f14c7f937349599d93b"
+
+pub const Time_TYPE_HASH : String = "RIHS01_b106235e25a4c5ed35098aa0a61a3ee9c9b18d197f398b0e4206cea9acf9c197"
+
+// Errors
+
+// Types and methods
+pub struct Duration {
+  sec : Int
+  nanosec : UInt
+} derive(Eq, @debug.Debug)
+pub fn Duration::default() -> Self
+pub fn Duration::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Duration::nanosec(Self) -> UInt
+pub fn Duration::new(Int, UInt) -> Self
+pub fn Duration::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Duration::sec(Self) -> Int
+pub fn Duration::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Duration::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Time {
+  sec : Int
+  nanosec : UInt
+} derive(Eq, @debug.Debug)
+pub fn Time::default() -> Self
+pub fn Time::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Time::nanosec(Self) -> UInt
+pub fn Time::new(Int, UInt) -> Self
+pub fn Time::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Time::sec(Self) -> Int
+pub fn Time::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Time::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+// Type aliases
+
+// Traits

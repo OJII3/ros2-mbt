@@ -2,8 +2,11 @@ import {
   "kainaproject/ros2_mbt/ros/discovery",
   "kainaproject/ros2_mbt/ros/endpoints",
   "kainaproject/ros2_mbt/ros/messages/action_msgs",
+  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
   "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/nav_msgs",
   "kainaproject/ros2_mbt/ros/messages/rmw_dds_common",
+  "kainaproject/ros2_mbt/ros/messages/sensor_msgs",
   "kainaproject/ros2_mbt/ros/messages/std_msgs",
   "kainaproject/ros2_mbt/ros/names",
 }

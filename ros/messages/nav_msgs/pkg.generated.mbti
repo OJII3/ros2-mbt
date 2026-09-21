@@ -1,0 +1,90 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros/messages/nav_msgs"
+
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
+  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd3946c1369f817fb4f75677d916d27c17d763c8"
+
+pub const OccupancyGrid_TYPE_HASH : String = "RIHS01_8d348150c12913a31ee0ec170fbf25089e4745d17035792a1ba94d6f0bc0cfc7"
+
+pub const Odometry_TYPE_HASH : String = "RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0"
+
+pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b"
+
+// Errors
+
+// Types and methods
+pub struct MapMetaData {
+  map_load_time : @builtin_interfaces.Time
+  resolution : Float
+  width : UInt
+  height : UInt
+  origin : @geometry_msgs.Pose
+} derive(Eq, @debug.Debug)
+pub fn MapMetaData::default() -> Self
+pub fn MapMetaData::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn MapMetaData::height(Self) -> UInt
+pub fn MapMetaData::map_load_time(Self) -> @builtin_interfaces.Time
+pub fn MapMetaData::new(@builtin_interfaces.Time, Float, UInt, UInt, @geometry_msgs.Pose) -> Self
+pub fn MapMetaData::origin(Self) -> @geometry_msgs.Pose
+pub fn MapMetaData::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn MapMetaData::resolution(Self) -> Float
+pub fn MapMetaData::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn MapMetaData::width(Self) -> UInt
+pub fn MapMetaData::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct OccupancyGrid {
+  header : @std_msgs.Header
+  info : MapMetaData
+  data : Array[Int]
+} derive(Eq, @debug.Debug)
+pub fn OccupancyGrid::data(Self) -> Array[Int]
+pub fn OccupancyGrid::default() -> Self
+pub fn OccupancyGrid::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn OccupancyGrid::header(Self) -> @std_msgs.Header
+pub fn OccupancyGrid::info(Self) -> MapMetaData
+pub fn OccupancyGrid::new(@std_msgs.Header, MapMetaData, Array[Int]) -> Self
+pub fn OccupancyGrid::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn OccupancyGrid::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn OccupancyGrid::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Odometry {
+  header : @std_msgs.Header
+  child_frame_id : String
+  pose : @geometry_msgs.PoseWithCovariance
+  twist : @geometry_msgs.TwistWithCovariance
+} derive(Eq, @debug.Debug)
+pub fn Odometry::child_frame_id(Self) -> String
+pub fn Odometry::default() -> Self
+pub fn Odometry::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Odometry::header(Self) -> @std_msgs.Header
+pub fn Odometry::new(@std_msgs.Header, String, @geometry_msgs.PoseWithCovariance, @geometry_msgs.TwistWithCovariance) -> Self
+pub fn Odometry::pose(Self) -> @geometry_msgs.PoseWithCovariance
+pub fn Odometry::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Odometry::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Odometry::twist(Self) -> @geometry_msgs.TwistWithCovariance
+pub fn Odometry::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Path {
+  header : @std_msgs.Header
+  poses : Array[@geometry_msgs.PoseStamped]
+} derive(Eq, @debug.Debug)
+pub fn Path::default() -> Self
+pub fn Path::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Path::header(Self) -> @std_msgs.Header
+pub fn Path::new(@std_msgs.Header, Array[@geometry_msgs.PoseStamped]) -> Self
+pub fn Path::poses(Self) -> Array[@geometry_msgs.PoseStamped]
+pub fn Path::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Path::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Path::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+// Type aliases
+
+// Traits

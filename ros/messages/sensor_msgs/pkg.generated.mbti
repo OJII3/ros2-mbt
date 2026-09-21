@@ -1,0 +1,322 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros/messages/sensor_msgs"
+
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const COVARIANCE_TYPE_APPROXIMATED : Byte = 1
+
+pub const COVARIANCE_TYPE_DIAGONAL_KNOWN : Byte = 2
+
+pub const COVARIANCE_TYPE_KNOWN : Byte = 3
+
+pub const COVARIANCE_TYPE_UNKNOWN : Byte = 0
+
+pub const CameraInfo_TYPE_HASH : String = "RIHS01_b3dfd68ff46c9d56c80fd3bd4ed22c7a4ddce8c8348f2f59c299e73118e7e275"
+
+pub const CompressedImage_TYPE_HASH : String = "RIHS01_15640771531571185e2efc8a100baf923961a4d15d5569652e6cb6691e8e371a"
+
+pub const FLOAT32 : Byte = 7
+
+pub const FLOAT64 : Byte = 8
+
+pub const INT16 : Byte = 3
+
+pub const INT32 : Byte = 5
+
+pub const INT8 : Byte = 1
+
+pub const Image_TYPE_HASH : String = "RIHS01_d31d41a9a4c4bc8eae9be757b0beed306564f7526c88ea6a4588fb9582527d47"
+
+pub const Imu_TYPE_HASH : String = "RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b"
+
+pub const JointState_TYPE_HASH : String = "RIHS01_a13ee3a330e346c9d87b5aa18d24e11690752bd33a0350f11c5882bc9179260e"
+
+pub const LaserScan_TYPE_HASH : String = "RIHS01_64c191398013af96509d518dac71d5164f9382553fce5c1f8cca5be7924bd828"
+
+pub const NavSatFix_TYPE_HASH : String = "RIHS01_62223ab3fe210a15976021da7afddc9e200dc9ec75231c1b6a557fc598a65404"
+
+pub const NavSatStatus_TYPE_HASH : String = "RIHS01_d1ed3befa628e09571bd273b888ba1c1fd187c9a5e0006b385d7e5e9095a3204"
+
+pub const PointCloud2_TYPE_HASH : String = "RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5"
+
+pub const PointField_TYPE_HASH : String = "RIHS01_5c6a4750728c2bcfbbf7037225b20b02d4429634732146b742dee1726637ef01"
+
+pub const RegionOfInterest_TYPE_HASH : String = "RIHS01_ad16bcba5f9131dcdba6fbded19f726f5440e3c513b4fb586dd3027eeed8abb1"
+
+pub const SERVICE_COMPASS : UInt = 4
+
+pub const SERVICE_GALILEO : UInt = 8
+
+pub const SERVICE_GLONASS : UInt = 2
+
+pub const SERVICE_GPS : UInt = 1
+
+pub const SERVICE_UNKNOWN : UInt = 0
+
+pub const STATUS_FIX : Int = 0
+
+pub const STATUS_GBAS_FIX : Int = 2
+
+pub const STATUS_NO_FIX : Int = -1
+
+pub const STATUS_SBAS_FIX : Int = 1
+
+pub const STATUS_UNKNOWN : Int = -2
+
+pub const UINT16 : Byte = 4
+
+pub const UINT32 : Byte = 6
+
+pub const UINT8 : Byte = 2
+
+// Errors
+
+// Types and methods
+pub struct CameraInfo {
+  header : @std_msgs.Header
+  height : UInt
+  width : UInt
+  distortion_model : String
+  d : Array[Double]
+  k : Array[Double]
+  r : Array[Double]
+  p : Array[Double]
+  binning_x : UInt
+  binning_y : UInt
+  roi : RegionOfInterest
+} derive(Eq, @debug.Debug)
+pub fn CameraInfo::binning_x(Self) -> UInt
+pub fn CameraInfo::binning_y(Self) -> UInt
+pub fn CameraInfo::d(Self) -> Array[Double]
+pub fn CameraInfo::default() -> Self
+pub fn CameraInfo::distortion_model(Self) -> String
+pub fn CameraInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn CameraInfo::header(Self) -> @std_msgs.Header
+pub fn CameraInfo::height(Self) -> UInt
+pub fn CameraInfo::k(Self) -> Array[Double]
+pub fn CameraInfo::new(@std_msgs.Header, UInt, UInt, String, Array[Double], Array[Double], Array[Double], Array[Double], UInt, UInt, RegionOfInterest) -> Self
+pub fn CameraInfo::p(Self) -> Array[Double]
+pub fn CameraInfo::r(Self) -> Array[Double]
+pub fn CameraInfo::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn CameraInfo::roi(Self) -> RegionOfInterest
+pub fn CameraInfo::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn CameraInfo::width(Self) -> UInt
+pub fn CameraInfo::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct CompressedImage {
+  header : @std_msgs.Header
+  format : String
+  data : Array[Byte]
+} derive(Eq, @debug.Debug)
+pub fn CompressedImage::data(Self) -> Array[Byte]
+pub fn CompressedImage::default() -> Self
+pub fn CompressedImage::format(Self) -> String
+pub fn CompressedImage::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn CompressedImage::header(Self) -> @std_msgs.Header
+pub fn CompressedImage::new(@std_msgs.Header, String, Array[Byte]) -> Self
+pub fn CompressedImage::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn CompressedImage::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn CompressedImage::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Image {
+  header : @std_msgs.Header
+  height : UInt
+  width : UInt
+  encoding : String
+  is_bigendian : Byte
+  step : UInt
+  data : Array[Byte]
+} derive(Eq, @debug.Debug)
+pub fn Image::data(Self) -> Array[Byte]
+pub fn Image::default() -> Self
+pub fn Image::encoding(Self) -> String
+pub fn Image::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Image::header(Self) -> @std_msgs.Header
+pub fn Image::height(Self) -> UInt
+pub fn Image::is_bigendian(Self) -> Byte
+pub fn Image::new(@std_msgs.Header, UInt, UInt, String, Byte, UInt, Array[Byte]) -> Self
+pub fn Image::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Image::step(Self) -> UInt
+pub fn Image::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Image::width(Self) -> UInt
+pub fn Image::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Imu {
+  header : @std_msgs.Header
+  orientation : @geometry_msgs.Quaternion
+  orientation_covariance : Array[Double]
+  angular_velocity : @geometry_msgs.Vector3
+  angular_velocity_covariance : Array[Double]
+  linear_acceleration : @geometry_msgs.Vector3
+  linear_acceleration_covariance : Array[Double]
+} derive(Eq, @debug.Debug)
+pub fn Imu::angular_velocity(Self) -> @geometry_msgs.Vector3
+pub fn Imu::angular_velocity_covariance(Self) -> Array[Double]
+pub fn Imu::default() -> Self
+pub fn Imu::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Imu::header(Self) -> @std_msgs.Header
+pub fn Imu::linear_acceleration(Self) -> @geometry_msgs.Vector3
+pub fn Imu::linear_acceleration_covariance(Self) -> Array[Double]
+pub fn Imu::new(@std_msgs.Header, @geometry_msgs.Quaternion, Array[Double], @geometry_msgs.Vector3, Array[Double], @geometry_msgs.Vector3, Array[Double]) -> Self
+pub fn Imu::orientation(Self) -> @geometry_msgs.Quaternion
+pub fn Imu::orientation_covariance(Self) -> Array[Double]
+pub fn Imu::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Imu::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Imu::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct JointState {
+  header : @std_msgs.Header
+  name : Array[String]
+  position : Array[Double]
+  velocity : Array[Double]
+  effort : Array[Double]
+} derive(Eq, @debug.Debug)
+pub fn JointState::default() -> Self
+pub fn JointState::effort(Self) -> Array[Double]
+pub fn JointState::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn JointState::header(Self) -> @std_msgs.Header
+pub fn JointState::name(Self) -> Array[String]
+pub fn JointState::new(@std_msgs.Header, Array[String], Array[Double], Array[Double], Array[Double]) -> Self
+pub fn JointState::position(Self) -> Array[Double]
+pub fn JointState::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn JointState::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn JointState::velocity(Self) -> Array[Double]
+pub fn JointState::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct LaserScan {
+  header : @std_msgs.Header
+  angle_min : Float
+  angle_max : Float
+  angle_increment : Float
+  time_increment : Float
+  scan_time : Float
+  range_min : Float
+  range_max : Float
+  ranges : Array[Float]
+  intensities : Array[Float]
+} derive(Eq, @debug.Debug)
+pub fn LaserScan::angle_increment(Self) -> Float
+pub fn LaserScan::angle_max(Self) -> Float
+pub fn LaserScan::angle_min(Self) -> Float
+pub fn LaserScan::default() -> Self
+pub fn LaserScan::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn LaserScan::header(Self) -> @std_msgs.Header
+pub fn LaserScan::intensities(Self) -> Array[Float]
+pub fn LaserScan::new(@std_msgs.Header, Float, Float, Float, Float, Float, Float, Float, Array[Float], Array[Float]) -> Self
+pub fn LaserScan::range_max(Self) -> Float
+pub fn LaserScan::range_min(Self) -> Float
+pub fn LaserScan::ranges(Self) -> Array[Float]
+pub fn LaserScan::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn LaserScan::scan_time(Self) -> Float
+pub fn LaserScan::time_increment(Self) -> Float
+pub fn LaserScan::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn LaserScan::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct NavSatFix {
+  header : @std_msgs.Header
+  status : NavSatStatus
+  latitude : Double
+  longitude : Double
+  altitude : Double
+  position_covariance : Array[Double]
+  position_covariance_type : Byte
+} derive(Eq, @debug.Debug)
+pub fn NavSatFix::altitude(Self) -> Double
+pub fn NavSatFix::default() -> Self
+pub fn NavSatFix::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn NavSatFix::header(Self) -> @std_msgs.Header
+pub fn NavSatFix::latitude(Self) -> Double
+pub fn NavSatFix::longitude(Self) -> Double
+pub fn NavSatFix::new(@std_msgs.Header, NavSatStatus, Double, Double, Double, Array[Double], Byte) -> Self
+pub fn NavSatFix::position_covariance(Self) -> Array[Double]
+pub fn NavSatFix::position_covariance_type(Self) -> Byte
+pub fn NavSatFix::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn NavSatFix::status(Self) -> NavSatStatus
+pub fn NavSatFix::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn NavSatFix::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct NavSatStatus {
+  status : Int
+  service : UInt
+} derive(Eq, @debug.Debug)
+pub fn NavSatStatus::default() -> Self
+pub fn NavSatStatus::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn NavSatStatus::new(Int, UInt) -> Self
+pub fn NavSatStatus::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn NavSatStatus::service(Self) -> UInt
+pub fn NavSatStatus::status(Self) -> Int
+pub fn NavSatStatus::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn NavSatStatus::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct PointCloud2 {
+  header : @std_msgs.Header
+  height : UInt
+  width : UInt
+  fields : Array[PointField]
+  is_bigendian : Bool
+  point_step : UInt
+  row_step : UInt
+  data : Array[Byte]
+  is_dense : Bool
+} derive(Eq, @debug.Debug)
+pub fn PointCloud2::data(Self) -> Array[Byte]
+pub fn PointCloud2::default() -> Self
+pub fn PointCloud2::fields(Self) -> Array[PointField]
+pub fn PointCloud2::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn PointCloud2::header(Self) -> @std_msgs.Header
+pub fn PointCloud2::height(Self) -> UInt
+pub fn PointCloud2::is_bigendian(Self) -> Bool
+pub fn PointCloud2::is_dense(Self) -> Bool
+pub fn PointCloud2::new(@std_msgs.Header, UInt, UInt, Array[PointField], Bool, UInt, UInt, Array[Byte], Bool) -> Self
+pub fn PointCloud2::point_step(Self) -> UInt
+pub fn PointCloud2::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn PointCloud2::row_step(Self) -> UInt
+pub fn PointCloud2::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PointCloud2::width(Self) -> UInt
+pub fn PointCloud2::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct PointField {
+  name : String
+  offset : UInt
+  datatype : Byte
+  count : UInt
+} derive(Eq, @debug.Debug)
+pub fn PointField::count(Self) -> UInt
+pub fn PointField::datatype(Self) -> Byte
+pub fn PointField::default() -> Self
+pub fn PointField::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn PointField::name(Self) -> String
+pub fn PointField::new(String, UInt, Byte, UInt) -> Self
+pub fn PointField::offset(Self) -> UInt
+pub fn PointField::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn PointField::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PointField::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct RegionOfInterest {
+  x_offset : UInt
+  y_offset : UInt
+  height : UInt
+  width : UInt
+  do_rectify : Bool
+} derive(Eq, @debug.Debug)
+pub fn RegionOfInterest::default() -> Self
+pub fn RegionOfInterest::do_rectify(Self) -> Bool
+pub fn RegionOfInterest::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn RegionOfInterest::height(Self) -> UInt
+pub fn RegionOfInterest::new(UInt, UInt, UInt, UInt, Bool) -> Self
+pub fn RegionOfInterest::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn RegionOfInterest::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn RegionOfInterest::width(Self) -> UInt
+pub fn RegionOfInterest::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+pub fn RegionOfInterest::x_offset(Self) -> UInt
+pub fn RegionOfInterest::y_offset(Self) -> UInt
+
+// Type aliases
+
+// Traits

@@ -2,30 +2,167 @@
 package "kainaproject/ros2_mbt/ros/messages/geometry_msgs"
 
 import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/messages/std_msgs",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub const Point_TYPE_HASH : String = "RIHS01_6963084842a9b04494d6b2941d11444708d892da2f4b09843b9c43f42a7f6881"
+
+pub const PoseStamped_TYPE_HASH : String = "RIHS01_10f3786d7d40fd2b54367835614bff85d4ad3b5dab62bf8bca0cc232d73b4cd8"
+
+pub const PoseWithCovariance_TYPE_HASH : String = "RIHS01_9a7c0fd234b7f45c6098745ecccd773ca1085670e64107135397aee31c02e1bb"
+
+pub const Pose_TYPE_HASH : String = "RIHS01_d501954e9476cea2996984e812054b68026ae0bfae789d9a10b23daf35cc90fa"
+
+pub const Quaternion_TYPE_HASH : String = "RIHS01_8a765f66778c8ff7c8ab94afcc590a2ed5325a1d9a076ffff38fbce36f458684"
+
+pub const TransformStamped_TYPE_HASH : String = "RIHS01_0a241f87d04668d94099cbb5ba11691d5ad32c2f29682e4eb5653424bd275206"
+
+pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb20010c43d55374d81bd041f1ba2581fddc"
+
+pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"
 
 // Errors
 
 // Types and methods
+pub struct Point {
+  x : Double
+  y : Double
+  z : Double
+} derive(Eq, @debug.Debug)
+pub fn Point::default() -> Self
+pub fn Point::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Point::new(Double, Double, Double) -> Self
+pub fn Point::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Point::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Point::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+pub fn Point::x(Self) -> Double
+pub fn Point::y(Self) -> Double
+pub fn Point::z(Self) -> Double
+
+pub struct Pose {
+  position : Point
+  orientation : Quaternion
+} derive(Eq, @debug.Debug)
+pub fn Pose::default() -> Self
+pub fn Pose::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Pose::new(Point, Quaternion) -> Self
+pub fn Pose::orientation(Self) -> Quaternion
+pub fn Pose::position(Self) -> Point
+pub fn Pose::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Pose::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Pose::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct PoseStamped {
+  header : @std_msgs.Header
+  pose : Pose
+} derive(Eq, @debug.Debug)
+pub fn PoseStamped::default() -> Self
+pub fn PoseStamped::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn PoseStamped::header(Self) -> @std_msgs.Header
+pub fn PoseStamped::new(@std_msgs.Header, Pose) -> Self
+pub fn PoseStamped::pose(Self) -> Pose
+pub fn PoseStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn PoseStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PoseStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct PoseWithCovariance {
+  pose : Pose
+  covariance : Array[Double]
+} derive(Eq, @debug.Debug)
+pub fn PoseWithCovariance::covariance(Self) -> Array[Double]
+pub fn PoseWithCovariance::default() -> Self
+pub fn PoseWithCovariance::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn PoseWithCovariance::new(Pose, Array[Double]) -> Self
+pub fn PoseWithCovariance::pose(Self) -> Pose
+pub fn PoseWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn PoseWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PoseWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Quaternion {
+  x : Double
+  y : Double
+  z : Double
+  w : Double
+} derive(Eq, @debug.Debug)
+pub fn Quaternion::default() -> Self
+pub fn Quaternion::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Quaternion::new(Double, Double, Double, Double) -> Self
+pub fn Quaternion::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Quaternion::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Quaternion::w(Self) -> Double
+pub fn Quaternion::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+pub fn Quaternion::x(Self) -> Double
+pub fn Quaternion::y(Self) -> Double
+pub fn Quaternion::z(Self) -> Double
+
+pub struct Transform {
+  translation : Vector3
+  rotation : Quaternion
+} derive(Eq, @debug.Debug)
+pub fn Transform::default() -> Self
+pub fn Transform::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Transform::new(Vector3, Quaternion) -> Self
+pub fn Transform::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Transform::rotation(Self) -> Quaternion
+pub fn Transform::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Transform::translation(Self) -> Vector3
+pub fn Transform::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct TransformStamped {
+  header : @std_msgs.Header
+  child_frame_id : String
+  transform : Transform
+} derive(Eq, @debug.Debug)
+pub fn TransformStamped::child_frame_id(Self) -> String
+pub fn TransformStamped::default() -> Self
+pub fn TransformStamped::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn TransformStamped::header(Self) -> @std_msgs.Header
+pub fn TransformStamped::new(@std_msgs.Header, String, Transform) -> Self
+pub fn TransformStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn TransformStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn TransformStamped::transform(Self) -> Transform
+pub fn TransformStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
 pub struct Twist {
   linear : Vector3
   angular : Vector3
 } derive(Eq, @debug.Debug)
 pub fn Twist::angular(Self) -> Vector3
+pub fn Twist::default() -> Self
 pub fn Twist::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Twist::linear(Self) -> Vector3
 pub fn Twist::new(Vector3, Vector3) -> Self
+pub fn Twist::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Twist::to_cdr_bytes(Self) -> Bytes
+pub fn Twist::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct TwistWithCovariance {
+  twist : Twist
+  covariance : Array[Double]
+} derive(Eq, @debug.Debug)
+pub fn TwistWithCovariance::covariance(Self) -> Array[Double]
+pub fn TwistWithCovariance::default() -> Self
+pub fn TwistWithCovariance::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn TwistWithCovariance::new(Twist, Array[Double]) -> Self
+pub fn TwistWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn TwistWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn TwistWithCovariance::twist(Self) -> Twist
+pub fn TwistWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Vector3 {
   x : Double
   y : Double
   z : Double
 } derive(Eq, @debug.Debug)
+pub fn Vector3::default() -> Self
+pub fn Vector3::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Vector3::new(Double, Double, Double) -> Self
+pub fn Vector3::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Vector3::to_cdr_bytes(Self) -> Bytes
+pub fn Vector3::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Vector3::x(Self) -> Double
 pub fn Vector3::y(Self) -> Double
 pub fn Vector3::z(Self) -> Double
