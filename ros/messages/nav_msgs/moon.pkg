@@ -1,8 +1,8 @@
 import {
-  "kainaproject/ros2_mbt/cdr",
-  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
-  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
-  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "ojii3/ros2_mbt/cdr",
+  "ojii3/ros2_mbt/ros/messages/builtin_interfaces",
+  "ojii3/ros2_mbt/ros/messages/geometry_msgs",
+  "ojii3/ros2_mbt/ros/messages/std_msgs",
 }
 
 options(

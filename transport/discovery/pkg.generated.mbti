@@ -1,10 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/transport/discovery"
+package "ojii3/ros2_mbt/transport/discovery"
 
 import {
-  "kainaproject/ros2_mbt/ros",
-  "kainaproject/ros2_mbt/rtps",
-  "kainaproject/ros2_mbt/transport/wire",
+  "ojii3/ros2_mbt/ros",
+  "ojii3/ros2_mbt/rtps",
+  "ojii3/ros2_mbt/transport/wire",
   "moonbitlang/async/socket",
 }
 

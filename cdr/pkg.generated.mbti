@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/cdr"
+package "ojii3/ros2_mbt/cdr"
 
 import {
   "moonbitlang/core/buffer",

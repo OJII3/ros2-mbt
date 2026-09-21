@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/ros/messages/action_msgs"
+package "ojii3/ros2_mbt/ros/messages/action_msgs"
 
 import {
   "moonbitlang/core/debug",

@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/rosidl"
+package "ojii3/ros2_mbt/rosidl"
 
 import {
-  "kainaproject/ros2_mbt/rosidl/compiler",
+  "ojii3/ros2_mbt/rosidl/compiler",
 }
 
 // Values

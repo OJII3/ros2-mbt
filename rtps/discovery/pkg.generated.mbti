@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/rtps/discovery"
+package "ojii3/ros2_mbt/rtps/discovery"
 
 import {
-  "kainaproject/ros2_mbt/rtps/core",
+  "ojii3/ros2_mbt/rtps/core",
   "moonbitlang/core/debug",
 }
 

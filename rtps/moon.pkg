@@ -1,6 +1,6 @@
 import {
-  "kainaproject/ros2_mbt/rtps/core",
-  "kainaproject/ros2_mbt/rtps/discovery",
+  "ojii3/ros2_mbt/rtps/core",
+  "ojii3/ros2_mbt/rtps/discovery",
 }
 
 options(
