@@ -6,6 +6,19 @@ async fn discover_service(
 ) -> Result[(@rtps.SedpEndpointData, @rtps.SedpEndpointData), String] {
   let mut request_publication : @rtps.SedpEndpointData? = None
   let mut response_subscription : @rtps.SedpEndpointData? = None
+  // Graph discovery may already have consumed these SEDP events.
+  for publication in participant.graph().publications() {
+    if publication.topic_name() == service.dds_request_name() &&
+      publication.type_name() == service.dds_request_type_name() {
+      request_publication = Some(publication)
+    }
+  }
+  for subscription in participant.graph().subscriptions() {
+    if subscription.topic_name() == service.dds_response_name() &&
+      subscription.type_name() == service.dds_response_type_name() {
+      response_subscription = Some(subscription)
+    }
+  }
   while request_publication is None || response_subscription is None {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
@@ -27,6 +40,44 @@ async fn discover_service(
       Ok((request_publication, response_subscription))
     _ => Err("discovery ended without matching service endpoints")
   }
+}
+
+///|
+async fn announce_ros_graph_info(
+  participant : @transport.RosParticipant,
+) -> Result[Unit, String] {
+  let mut quiet_periods = 0
+  while participant.ros_discovery_publisher_count() == 0 || quiet_periods < 4 {
+    let graph_publisher_count = participant.ros_discovery_publisher_count()
+    let received = if graph_publisher_count > 0 {
+      @async.with_timeout_opt(250, async fn() {
+        participant.receive_discovery_once()
+      })
+    } else {
+      Some(participant.receive_discovery_once())
+    }
+    match received {
+      None => quiet_periods += 1
+      Some(Ok(_)) =>
+        if participant.ros_discovery_publisher_count() > graph_publisher_count {
+          quiet_periods = 0
+        }
+      Some(Err(message)) => return Err(message)
+    }
+  }
+  let graph_info = match
+    participant.participant_entities_info("/demo", "moon_add_two_ints_server") {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for _ in 0..<3 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    @async.sleep(250)
+  }
+  Ok(())
 }
 
 ///|
@@ -143,7 +194,10 @@ async fn main {
         Err(message) => fail(message)
       }
     }
-    discover_service(participant, service)
+    match announce_ros_graph_info(participant) {
+      Ok(_) => discover_service(participant, service)
+      Err(message) => Err(message)
+    }
   }
   let (request_publication, response_subscription) = match
     discovered_endpoints {
