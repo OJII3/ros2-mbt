@@ -37,13 +37,13 @@ test "RTPS QoS durations encode nanoseconds as NTP fractions" {
 
 ///|
 test "RTPS QoS helper parameter identifiers" {
-  assert_eq(qos_deadline(1, 2).id(), PID_DEADLINE)
-  assert_eq(qos_lifespan(1, 2).id(), PID_LIFESPAN)
+  assert_eq(qos_deadline(1, 2).id(), @core.PID_DEADLINE)
+  assert_eq(qos_lifespan(1, 2).id(), @core.PID_LIFESPAN)
   assert_eq(qos_latency_budget(1, 2).id(), 0x0027)
-  assert_eq(qos_ownership(OWNERSHIP_SHARED).id(), PID_OWNERSHIP)
+  assert_eq(qos_ownership(OWNERSHIP_SHARED).id(), @core.PID_OWNERSHIP)
   assert_eq(
     qos_destination_order(DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP).id(),
-    PID_DESTINATION_ORDER,
+    @core.PID_DESTINATION_ORDER,
   )
   assert_eq(qos_expects_inline_qos(false).value(), b"\x00\x00\x00\x00")
   assert_eq(
@@ -54,9 +54,17 @@ test "RTPS QoS helper parameter identifiers" {
 }
 
 ///|
+test "RTPS user data parameter uses the standard identifier" {
+  assert_eq(@core.PID_USER_DATA, 0x002C)
+  let parameter = qos_user_data(b"typehash=RIHS01_000102;\x00")
+  assert_eq(parameter.id(), @core.PID_USER_DATA)
+  assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
+}
+
+///|
 test "RTPS QoS helper encodes ROS type hash user data" {
   let type_hash = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
   let parameter = qos_user_data_type_hash(type_hash)
-  assert_eq(parameter.id(), PID_USER_DATA)
+  assert_eq(parameter.id(), @core.PID_USER_DATA)
   assert_eq(parameter.value(), @utf8.encode("typehash=" + type_hash + ";"))
 }

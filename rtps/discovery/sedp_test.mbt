@@ -1,11 +1,11 @@
 ///|
-fn sedp_test_guid(kind : Byte) -> Result[Guid, String] {
-  match GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+fn sedp_test_guid(kind : Byte) -> Result[@core.Guid, String] {
+  match @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Err(message) => Err(message)
     Ok(prefix) =>
-      match EntityId::new(b"abc", kind) {
+      match @core.EntityId::new(b"abc", kind) {
         Err(message) => Err(message)
-        Ok(entity_id) => Ok(Guid::new(prefix, entity_id))
+        Ok(entity_id) => Ok(@core.Guid::new(prefix, entity_id))
       }
   }
 }
@@ -45,7 +45,7 @@ test "SEDP endpoint data round trips required fields and locators" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let locator = match Locator::udp_v4(b"\x7F\x00\x00\x01", 7410) {
+  let locator = match @core.Locator::udp_v4(b"\x7F\x00\x00\x01", 7410) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -61,8 +61,8 @@ test "SEDP endpoint data round trips required fields and locators" {
   }
   endpoint.add_unicast_locator(locator)
   endpoint.add_parameter(
-    Parameter::new(
-      PID_RELIABILITY,
+    @core.Parameter::new(
+      @core.PID_RELIABILITY,
       b"\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
     ),
   )
@@ -71,7 +71,7 @@ test "SEDP endpoint data round trips required fields and locators" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let encoded_parameters = match ParameterList::from_cdr_bytes(encoded) {
+  let encoded_parameters = match @core.ParameterList::from_cdr_bytes(encoded) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -79,15 +79,15 @@ test "SEDP endpoint data round trips required fields and locators" {
   let mut type_max_size_found = false
   let mut user_data_found = false
   for parameter in encoded_parameters.values() {
-    if parameter.id() == PID_KEY_HASH {
+    if parameter.id() == @core.PID_KEY_HASH {
       key_hash_found = true
       assert_eq(parameter.value(), endpoint_guid.to_bytes())
     }
-    if parameter.id() == PID_TYPE_MAX_SIZE_SERIALIZED {
+    if parameter.id() == @core.PID_TYPE_MAX_SIZE_SERIALIZED {
       type_max_size_found = true
       assert_eq(parameter.value(), b"\x00\x00\x00\x00")
     }
-    if parameter.id() == PID_USER_DATA {
+    if parameter.id() == @core.PID_USER_DATA {
       user_data_found = true
       assert_eq(
         parameter.value(),
@@ -111,7 +111,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   let decoded_user_data = decoded.extra_parameters()
   let mut decoded_user_data_found = false
   for parameter in decoded_user_data {
-    if parameter.id() == PID_USER_DATA {
+    if parameter.id() == @core.PID_USER_DATA {
       decoded_user_data_found = true
       assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
     }
@@ -124,33 +124,34 @@ test "SEDP endpoint data round trips required fields and locators" {
   }
   assert_eq(reencoded, encoded)
   let vendor_encoded = match
-    endpoint.to_cdr_bytes_with_vendor(VendorId::new(1, 15)) {
+    endpoint.to_cdr_bytes_with_vendor(@core.VendorId::new(1, 15)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let vendor_parameters = match ParameterList::from_cdr_bytes(vendor_encoded) {
+  let vendor_parameters = match
+    @core.ParameterList::from_cdr_bytes(vendor_encoded) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let mut protocol_found = false
   let mut vendor_found = false
   for parameter in vendor_parameters.values() {
-    if parameter.id() == PID_PROTOCOL_VERSION {
+    if parameter.id() == @core.PID_PROTOCOL_VERSION {
       protocol_found = true
       assert_eq(parameter.value(), b"\x02\x03\x00\x00")
     }
-    if parameter.id() == PID_VENDOR_ID {
+    if parameter.id() == @core.PID_VENDOR_ID {
       vendor_found = true
       assert_eq(parameter.value(), b"\x01\x0F\x00\x00")
     }
   }
   assert_true(protocol_found)
   assert_true(vendor_found)
-  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+  let reader_id = match @core.EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+  let writer_id = match @core.EntityId::new(b"wrt", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -165,7 +166,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   }
   assert_eq(parsed.topic_name(), endpoint.topic_name())
   let message = match
-    endpoint.to_message(VendorId::new(1, 15), reader_id, writer_id, 1L) {
+    endpoint.to_message(@core.VendorId::new(1, 15), reader_id, writer_id, 1L) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -176,26 +177,26 @@ test "SEDP endpoint data round trips required fields and locators" {
 test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let participant_guid = sedp_test_guid(0xC1).unwrap()
-  let locator = Locator::udp_v4(b"\x7F\x00\x00\x01", 7410U).unwrap()
+  let locator = @core.Locator::udp_v4(b"\x7F\x00\x00\x01", 7410U).unwrap()
   let payload : Array[Byte] = [0, 2, 0, 0]
   parameter_test_append_be_parameter(
     payload,
-    PID_ENDPOINT_GUID,
+    @core.PID_ENDPOINT_GUID,
     endpoint_guid.to_bytes(),
   )
   parameter_test_append_be_parameter(
     payload,
-    PID_PARTICIPANT_GUID,
+    @core.PID_PARTICIPANT_GUID,
     participant_guid.to_bytes(),
   )
   parameter_test_append_be_parameter(
     payload,
-    PID_TOPIC_NAME,
+    @core.PID_TOPIC_NAME,
     sedp_test_string_be("rt/chatter"),
   )
   parameter_test_append_be_parameter(
     payload,
-    PID_TYPE_NAME,
+    @core.PID_TYPE_NAME,
     sedp_test_string_be("example::Type"),
   )
   let locator_value : Array[Byte] = []
@@ -209,7 +210,7 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
   }
   parameter_test_append_be_parameter(
     payload,
-    PID_UNICAST_LOCATOR,
+    @core.PID_UNICAST_LOCATOR,
     Bytes::from_array(locator_value),
   )
   let reliability : Array[Byte] = []
@@ -218,20 +219,20 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
   parameter_test_append_u32_be(reliability, 0U)
   parameter_test_append_be_parameter(
     payload,
-    PID_RELIABILITY,
+    @core.PID_RELIABILITY,
     Bytes::from_array(reliability),
   )
   parameter_test_append_be_parameter(
     payload,
-    PID_DATA_REPRESENTATION,
+    @core.PID_DATA_REPRESENTATION,
     b"\x00\x00\x00\x01\x00\x00",
   )
   parameter_test_append_be_parameter(
     payload,
-    PID_USER_DATA,
+    @core.PID_USER_DATA,
     sedp_test_octet_sequence_be(b"typehash=RIHS01_test;"),
   )
-  parameter_test_append_be_parameter(payload, PID_SENTINEL, b"")
+  parameter_test_append_be_parameter(payload, @core.PID_SENTINEL, b"")
 
   let serialized_payload = Bytes::from_array(payload)
   let decoded = SedpEndpointData::from_cdr_bytes(
@@ -247,9 +248,9 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
   let qos = decoded.qos().unwrap()
   assert_eq(qos.reliability(), RELIABILITY_RELIABLE)
   assert_eq(qos.data_representation(), [DATA_REPRESENTATION_XCDR1])
-  let data = DataSubmessage::new(
-    EntityId::new(b"rdr", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap(),
-    EntityId::new(b"wrt", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
+  let data = @core.DataSubmessage::new(
+    @core.EntityId::new(b"rdr", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap(),
+    @core.EntityId::new(b"wrt", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
     1L,
     serialized_payload,
   )
@@ -263,18 +264,18 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
 
 ///|
 test "SEDP extracts an endpoint GUID from key-only data" {
-  let prefix = @rtps.GuidPrefix::from_array([
+  let prefix = @core.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
-  let endpoint_id = @rtps.EntityId::new(b"pub", 0x02).unwrap()
-  let endpoint_guid = @rtps.Guid::new(prefix, endpoint_id)
-  let reader_id = @rtps.EntityId::new(b"rea", 0xC7).unwrap()
-  let writer_id = @rtps.EntityId::new(b"wri", 0xC2).unwrap()
-  let data = @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"").with_key(
+  let endpoint_id = @core.EntityId::new(b"pub", 0x02).unwrap()
+  let endpoint_guid = @core.Guid::new(prefix, endpoint_id)
+  let reader_id = @core.EntityId::new(b"rea", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wri", 0xC2).unwrap()
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 2L, b"").with_key(
     endpoint_guid.to_bytes(),
   )
   assert_eq(
-    @rtps.SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
+    SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
     endpoint_guid,
   )
 }
@@ -288,13 +289,13 @@ test "SEDP builds an endpoint dispose DATA sample" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let reader_id = EntityId::new(b"rea", 0xC7).unwrap()
-  let writer_id = EntityId::new(b"wri", 0xC2).unwrap()
+  let reader_id = @core.EntityId::new(b"rea", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wri", 0xC2).unwrap()
   let data = endpoint.to_dispose_data_submessage(reader_id, writer_id, 4L)
-  assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
+  assert_true((data.flags() & @core.DATA_FLAG_KEY) != 0x00)
   assert_eq(
     data.status_info(),
-    Ok(Some(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)),
+    Ok(Some(@core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED)),
   )
   assert_eq(
     SedpEndpointData::endpoint_guid_from_key_data(data).unwrap(),
@@ -320,8 +321,10 @@ test "SEDP endpoint type hash is optional and validates malformed user data" {
 
 ///|
 test "SEDP parser rejects missing required fields" {
-  let parameters = ParameterList::new()
-  parameters.add(Parameter::new(PID_TOPIC_NAME, b"\x01\x00\x00\x00\x00"))
+  let parameters = @core.ParameterList::new()
+  parameters.add(
+    @core.Parameter::new(@core.PID_TOPIC_NAME, b"\x01\x00\x00\x00\x00"),
+  )
   assert_true(
     SedpEndpointData::from_parameter_list(
       SedpEndpointKind::Subscription,
@@ -333,15 +336,15 @@ test "SEDP parser rejects missing required fields" {
 
 ///|
 test "SEDP resolves predefined builtin writer entity IDs" {
-  let publication_writer = match EntityId::new(b"\x00\x00\x03", 0xC2) {
+  let publication_writer = match @core.EntityId::new(b"\x00\x00\x03", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let subscription_writer = match EntityId::new(b"\x00\x00\x04", 0xC2) {
+  let subscription_writer = match @core.EntityId::new(b"\x00\x00\x04", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let unknown_writer = match EntityId::new(b"\x00\x00\x05", 0xC2) {
+  let unknown_writer = match @core.EntityId::new(b"\x00\x00\x05", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -377,22 +380,22 @@ test "SEDP resolves builtin reader and writer IDs by endpoint kind" {
 ///|
 test "SEDP reads basic QoS and checks offered compatibility" {
   let prefix = match
-    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let writer_id = match EntityId::new(b"pub", 0xC2) {
+  let writer_id = match @core.EntityId::new(b"pub", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let reader_id = match EntityId::new(b"sub", 0xC7) {
+  let reader_id = match @core.EntityId::new(b"sub", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let publication = match
     SedpEndpointData::new(
       SedpEndpointKind::Publication,
-      Guid::new(prefix, writer_id),
+      @core.Guid::new(prefix, writer_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
     ) {
@@ -405,7 +408,7 @@ test "SEDP reads basic QoS and checks offered compatibility" {
   let subscription = match
     SedpEndpointData::new(
       SedpEndpointKind::Subscription,
-      Guid::new(prefix, reader_id),
+      @core.Guid::new(prefix, reader_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
     ) {
@@ -496,7 +499,9 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  endpoint.add_parameter(Parameter::new(PID_DEADLINE, b"\x00\x00\x00\x00"))
+  endpoint.add_parameter(
+    @core.Parameter::new(@core.PID_DEADLINE, b"\x00\x00\x00\x00"),
+  )
   assert_true(endpoint.qos() is Err(_))
 
   let liveliness_endpoint = SedpEndpointData::new(
@@ -506,8 +511,8 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   liveliness_endpoint.add_parameter(
-    Parameter::new(
-      PID_LIVELINESS,
+    @core.Parameter::new(
+      @core.PID_LIVELINESS,
       b"\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
     ),
   )
@@ -518,7 +523,7 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
 test "SEDP rejects invalid reliability, durability, and history QoS" {
   let invalid_parameters = [
     qos_reliability(0U, 0, 0),
-    Parameter::new(PID_RELIABILITY, b"\x02\x00\x00\x00"),
+    @core.Parameter::new(@core.PID_RELIABILITY, b"\x02\x00\x00\x00"),
     qos_durability(4U),
     qos_history(2U, 1),
     qos_history(HISTORY_KEEP_LAST, 0),
@@ -599,7 +604,10 @@ test "SEDP rejects malformed data representation sequences" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   endpoint.add_parameter(
-    Parameter::new(PID_DATA_REPRESENTATION, b"\x02\x00\x00\x00\x00\x00"),
+    @core.Parameter::new(
+      @core.PID_DATA_REPRESENTATION,
+      b"\x02\x00\x00\x00\x00\x00",
+    ),
   )
   assert_true(endpoint.qos() is Err(_))
 }
@@ -614,7 +622,7 @@ test "SEDP rejects overflowing variable-length fields" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   endpoint.add_parameter(
-    Parameter::new(PID_DATA_REPRESENTATION, oversized_length),
+    @core.Parameter::new(@core.PID_DATA_REPRESENTATION, oversized_length),
   )
   assert_true(endpoint.qos() is Err(_))
 
@@ -625,7 +633,7 @@ test "SEDP rejects overflowing variable-length fields" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let parameters = endpoint.to_parameter_list().unwrap()
-  parameters.add(Parameter::new(PID_USER_DATA, oversized_length))
+  parameters.add(@core.Parameter::new(@core.PID_USER_DATA, oversized_length))
   assert_true(
     SedpEndpointData::from_parameter_list(
       SedpEndpointKind::Publication,
@@ -634,11 +642,14 @@ test "SEDP rejects overflowing variable-length fields" {
     is Err(_),
   )
 
-  let parameters = ParameterList::new()
+  let parameters = @core.ParameterList::new()
   parameters.add(
-    Parameter::new(PID_ENDPOINT_GUID, sedp_test_guid(0xC2).unwrap().to_bytes()),
+    @core.Parameter::new(
+      @core.PID_ENDPOINT_GUID,
+      sedp_test_guid(0xC2).unwrap().to_bytes(),
+    ),
   )
-  parameters.add(Parameter::new(PID_TOPIC_NAME, oversized_length))
+  parameters.add(@core.Parameter::new(@core.PID_TOPIC_NAME, oversized_length))
   assert_true(
     SedpEndpointData::from_parameter_list(
       SedpEndpointKind::Publication,
@@ -670,7 +681,7 @@ test "SEDP subscription advertises that it does not expect inline QoS" {
   }
   let mut expects_inline_qos_found = false
   for parameter in parameters.values() {
-    if parameter.id() == PID_EXPECTS_INLINE_QOS {
+    if parameter.id() == @core.PID_EXPECTS_INLINE_QOS {
       expects_inline_qos_found = true
       assert_eq(parameter.value(), b"\x00\x00\x00\x00")
     }
@@ -701,7 +712,7 @@ test "SEDP does not duplicate direction-specific standard parameters" {
   }
   let mut count = 0
   for parameter in parameters.values() {
-    if parameter.id() == PID_TYPE_MAX_SIZE_SERIALIZED {
+    if parameter.id() == @core.PID_TYPE_MAX_SIZE_SERIALIZED {
       count += 1
       assert_eq(parameter.value(), b"\x00\x04\x00\x00")
     }
@@ -719,9 +730,9 @@ test "SEDP DATA accepts an unencapsulated ParameterList" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let encoded = endpoint.to_cdr_bytes().unwrap()
-  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
-  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
-  let data = DataSubmessage::new(
+  let reader_id = @core.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()
+  let data = @core.DataSubmessage::new(
     reader_id,
     writer_id,
     1L,

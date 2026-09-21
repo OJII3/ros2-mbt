@@ -5,14 +5,6 @@ fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt) -> Unit {
 }
 
 ///|
-fn parameter_test_append_u32_be(bytes : Array[Byte], value : UInt) -> Unit {
-  bytes.push((value >> 24).to_byte())
-  bytes.push((value >> 16).to_byte())
-  bytes.push((value >> 8).to_byte())
-  bytes.push(value.to_byte())
-}
-
-///|
 fn parameter_test_append_be_parameter(
   bytes : Array[Byte],
   id : UInt16,
@@ -27,13 +19,6 @@ fn parameter_test_append_be_parameter(
   for _ in 0..<(length - value.length()) {
     bytes.push(0)
   }
-}
-
-///|
-fn parameter_test_be_u32(value : UInt) -> Bytes {
-  let bytes : Array[Byte] = []
-  parameter_test_append_u32_be(bytes, value)
-  Bytes::from_array(bytes)
 }
 
 ///|
@@ -107,14 +92,6 @@ test "RTPS discovery locator parameter identifiers match the wire standard" {
   assert_eq(PID_METATRAFFIC_UNICAST_LOCATOR, 0x0032)
   assert_eq(PID_METATRAFFIC_MULTICAST_LOCATOR, 0x0033)
   assert_eq(PID_DEFAULT_MULTICAST_LOCATOR, 0x0048)
-}
-
-///|
-test "RTPS user data parameter uses the standard identifier" {
-  assert_eq(PID_USER_DATA, 0x002C)
-  let parameter = qos_user_data(b"typehash=RIHS01_000102;\x00")
-  assert_eq(parameter.id(), PID_USER_DATA)
-  assert_eq(parameter.value(), b"typehash=RIHS01_000102;\x00")
 }
 
 ///|
