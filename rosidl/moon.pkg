@@ -1,5 +1,5 @@
 import {
-  "kainaproject/ros2_mbt/rosidl/compiler",
+  "ojii3/ros2-mbt/rosidl/compiler",
 }
 
 options(

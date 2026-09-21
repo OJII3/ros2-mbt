@@ -1,7 +1,7 @@
 import {
-  "kainaproject/ros2_mbt/transport/discovery",
-  "kainaproject/ros2_mbt/transport/ros" @ros_transport,
-  "kainaproject/ros2_mbt/transport/wire",
+  "ojii3/ros2-mbt/transport/discovery",
+  "ojii3/ros2-mbt/transport/ros" @ros_transport,
+  "ojii3/ros2-mbt/transport/wire",
 }
 
 options(

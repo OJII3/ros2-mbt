@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/ros/messages/geometry_msgs"
+package "ojii3/ros2-mbt/ros/messages/geometry_msgs"
 
 import {
-  "kainaproject/ros2_mbt/cdr",
-  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "ojii3/ros2-mbt/cdr",
+  "ojii3/ros2-mbt/ros/messages/std_msgs",
   "moonbitlang/core/debug",
 }
 

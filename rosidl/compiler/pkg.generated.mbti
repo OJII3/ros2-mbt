@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/rosidl/compiler"
+package "ojii3/ros2-mbt/rosidl/compiler"
 
 import {
   "moonbitlang/core/debug",

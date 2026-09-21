@@ -1,9 +1,9 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/socket",
-  "kainaproject/ros2_mbt/ros",
-  "kainaproject/ros2_mbt/rtps",
-  "kainaproject/ros2_mbt/transport/wire",
+  "ojii3/ros2-mbt/ros",
+  "ojii3/ros2-mbt/rtps",
+  "ojii3/ros2-mbt/transport/wire",
 }
 
 options(

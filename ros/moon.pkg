@@ -1,14 +1,14 @@
 import {
-  "kainaproject/ros2_mbt/ros/discovery",
-  "kainaproject/ros2_mbt/ros/endpoints",
-  "kainaproject/ros2_mbt/ros/messages/action_msgs",
-  "kainaproject/ros2_mbt/ros/messages/builtin_interfaces",
-  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
-  "kainaproject/ros2_mbt/ros/messages/nav_msgs",
-  "kainaproject/ros2_mbt/ros/messages/rmw_dds_common",
-  "kainaproject/ros2_mbt/ros/messages/sensor_msgs",
-  "kainaproject/ros2_mbt/ros/messages/std_msgs",
-  "kainaproject/ros2_mbt/ros/names",
+  "ojii3/ros2-mbt/ros/discovery",
+  "ojii3/ros2-mbt/ros/endpoints",
+  "ojii3/ros2-mbt/ros/messages/action_msgs",
+  "ojii3/ros2-mbt/ros/messages/builtin_interfaces",
+  "ojii3/ros2-mbt/ros/messages/geometry_msgs",
+  "ojii3/ros2-mbt/ros/messages/nav_msgs",
+  "ojii3/ros2-mbt/ros/messages/rmw_dds_common",
+  "ojii3/ros2-mbt/ros/messages/sensor_msgs",
+  "ojii3/ros2-mbt/ros/messages/std_msgs",
+  "ojii3/ros2-mbt/ros/names",
 }
 
 options(

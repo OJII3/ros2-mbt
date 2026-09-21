@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kainaproject/ros2_mbt/ros/endpoints"
+package "ojii3/ros2-mbt/ros/endpoints"
 
 import {
-  "kainaproject/ros2_mbt/rtps/core",
-  "kainaproject/ros2_mbt/rtps/discovery",
+  "ojii3/ros2-mbt/rtps/core",
+  "ojii3/ros2-mbt/rtps/discovery",
   "moonbitlang/core/debug",
 }
 
