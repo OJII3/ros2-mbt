@@ -14,7 +14,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Err(message) => fail(message)
   }
   let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -42,9 +42,9 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = receiver.local_addr()
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender_address = sender.local_addr()
   let receiver_locator = match
     @rtps.Locator::udp_v4(
@@ -65,7 +65,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
   subscription.add_unicast_locator(receiver_locator)
   publication.add_unicast_locator(sender_locator)
   let writer = match
-    DataWriter::new_for_subscription(
+    @wire.DataWriter::new_for_subscription(
       sender,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -77,11 +77,11 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Err(message) => fail(message)
   }
   let reader = match
-    DataReader::new_for_publication(receiver, reader_id, publication) {
+    @wire.DataReader::new_for_publication(receiver, reader_id, publication) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let message = @ros.StringMessage::new("hello from MoonBit")
+  let message = @ros_types.StringMessage::new("hello from MoonBit")
   match writer.write(message.to_cdr_bytes()) {
     Ok(_) => ()
     Err(error) => fail(error)
@@ -91,7 +91,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Err(error) => fail(error)
   }
   let decoded = match
-    @ros.StringMessage::from_cdr_bytes(data.serialized_payload()) {
+    @ros_types.StringMessage::from_cdr_bytes(data.serialized_payload()) {
     Ok(value) => value
     Err(error) => fail(error)
   }
@@ -133,8 +133,8 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_spdp = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let subscriber_spdp = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let publisher_participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(publisher_prefix, participant_id),
     @rtps.VendorId::new(1, 15),
@@ -180,7 +180,7 @@ async test "two discovery services establish a ROS String data path" {
   publisher_participant.add_metatraffic_unicast(publisher_locator)
   subscriber_participant.add_metatraffic_unicast(subscriber_locator)
   let publisher_session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       publisher_spdp,
       publisher_participant,
       spdp_reader,
@@ -192,7 +192,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   let subscriber_session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       subscriber_spdp,
       subscriber_participant,
       spdp_reader,
@@ -203,8 +203,8 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_service = DiscoveryService::new(publisher_session)
-  let subscriber_service = DiscoveryService::new(subscriber_session)
+  let publisher_service = @discovery.DiscoveryService::new(publisher_session)
+  let subscriber_service = @discovery.DiscoveryService::new(subscriber_session)
   match publisher_service.announce_once() {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -222,7 +222,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -258,8 +258,8 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_user = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let subscriber_user = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let publisher_user_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
@@ -297,7 +297,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   let writer = match
-    DataWriter::new_for_subscription(
+    @wire.DataWriter::new_for_subscription(
       publisher_user,
       publisher_prefix,
       @rtps.VendorId::new(1, 15),
@@ -309,7 +309,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   let reader = match
-    DataReader::new_for_publication(
+    @wire.DataReader::new_for_publication(
       subscriber_user,
       subscriber_id,
       subscriber_service.graph().publications()[0],
@@ -318,7 +318,9 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   match
-    writer.write(@ros.StringMessage::new("discovered hello").to_cdr_bytes()) {
+    writer.write(
+      @ros_types.StringMessage::new("discovered hello").to_cdr_bytes(),
+    ) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -327,7 +329,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(message) => fail(message)
   }
   let message = match
-    @ros.StringMessage::from_cdr_bytes(data.serialized_payload()) {
+    @ros_types.StringMessage::from_cdr_bytes(data.serialized_payload()) {
     Ok(value) => value
     Err(error) => fail(error)
   }

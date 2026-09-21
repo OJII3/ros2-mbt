@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/async/socket",
+  "kainaproject/ros2_mbt/ros",
+  "kainaproject/ros2_mbt/rtps",
+}
+
+import {
+  "moonbitlang/async",
+} for "test"
+
+options(
+  "is-main": false,
+)

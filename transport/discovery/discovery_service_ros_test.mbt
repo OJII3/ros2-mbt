@@ -25,9 +25,9 @@ async test "discovery service ingests ros_discovery_info samples" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = receiver.local_addr()
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
     DiscoverySession::new(
       receiver, participant, spdp_reader, spdp_writer, receiver_address, 1L,
@@ -91,8 +91,8 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let subscriber_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let publisher_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
@@ -127,7 +127,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   publication.add_unicast_locator(publisher_locator)
   subscription.add_unicast_locator(subscriber_locator)
-  let service_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let service_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let service_address = service_socket.local_addr()
   let service_participant_id = match @rtps.EntityId::new(b"gph", 0xC1) {
     Ok(value) => value
@@ -167,7 +167,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   let service = DiscoveryService::new(service_session)
   let reader = match
-    ReliableDataReaderSession::new_for_publication(
+    @wire.ReliableDataReaderSession::new_for_publication(
       subscriber_socket,
       subscriber_prefix,
       @rtps.VendorId::new(1, 15),
@@ -178,7 +178,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Err(message) => fail(message)
   }
   let writer = match
-    ReliableDataWriter::new_for_subscription(
+    @wire.ReliableDataWriter::new_for_subscription(
       publisher_socket,
       publisher_prefix,
       @rtps.VendorId::new(1, 15),

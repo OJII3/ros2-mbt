@@ -4,15 +4,15 @@
 /// The payload is already serialized with the message type's CDR codec. This
 /// keeps the transport layer independent from generated ROS message types.
 pub struct RosPublisher {
-  topic : @ros.RosTopic
-  writer : DataWriter
+  topic : @ros_types.RosTopic
+  writer : @wire.DataWriter
 }
 
 ///|
 /// Create a publisher for a discovered subscription with a matching topic.
 pub fn RosPublisher::new_for_subscription(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   writer_id : @rtps.EntityId,
@@ -31,7 +31,7 @@ pub fn RosPublisher::new_for_subscription(
     return Err("the discovered subscription is not best effort")
   }
   let writer = match
-    DataWriter::new_for_subscription(
+    @wire.DataWriter::new_for_subscription(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
     ) {
     Ok(value) => value
@@ -42,7 +42,7 @@ pub fn RosPublisher::new_for_subscription(
 
 ///|
 /// Return the ROS topic represented by this publisher.
-pub fn RosPublisher::topic(self : RosPublisher) -> @ros.RosTopic {
+pub fn RosPublisher::topic(self : RosPublisher) -> @ros_types.RosTopic {
   self.topic
 }
 
@@ -70,15 +70,15 @@ pub fn RosPublisher::close(self : RosPublisher) -> Unit {
 ///|
 /// A ROS topic subscription backed by a discovered best-effort RTPS publication.
 pub struct RosSubscription {
-  topic : @ros.RosTopic
-  reader : DataReader
+  topic : @ros_types.RosTopic
+  reader : @wire.DataReader
 }
 
 ///|
 /// Create a subscription for a discovered publication with a matching topic.
 pub fn RosSubscription::new_for_publication(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[RosSubscription, String] {
@@ -88,8 +88,8 @@ pub fn RosSubscription::new_for_publication(
 ///|
 /// Create a best-effort subscription that filters INFO_DST for its participant.
 pub fn RosSubscription::new_for_publication_with_prefix(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   participant_prefix : @rtps.GuidPrefix,
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
@@ -105,8 +105,8 @@ pub fn RosSubscription::new_for_publication_with_prefix(
 
 ///|
 fn ros_subscription_for_publication(
-  topic : @ros.RosTopic,
-  socket : Udp,
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
   participant_prefix : @rtps.GuidPrefix?,
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
@@ -118,10 +118,11 @@ fn ros_subscription_for_publication(
   let reader = match
     (match participant_prefix {
       Some(prefix) =>
-        DataReader::new_for_publication_with_prefix(
+        @wire.DataReader::new_for_publication_with_prefix(
           socket, prefix, reader_id, publication,
         )
-      None => DataReader::new_for_publication(socket, reader_id, publication)
+      None =>
+        @wire.DataReader::new_for_publication(socket, reader_id, publication)
     }) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -131,7 +132,7 @@ fn ros_subscription_for_publication(
 
 ///|
 /// Return the ROS topic represented by this subscription.
-pub fn RosSubscription::topic(self : RosSubscription) -> @ros.RosTopic {
+pub fn RosSubscription::topic(self : RosSubscription) -> @ros_types.RosTopic {
   self.topic
 }
 

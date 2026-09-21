@@ -15,7 +15,7 @@ pub struct RosActionEndpoints {
 /// Discover the service and topic endpoints for a ROS 2 action.
 pub async fn RosActionEndpoints::discover(
   participant : RosParticipant,
-  action : @ros.RosAction,
+  action : @ros_types.RosAction,
 ) -> Result[RosActionEndpoints, String] {
   let send_goal = action.send_goal_service()
   let get_result = action.get_result_service()
@@ -39,7 +39,7 @@ pub async fn RosActionEndpoints::discover(
         feedback_publication is None ||
         status_publication is None {
     match participant.receive_discovery_once() {
-      Ok((_, DiscoveryEvent::Publication(publication))) => {
+      Ok((_, @wire.DiscoveryEvent::Publication(publication))) => {
         if publication.topic_name() == send_goal.dds_response_name() &&
           publication.type_name() == send_goal.dds_response_type_name() {
           send_goal_response_publication = Some(publication)
@@ -61,7 +61,7 @@ pub async fn RosActionEndpoints::discover(
           status_publication = Some(publication)
         }
       }
-      Ok((_, DiscoveryEvent::Subscription(subscription))) => {
+      Ok((_, @wire.DiscoveryEvent::Subscription(subscription))) => {
         if subscription.topic_name() == send_goal.dds_request_name() &&
           subscription.type_name() == send_goal.dds_request_type_name() {
           send_goal_request_subscription = Some(subscription)

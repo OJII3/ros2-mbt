@@ -1,7 +1,7 @@
 ///|
 async test "reliable ROS publisher and subscription exchange a CDR payload" {
   let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+    @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -18,8 +18,8 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -71,7 +71,7 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let message = @ros.StringMessage::new("reliable hello from ROS")
+  let message = @ros_types.StringMessage::new("reliable hello from ROS")
   match publisher.publish(message.to_cdr_bytes()) {
     Ok(_) => ()
     Err(error) => fail(error)
@@ -92,7 +92,7 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(error) => fail(error)
   }
-  let decoded = match @ros.StringMessage::from_cdr_bytes(payload) {
+  let decoded = match @ros_types.StringMessage::from_cdr_bytes(payload) {
     Ok(value) => value
     Err(error) => fail(error)
   }

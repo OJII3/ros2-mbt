@@ -13,8 +13,8 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -24,7 +24,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Err(message) => fail(message)
   }
   let publication = match
-    @ros.ros_discovery_info_to_sedp(
+    @ros_types.ros_discovery_info_to_sedp(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, writer_id),
     ) {
@@ -33,7 +33,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
   }
   publication.add_unicast_locator(sender_locator)
   let subscription = match
-    @ros.ros_discovery_info_to_sedp(
+    @ros_types.ros_discovery_info_to_sedp(
       @rtps.SedpEndpointKind::Subscription,
       @rtps.Guid::new(prefix, reader_id),
     ) {
@@ -64,16 +64,18 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let gid = match @ros.Gid::new(b"0123456789abcdef") {
+  let gid = match @ros_types.Gid::new(b"0123456789abcdef") {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let info = @ros.ParticipantEntitiesInfo::new(gid)
-  let node = match @ros.NodeEntitiesInfo::new("/demo", "talker") {
+  let info = @ros_types.ParticipantEntitiesInfo::new(gid)
+  let node = match @ros_types.NodeEntitiesInfo::new("/demo", "talker") {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  node.add_writer_gid(@ros.Gid::from_guid(@rtps.Guid::new(prefix, writer_id)))
+  node.add_writer_gid(
+    @ros_types.Gid::from_guid(@rtps.Guid::new(prefix, writer_id)),
+  )
   info.add_node(node)
   match publisher.announce_once(info) {
     Ok(_) => ()
@@ -119,8 +121,8 @@ test "ROS graph endpoint validation requires reliable matching SEDP data" {
     @rtps.SedpEndpointData::new(
       @rtps.SedpEndpointKind::Publication,
       @rtps.Guid::new(prefix, writer_id),
-      @ros.ROS_DISCOVERY_INFO_TOPIC_NAME,
-      @ros.ROS_DISCOVERY_INFO_TYPE_NAME,
+      @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME,
+      @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -129,7 +131,7 @@ test "ROS graph endpoint validation requires reliable matching SEDP data" {
     @rtps.qos_reliability(@rtps.RELIABILITY_BEST_EFFORT, 0, 0),
   )
   assert_true(
-    @ros.validate_ros_discovery_info_endpoint(
+    @ros_types.validate_ros_discovery_info_endpoint(
       endpoint,
       @rtps.SedpEndpointKind::Publication,
     )

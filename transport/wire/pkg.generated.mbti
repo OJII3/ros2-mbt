@@ -1,0 +1,222 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/transport/wire"
+
+import {
+  "kainaproject/ros2_mbt/ros",
+  "kainaproject/ros2_mbt/rtps",
+  "moonbitlang/async/socket",
+}
+
+// Values
+pub const DDSI_DEFAULT_MULTICAST_IP : UInt = 0xEFFF0001
+
+pub const DDSI_DOMAIN_ID_GAIN : Int = 250
+
+pub const DDSI_PARTICIPANT_ID_GAIN : Int = 2
+
+pub const DDSI_PORT_BASE : Int = 7400
+
+pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
+
+pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
+
+pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
+
+pub const DDSI_USER_UNICAST_OFFSET : Int = 11
+
+pub const MAX_DATAGRAM_SIZE : Int = 65535
+
+pub fn ddsi_default_spdp_multicast_addr(UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_default_spdp_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_default_user_multicast_addr(UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_default_user_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+
+pub fn ddsi_spdp_multicast_port(UInt) -> Result[Int, String]
+
+pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
+
+pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
+
+pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
+
+pub fn new_ddsi_participant(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int) -> Result[@rtps.SpdpParticipantData, String]
+
+// Errors
+
+// Types and methods
+pub struct DataReader {
+  socket : Udp
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  writer_prefix : @rtps.GuidPrefix?
+  participant_prefix : @rtps.GuidPrefix?
+  state : ReliableDataReader
+}
+pub fn DataReader::close(Self) -> Unit
+pub fn DataReader::new(Udp, @rtps.EntityId, @rtps.EntityId) -> Self
+pub fn DataReader::new_for_publication(Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub fn DataReader::new_for_publication_with_prefix(Udp, @rtps.GuidPrefix, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub async fn DataReader::receive(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+
+pub struct DataWriter {
+  socket : Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  destinations : Array[@socket.Addr]
+  reader_prefix : @rtps.GuidPrefix?
+  mut next_sequence_number : Int64
+}
+pub fn DataWriter::close(Self) -> Unit
+pub fn DataWriter::new(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn DataWriter::new_for_subscription(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn DataWriter::next_sequence_number(Self) -> Int64
+pub async fn DataWriter::write(Self, Bytes) -> Result[Unit, String]
+
+pub(all) enum DiscoveryEvent {
+  Participant(@rtps.SpdpParticipantData)
+  Publication(@rtps.SedpEndpointData)
+  Subscription(@rtps.SedpEndpointData)
+  EndpointRemoved(@rtps.SedpEndpointKind, @rtps.Guid)
+  ParticipantRemoved(@rtps.Guid)
+}
+
+pub struct ReliableDataReader {
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  mut next_acknack_count : UInt
+  mut next_nackfrag_count : UInt
+  mut samples : Array[Int64]
+  mut gaps : Array[@rtps.GapSubmessage]
+  mut fragments : Array[ReliableFragmentedSample]
+  mut acknowledged_through : Int64
+  mut accepted_sample_count : Int
+}
+pub fn ReliableDataReader::accept_data(Self, @rtps.DataSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::accept_data_frag(Self, @rtps.DataFragSubmessage) -> Result[@rtps.DataSubmessage?, String]
+pub fn ReliableDataReader::accept_gap(Self, @rtps.GapSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::acknack_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[@rtps.AckNackSubmessage, String]
+pub fn ReliableDataReader::acknacks_for_heartbeat(Self, @rtps.HeartbeatSubmessage) -> Result[Array[@rtps.AckNackSubmessage], String]
+pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(Self, @rtps.HeartbeatFragSubmessage) -> Result[@rtps.NackFragSubmessage, String]
+pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(Self, @rtps.HeartbeatFragSubmessage) -> Result[Array[@rtps.NackFragSubmessage], String]
+pub fn ReliableDataReader::new(@rtps.EntityId, @rtps.EntityId) -> Self
+pub fn ReliableDataReader::next_acknack_count(Self) -> UInt
+pub fn ReliableDataReader::next_nackfrag_count(Self) -> UInt
+pub fn ReliableDataReader::sample_count(Self) -> Int
+
+pub struct ReliableDataReaderSession {
+  socket : Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  destinations : Array[@socket.Addr]
+  writer_prefix : @rtps.GuidPrefix
+  state : ReliableDataReader
+  mut pending_samples : Array[(@rtps.DataSubmessage, @socket.Addr)]
+  mut pending_sample_index : Int
+}
+pub fn ReliableDataReaderSession::close(Self) -> Unit
+pub fn ReliableDataReaderSession::new_for_publication(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_data_with_identity(Self) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_data_with_writer(Self, ReliableDataWriter) -> Result[(@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_related_data(Self, @rtps.SampleIdentity) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn ReliableDataReaderSession::receive_related_data_with_writer(Self, @rtps.SampleIdentity, ReliableDataWriter) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub fn ReliableDataReaderSession::sample_count(Self) -> Int
+
+pub struct ReliableDataWriter {
+  socket : Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  reader_id : @rtps.EntityId
+  writer_id : @rtps.EntityId
+  destinations : Array[@socket.Addr]
+  reader_prefix : @rtps.GuidPrefix?
+  mut next_sequence_number : Int64
+  mut next_heartbeat_count : UInt
+  mut history : Array[@rtps.DataSubmessage]
+  mut fragmented_history : Array[ReliableFragmentedWrite]
+}
+pub fn ReliableDataWriter::close(Self) -> Unit
+pub async fn ReliableDataWriter::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub async fn ReliableDataWriter::handle_nackfrag(Self, @rtps.NackFragSubmessage) -> Result[Unit, String]
+pub fn ReliableDataWriter::history_length(Self) -> Int
+pub fn ReliableDataWriter::new(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, @socket.Addr, Int64) -> Result[Self, String]
+pub fn ReliableDataWriter::new_for_sedp(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtps.SpdpParticipantData, Int64) -> Result[Self, String]
+pub fn ReliableDataWriter::new_for_subscription(Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn ReliableDataWriter::next_heartbeat_count(Self) -> UInt
+pub fn ReliableDataWriter::next_sequence_number(Self) -> Int64
+pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn ReliableDataWriter::receive_control(Self) -> Result[Unit, String]
+pub async fn ReliableDataWriter::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
+pub async fn ReliableDataWriter::send_heartbeat(Self) -> Result[Unit, String]
+pub fn ReliableDataWriter::vendor_id(Self) -> @rtps.VendorId
+pub async fn ReliableDataWriter::write(Self, Bytes) -> Result[Unit, String]
+pub async fn ReliableDataWriter::write_and_return_identity(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
+pub async fn ReliableDataWriter::write_with_related_sample_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[Unit, String]
+pub async fn ReliableDataWriter::write_with_related_sample_identity_and_return_identity(Self, Bytes, @rtps.SampleIdentity) -> Result[@rtps.SampleIdentity, String]
+
+type ReliableFragmentedSample
+
+type ReliableFragmentedWrite
+
+pub struct ReliableSedpWriter {
+  endpoint : @rtps.SedpEndpointData
+  writer : ReliableDataWriter
+}
+pub async fn ReliableSedpWriter::announce_once(Self) -> Result[Unit, String]
+pub fn ReliableSedpWriter::close(Self) -> Unit
+pub fn ReliableSedpWriter::endpoint(Self) -> @rtps.SedpEndpointData
+pub async fn ReliableSedpWriter::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub fn ReliableSedpWriter::history_length(Self) -> Int
+pub fn ReliableSedpWriter::new(Udp, @rtps.VendorId, @rtps.SedpEndpointData, @rtps.SpdpParticipantData, Int64) -> Result[Self, String]
+pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
+pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+
+pub struct Udp {
+  server : @socket.UdpServer
+}
+pub async fn Udp::bind(@socket.Addr) -> Self
+pub fn Udp::close(Self) -> Unit
+pub async fn Udp::ddsi_spdp_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_unicast(UInt, UInt, UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_user_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
+pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
+pub fn Udp::local_addr(Self) -> @socket.Addr
+pub fn Udp::local_unicast_locator(Self) -> Result[@rtps.Locator, String]
+pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.Addr) -> Self
+pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
+pub async fn Udp::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn Udp::receive_data(Self) -> Result[(@rtps.DataSubmessage, @socket.Addr), String]
+pub async fn Udp::receive_discovery(Self) -> Result[(DiscoveryEvent, @socket.Addr), String]
+pub async fn Udp::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn Udp::receive_message(Self) -> Result[(@rtps.Message, @socket.Addr), String]
+pub async fn Udp::receive_nack_frag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
+pub async fn Udp::receive_ros_discovery_info(Self) -> Result[(@ros.ParticipantEntitiesInfo, @socket.Addr), String]
+pub async fn Udp::receive_sedp(Self, @rtps.SedpEndpointKind) -> Result[(@rtps.SedpEndpointData, @socket.Addr), String]
+pub async fn Udp::receive_spdp(Self) -> Result[(@rtps.SpdpParticipantData, @socket.Addr), String]
+pub async fn Udp::send_acknack(Self, @rtps.AckNackSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_data(Self, @rtps.DataSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_data_frag(Self, @rtps.DataFragSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_heartbeat(Self, @rtps.HeartbeatSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_heartbeat_frag(Self, @rtps.HeartbeatFragSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_message(Self, @rtps.Message, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_nack_frag(Self, @rtps.NackFragSubmessage, @rtps.GuidPrefix, @rtps.VendorId, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_ros_discovery_info(Self, @ros.ParticipantEntitiesInfo, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_sedp(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_sedp_dispose_to_participant(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64) -> Result[Unit, String]
+pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
+pub async fn Udp::send_sedp_to_participant(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64) -> Result[Unit, String]
+pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @rtps.SedpEndpointData, @rtps.VendorId, @rtps.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
+pub async fn Udp::send_spdp(Self, @rtps.SpdpParticipantData, @rtps.EntityId, @rtps.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
+pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
+pub fn Udp::set_multicast_interface(Self, @socket.Addr) -> Result[Unit, String]
+
+// Type aliases
+
+// Traits

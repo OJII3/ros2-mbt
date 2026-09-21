@@ -30,7 +30,7 @@ pub fn RosActionGoalHandle::accepted(self : RosActionGoalHandle) -> Bool {
 ///|
 /// Combine the five transport endpoints for one ROS 2 action client.
 pub fn RosActionClient::new(
-  action : @ros.RosAction,
+  action : @ros_types.RosAction,
   send_goal_client : RosServiceClient,
   get_result_client : RosServiceClient,
   cancel_goal_client : RosServiceClient,
@@ -122,18 +122,18 @@ pub async fn RosActionClient::request_get_result(
 pub async fn RosActionClient::request_cancel_goal(
   self : RosActionClient,
   goal_id : Bytes,
-) -> Result[@ros.RosCancelGoalResponse, String] {
-  let goal_info = match @ros.RosActionGoalInfo::new(goal_id, 0, 0U) {
+) -> Result[@ros_types.RosCancelGoalResponse, String] {
+  let goal_info = match @ros_types.RosActionGoalInfo::new(goal_id, 0, 0U) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let request = @ros.RosCancelGoalRequest::new(goal_info)
+  let request = @ros_types.RosCancelGoalRequest::new(goal_info)
   let payload = match
     ros_action_client_request(self.cancel_goal_client, request.to_cdr_bytes()) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  @ros.RosCancelGoalResponse::from_cdr_bytes(payload)
+  @ros_types.RosCancelGoalResponse::from_cdr_bytes(payload)
 }
 
 ///|
@@ -141,7 +141,7 @@ pub async fn RosActionClient::request_cancel_goal(
 pub async fn RosActionClient::cancel_goal(
   self : RosActionClient,
   goal : RosActionGoalHandle,
-) -> Result[@ros.RosCancelGoalResponse, String] {
+) -> Result[@ros_types.RosCancelGoalResponse, String] {
   if !goal.accepted() {
     return Err("cannot cancel a goal that was not accepted")
   }
@@ -226,7 +226,7 @@ pub async fn RosActionClient::receive_goal_feedback(
 pub async fn RosActionClient::receive_next_goal_status(
   self : RosActionClient,
   goal_id : Bytes,
-) -> Result[@ros.RosActionGoalStatus, String] {
+) -> Result[@ros_types.RosActionGoalStatus, String] {
   if goal_id.length() != 16 {
     return Err("an action goal ID must contain exactly 16 bytes")
   }
@@ -236,7 +236,7 @@ pub async fn RosActionClient::receive_next_goal_status(
       Err(message) => return Err(message)
     }
     let status_array = match
-      @ros.RosActionGoalStatusArray::from_cdr_bytes(payload) {
+      @ros_types.RosActionGoalStatusArray::from_cdr_bytes(payload) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
@@ -254,7 +254,7 @@ pub async fn RosActionClient::receive_next_goal_status(
 pub async fn RosActionClient::receive_terminal_goal_status(
   self : RosActionClient,
   goal_id : Bytes,
-) -> Result[@ros.RosActionGoalStatus, String] {
+) -> Result[@ros_types.RosActionGoalStatus, String] {
   while true {
     let status = match self.receive_next_goal_status(goal_id) {
       Ok(value) => value
@@ -272,7 +272,7 @@ pub async fn RosActionClient::receive_terminal_goal_status(
 pub async fn RosActionClient::receive_goal_terminal_status(
   self : RosActionClient,
   goal : RosActionGoalHandle,
-) -> Result[@ros.RosActionGoalStatus, String] {
+) -> Result[@ros_types.RosActionGoalStatus, String] {
   if !goal.accepted() {
     return Err("cannot wait for the status of a goal that was not accepted")
   }
@@ -285,7 +285,7 @@ pub async fn RosActionClient::receive_goal_status(
   self : RosActionClient,
   goal_id : Bytes,
   expected_status : Int,
-) -> Result[@ros.RosActionGoalStatus, String] {
+) -> Result[@ros_types.RosActionGoalStatus, String] {
   while true {
     let status = match self.receive_next_goal_status(goal_id) {
       Ok(value) => value
