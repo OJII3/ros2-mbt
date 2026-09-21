@@ -100,10 +100,15 @@ trap cleanup EXIT
 wait_for_node() {
   local node_name="$1"
   local process_pid="$2"
+  local daemon_args=()
+  if [[ "${ROS2_MBT_NO_DAEMON:-0}" == "1" ]]; then
+    daemon_args+=(--no-daemon)
+  fi
   local deadline=$((SECONDS + 45))
   while ((SECONDS < deadline)); do
     local nodes
-    nodes=$(timeout --kill-after=1s 3s ros2 node list --spin-time 0.25 2>/dev/null || true)
+    nodes=$(timeout --kill-after=1s 3s ros2 node list "${daemon_args[@]}" \
+      --spin-time 0.25 2>/dev/null || true)
     if grep -Fxq "$node_name" <<<"$nodes"; then
       return 0
     fi
@@ -120,9 +125,14 @@ wait_for_node_endpoint() {
   local node_name="$1"
   local endpoint_section="$2"
   local endpoint_name="$3"
+  local daemon_args=()
+  if [[ "${ROS2_MBT_NO_DAEMON:-0}" == "1" ]]; then
+    daemon_args+=(--no-daemon)
+  fi
   for _ in {1..20}; do
     local node_info
-    node_info=$(timeout --kill-after=1s 3s ros2 node info "$node_name" 2>/dev/null || true)
+    node_info=$(timeout --kill-after=1s 3s ros2 node info \
+      "${daemon_args[@]}" "$node_name" 2>/dev/null || true)
     if awk -v section="  $endpoint_section:" -v endpoint="    $endpoint_name:" '
       $0 == section { in_section = 1; next }
       /^  [[:alpha:] ]+:$/ { in_section = 0 }
@@ -295,8 +305,6 @@ if [[ "$received_count" -ne 5 ]]; then
   exit 1
 fi
 
-# Start the lazy ROS CLI graph daemon before the MoonBit service server.
-timeout --kill-after=1s 5s ros2 node list --spin-time 0.25 >/dev/null
 timeout --kill-after=2s 60s python3 -u \
   "$script_dir/ros2_service_graph_interop_observer.py" \
   >"$service_graph_observer_log" 2>&1 &
@@ -315,7 +323,8 @@ fi
 timeout --kill-after=2s 45s nix develop --command moon run examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
-wait_for_ros_endpoint "/demo/moon_add_two_ints_server" "$moon_service_pid" \
+ROS2_MBT_NO_DAEMON=1 wait_for_ros_endpoint \
+  "/demo/moon_add_two_ints_server" "$moon_service_pid" \
   "Service Servers" "/add_two_ints"
 wait "$service_graph_observer_pid"
 service_graph_observer_pid=""
