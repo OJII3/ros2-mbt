@@ -90,8 +90,8 @@ bash scripts/ros2_podman_interop.sh
 このスクリプトはROS 2 Jazzy `ros-base` imageにテスト用interface/demo packageとMoonBit toolchainを加え、format、check、native test、topic/service、Action、Parameter相互運用を順に実行します。
 
 service例は `AddTwoInts` のrequest/responseをCDRで符号化し、DDS-RPCのrelated sample identityで相関させます。
-Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みですが、ROS graph全体の相互運用は未確認です。
+Cyclone DDS 11.0.1では、`rmw_cyclonedds_cpp`互換のpayload header（`uint64 client_id` + `int64 sequence`）を使うrequest/replyを、固定unicast discoveryでMoonBit server/clientの双方向について確認済みです。Fast DDS 3.6.2とも、inline `RELATED_SAMPLE_IDENTITY`を使う`AddTwoInts` request/replyをMoonBit client/serverの双方向で確認しました。ROS graph用の`ros_discovery_info`はCyclone DDS readerおよびFast DDS 3.6.2 raw DDS readerへのsample送信を確認済みです。Nix devShellのROS 2 Jazzy CLIとのString/WString topicおよびservice双方向通信もmacOSで確認済みですが、網羅的なROS graph相互運用は未確認です。
 
 ## Roadmap
 
-- ROS graph 全体の相互運用確認。現在は `ros_discovery_info` の送受信と Linux CI での node/GID 検証に対応。
+- ROS graph 相互運用の拡充。Linux CI で MoonBit node と `/chatter` publisher の namespace/name/GID、および AddTwoInts service node/endpoint の発見を確認済み。多様な node/endpoint 構成を含む網羅的な graph 整合性は未確認。
