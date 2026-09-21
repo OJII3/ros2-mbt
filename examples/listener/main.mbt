@@ -5,7 +5,9 @@ async fn discover_publication(
   topic : @ros.RosTopic,
 ) -> Result[@rtps.SedpEndpointData, String] {
   let mut remote_publication : @rtps.SedpEndpointData? = None
-  while remote_publication is None {
+  // The ROS graph subscription can arrive after the user-topic publication.
+  while remote_publication is None ||
+        participant.ros_discovery_publisher_count() == 0 {
     match participant.receive_discovery_once() {
       Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
         if publication.topic_name() == topic.dds_name() &&
