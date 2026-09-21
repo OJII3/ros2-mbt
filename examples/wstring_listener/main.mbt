@@ -3,18 +3,41 @@ async fn discover_publication(
   participant : @transport.RosParticipant,
   topic : @ros.RosTopic,
 ) -> Result[@rtps.SedpEndpointData, String] {
-  while true {
-    match participant.receive_discovery_once() {
-      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
-        if publication.topic_name() == topic.dds_name() &&
-          publication.type_name() == topic.dds_type_name() {
-          return Ok(publication)
+  let mut remote_publication : @rtps.SedpEndpointData? = None
+  let mut quiet_periods = 0
+  while remote_publication is None ||
+        participant.ros_discovery_publisher_count() == 0 ||
+        quiet_periods < 4 {
+    let graph_publisher_count = participant.ros_discovery_publisher_count()
+    let received = if remote_publication is Some(_) && graph_publisher_count > 0 {
+      @async.with_timeout_opt(250, async fn() {
+        participant.receive_discovery_once()
+      })
+    } else {
+      Some(participant.receive_discovery_once())
+    }
+    match received {
+      None => quiet_periods += 1
+      Some(Ok((_, event))) => {
+        match event {
+          @transport.DiscoveryEvent::Publication(publication) =>
+            if publication.topic_name() == topic.dds_name() &&
+              publication.type_name() == topic.dds_type_name() {
+              remote_publication = Some(publication)
+            }
+          _ => ()
         }
-      Ok(_) => ()
-      Err(message) => return Err(message)
+        if participant.ros_discovery_publisher_count() > graph_publisher_count {
+          quiet_periods = 0
+        }
+      }
+      Some(Err(message)) => return Err(message)
     }
   }
-  Err("discovery ended without a matching publication")
+  match remote_publication {
+    Some(value) => Ok(value)
+    None => Err("discovery ended without a matching publication")
+  }
 }
 
 ///|
@@ -232,6 +255,26 @@ async fn main {
       participant.close()
       return
     }
+  }
+  let graph_info = match
+    participant.participant_entities_info("/demo", "moon_wstring_listener") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  for _ in 0..<3 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => ()
+      Err(message) => {
+        println(message)
+        participant.close()
+        return
+      }
+    }
+    @async.sleep(250)
   }
   let is_reliable = match publication.qos() {
     Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE
