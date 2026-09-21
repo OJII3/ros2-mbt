@@ -47,6 +47,7 @@ async fn announce_ros_graph_info(
   participant : @transport.RosParticipant,
 ) -> Result[Unit, String] {
   let mut quiet_periods = 0
+  println("Waiting for ROS graph discovery readers")
   while participant.ros_discovery_publisher_count() == 0 || quiet_periods < 4 {
     let graph_publisher_count = participant.ros_discovery_publisher_count()
     let received = if graph_publisher_count > 0 {
@@ -65,6 +66,10 @@ async fn announce_ros_graph_info(
       Some(Err(message)) => return Err(message)
     }
   }
+  println(
+    "ROS graph discovery readers: " +
+    participant.ros_discovery_publisher_count().to_string(),
+  )
   let graph_info = match
     participant.participant_entities_info("/demo", "moon_add_two_ints_server") {
     Ok(value) => value
@@ -77,6 +82,7 @@ async fn announce_ros_graph_info(
     }
     @async.sleep(250)
   }
+  println("Announced ROS graph metadata for /demo/moon_add_two_ints_server")
   Ok(())
 }
 
