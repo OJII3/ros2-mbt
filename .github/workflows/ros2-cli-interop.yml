@@ -32,12 +32,13 @@ jobs:
       - name: Build and publish candidate image with registry cache
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          cache="${image}-buildcache"
           local_image="localhost/ros2-mbt-jazzy:${GITHUB_SHA}"
 
           podman build \
             --layers \
-            --cache-from "$image:buildcache" \
-            --cache-to "$image:buildcache" \
+            --cache-from "$cache" \
+            --cache-to "$cache" \
             --file podman/ros2-jazzy/Containerfile \
             --tag "$local_image" \
             podman/ros2-jazzy
@@ -92,10 +93,11 @@ jobs:
       - name: Build candidate image with registry cache
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          cache="${image}-buildcache"
           local_image="localhost/ros2-mbt-jazzy:${GITHUB_SHA}"
           podman build \
             --layers \
-            --cache-from "$image:buildcache" \
+            --cache-from "$cache" \
             --file podman/ros2-jazzy/Containerfile \
             --tag "$local_image" \
             podman/ros2-jazzy
