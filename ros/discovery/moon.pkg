@@ -1,0 +1,7 @@
+import {
+  "kainaproject/ros2_mbt/rtps",
+}
+
+options(
+  "is-main": false,
+)

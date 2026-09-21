@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros/messages/action_msgs"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
+
+pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
+
+pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
+
+pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
+
+pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
+
+pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
+
+pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
+
+// Errors
+
+// Types and methods
+pub struct RosActionGoalInfo {
+  goal_id : Bytes
+  stamp_sec : Int
+  stamp_nanosec : UInt
+} derive(Eq, @debug.Debug)
+pub fn RosActionGoalInfo::goal_id(Self) -> Bytes
+pub fn RosActionGoalInfo::new(Bytes, Int, UInt) -> Result[Self, String]
+pub fn RosActionGoalInfo::stamp_nanosec(Self) -> UInt
+pub fn RosActionGoalInfo::stamp_sec(Self) -> Int
+
+pub struct RosActionGoalStatus {
+  goal_info : RosActionGoalInfo
+  status : Int
+} derive(Eq, @debug.Debug)
+pub fn RosActionGoalStatus::goal_info(Self) -> RosActionGoalInfo
+pub fn RosActionGoalStatus::is_terminal(Self) -> Bool
+pub fn RosActionGoalStatus::new(RosActionGoalInfo, Int) -> Result[Self, String]
+pub fn RosActionGoalStatus::status(Self) -> Int
+
+pub struct RosActionGoalStatusArray {
+  status_list : Array[RosActionGoalStatus]
+} derive(Eq, @debug.Debug)
+pub fn RosActionGoalStatusArray::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn RosActionGoalStatusArray::new(Array[RosActionGoalStatus]) -> Self
+pub fn RosActionGoalStatusArray::status_list(Self) -> Array[RosActionGoalStatus]
+pub fn RosActionGoalStatusArray::to_cdr_bytes(Self) -> Bytes
+
+pub struct RosCancelGoalRequest {
+  goal_info : RosActionGoalInfo
+} derive(Eq, @debug.Debug)
+pub fn RosCancelGoalRequest::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn RosCancelGoalRequest::goal_info(Self) -> RosActionGoalInfo
+pub fn RosCancelGoalRequest::new(RosActionGoalInfo) -> Self
+pub fn RosCancelGoalRequest::to_cdr_bytes(Self) -> Bytes
+
+pub struct RosCancelGoalResponse {
+  return_code : Int
+  goals_canceling : Array[RosActionGoalInfo]
+} derive(Eq, @debug.Debug)
+pub fn RosCancelGoalResponse::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn RosCancelGoalResponse::goals_canceling(Self) -> Array[RosActionGoalInfo]
+pub fn RosCancelGoalResponse::new(Int, Array[RosActionGoalInfo]) -> Result[Self, String]
+pub fn RosCancelGoalResponse::return_code(Self) -> Int
+pub fn RosCancelGoalResponse::to_cdr_bytes(Self) -> Bytes
+
+// Type aliases
+
+// Traits

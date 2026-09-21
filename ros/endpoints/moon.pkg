@@ -1,0 +1,9 @@
+import {
+  "kainaproject/ros2_mbt/cdr",
+  "kainaproject/ros2_mbt/ros/names",
+  "kainaproject/ros2_mbt/rtps",
+}
+
+options(
+  "is-main": false,
+)

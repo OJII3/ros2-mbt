@@ -1,6 +1,11 @@
 import {
-  "kainaproject/ros2_mbt/cdr",
-  "kainaproject/ros2_mbt/rtps",
+  "kainaproject/ros2_mbt/ros/discovery",
+  "kainaproject/ros2_mbt/ros/endpoints",
+  "kainaproject/ros2_mbt/ros/messages/action_msgs",
+  "kainaproject/ros2_mbt/ros/messages/geometry_msgs",
+  "kainaproject/ros2_mbt/ros/messages/rmw_dds_common",
+  "kainaproject/ros2_mbt/ros/messages/std_msgs",
+  "kainaproject/ros2_mbt/ros/names",
 }
 
 options(

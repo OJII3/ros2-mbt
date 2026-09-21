@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/ros/messages/geometry_msgs"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Twist {
+  linear : Vector3
+  angular : Vector3
+} derive(Eq, @debug.Debug)
+pub fn Twist::angular(Self) -> Vector3
+pub fn Twist::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Twist::linear(Self) -> Vector3
+pub fn Twist::new(Vector3, Vector3) -> Self
+pub fn Twist::to_cdr_bytes(Self) -> Bytes
+
+pub struct Vector3 {
+  x : Double
+  y : Double
+  z : Double
+} derive(Eq, @debug.Debug)
+pub fn Vector3::new(Double, Double, Double) -> Self
+pub fn Vector3::x(Self) -> Double
+pub fn Vector3::y(Self) -> Double
+pub fn Vector3::z(Self) -> Double
+
+// Type aliases
+
+// Traits
