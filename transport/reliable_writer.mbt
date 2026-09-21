@@ -211,6 +211,31 @@ pub fn ReliableDataWriter::new_for_sedp(
 }
 
 ///|
+/// Check the entity IDs before parsing a control message from a shared socket.
+fn ReliableDataWriter::acknack_targets(
+  self : ReliableDataWriter,
+  message : @rtps.Message,
+  submessage : @rtps.Submessage,
+) -> Bool {
+  match self.reader_prefix {
+    Some(prefix) if message.header().guid_prefix() != prefix => return false
+    _ => ()
+  }
+  if submessage.payload.length() < 8 {
+    return false
+  }
+  let reader_id = self.reader_id.to_bytes()
+  let writer_id = self.writer_id.to_bytes()
+  for index in 0..<4 {
+    if submessage.payload[index] != reader_id[index] ||
+      submessage.payload[index + 4] != writer_id[index] {
+      return false
+    }
+  }
+  true
+}
+
+///|
 pub fn ReliableDataWriter::next_sequence_number(
   self : ReliableDataWriter,
 ) -> Int64 {
@@ -595,7 +620,8 @@ pub async fn ReliableDataWriter::receive_acknack(
       Err(_) => continue
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::AckNack {
+      if submessage.id() != @rtps.SubmessageId::AckNack ||
+        !self.acknack_targets(message, submessage) {
         continue
       }
       let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
@@ -685,6 +711,9 @@ pub async fn ReliableDataWriter::receive_control(
     for submessage in message.submessages() {
       match submessage.id() {
         @rtps.SubmessageId::AckNack => {
+          if !self.acknack_targets(message, submessage) {
+            continue
+          }
           let acknack = match
             @rtps.AckNackSubmessage::from_submessage(submessage) {
             Ok(value) => value

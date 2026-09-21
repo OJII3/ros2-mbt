@@ -229,6 +229,19 @@ test "RTPS ACKNACK round trips a partial bitmap" {
 }
 
 ///|
+test "RTPS ACKNACK accepts an empty preemptive bitmap" {
+  let (reader_id, writer_id) = reliability_test_ids().unwrap()
+  let acknack = AckNackSubmessage::new(reader_id, writer_id, 0L, 0U, [], 1U).unwrap()
+  let submessage = Submessage::from_bytes(
+      acknack.to_submessage().to_bytes().unwrap(),
+    ).unwrap().0
+  let decoded = AckNackSubmessage::from_submessage(submessage).unwrap()
+  assert_eq(decoded.bitmap_base(), 0L)
+  assert_eq(decoded.num_bits(), 0U)
+  assert_eq(decoded.bitmap(), [])
+}
+
+///|
 test "RTPS GAP round trips range and bitmap gaps" {
   let (reader_id, writer_id) = match reliability_test_ids() {
     Ok(value) => value
@@ -281,6 +294,9 @@ test "RTPS reliability codecs reject invalid ranges" {
   )
   assert_true(
     AckNackSubmessage::new(reader_id, writer_id, 1L, 257U, [], 1U) is Err(_),
+  )
+  assert_true(
+    AckNackSubmessage::new(reader_id, writer_id, 0L, 1U, [0U], 1U) is Err(_),
   )
   assert_true(
     GapSubmessage::new(reader_id, writer_id, 3L, 2L, 0U, []) is Err(_),

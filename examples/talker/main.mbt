@@ -5,17 +5,36 @@ async fn discover_subscription(
   topic : @ros.RosTopic,
 ) -> Result[@rtps.SedpEndpointData, String] {
   let mut remote_subscription : @rtps.SedpEndpointData? = None
-  // The ROS graph subscription can arrive after the user-topic subscription.
+  let mut quiet_periods = 0
+  // Other ROS graph readers can arrive after the first matching endpoints.
   while remote_subscription is None ||
-        participant.ros_discovery_publisher_count() == 0 {
-    match participant.receive_discovery_once() {
-      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
-        if subscription.topic_name() == topic.dds_name() &&
-          subscription.type_name() == topic.dds_type_name() {
-          remote_subscription = Some(subscription)
+        participant.ros_discovery_publisher_count() == 0 ||
+        quiet_periods < 4 {
+    let graph_publisher_count = participant.ros_discovery_publisher_count()
+    let received = if remote_subscription is Some(_) &&
+      graph_publisher_count > 0 {
+      @async.with_timeout_opt(250, async fn() {
+        participant.receive_discovery_once()
+      })
+    } else {
+      Some(participant.receive_discovery_once())
+    }
+    match received {
+      None => quiet_periods += 1
+      Some(Ok((_, event))) => {
+        match event {
+          @transport.DiscoveryEvent::Subscription(subscription) =>
+            if subscription.topic_name() == topic.dds_name() &&
+              subscription.type_name() == topic.dds_type_name() {
+              remote_subscription = Some(subscription)
+            }
+          _ => ()
         }
-      Ok(_) => ()
-      Err(message) => return Err(message)
+        if participant.ros_discovery_publisher_count() > graph_publisher_count {
+          quiet_periods = 0
+        }
+      }
+      Some(Err(message)) => return Err(message)
     }
   }
   match remote_subscription {
@@ -239,6 +258,26 @@ async fn main {
       participant.close()
       return
     }
+  }
+  let graph_info = match
+    participant.participant_entities_info("/demo", "moon_talker") {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  for _ in 0..<3 {
+    match participant.publish_ros_discovery_info(graph_info) {
+      Ok(_) => ()
+      Err(message) => {
+        println(message)
+        participant.close()
+        return
+      }
+    }
+    @async.sleep(250)
   }
   let is_reliable = match subscription.qos() {
     Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE

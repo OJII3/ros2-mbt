@@ -213,6 +213,7 @@ pub fn GapSubmessage::contains_sequence(
 
 ///|
 /// Create a little-endian ACKNACK with an RTPS SequenceNumberSet bitmap.
+/// An empty bitmap may use base zero for a preemptive ACKNACK.
 pub fn AckNackSubmessage::new(
   reader_id : EntityId,
   writer_id : EntityId,
@@ -221,8 +222,8 @@ pub fn AckNackSubmessage::new(
   bitmap : Array[UInt],
   count : UInt,
 ) -> Result[AckNackSubmessage, String] {
-  if bitmap_base < 1L {
-    return Err("an RTPS ACKNACK bitmap base must be positive")
+  if bitmap_base < 0L || (bitmap_base == 0L && num_bits != 0U) {
+    return Err("an RTPS ACKNACK bitmap base must be positive unless preemptive")
   }
   if num_bits > 256U {
     return Err("an RTPS ACKNACK bitmap cannot exceed 256 bits")
