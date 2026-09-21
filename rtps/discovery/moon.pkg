@@ -1,6 +1,6 @@
 import {
   "kainaproject/ros2_mbt/rtps/core",
-  "kainaproject/ros2_mbt/rtps/discovery",
+  "moonbitlang/core/encoding/utf8",
 }
 
 options(

@@ -1,0 +1,222 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kainaproject/ros2_mbt/rtps/discovery"
+
+import {
+  "kainaproject/ros2_mbt/rtps/core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
+
+pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
+
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt = 0x00000004
+
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt = 0x00000008
+
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt = 0x00000010
+
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt = 0x00000020
+
+pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
+
+pub const DATA_REPRESENTATION_XCDR2 : UInt16 = 2
+
+pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
+
+pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
+
+pub const DURABILITY_PERSISTENT : UInt = 3
+
+pub const DURABILITY_TRANSIENT : UInt = 2
+
+pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
+
+pub const DURABILITY_VOLATILE : UInt = 0
+
+pub const ENTITYID_SEDP_PUBLICATIONS_READER : Byte = 0xC7
+
+pub const ENTITYID_SEDP_PUBLICATIONS_WRITER : Byte = 0xC2
+
+pub const ENTITYID_SEDP_SUBSCRIPTIONS_READER : Byte = 0xC7
+
+pub const ENTITYID_SEDP_SUBSCRIPTIONS_WRITER : Byte = 0xC2
+
+pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
+
+pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
+
+pub const HISTORY_KEEP_ALL : UInt = 1
+
+pub const HISTORY_KEEP_LAST : UInt = 0
+
+pub const LIVELINESS_AUTOMATIC : UInt = 0
+
+pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
+
+pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
+
+pub const OWNERSHIP_EXCLUSIVE : UInt = 1
+
+pub const OWNERSHIP_SHARED : UInt = 0
+
+pub const RELIABILITY_BEST_EFFORT : UInt = 1
+
+pub const RELIABILITY_RELIABLE : UInt = 2
+
+pub fn qos_data_representation(Array[UInt16]) -> @core.Parameter
+
+pub fn qos_deadline(Int, UInt) -> @core.Parameter
+
+pub fn qos_destination_order(UInt) -> @core.Parameter
+
+pub fn qos_durability(UInt) -> @core.Parameter
+
+pub fn qos_expects_inline_qos(Bool) -> @core.Parameter
+
+pub fn qos_history(UInt, Int) -> @core.Parameter
+
+pub fn qos_latency_budget(Int, UInt) -> @core.Parameter
+
+pub fn qos_lifespan(Int, UInt) -> @core.Parameter
+
+pub fn qos_liveliness(UInt, Int, UInt) -> @core.Parameter
+
+pub fn qos_ownership(UInt) -> @core.Parameter
+
+pub fn qos_ownership_strength(Int) -> @core.Parameter
+
+pub fn qos_reliability(UInt, Int, UInt) -> @core.Parameter
+
+pub fn qos_resource_limits(Int, Int, Int) -> @core.Parameter
+
+pub fn qos_type_max_size_serialized(UInt) -> @core.Parameter
+
+pub fn qos_user_data(Bytes) -> @core.Parameter
+
+pub fn qos_user_data_type_hash(String) -> @core.Parameter
+
+// Errors
+
+// Types and methods
+pub struct SedpEndpointData {
+  kind : SedpEndpointKind
+  endpoint_guid : @core.Guid
+  participant_guid : @core.Guid
+  topic_name : String
+  type_name : String
+  unicast_locators : Array[@core.Locator]
+  multicast_locators : Array[@core.Locator]
+  extra_parameters : Array[@core.Parameter]
+} derive(Eq, @debug.Debug)
+pub fn SedpEndpointData::add_multicast_locator(Self, @core.Locator) -> Unit
+pub fn SedpEndpointData::add_parameter(Self, @core.Parameter) -> Unit
+pub fn SedpEndpointData::add_unicast_locator(Self, @core.Locator) -> Unit
+pub fn SedpEndpointData::endpoint_guid(Self) -> @core.Guid
+pub fn SedpEndpointData::endpoint_guid_from_key_data(@core.DataSubmessage) -> Result[@core.Guid, String]
+pub fn SedpEndpointData::extra_parameters(Self) -> Array[@core.Parameter]
+pub fn SedpEndpointData::from_cdr_bytes(SedpEndpointKind, Bytes) -> Result[Self, String]
+pub fn SedpEndpointData::from_data_submessage(SedpEndpointKind, @core.DataSubmessage) -> Result[Self, String]
+pub fn SedpEndpointData::from_parameter_list(SedpEndpointKind, @core.ParameterList) -> Result[Self, String]
+pub fn SedpEndpointData::kind(Self) -> SedpEndpointKind
+pub fn SedpEndpointData::multicast_locators(Self) -> Array[@core.Locator]
+pub fn SedpEndpointData::new(SedpEndpointKind, @core.Guid, String, String) -> Result[Self, String]
+pub fn SedpEndpointData::participant_guid(Self) -> @core.Guid
+pub fn SedpEndpointData::qos(Self) -> Result[SedpQos, String]
+pub fn SedpEndpointData::qos_compatible_with(Self, Self) -> Result[Bool, String]
+pub fn SedpEndpointData::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn SedpEndpointData::to_cdr_bytes_with_vendor(Self, @core.VendorId) -> Result[Bytes, String]
+pub fn SedpEndpointData::to_data_submessage(Self, @core.EntityId, @core.EntityId, Int64) -> Result[@core.DataSubmessage, String]
+pub fn SedpEndpointData::to_data_submessage_with_vendor(Self, @core.VendorId, @core.EntityId, @core.EntityId, Int64) -> Result[@core.DataSubmessage, String]
+pub fn SedpEndpointData::to_dispose_data_submessage(Self, @core.EntityId, @core.EntityId, Int64) -> @core.DataSubmessage
+pub fn SedpEndpointData::to_message(Self, @core.VendorId, @core.EntityId, @core.EntityId, Int64) -> Result[@core.Message, String]
+pub fn SedpEndpointData::to_parameter_list(Self) -> Result[@core.ParameterList, String]
+pub fn SedpEndpointData::to_parameter_list_with_vendor(Self, @core.VendorId) -> Result[@core.ParameterList, String]
+pub fn SedpEndpointData::topic_name(Self) -> String
+pub fn SedpEndpointData::type_hash(Self) -> Result[String?, String]
+pub fn SedpEndpointData::type_name(Self) -> String
+pub fn SedpEndpointData::unicast_locators(Self) -> Array[@core.Locator]
+pub fn SedpEndpointData::with_participant_guid(Self, @core.Guid) -> Self
+pub fn SedpEndpointData::with_unicast_locators(Self, Array[@core.Locator]) -> Self
+
+pub(all) enum SedpEndpointKind {
+  Publication
+  Subscription
+} derive(Eq, @debug.Debug)
+pub fn SedpEndpointKind::builtin_reader_id(Self) -> @core.EntityId
+pub fn SedpEndpointKind::builtin_writer_id(Self) -> @core.EntityId
+pub fn SedpEndpointKind::from_builtin_writer_id(@core.EntityId) -> Result[Self, String]
+
+pub struct SedpQos {
+  reliability : UInt
+  durability : UInt
+  history : UInt
+  depth : Int
+  data_representation : Array[UInt16]
+  deadline_seconds : Int
+  deadline_fraction : UInt
+  liveliness : UInt
+  liveliness_lease_seconds : Int
+  liveliness_lease_fraction : UInt
+} derive(Eq, @debug.Debug)
+pub fn SedpQos::data_representation(Self) -> Array[UInt16]
+pub fn SedpQos::deadline_fraction(Self) -> UInt
+pub fn SedpQos::deadline_parameter(Self) -> @core.Parameter
+pub fn SedpQos::deadline_seconds(Self) -> Int
+pub fn SedpQos::default() -> Self
+pub fn SedpQos::depth(Self) -> Int
+pub fn SedpQos::durability(Self) -> UInt
+pub fn SedpQos::history(Self) -> UInt
+pub fn SedpQos::liveliness(Self) -> UInt
+pub fn SedpQos::liveliness_lease_fraction(Self) -> UInt
+pub fn SedpQos::liveliness_lease_seconds(Self) -> Int
+pub fn SedpQos::liveliness_parameter(Self) -> @core.Parameter
+pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
+pub fn SedpQos::reliability(Self) -> UInt
+pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
+pub fn SedpQos::with_deadline(Self, Int, UInt) -> Result[Self, String]
+pub fn SedpQos::with_liveliness(Self, UInt, Int, UInt) -> Result[Self, String]
+
+pub struct SpdpParticipantData {
+  protocol_version : @core.ProtocolVersion
+  vendor_id : @core.VendorId
+  participant_guid : @core.Guid
+  domain_id : UInt
+  lease_seconds : Int
+  lease_nanoseconds : UInt
+  builtin_endpoint_set : UInt
+  metatraffic_unicast_locators : Array[@core.Locator]
+  metatraffic_multicast_locators : Array[@core.Locator]
+  default_unicast_locators : Array[@core.Locator]
+  default_multicast_locators : Array[@core.Locator]
+}
+pub fn SpdpParticipantData::add_default_multicast(Self, @core.Locator) -> Unit
+pub fn SpdpParticipantData::add_default_unicast(Self, @core.Locator) -> Unit
+pub fn SpdpParticipantData::add_metatraffic_multicast(Self, @core.Locator) -> Unit
+pub fn SpdpParticipantData::add_metatraffic_unicast(Self, @core.Locator) -> Unit
+pub fn SpdpParticipantData::builtin_endpoint_set(Self) -> UInt
+pub fn SpdpParticipantData::default_multicast_locators(Self) -> Array[@core.Locator]
+pub fn SpdpParticipantData::default_unicast_locators(Self) -> Array[@core.Locator]
+pub fn SpdpParticipantData::domain_id(Self) -> UInt
+pub fn SpdpParticipantData::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn SpdpParticipantData::from_data_submessage(@core.DataSubmessage) -> Result[Self, String]
+pub fn SpdpParticipantData::from_data_submessage_with_default_domain(@core.DataSubmessage, UInt) -> Result[Self, String]
+pub fn SpdpParticipantData::from_parameter_list(@core.ParameterList) -> Result[Self, String]
+pub fn SpdpParticipantData::lease_nanoseconds(Self) -> UInt
+pub fn SpdpParticipantData::lease_seconds(Self) -> Int
+pub fn SpdpParticipantData::metatraffic_multicast_locators(Self) -> Array[@core.Locator]
+pub fn SpdpParticipantData::metatraffic_unicast_locators(Self) -> Array[@core.Locator]
+pub fn SpdpParticipantData::new(@core.Guid, @core.VendorId, UInt, Int, UInt, UInt) -> Self
+pub fn SpdpParticipantData::participant_guid(Self) -> @core.Guid
+pub fn SpdpParticipantData::participant_guid_from_key_data(@core.DataSubmessage) -> Result[@core.Guid, String]
+pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes
+pub fn SpdpParticipantData::to_data_submessage(Self, @core.EntityId, @core.EntityId, Int64) -> @core.DataSubmessage
+pub fn SpdpParticipantData::to_dispose_data_submessage(Self, @core.EntityId, @core.EntityId, Int64) -> @core.DataSubmessage
+pub fn SpdpParticipantData::to_message(Self, @core.EntityId, @core.EntityId, Int64) -> @core.Message
+pub fn SpdpParticipantData::to_parameter_list(Self) -> @core.ParameterList
+pub fn SpdpParticipantData::vendor_id(Self) -> @core.VendorId
+
+// Type aliases
+
+// Traits

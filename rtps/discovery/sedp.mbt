@@ -23,23 +23,27 @@ pub const ENTITYID_SEDP_SUBSCRIPTIONS_READER : Byte = 0xC7
 
 ///|
 /// Return the builtin SEDP reader used by the remote participant.
-pub fn SedpEndpointKind::builtin_reader_id(self : SedpEndpointKind) -> EntityId {
+pub fn SedpEndpointKind::builtin_reader_id(
+  self : SedpEndpointKind,
+) -> @core.EntityId {
   match self {
     SedpEndpointKind::Publication =>
-      EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap()
+      @core.EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap()
     SedpEndpointKind::Subscription =>
-      EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_READER).unwrap()
+      @core.EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_READER).unwrap()
   }
 }
 
 ///|
 /// Return the builtin SEDP writer used by the local participant.
-pub fn SedpEndpointKind::builtin_writer_id(self : SedpEndpointKind) -> EntityId {
+pub fn SedpEndpointKind::builtin_writer_id(
+  self : SedpEndpointKind,
+) -> @core.EntityId {
   match self {
     SedpEndpointKind::Publication =>
-      EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap()
+      @core.EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap()
     SedpEndpointKind::Subscription =>
-      EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_WRITER).unwrap()
+      @core.EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_WRITER).unwrap()
   }
 }
 
@@ -49,7 +53,7 @@ pub fn SedpEndpointKind::builtin_writer_id(self : SedpEndpointKind) -> EntityId 
 /// The publications and subscriptions writers use entity keys 0x000003 and
 /// 0x000004 respectively. The entity kind is the ordinary writer kind 0xC2.
 pub fn SedpEndpointKind::from_builtin_writer_id(
-  writer_id : EntityId,
+  writer_id : @core.EntityId,
 ) -> Result[SedpEndpointKind, String] {
   if writer_id.kind() != ENTITYID_SEDP_PUBLICATIONS_WRITER {
     return Err("the entity is not an SEDP writer")
@@ -67,13 +71,13 @@ pub fn SedpEndpointKind::from_builtin_writer_id(
 /// A common SEDP publication/subscription endpoint sample.
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
-  endpoint_guid : Guid
-  participant_guid : Guid
+  endpoint_guid : @core.Guid
+  participant_guid : @core.Guid
   topic_name : String
   type_name : String
-  unicast_locators : Array[Locator]
-  multicast_locators : Array[Locator]
-  extra_parameters : Array[Parameter]
+  unicast_locators : Array[@core.Locator]
+  multicast_locators : Array[@core.Locator]
+  extra_parameters : Array[@core.Parameter]
 } derive(Eq, Debug)
 
 ///|
@@ -234,12 +238,12 @@ pub fn SedpQos::liveliness_lease_fraction(self : SedpQos) -> UInt {
 }
 
 ///|
-pub fn SedpQos::deadline_parameter(self : SedpQos) -> Parameter {
+pub fn SedpQos::deadline_parameter(self : SedpQos) -> @core.Parameter {
   qos_deadline_fraction(self.deadline_seconds, self.deadline_fraction)
 }
 
 ///|
-pub fn SedpQos::liveliness_parameter(self : SedpQos) -> Parameter {
+pub fn SedpQos::liveliness_parameter(self : SedpQos) -> @core.Parameter {
   qos_liveliness_fraction(
     self.liveliness,
     self.liveliness_lease_seconds,
@@ -262,7 +266,7 @@ pub fn SedpQos::default() -> SedpQos {
 /// Create an SEDP endpoint sample with the three required identity fields.
 pub fn SedpEndpointData::new(
   kind : SedpEndpointKind,
-  endpoint_guid : Guid,
+  endpoint_guid : @core.Guid,
   topic_name : String,
   type_name : String,
 ) -> Result[SedpEndpointData, String] {
@@ -272,9 +276,9 @@ pub fn SedpEndpointData::new(
   Ok({
     kind,
     endpoint_guid,
-    participant_guid: Guid::new(
+    participant_guid: @core.Guid::new(
       endpoint_guid.prefix(),
-      EntityId::new(b"\x00\x00\x01", 0xC1).unwrap(),
+      @core.EntityId::new(b"\x00\x00\x01", 0xC1).unwrap(),
     ),
     topic_name,
     type_name,
@@ -288,7 +292,7 @@ pub fn SedpEndpointData::new(
 /// Create an SEDP endpoint sample with an explicit participant GUID.
 pub fn SedpEndpointData::with_participant_guid(
   self : SedpEndpointData,
-  participant_guid : Guid,
+  participant_guid : @core.Guid,
 ) -> SedpEndpointData {
   { ..self, participant_guid, }
 }
@@ -297,7 +301,7 @@ pub fn SedpEndpointData::with_participant_guid(
 /// Return an endpoint with a replacement list of unicast locators.
 pub fn SedpEndpointData::with_unicast_locators(
   self : SedpEndpointData,
-  unicast_locators : Array[Locator],
+  unicast_locators : Array[@core.Locator],
 ) -> SedpEndpointData {
   { ..self, unicast_locators, }
 }
@@ -308,12 +312,14 @@ pub fn SedpEndpointData::kind(self : SedpEndpointData) -> SedpEndpointKind {
 }
 
 ///|
-pub fn SedpEndpointData::endpoint_guid(self : SedpEndpointData) -> Guid {
+pub fn SedpEndpointData::endpoint_guid(self : SedpEndpointData) -> @core.Guid {
   self.endpoint_guid
 }
 
 ///|
-pub fn SedpEndpointData::participant_guid(self : SedpEndpointData) -> Guid {
+pub fn SedpEndpointData::participant_guid(
+  self : SedpEndpointData,
+) -> @core.Guid {
   self.participant_guid
 }
 
@@ -330,21 +336,21 @@ pub fn SedpEndpointData::type_name(self : SedpEndpointData) -> String {
 ///|
 pub fn SedpEndpointData::unicast_locators(
   self : SedpEndpointData,
-) -> Array[Locator] {
+) -> Array[@core.Locator] {
   self.unicast_locators
 }
 
 ///|
 pub fn SedpEndpointData::multicast_locators(
   self : SedpEndpointData,
-) -> Array[Locator] {
+) -> Array[@core.Locator] {
   self.multicast_locators
 }
 
 ///|
 pub fn SedpEndpointData::extra_parameters(
   self : SedpEndpointData,
-) -> Array[Parameter] {
+) -> Array[@core.Parameter] {
   self.extra_parameters
 }
 
@@ -357,7 +363,7 @@ pub fn SedpEndpointData::type_hash(
   self : SedpEndpointData,
 ) -> Result[String?, String] {
   for parameter in self.extra_parameters {
-    if parameter.id() != PID_USER_DATA {
+    if parameter.id() != @core.PID_USER_DATA {
       continue
     }
     let value = @utf8.decode(parameter.value()) catch {
@@ -499,7 +505,7 @@ pub fn SedpEndpointData::qos(
   let mut liveliness_lease_fraction = defaults.liveliness_lease_fraction
   for parameter in self.extra_parameters {
     match parameter.id() {
-      PID_RELIABILITY => {
+      @core.PID_RELIABILITY => {
         let value = parameter.value()
         if value.length() < 12 {
           return Err("SEDP reliability parameter is truncated")
@@ -513,12 +519,12 @@ pub fn SedpEndpointData::qos(
           Err(message) => return Err(message)
         }
       }
-      PID_DURABILITY =>
+      @core.PID_DURABILITY =>
         durability = match sedp_qos_u32(parameter.value(), "durability") {
           Ok(value) => value
           Err(message) => return Err(message)
         }
-      PID_HISTORY => {
+      @core.PID_HISTORY => {
         if parameter.value().length() < 8 {
           return Err("SEDP history parameter is truncated")
         }
@@ -538,7 +544,7 @@ pub fn SedpEndpointData::qos(
           Err(message) => return Err(message)
         }
       }
-      PID_DEADLINE => {
+      @core.PID_DEADLINE => {
         let (seconds, fraction) = match
           sedp_qos_duration(parameter.value(), 0, "deadline") {
           Ok(value) => value
@@ -547,7 +553,7 @@ pub fn SedpEndpointData::qos(
         deadline_seconds = seconds
         deadline_fraction = fraction
       }
-      PID_LIVELINESS => {
+      @core.PID_LIVELINESS => {
         let value = parameter.value()
         if value.length() < 12 {
           return Err("SEDP liveliness parameter is truncated")
@@ -565,7 +571,7 @@ pub fn SedpEndpointData::qos(
         liveliness_lease_seconds = lease_seconds
         liveliness_lease_fraction = lease_fraction
       }
-      PID_DATA_REPRESENTATION =>
+      @core.PID_DATA_REPRESENTATION =>
         data_representation = match
           sedp_qos_data_representation(parameter.value()) {
           Ok(value) => value
@@ -672,7 +678,7 @@ pub fn SedpEndpointData::qos_compatible_with(
 ///|
 pub fn SedpEndpointData::add_unicast_locator(
   self : SedpEndpointData,
-  locator : Locator,
+  locator : @core.Locator,
 ) -> Unit {
   self.unicast_locators.push(locator)
 }
@@ -680,7 +686,7 @@ pub fn SedpEndpointData::add_unicast_locator(
 ///|
 pub fn SedpEndpointData::add_multicast_locator(
   self : SedpEndpointData,
-  locator : Locator,
+  locator : @core.Locator,
 ) -> Unit {
   self.multicast_locators.push(locator)
 }
@@ -689,7 +695,7 @@ pub fn SedpEndpointData::add_multicast_locator(
 /// Preserve an arbitrary QoS or vendor-specific parameter.
 pub fn SedpEndpointData::add_parameter(
   self : SedpEndpointData,
-  parameter : Parameter,
+  parameter : @core.Parameter,
 ) -> Unit {
   self.extra_parameters.push(parameter)
 }
@@ -759,7 +765,7 @@ fn sedp_read_octet_sequence(value : Bytes) -> Result[Bytes, String] {
 
 ///|
 fn sedp_required(
-  parameters : ParameterList,
+  parameters : @core.ParameterList,
   id : UInt16,
   label : String,
 ) -> Result[Bytes, String] {
@@ -793,19 +799,19 @@ fn sedp_read_string(value : Bytes, label : String) -> Result[String, String] {
 
 ///|
 fn sedp_is_identity_parameter(id : UInt16) -> Bool {
-  id == PID_ENDPOINT_GUID ||
-  id == PID_PARTICIPANT_GUID ||
-  id == PID_KEY_HASH ||
-  id == PID_PROTOCOL_VERSION ||
-  id == PID_VENDOR_ID ||
-  id == PID_TOPIC_NAME ||
-  id == PID_TYPE_NAME ||
-  id == PID_UNICAST_LOCATOR ||
-  id == PID_MULTICAST_LOCATOR
+  id == @core.PID_ENDPOINT_GUID ||
+  id == @core.PID_PARTICIPANT_GUID ||
+  id == @core.PID_KEY_HASH ||
+  id == @core.PID_PROTOCOL_VERSION ||
+  id == @core.PID_VENDOR_ID ||
+  id == @core.PID_TOPIC_NAME ||
+  id == @core.PID_TYPE_NAME ||
+  id == @core.PID_UNICAST_LOCATOR ||
+  id == @core.PID_MULTICAST_LOCATOR
 }
 
 ///|
-fn sedp_has_parameter(parameters : Array[Parameter], id : UInt16) -> Bool {
+fn sedp_has_parameter(parameters : Array[@core.Parameter], id : UInt16) -> Bool {
   for parameter in parameters {
     if parameter.id() == id {
       return true
@@ -818,17 +824,20 @@ fn sedp_has_parameter(parameters : Array[Parameter], id : UInt16) -> Bool {
 /// Serialize this endpoint sample as a discovery parameter list.
 pub fn SedpEndpointData::to_parameter_list(
   self : SedpEndpointData,
-) -> Result[ParameterList, String] {
-  let parameters = ParameterList::new()
+) -> Result[@core.ParameterList, String] {
+  let parameters = @core.ParameterList::new()
   parameters.add(
-    Parameter::new(PID_ENDPOINT_GUID, self.endpoint_guid.to_bytes()),
+    @core.Parameter::new(@core.PID_ENDPOINT_GUID, self.endpoint_guid.to_bytes()),
   )
   parameters.add(
-    Parameter::new(PID_PARTICIPANT_GUID, self.participant_guid.to_bytes()),
+    @core.Parameter::new(
+      @core.PID_PARTICIPANT_GUID,
+      self.participant_guid.to_bytes(),
+    ),
   )
   parameters.add(
-    Parameter::new(
-      PID_TOPIC_NAME,
+    @core.Parameter::new(
+      @core.PID_TOPIC_NAME,
       match sedp_string(self.topic_name) {
         Ok(value) => value
         Err(message) => return Err(message)
@@ -836,33 +845,45 @@ pub fn SedpEndpointData::to_parameter_list(
     ),
   )
   parameters.add(
-    Parameter::new(
-      PID_TYPE_NAME,
+    @core.Parameter::new(
+      @core.PID_TYPE_NAME,
       match sedp_string(self.type_name) {
         Ok(value) => value
         Err(message) => return Err(message)
       },
     ),
   )
-  parameters.add(Parameter::new(PID_KEY_HASH, self.endpoint_guid.to_bytes()))
+  parameters.add(
+    @core.Parameter::new(@core.PID_KEY_HASH, self.endpoint_guid.to_bytes()),
+  )
   for locator in self.unicast_locators {
-    parameters.add(Parameter::new(PID_UNICAST_LOCATOR, locator.to_bytes()))
+    parameters.add(
+      @core.Parameter::new(@core.PID_UNICAST_LOCATOR, locator.to_bytes()),
+    )
   }
   for locator in self.multicast_locators {
-    parameters.add(Parameter::new(PID_MULTICAST_LOCATOR, locator.to_bytes()))
+    parameters.add(
+      @core.Parameter::new(@core.PID_MULTICAST_LOCATOR, locator.to_bytes()),
+    )
   }
   if self.kind == SedpEndpointKind::Publication &&
-    !sedp_has_parameter(self.extra_parameters, PID_TYPE_MAX_SIZE_SERIALIZED) {
+    !sedp_has_parameter(
+      self.extra_parameters,
+      @core.PID_TYPE_MAX_SIZE_SERIALIZED,
+    ) {
     parameters.add(qos_type_max_size_serialized(0))
   }
   if self.kind == SedpEndpointKind::Subscription &&
-    !sedp_has_parameter(self.extra_parameters, PID_EXPECTS_INLINE_QOS) {
+    !sedp_has_parameter(self.extra_parameters, @core.PID_EXPECTS_INLINE_QOS) {
     parameters.add(qos_expects_inline_qos(false))
   }
   for parameter in self.extra_parameters {
-    if parameter.id() == PID_USER_DATA {
+    if parameter.id() == @core.PID_USER_DATA {
       parameters.add(
-        Parameter::new(PID_USER_DATA, sedp_octet_sequence(parameter.value())),
+        @core.Parameter::new(
+          @core.PID_USER_DATA,
+          sedp_octet_sequence(parameter.value()),
+        ),
       )
     } else {
       parameters.add(parameter)
@@ -876,21 +897,26 @@ pub fn SedpEndpointData::to_parameter_list(
 /// the local RTPS implementation.
 pub fn SedpEndpointData::to_parameter_list_with_vendor(
   self : SedpEndpointData,
-  vendor_id : VendorId,
-) -> Result[ParameterList, String] {
+  vendor_id : @core.VendorId,
+) -> Result[@core.ParameterList, String] {
   let parameters = match self.to_parameter_list() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   parameters.add(
-    Parameter::new(
-      PID_PROTOCOL_VERSION,
-      Bytes::from_array([PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR, 0, 0]),
+    @core.Parameter::new(
+      @core.PID_PROTOCOL_VERSION,
+      Bytes::from_array([
+        @core.PROTOCOL_VERSION_MAJOR,
+        @core.PROTOCOL_VERSION_MINOR,
+        0,
+        0,
+      ]),
     ),
   )
   parameters.add(
-    Parameter::new(
-      PID_VENDOR_ID,
+    @core.Parameter::new(
+      @core.PID_VENDOR_ID,
       Bytes::from_array([vendor_id.major, vendor_id.minor, 0, 0]),
     ),
   )
@@ -913,7 +939,7 @@ pub fn SedpEndpointData::to_cdr_bytes(
 /// Serialize an endpoint payload including its protocol and vendor identity.
 pub fn SedpEndpointData::to_cdr_bytes_with_vendor(
   self : SedpEndpointData,
-  vendor_id : VendorId,
+  vendor_id : @core.VendorId,
 ) -> Result[Bytes, String] {
   let parameters = match self.to_parameter_list_with_vendor(vendor_id) {
     Ok(value) => value
@@ -926,54 +952,62 @@ pub fn SedpEndpointData::to_cdr_bytes_with_vendor(
 /// Build a DATA submessage carrying this SEDP endpoint sample.
 pub fn SedpEndpointData::to_data_submessage(
   self : SedpEndpointData,
-  reader_id : EntityId,
-  writer_id : EntityId,
+  reader_id : @core.EntityId,
+  writer_id : @core.EntityId,
   writer_sequence_number : Int64,
-) -> Result[DataSubmessage, String] {
+) -> Result[@core.DataSubmessage, String] {
   let payload = match self.to_cdr_bytes() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(DataSubmessage::new(reader_id, writer_id, writer_sequence_number, payload))
+  Ok(
+    @core.DataSubmessage::new(
+      reader_id, writer_id, writer_sequence_number, payload,
+    ),
+  )
 }
 
 ///|
 /// Build a key-only SEDP DATA sample that removes this endpoint.
 pub fn SedpEndpointData::to_dispose_data_submessage(
   self : SedpEndpointData,
-  reader_id : EntityId,
-  writer_id : EntityId,
+  reader_id : @core.EntityId,
+  writer_id : @core.EntityId,
   writer_sequence_number : Int64,
-) -> DataSubmessage {
-  DataSubmessage::new(reader_id, writer_id, writer_sequence_number, b"")
+) -> @core.DataSubmessage {
+  @core.DataSubmessage::new(reader_id, writer_id, writer_sequence_number, b"")
   .with_key(self.endpoint_guid.to_bytes())
-  .with_status_info(STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED)
+  .with_status_info(@core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED)
 }
 
 ///|
 /// Build an SEDP DATA submessage with protocol and vendor identity parameters.
 pub fn SedpEndpointData::to_data_submessage_with_vendor(
   self : SedpEndpointData,
-  vendor_id : VendorId,
-  reader_id : EntityId,
-  writer_id : EntityId,
+  vendor_id : @core.VendorId,
+  reader_id : @core.EntityId,
+  writer_id : @core.EntityId,
   writer_sequence_number : Int64,
-) -> Result[DataSubmessage, String] {
+) -> Result[@core.DataSubmessage, String] {
   let payload = match self.to_cdr_bytes_with_vendor(vendor_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(DataSubmessage::new(reader_id, writer_id, writer_sequence_number, payload))
+  Ok(
+    @core.DataSubmessage::new(
+      reader_id, writer_id, writer_sequence_number, payload,
+    ),
+  )
 }
 
 ///|
 /// Parse an SEDP endpoint sample from a DATA submessage.
 pub fn SedpEndpointData::from_data_submessage(
   kind : SedpEndpointKind,
-  data : DataSubmessage,
+  data : @core.DataSubmessage,
 ) -> Result[SedpEndpointData, String] {
   let parameters = match
-    ParameterList::from_data_bytes(data.serialized_payload()) {
+    @core.ParameterList::from_data_bytes(data.serialized_payload()) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -983,23 +1017,23 @@ pub fn SedpEndpointData::from_data_submessage(
 ///|
 /// Parse the endpoint GUID from a key-only SEDP DATA submessage.
 pub fn SedpEndpointData::endpoint_guid_from_key_data(
-  data : DataSubmessage,
-) -> Result[Guid, String] {
-  if (data.flags() & DATA_FLAG_KEY) == 0 {
+  data : @core.DataSubmessage,
+) -> Result[@core.Guid, String] {
+  if (data.flags() & @core.DATA_FLAG_KEY) == 0 {
     return Err("the SEDP DATA submessage does not contain a key")
   }
-  Guid::from_bytes(data.serialized_payload())
+  @core.Guid::from_bytes(data.serialized_payload())
 }
 
 ///|
 /// Build an RTPS message containing this SEDP endpoint announcement.
 pub fn SedpEndpointData::to_message(
   self : SedpEndpointData,
-  vendor_id : VendorId,
-  reader_id : EntityId,
-  writer_id : EntityId,
+  vendor_id : @core.VendorId,
+  reader_id : @core.EntityId,
+  writer_id : @core.EntityId,
   writer_sequence_number : Int64,
-) -> Result[Message, String] {
+) -> Result[@core.Message, String] {
   let data = match
     self.to_data_submessage_with_vendor(
       vendor_id, reader_id, writer_id, writer_sequence_number,
@@ -1007,8 +1041,8 @@ pub fn SedpEndpointData::to_message(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let message = Message::new(
-    Header::new(self.participant_guid.prefix(), vendor_id),
+  let message = @core.Message::new(
+    @core.Header::new(self.participant_guid.prefix(), vendor_id),
   )
   message.add(data.to_submessage())
   Ok(message)
@@ -1018,11 +1052,12 @@ pub fn SedpEndpointData::to_message(
 /// Parse an SEDP endpoint sample from a parameter list.
 pub fn SedpEndpointData::from_parameter_list(
   kind : SedpEndpointKind,
-  parameters : ParameterList,
+  parameters : @core.ParameterList,
 ) -> Result[SedpEndpointData, String] {
   let endpoint_guid = match
-    Guid::from_bytes(
-      match sedp_required(parameters, PID_ENDPOINT_GUID, "PID_ENDPOINT_GUID") {
+    @core.Guid::from_bytes(
+      match
+        sedp_required(parameters, @core.PID_ENDPOINT_GUID, "PID_ENDPOINT_GUID") {
         Ok(value) => value
         Err(message) => return Err(message)
       },
@@ -1032,7 +1067,7 @@ pub fn SedpEndpointData::from_parameter_list(
   }
   let topic_name = match
     sedp_read_string(
-      match sedp_required(parameters, PID_TOPIC_NAME, "PID_TOPIC_NAME") {
+      match sedp_required(parameters, @core.PID_TOPIC_NAME, "PID_TOPIC_NAME") {
         Ok(value) => value
         Err(message) => return Err(message)
       },
@@ -1043,7 +1078,7 @@ pub fn SedpEndpointData::from_parameter_list(
   }
   let type_name = match
     sedp_read_string(
-      match sedp_required(parameters, PID_TYPE_NAME, "PID_TYPE_NAME") {
+      match sedp_required(parameters, @core.PID_TYPE_NAME, "PID_TYPE_NAME") {
         Ok(value) => value
         Err(message) => return Err(message)
       },
@@ -1053,16 +1088,20 @@ pub fn SedpEndpointData::from_parameter_list(
     Err(message) => return Err(message)
   }
   let participant_guid = match
-    sedp_required(parameters, PID_PARTICIPANT_GUID, "PID_PARTICIPANT_GUID") {
+    sedp_required(
+      parameters,
+      @core.PID_PARTICIPANT_GUID,
+      "PID_PARTICIPANT_GUID",
+    ) {
     Ok(value) =>
-      match Guid::from_bytes(value) {
+      match @core.Guid::from_bytes(value) {
         Ok(guid) => guid
         Err(message) => return Err(message)
       }
     Err(_) =>
-      Guid::new(
+      @core.Guid::new(
         endpoint_guid.prefix(),
-        EntityId::new(b"\x00\x00\x01", 0xC1).unwrap(),
+        @core.EntityId::new(b"\x00\x00\x01", 0xC1).unwrap(),
       )
   }
   let result = match
@@ -1072,24 +1111,24 @@ pub fn SedpEndpointData::from_parameter_list(
   }
   for parameter in parameters.values() {
     match parameter.id() {
-      PID_UNICAST_LOCATOR =>
+      @core.PID_UNICAST_LOCATOR =>
         result.unicast_locators.push(
-          match Locator::from_bytes(parameter.value()) {
+          match @core.Locator::from_bytes(parameter.value()) {
             Ok(value) => value
             Err(message) => return Err(message)
           },
         )
-      PID_MULTICAST_LOCATOR =>
+      @core.PID_MULTICAST_LOCATOR =>
         result.multicast_locators.push(
-          match Locator::from_bytes(parameter.value()) {
+          match @core.Locator::from_bytes(parameter.value()) {
             Ok(value) => value
             Err(message) => return Err(message)
           },
         )
-      PID_USER_DATA =>
+      @core.PID_USER_DATA =>
         result.extra_parameters.push(
-          Parameter::new(
-            PID_USER_DATA,
+          @core.Parameter::new(
+            @core.PID_USER_DATA,
             match sedp_read_octet_sequence(parameter.value()) {
               Ok(value) => value
               Err(message) => return Err(message)
@@ -1110,7 +1149,7 @@ pub fn SedpEndpointData::from_cdr_bytes(
   kind : SedpEndpointKind,
   input : Bytes,
 ) -> Result[SedpEndpointData, String] {
-  let parameters = match ParameterList::from_cdr_bytes(input) {
+  let parameters = match @core.ParameterList::from_cdr_bytes(input) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

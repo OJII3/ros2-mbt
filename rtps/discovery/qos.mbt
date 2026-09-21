@@ -116,7 +116,7 @@ pub fn qos_reliability(
   kind : UInt,
   max_blocking_seconds : Int,
   max_blocking_nanoseconds : UInt,
-) -> Parameter {
+) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
   let duration_bytes = qos_duration(
@@ -128,18 +128,18 @@ pub fn qos_reliability(
   for i in 0..<8 {
     bytes.push(duration_bytes[i])
   }
-  Parameter::new(PID_RELIABILITY, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_RELIABILITY, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct a PID_DURABILITY parameter.
-pub fn qos_durability(kind : UInt) -> Parameter {
-  Parameter::new(PID_DURABILITY, qos_kind(kind))
+pub fn qos_durability(kind : UInt) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_DURABILITY, qos_kind(kind))
 }
 
 ///|
 /// Construct a PID_HISTORY parameter.
-pub fn qos_history(kind : UInt, depth : Int) -> Parameter {
+pub fn qos_history(kind : UInt, depth : Int) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
   let depth_bytes = qos_i32_le(depth)
@@ -149,17 +149,17 @@ pub fn qos_history(kind : UInt, depth : Int) -> Parameter {
   for i in 0..<4 {
     bytes.push(depth_bytes[i])
   }
-  Parameter::new(PID_HISTORY, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_HISTORY, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct a duration-valued QoS parameter.
-pub fn qos_deadline(seconds : Int, nanoseconds : UInt) -> Parameter {
+pub fn qos_deadline(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
   qos_deadline_fraction(seconds, qos_nanoseconds_to_fraction(nanoseconds))
 }
 
 ///|
-fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> Parameter {
+fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
   let fraction_bytes = qos_u32_le(fraction)
@@ -169,31 +169,34 @@ fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> Parameter {
   for i in 0..<4 {
     bytes.push(fraction_bytes[i])
   }
-  Parameter::new(PID_DEADLINE, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_DEADLINE, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct a PID_LIFESPAN parameter.
-pub fn qos_lifespan(seconds : Int, nanoseconds : UInt) -> Parameter {
-  Parameter::new(PID_LIFESPAN, qos_duration(seconds, nanoseconds))
+pub fn qos_lifespan(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_LIFESPAN, qos_duration(seconds, nanoseconds))
 }
 
 ///|
 /// Construct a PID_USER_DATA parameter without interpreting its opaque bytes.
-pub fn qos_user_data(value : Bytes) -> Parameter {
-  Parameter::new(PID_USER_DATA, value)
+pub fn qos_user_data(value : Bytes) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_USER_DATA, value)
 }
 
 ///|
 /// Construct ROS 2's `typehash=<RIHS01 hash>;` USER_DATA value.
-pub fn qos_user_data_type_hash(type_hash : String) -> Parameter {
+pub fn qos_user_data_type_hash(type_hash : String) -> @core.Parameter {
   qos_user_data(@utf8.encode("typehash=" + type_hash + ";"))
 }
 
 ///|
 /// Construct a PID_LATENCY_BUDGET parameter.
-pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> Parameter {
-  Parameter::new(PID_LATENCY_BUDGET, qos_duration(seconds, nanoseconds))
+pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
+  @core.Parameter::new(
+    @core.PID_LATENCY_BUDGET,
+    qos_duration(seconds, nanoseconds),
+  )
 }
 
 ///|
@@ -202,7 +205,7 @@ pub fn qos_liveliness(
   kind : UInt,
   lease_seconds : Int,
   lease_nanoseconds : UInt,
-) -> Parameter {
+) -> @core.Parameter {
   qos_liveliness_fraction(
     kind,
     lease_seconds,
@@ -215,7 +218,7 @@ fn qos_liveliness_fraction(
   kind : UInt,
   lease_seconds : Int,
   lease_fraction : UInt,
-) -> Parameter {
+) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
   let seconds_bytes = qos_i32_le(lease_seconds)
@@ -229,25 +232,25 @@ fn qos_liveliness_fraction(
   for i in 0..<4 {
     bytes.push(fraction_bytes[i])
   }
-  Parameter::new(PID_LIVELINESS, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_LIVELINESS, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct a PID_OWNERSHIP parameter.
-pub fn qos_ownership(kind : UInt) -> Parameter {
-  Parameter::new(PID_OWNERSHIP, qos_kind(kind))
+pub fn qos_ownership(kind : UInt) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_OWNERSHIP, qos_kind(kind))
 }
 
 ///|
 /// Construct a PID_OWNERSHIP_STRENGTH parameter.
-pub fn qos_ownership_strength(value : Int) -> Parameter {
-  Parameter::new(PID_OWNERSHIP_STRENGTH, qos_i32_le(value))
+pub fn qos_ownership_strength(value : Int) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_OWNERSHIP_STRENGTH, qos_i32_le(value))
 }
 
 ///|
 /// Construct a PID_DESTINATION_ORDER parameter.
-pub fn qos_destination_order(kind : UInt) -> Parameter {
-  Parameter::new(PID_DESTINATION_ORDER, qos_kind(kind))
+pub fn qos_destination_order(kind : UInt) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_DESTINATION_ORDER, qos_kind(kind))
 }
 
 ///|
@@ -256,7 +259,7 @@ pub fn qos_resource_limits(
   max_samples : Int,
   max_instances : Int,
   max_samples_per_instance : Int,
-) -> Parameter {
+) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let values = [max_samples, max_instances, max_samples_per_instance]
   for value in values {
@@ -265,14 +268,14 @@ pub fn qos_resource_limits(
       bytes.push(encoded[i])
     }
   }
-  Parameter::new(PID_RESOURCE_LIMITS, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_RESOURCE_LIMITS, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct the four-byte CDR boolean PID_EXPECTS_INLINE_QOS parameter.
-pub fn qos_expects_inline_qos(value : Bool) -> Parameter {
-  Parameter::new(
-    PID_EXPECTS_INLINE_QOS,
+pub fn qos_expects_inline_qos(value : Bool) -> @core.Parameter {
+  @core.Parameter::new(
+    @core.PID_EXPECTS_INLINE_QOS,
     if value {
       b"\x01\x00\x00\x00"
     } else {
@@ -283,7 +286,9 @@ pub fn qos_expects_inline_qos(value : Bool) -> Parameter {
 
 ///|
 /// Construct a PID_DATA_REPRESENTATION sequence parameter.
-pub fn qos_data_representation(representations : Array[UInt16]) -> Parameter {
+pub fn qos_data_representation(
+  representations : Array[UInt16],
+) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let length = representations.length().reinterpret_as_uint()
   let length_bytes = qos_u32_le(length)
@@ -294,11 +299,11 @@ pub fn qos_data_representation(representations : Array[UInt16]) -> Parameter {
     bytes.push(representation.to_byte())
     bytes.push((representation.to_int() >> 8).to_byte())
   }
-  Parameter::new(PID_DATA_REPRESENTATION, Bytes::from_array(bytes))
+  @core.Parameter::new(@core.PID_DATA_REPRESENTATION, Bytes::from_array(bytes))
 }
 
 ///|
 /// Construct a PID_TYPE_MAX_SIZE_SERIALIZED parameter.
-pub fn qos_type_max_size_serialized(value : UInt) -> Parameter {
-  Parameter::new(PID_TYPE_MAX_SIZE_SERIALIZED, qos_u32_le(value))
+pub fn qos_type_max_size_serialized(value : UInt) -> @core.Parameter {
+  @core.Parameter::new(@core.PID_TYPE_MAX_SIZE_SERIALIZED, qos_u32_le(value))
 }
