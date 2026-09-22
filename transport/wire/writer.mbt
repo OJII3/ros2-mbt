@@ -50,7 +50,7 @@ pub fn DataWriter::new_for_subscription(
   subscription : @rtps.SedpEndpointData,
   first_sequence_number : Int64,
 ) -> Result[DataWriter, String] {
-  if subscription.kind() != @rtps.SedpEndpointKind::Subscription {
+  if subscription.kind() != Subscription {
     return Err("a DataWriter target must be an SEDP subscription")
   }
   let unicast_locators = subscription.unicast_locators()
