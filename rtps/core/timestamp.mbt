@@ -16,6 +16,12 @@ pub struct InfoTimestampSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend InfoTimestampSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend InfoTimestampSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian INFO_TS with a valid timestamp.
 pub fn InfoTimestampSubmessage::new(
   seconds : Int,
