@@ -369,6 +369,30 @@ pub struct OccupancyGrid {
 } derive(Eq, Debug)
 
 ///|
+pub extend Odometry with Eq::{not_equal, equal}
+
+///|
+pub extend Odometry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Path with Eq::{not_equal, equal}
+
+///|
+pub extend Path with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MapMetaData with Eq::{not_equal, equal}
+
+///|
+pub extend MapMetaData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OccupancyGrid with Eq::{not_equal, equal}
+
+///|
+pub extend OccupancyGrid with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn OccupancyGrid::new(
   header : @std_msgs.Header,
   info : MapMetaData,
