@@ -236,7 +236,7 @@ pub fn parse_action_with_types(
 fn rosidl_action_sections(
   source : String,
 ) -> Result[(String, String, String), String] {
-  let sections = ["", "", ""]
+  let sections : FixedArray[String] = ["", "", ""]
   let mut section_index = 0
   for raw_line in source.split("\n") {
     if rosidl_trim(raw_line.to_owned()) == "---" {

@@ -195,12 +195,12 @@ test "ROS action protocol message hashes match Jazzy Fibonacci" {
       "action_tutorials_interfaces", "Fibonacci", "int32 order\n---\nint32[] sequence\n---\nint32[] partial_sequence",
     )
     .unwrap()
-  let tutorials_type_names = [
+  let tutorials_type_names : ReadOnlyArray[String] = [
     "Fibonacci_Goal", "Fibonacci_Result", "Fibonacci_Feedback", "Fibonacci_SendGoal_Request",
     "Fibonacci_SendGoal_Response", "Fibonacci_GetResult_Request", "Fibonacci_GetResult_Response",
     "Fibonacci_FeedbackMessage",
   ]
-  let tutorials_hashes = [
+  let tutorials_hashes : ReadOnlyArray[String] = [
     "RIHS01_1777164fa0531c60597c89fa7f70d22944bb360df049a77689100b1360c43960", "RIHS01_6158c1af5630cccfabec7f0c4b75a11fa39e313a4231d8eae6e5ce921c739ab0",
     "RIHS01_e852234f7e7085fc3e14da27175b5b56a59463eea51e9146e8da58a5115f5f3d", "RIHS01_cf867fa8462d62fc5436ec5605ff7894053a03a856d4bbaaef97808389ded602",
     "RIHS01_7fbc4b8abac3cd2a14e146c4b635ecee917cb7ffcad38868d8afa4a31115b542", "RIHS01_b200a8bd0b94170de44d257a5147443fb863c3e608fcda16399e090018b1af0d",
