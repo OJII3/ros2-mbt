@@ -7,8 +7,8 @@ test "RTPS message round trip" {
   }
   let header = Header::new(prefix, VendorId::new(1, 15))
   let message = Message::new(header)
-  message.add(Submessage::new(SubmessageId::InfoTimestamp, 0x01, b"abcd"))
-  message.add(Submessage::new(SubmessageId::Data, 0x05, b"payload"))
+  message.add(Submessage::new(InfoTimestamp, 0x01, b"abcd"))
+  message.add(Submessage::new(Data, 0x05, b"payload"))
   let encoded = match message.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -32,8 +32,8 @@ test "RTPS message inserts PAD before an unaligned following submessage" {
     Err(message) => fail(message)
   }
   let message = Message::new(Header::new(prefix, VendorId::new(1, 15)))
-  message.add(Submessage::new(SubmessageId::InfoTimestamp, 0x01, b"abc"))
-  message.add(Submessage::new(SubmessageId::Data, 0x05, b"payload"))
+  message.add(Submessage::new(InfoTimestamp, 0x01, b"abc"))
+  message.add(Submessage::new(Data, 0x05, b"payload"))
   let encoded = match message.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -43,15 +43,15 @@ test "RTPS message inserts PAD before an unaligned following submessage" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.submessages().length(), 3)
-  assert_eq(decoded.submessages()[0].id(), SubmessageId::InfoTimestamp)
-  assert_eq(decoded.submessages()[1].id(), SubmessageId::Pad)
+  assert_eq(decoded.submessages()[0].id(), InfoTimestamp)
+  assert_eq(decoded.submessages()[1].id(), Pad)
   assert_eq(decoded.submessages()[1].payload.length(), 1)
-  assert_eq(decoded.submessages()[2].id(), SubmessageId::Data)
+  assert_eq(decoded.submessages()[2].id(), Data)
 }
 
 ///|
 test "RTPS submessage uses big-endian length without little-endian flag" {
-  let submessage = Submessage::new(SubmessageId::Data, 0, b"abc")
+  let submessage = Submessage::new(Data, 0, b"abc")
   let encoded = match submessage.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
