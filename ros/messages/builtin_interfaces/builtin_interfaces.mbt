@@ -6,6 +6,12 @@ pub struct Time {
 } derive(Eq, Debug)
 
 ///|
+pub extend Time with Eq::{not_equal, equal}
+
+///|
+pub extend Time with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub const Time_TYPE_HASH : String = "RIHS01_b106235e25a4c5ed35098aa0a61a3ee9c9b18d197f398b0e4206cea9acf9c197"
 
 ///|
@@ -85,6 +91,12 @@ pub struct Duration {
   sec : Int
   nanosec : UInt
 } derive(Eq, Debug)
+
+///|
+pub extend Duration with Eq::{not_equal, equal}
+
+///|
+pub extend Duration with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub const Duration_TYPE_HASH : String = "RIHS01_e8d009f659816f758b75334ee1a9ca5b5c0b859843261f14c7f937349599d93b"
