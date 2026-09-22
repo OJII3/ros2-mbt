@@ -336,7 +336,7 @@ pub async fn DiscoverySession::receive_once(
       return Ok(event)
     }
     match self.receive_message_or_lease_expiry() {
-      Ok(DiscoveryReceiveOutcome::Message(message, source, socket_index)) => {
+      Ok(Message(message, source, socket_index)) => {
         let events = match self.decode_message(message, source, socket_index) {
           Ok(value) => value
           Err(message) => return Err(message)
@@ -345,14 +345,11 @@ pub async fn DiscoverySession::receive_once(
           self.pending_events.push((event, source))
         }
       }
-      Ok(DiscoveryReceiveOutcome::ParticipantLeaseExpired(participant_guid)) =>
+      Ok(ParticipantLeaseExpired(participant_guid)) =>
         if self.advance_expired_participant_lease(participant_guid) {
           self.forget_remote_participant(participant_guid)
           return Ok(
-            (
-              @wire.DiscoveryEvent::ParticipantRemoved(participant_guid),
-              @socket.Addr::new(0, 0),
-            ),
+            (ParticipantRemoved(participant_guid), @socket.Addr::new(0, 0)),
           )
         }
       Err(message) => return Err(message)
