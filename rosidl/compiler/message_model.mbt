@@ -58,7 +58,7 @@ pub fn MessageField::new(type_name : String, name : String) -> MessageField {
   {
     type_name,
     name,
-    collection: MessageFieldCollection::Scalar,
+    collection: Scalar,
     string_upper_bound: None,
     default_value: None,
   }
@@ -230,13 +230,13 @@ pub fn MessageDefinition::new_with_types(
       Err(message) => return Err(message)
     }
     match field.collection {
-      MessageFieldCollection::FixedArray(length) =>
+      FixedArray(length) =>
         if length <= 0 {
           return Err("ROS fixed array lengths must be positive")
         }
-      MessageFieldCollection::Scalar => ()
-      MessageFieldCollection::Sequence => ()
-      MessageFieldCollection::BoundedSequence(length) =>
+      Scalar => ()
+      Sequence => ()
+      BoundedSequence(length) =>
         if length <= 0 {
           return Err("ROS bounded sequence lengths must be positive")
         }
