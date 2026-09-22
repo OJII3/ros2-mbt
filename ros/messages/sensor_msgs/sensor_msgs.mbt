@@ -1149,41 +1149,53 @@ pub struct NavSatStatus {
 ///|
 
 ///|
+/// Status value for an unknown satellite fix state.
 pub const STATUS_UNKNOWN : Int = -2
 
 ///|
+/// Status value indicating no fix.
 pub const STATUS_NO_FIX : Int = -1
 
 ///|
+/// Status value indicating a standard fix.
 pub const STATUS_FIX : Int = 0
 
 ///|
+/// Status value indicating an SBAS fix.
 pub const STATUS_SBAS_FIX : Int = 1
 
 ///|
+/// Status value indicating a GBAS fix.
 pub const STATUS_GBAS_FIX : Int = 2
 
 ///|
+/// Service mask value for an unknown service.
 pub const SERVICE_UNKNOWN : UInt = 0
 
 ///|
+/// Service mask bit for GPS.
 pub const SERVICE_GPS : UInt = 1
 
 ///|
+/// Service mask bit for GLONASS.
 pub const SERVICE_GLONASS : UInt = 2
 
 ///|
+/// Service mask bit for compass-based positioning.
 pub const SERVICE_COMPASS : UInt = 4
 
 ///|
+/// Service mask bit for Galileo.
 pub const SERVICE_GALILEO : UInt = 8
 
 ///|
+/// Create a satellite navigation status message.
 pub fn NavSatStatus::new(status : Int, service : UInt) -> NavSatStatus {
   { status, service, }
 }
 
 ///|
+/// Create a satellite navigation status with no fix.
 pub fn NavSatStatus::default() -> NavSatStatus {
   let status : Int = -2
   let service : UInt = 0
@@ -1191,16 +1203,19 @@ pub fn NavSatStatus::default() -> NavSatStatus {
 }
 
 ///|
+/// Return the satellite fix status.
 pub fn NavSatStatus::status(self : NavSatStatus) -> Int {
   self.status
 }
 
 ///|
+/// Return the satellite service mask.
 pub fn NavSatStatus::service(self : NavSatStatus) -> UInt {
   self.service
 }
 
 ///|
+/// Serialize satellite navigation status as ROS 2 CDR.
 pub fn NavSatStatus::write_cdr(
   self : NavSatStatus,
   writer : @cdr.Writer,
@@ -1217,6 +1232,7 @@ pub fn NavSatStatus::write_cdr(
 }
 
 ///|
+/// Parse satellite navigation status from ROS 2 CDR.
 pub fn NavSatStatus::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[NavSatStatus, String] {
@@ -1232,6 +1248,7 @@ pub fn NavSatStatus::read_cdr(
 }
 
 ///|
+/// Serialize satellite navigation status as CDR bytes.
 pub fn NavSatStatus::to_cdr_bytes(self : NavSatStatus) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -1242,6 +1259,7 @@ pub fn NavSatStatus::to_cdr_bytes(self : NavSatStatus) -> Result[Bytes, String] 
 }
 
 ///|
+/// Parse satellite navigation status from CDR bytes.
 pub fn NavSatStatus::from_cdr_bytes(
   input : Bytes,
 ) -> Result[NavSatStatus, String] {
