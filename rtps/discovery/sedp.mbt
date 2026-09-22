@@ -491,8 +491,8 @@ pub fn SedpEndpointData::qos(
   // DDSI-RTPS uses Reliable as the publication default and Best Effort as
   // the subscription default, so Fast DDS may omit PID_RELIABILITY.
   let mut reliability = match self.kind {
-    SedpEndpointKind::Publication => RELIABILITY_RELIABLE
-    SedpEndpointKind::Subscription => defaults.reliability
+    Publication => RELIABILITY_RELIABLE
+    Subscription => defaults.reliability
   }
   let mut durability = defaults.durability
   let mut history = defaults.history
@@ -638,10 +638,10 @@ pub fn SedpEndpointData::qos_compatible_with(
   self : SedpEndpointData,
   reader : SedpEndpointData,
 ) -> Result[Bool, String] {
-  if self.kind != SedpEndpointKind::Publication {
+  if self.kind != Publication {
     return Err("the offered endpoint must be an SEDP publication")
   }
-  if reader.kind != SedpEndpointKind::Subscription {
+  if reader.kind != Subscription {
     return Err("the requested endpoint must be an SEDP subscription")
   }
   let offered = match self.qos() {
@@ -866,14 +866,14 @@ pub fn SedpEndpointData::to_parameter_list(
       @core.Parameter::new(@core.PID_MULTICAST_LOCATOR, locator.to_bytes()),
     )
   }
-  if self.kind == SedpEndpointKind::Publication &&
+  if self.kind == Publication &&
     !sedp_has_parameter(
       self.extra_parameters,
       @core.PID_TYPE_MAX_SIZE_SERIALIZED,
     ) {
     parameters.add(qos_type_max_size_serialized(0))
   }
-  if self.kind == SedpEndpointKind::Subscription &&
+  if self.kind == Subscription &&
     !sedp_has_parameter(self.extra_parameters, @core.PID_EXPECTS_INLINE_QOS) {
     parameters.add(qos_expects_inline_qos(false))
   }
