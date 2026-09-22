@@ -20,7 +20,7 @@ async test "ROS participant owns discovery and user-data sockets" {
   let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let node = match
-    RosParticipant::from_sockets(
+    @ros.RosParticipant::from_sockets(
       discovery_socket, user_socket, participant, 0, 1L,
     ) {
     Ok(value) => value
@@ -89,7 +89,7 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
     remote_sender.local_addr(),
     1L,
   ).unwrap()
-  let node = RosParticipant::from_discovery_session(session, user_socket).unwrap()
+  let node = @ros.RosParticipant::from_discovery_session(session, user_socket).unwrap()
   remote_sender
   .send_data(
     remote_participant.to_data_submessage(spdp_reader, participant_id, 1L),
@@ -145,7 +145,7 @@ async test "ROS participant rejects an invalid DDSI domain before binding" {
     Err(message) => fail(message)
   }
   assert_true(
-    RosParticipant::new_ddsi(
+    @ros.RosParticipant::new_ddsi(
       prefix,
       @rtps.VendorId::new(1, 15),
       0xFFFFFFFFU,
@@ -163,7 +163,7 @@ async test "ROS participant can send SPDP with DDSI multicast discovery" {
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
-  let participant = RosParticipant::new_ddsi(
+  let participant = @ros.RosParticipant::new_ddsi(
     prefix,
     @rtps.VendorId::new(1, 15),
     0U,
@@ -195,7 +195,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   ).unwrap()
   let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let node = RosParticipant::from_sockets(
+  let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
   ).unwrap()
   node
@@ -308,7 +308,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
   let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let node = match
-    RosParticipant::from_sockets(
+    @ros.RosParticipant::from_sockets(
       discovery_socket, user_socket, participant, 0, 1L,
     ) {
     Ok(value) => value
@@ -426,7 +426,7 @@ async test "ROS participant registers a topic endpoint with its type hash" {
   ).unwrap()
   let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let node = RosParticipant::from_sockets(
+  let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
   ).unwrap()
   let topic = @ros_types.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
@@ -470,7 +470,7 @@ async test "ROS participant registers service client endpoints" {
   ).unwrap()
   let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let node = RosParticipant::from_sockets(
+  let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
   ).unwrap()
   let service = @ros_types.RosService::new(
@@ -576,10 +576,10 @@ async test "ROS participants discover service endpoints before request reply" {
     ),
     1L,
   ).unwrap()
-  let client = RosParticipant::from_discovery_session(
+  let client = @ros.RosParticipant::from_discovery_session(
     client_session, client_user_socket,
   ).unwrap()
-  let server = RosParticipant::from_discovery_session(
+  let server = @ros.RosParticipant::from_discovery_session(
     server_session, server_user_socket,
   ).unwrap()
   let client_request_id = @rtps.EntityId::new(b"crq", 0xC2).unwrap()
@@ -612,7 +612,7 @@ async test "ROS participants discover service endpoints before request reply" {
   let (server_discovery, server_socket) = server.into_parts()
   client_discovery.close()
   server_discovery.close()
-  let client_facade = RosServiceClient::new_with_shared_socket(
+  let client_facade = @ros.RosServiceClient::new_with_shared_socket(
     service,
     client_socket,
     client_prefix,
@@ -623,7 +623,7 @@ async test "ROS participants discover service endpoints before request reply" {
     server_response_publication,
     1L,
   ).unwrap()
-  let server_facade = RosServiceServer::new_with_shared_socket(
+  let server_facade = @ros.RosServiceServer::new_with_shared_socket(
     service,
     server_socket,
     server_prefix,
@@ -738,12 +738,16 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Err(message) => fail(message)
   }
   let publisher = match
-    RosParticipant::from_discovery_session(publisher_session, publisher_user) {
+    @ros.RosParticipant::from_discovery_session(
+      publisher_session, publisher_user,
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let subscriber = match
-    RosParticipant::from_discovery_session(subscriber_session, subscriber_user) {
+    @ros.RosParticipant::from_discovery_session(
+      subscriber_session, subscriber_user,
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
