@@ -22,7 +22,7 @@ test "RTPS INFO_TS little-endian round trip" {
 ///|
 test "RTPS INFO_TS supports big-endian timestamps" {
   let submessage = Submessage::new(
-    SubmessageId::InfoTimestamp,
+    InfoTimestamp,
     0,
     b"\xFF\xFF\xFF\xFE\x12\x34\x56\x78",
   )
@@ -61,13 +61,13 @@ test "RTPS INFO_TS invalidation has no timestamp body" {
 test "RTPS INFO_TS rejects invalid body lengths" {
   assert_true(
     InfoTimestampSubmessage::from_submessage(
-      Submessage::new(SubmessageId::InfoTimestamp, 0x01, b"short"),
+      Submessage::new(InfoTimestamp, 0x01, b"short"),
     )
     is Err(_),
   )
   assert_true(
     InfoTimestampSubmessage::from_submessage(
-      Submessage::new(SubmessageId::InfoTimestamp, 0x03, b"\x00"),
+      Submessage::new(InfoTimestamp, 0x03, b"\x00"),
     )
     is Err(_),
   )
