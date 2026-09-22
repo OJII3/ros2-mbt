@@ -183,14 +183,17 @@ pub struct Point {
 } derive(Eq, Debug)
 
 ///|
+/// Type hash for `geometry_msgs/msg/Point`.
 pub const Point_TYPE_HASH : String = "RIHS01_6963084842a9b04494d6b2941d11444708d892da2f4b09843b9c43f42a7f6881"
 
 ///|
+/// Create a 3D point.
 pub fn Point::new(x : Double, y : Double, z : Double) -> Point {
   { x, y, z, }
 }
 
 ///|
+/// Create a point at the origin.
 pub fn Point::default() -> Point {
   let x : Double = 0.0
   let y : Double = 0.0
@@ -199,21 +202,25 @@ pub fn Point::default() -> Point {
 }
 
 ///|
+/// Return the point x coordinate.
 pub fn Point::x(self : Point) -> Double {
   self.x
 }
 
 ///|
+/// Return the point y coordinate.
 pub fn Point::y(self : Point) -> Double {
   self.y
 }
 
 ///|
+/// Return the point z coordinate.
 pub fn Point::z(self : Point) -> Double {
   self.z
 }
 
 ///|
+/// Serialize the point as ROS 2 CDR.
 pub fn Point::write_cdr(
   self : Point,
   writer : @cdr.Writer,
@@ -225,6 +232,7 @@ pub fn Point::write_cdr(
 }
 
 ///|
+/// Parse a point from ROS 2 CDR.
 pub fn Point::read_cdr(reader : @cdr.Reader) -> Result[Point, String] {
   let x = match reader.read_f64() {
     Ok(value) => value
@@ -242,6 +250,7 @@ pub fn Point::read_cdr(reader : @cdr.Reader) -> Result[Point, String] {
 }
 
 ///|
+/// Serialize the point as CDR bytes.
 pub fn Point::to_cdr_bytes(self : Point) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -252,6 +261,7 @@ pub fn Point::to_cdr_bytes(self : Point) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a point from CDR bytes.
 pub fn Point::from_cdr_bytes(input : Bytes) -> Result[Point, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
