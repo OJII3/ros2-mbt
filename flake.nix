@@ -27,8 +27,22 @@
             ];
           };
           moonbit = pkgs.moonbit-bin.moonbit.latest;
+          asyncSrc = pkgs.fetchFromGitHub {
+            owner = "moonbitlang";
+            repo = "async";
+            rev = "v0.22.0";
+            hash = "sha256-yVW0POrXxzgJk9n/MHs6wPEpgQ0FSJE3S8AJrjpS4CA=";
+          };
+          ros2-mbt = pkgs.callPackage ./nix/ros2-mbt.nix {
+            inherit moonbit asyncSrc;
+          };
         in
         {
+          packages = {
+            default = ros2-mbt;
+            inherit ros2-mbt;
+          };
+
           devShells = {
             default = pkgs.mkShell {
               packages = [ moonbit pkgs.just ];
