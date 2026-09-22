@@ -8,6 +8,7 @@ pub struct Odometry {
 } derive(Eq, Debug)
 
 ///|
+/// Create an odometry message.
 pub fn Odometry::new(
   header : @std_msgs.Header,
   child_frame_id : String,
@@ -18,6 +19,7 @@ pub fn Odometry::new(
 }
 
 ///|
+/// Create an empty odometry message.
 pub fn Odometry::default() -> Odometry {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let child_frame_id : String = ""
@@ -27,26 +29,31 @@ pub fn Odometry::default() -> Odometry {
 }
 
 ///|
+/// Return the odometry header.
 pub fn Odometry::header(self : Odometry) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the child frame identifier.
 pub fn Odometry::child_frame_id(self : Odometry) -> String {
   self.child_frame_id
 }
 
 ///|
+/// Return the pose estimate.
 pub fn Odometry::pose(self : Odometry) -> @geometry_msgs.PoseWithCovariance {
   self.pose
 }
 
 ///|
+/// Return the twist estimate.
 pub fn Odometry::twist(self : Odometry) -> @geometry_msgs.TwistWithCovariance {
   self.twist
 }
 
 ///|
+/// Serialize odometry as ROS 2 CDR.
 pub fn Odometry::write_cdr(
   self : Odometry,
   writer : @cdr.Writer,
@@ -68,6 +75,7 @@ pub fn Odometry::write_cdr(
 }
 
 ///|
+/// Parse odometry from ROS 2 CDR.
 pub fn Odometry::read_cdr(reader : @cdr.Reader) -> Result[Odometry, String] {
   let header = match @std_msgs.Header::read_cdr(reader) {
     Ok(value) => value
@@ -89,6 +97,7 @@ pub fn Odometry::read_cdr(reader : @cdr.Reader) -> Result[Odometry, String] {
 }
 
 ///|
+/// Serialize odometry as CDR bytes.
 pub fn Odometry::to_cdr_bytes(self : Odometry) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -99,6 +108,7 @@ pub fn Odometry::to_cdr_bytes(self : Odometry) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse odometry from CDR bytes.
 pub fn Odometry::from_cdr_bytes(input : Bytes) -> Result[Odometry, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -115,6 +125,7 @@ pub fn Odometry::from_cdr_bytes(input : Bytes) -> Result[Odometry, String] {
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/Odometry`.
 pub const Odometry_TYPE_HASH : String = "RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0"
 
 ///|
