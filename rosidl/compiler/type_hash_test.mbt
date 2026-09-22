@@ -1,7 +1,7 @@
 ///|
 test "ROS primitive message type hash matches the RIHS01 reference" {
   let definition = match
-    parse_message("std_msgs", "msg", "String", "string data") {
+    @compiler.parse_message("std_msgs", "msg", "String", "string data") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -15,7 +15,7 @@ test "ROS primitive message type hash matches the RIHS01 reference" {
 
 ///|
 test "ROS bounded string type hashes use bounded string IDs and capacity" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "BoundedStrings", "string<=8 value\nstring<=8[2] fixed\nstring<=8[<=3] bounded\nstring<=8[] sequence",
   ).unwrap()
   assert_eq(
@@ -28,14 +28,16 @@ test "ROS bounded string type hashes use bounded string IDs and capacity" {
 
 ///|
 test "ROS wide-string type hashes use their own type IDs" {
-  let wide = parse_message("demo", "msg", "Wide", "wstring data").unwrap()
+  let wide = @compiler.parse_message("demo", "msg", "Wide", "wstring data").unwrap()
   assert_eq(
     wide.type_hash(),
     Ok(
       "RIHS01_8203b3c357d38a350de9133031fb7c6af58260768a32c88dd234cc6452965133",
     ),
   )
-  let bounded = parse_message("demo", "msg", "BoundedWide", "wstring<=2 value").unwrap()
+  let bounded = @compiler.parse_message(
+    "demo", "msg", "BoundedWide", "wstring<=2 value",
+  ).unwrap()
   assert_eq(
     bounded.type_hash(),
     Ok(
@@ -46,16 +48,16 @@ test "ROS wide-string type hashes use their own type IDs" {
 
 ///|
 test "ROS workspace type hash includes sorted nested message descriptions" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   let vector = match
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let pose = match
-    MessageSource::new("demo_msgs", "msg", "Pose", "Vector3 position") {
+    @compiler.MessageSource::new("demo_msgs", "msg", "Pose", "Vector3 position") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -81,9 +83,13 @@ test "ROS workspace type hash includes sorted nested message descriptions" {
 ///|
 test "ROS primitive type hash rejects unresolved nested fields" {
   let definition = match
-    parse_message_with_types("demo_msgs", "msg", "Pose", "Vector3 position", [
-      MessageTypeReference::new("Vector3", "Vector3"),
-    ]) {
+    @compiler.parse_message_with_types(
+      "demo_msgs",
+      "msg",
+      "Pose",
+      "Vector3 position",
+      [@compiler.MessageTypeReference::new("Vector3", "Vector3")],
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -92,16 +98,16 @@ test "ROS primitive type hash rejects unresolved nested fields" {
 
 ///|
 test "ROS workspace service hash includes nested request and response types" {
-  let workspace = MessageWorkspace::new()
-  let vector = MessageSource::new(
+  let workspace = @compiler.MessageWorkspace::new()
+  let vector = @compiler.MessageSource::new(
     "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z",
   ).unwrap()
   workspace.add_source(vector).unwrap()
-  let service = parse_service_with_types(
+  let service = @compiler.parse_service_with_types(
     "demo_msgs",
     "Transform",
     "Vector3 input\n---\nVector3 output",
-    [MessageTypeReference::new("Vector3", "Vector3")],
+    [@compiler.MessageTypeReference::new("Vector3", "Vector3")],
   ).unwrap()
   assert_eq(
     workspace.service_type_hash(service),
@@ -113,18 +119,21 @@ test "ROS workspace service hash includes nested request and response types" {
 
 ///|
 test "ROS workspace generates nested service codecs and type hashes" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z",
     ).unwrap(),
   )
   .unwrap()
   let source = "Vector3 input\n---\nVector3 output"
-  let service = parse_service_with_types("demo_msgs", "Transform", source, [
-    MessageTypeReference::new("Vector3", "Vector3"),
-  ]).unwrap()
+  let service = @compiler.parse_service_with_types(
+    "demo_msgs",
+    "Transform",
+    source,
+    [@compiler.MessageTypeReference::new("Vector3", "Vector3")],
+  ).unwrap()
   let request_hash = workspace
     .type_hash_for_definition(service.request())
     .unwrap()
@@ -162,16 +171,18 @@ test "ROS workspace generates nested service codecs and type hashes" {
 
 ///|
 test "ROS workspace service generation imports external nested message types" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "std_msgs", "msg", "Header", "uint32 seq\nstring frame_id",
     ).unwrap(),
   )
   .unwrap()
   workspace
-  .add_import(MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap())
+  .add_import(
+    @compiler.MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap(),
+  )
   .unwrap()
   let generated = workspace
     .generate_service_moonbit(
@@ -186,7 +197,7 @@ test "ROS workspace service generation imports external nested message types" {
 
 ///|
 test "ROS workspace service generation preserves primitive type hashes" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   let generated = workspace
     .generate_service_moonbit(
       "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum",
@@ -202,61 +213,61 @@ test "ROS workspace service generation preserves primitive type hashes" {
 
 ///|
 test "ROS parameter service request and response RIHS01 hashes" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "ParameterValue", "uint8 PARAMETER_NOT_SET=0\nuint8 PARAMETER_BOOL=1\nuint8 PARAMETER_INTEGER=2\nuint8 PARAMETER_DOUBLE=3\nuint8 PARAMETER_STRING=4\nuint8 PARAMETER_BYTE_ARRAY=5\nuint8 PARAMETER_BOOL_ARRAY=6\nuint8 PARAMETER_INTEGER_ARRAY=7\nuint8 PARAMETER_DOUBLE_ARRAY=8\nuint8 PARAMETER_STRING_ARRAY=9\nuint8 type\nbool bool_value\nint64 integer_value\nfloat64 double_value\nstring string_value\nbyte[] byte_array_value\nbool[] bool_array_value\nint64[] integer_array_value\nfloat64[] double_array_value\nstring[] string_array_value",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "Parameter", "string name\nParameterValue value",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "SetParametersResult", "bool successful\nstring reason",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "FloatingPointRange", "float64 from_value\nfloat64 to_value\nfloat64 step",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "IntegerRange", "int64 from_value\nint64 to_value\nuint64 step",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "ParameterDescriptor", "string name\nuint8 type\nstring description\nstring additional_constraints\nbool read_only false\nbool dynamic_typing false\nFloatingPointRange[<=1] floating_point_range\nIntegerRange[<=1] integer_range",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "rcl_interfaces", "msg", "ListParametersResult", "string[] names\nstring[] prefixes",
     ).unwrap(),
   )
   .unwrap()
-  let service = parse_service_with_types(
+  let service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "GetParameters",
     "string[] names\n---\nParameterValue[] values",
-    [MessageTypeReference::new("ParameterValue", "ParameterValue")],
+    [@compiler.MessageTypeReference::new("ParameterValue", "ParameterValue")],
   ).unwrap()
   assert_eq(
     workspace.type_hash_for_definition(service.request()),
@@ -270,13 +281,15 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_9fa773b46e39cc5d02db6224d8fd520bb9caeeffc2b27c96c1e59431baba9f2a",
     ),
   )
-  let set_service = parse_service_with_types(
+  let set_service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "SetParameters",
     "Parameter[] parameters\n---\nSetParametersResult[] results",
     [
-      MessageTypeReference::new("Parameter", "Parameter"),
-      MessageTypeReference::new("SetParametersResult", "SetParametersResult"),
+      @compiler.MessageTypeReference::new("Parameter", "Parameter"),
+      @compiler.MessageTypeReference::new(
+        "SetParametersResult", "SetParametersResult",
+      ),
     ],
   ).unwrap()
   assert_eq(
@@ -291,13 +304,15 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_7a0e8140a0b8d98308fa81a5403a766e610af29a239caf54b7553227906fc266",
     ),
   )
-  let atomic_set_service = parse_service_with_types(
+  let atomic_set_service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "SetParametersAtomically",
     "Parameter[] parameters\n---\nSetParametersResult result",
     [
-      MessageTypeReference::new("Parameter", "Parameter"),
-      MessageTypeReference::new("SetParametersResult", "SetParametersResult"),
+      @compiler.MessageTypeReference::new("Parameter", "Parameter"),
+      @compiler.MessageTypeReference::new(
+        "SetParametersResult", "SetParametersResult",
+      ),
     ],
   ).unwrap()
   assert_eq(
@@ -312,11 +327,15 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_31b1a38c5b0b9d893ee24da45f69638f4561c78461d82d52750f429b534502b8",
     ),
   )
-  let describe_service = parse_service_with_types(
+  let describe_service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "DescribeParameters",
     "string[] names\n---\nParameterDescriptor[] descriptors",
-    [MessageTypeReference::new("ParameterDescriptor", "ParameterDescriptor")],
+    [
+      @compiler.MessageTypeReference::new(
+        "ParameterDescriptor", "ParameterDescriptor",
+      ),
+    ],
   ).unwrap()
   assert_eq(
     workspace.type_hash_for_definition(describe_service.request()),
@@ -330,11 +349,15 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_ad6747319613c6131589e062e095b469a46cc764f7d0f12a001a49e6cd893995",
     ),
   )
-  let list_service = parse_service_with_types(
+  let list_service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "ListParameters",
     "string[] prefixes\nuint64 depth\n---\nListParametersResult result",
-    [MessageTypeReference::new("ListParametersResult", "ListParametersResult")],
+    [
+      @compiler.MessageTypeReference::new(
+        "ListParametersResult", "ListParametersResult",
+      ),
+    ],
   ).unwrap()
   assert_eq(
     workspace.type_hash_for_definition(list_service.request()),
@@ -348,7 +371,7 @@ test "ROS parameter service request and response RIHS01 hashes" {
       "RIHS01_31b937b82de3612426be79f231e386259f97e8dc843e3f2845288b4bfa296bdd",
     ),
   )
-  let parameter_types_service = parse_service_with_types(
+  let parameter_types_service = @compiler.parse_service_with_types(
     "rcl_interfaces",
     "GetParameterTypes",
     "string[] names\n---\nuint8[] types",
@@ -370,17 +393,17 @@ test "ROS parameter service request and response RIHS01 hashes" {
 
 ///|
 test "ROS workspace type hash sorts multiple nested descriptions" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   for name in ["A", "B"] {
     workspace
     .add_source(
-      MessageSource::new("demo_msgs", "msg", name, "int32 value").unwrap(),
+      @compiler.MessageSource::new("demo_msgs", "msg", name, "int32 value").unwrap(),
     )
     .unwrap()
   }
   workspace
   .add_source(
-    MessageSource::new("demo_msgs", "msg", "Root", "B b\nA a").unwrap(),
+    @compiler.MessageSource::new("demo_msgs", "msg", "Root", "B b\nA a").unwrap(),
   )
   .unwrap()
   assert_eq(
