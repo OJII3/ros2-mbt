@@ -10,6 +10,7 @@ pub struct DiscoveryService {
 }
 
 ///|
+/// Create a discovery service from a discovery session.
 pub fn DiscoveryService::new(session : DiscoverySession) -> DiscoveryService {
   {
     session,
@@ -452,11 +453,13 @@ pub fn DiscoveryService::ingest_ros_discovery_info(
 }
 
 ///|
+/// Return the current discovery graph.
 pub fn DiscoveryService::graph(self : DiscoveryService) -> DiscoveryGraph {
   self.graph
 }
 
 ///|
+/// Close the underlying discovery session.
 pub fn DiscoveryService::close(self : DiscoveryService) -> Unit {
   self.session.close()
 }
