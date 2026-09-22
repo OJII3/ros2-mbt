@@ -50,26 +50,31 @@ fn rosidl_action_message_identity(
 }
 
 ///|
+/// Return the ROS package name.
 pub fn ActionDefinition::package_name(self : ActionDefinition) -> String {
   self.package_name
 }
 
 ///|
+/// Return the ROS action name.
 pub fn ActionDefinition::action_name(self : ActionDefinition) -> String {
   self.action_name
 }
 
 ///|
+/// Return the goal message definition.
 pub fn ActionDefinition::goal(self : ActionDefinition) -> MessageDefinition {
   self.goal
 }
 
 ///|
+/// Return the result message definition.
 pub fn ActionDefinition::result(self : ActionDefinition) -> MessageDefinition {
   self.result
 }
 
 ///|
+/// Return the feedback message definition.
 pub fn ActionDefinition::feedback(self : ActionDefinition) -> MessageDefinition {
   self.feedback
 }
