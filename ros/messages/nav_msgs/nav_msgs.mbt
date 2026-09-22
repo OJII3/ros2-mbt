@@ -136,6 +136,7 @@ pub struct Path {
 } derive(Eq, Debug)
 
 ///|
+/// Create a path message.
 pub fn Path::new(
   header : @std_msgs.Header,
   poses : Array[@geometry_msgs.PoseStamped],
@@ -144,6 +145,7 @@ pub fn Path::new(
 }
 
 ///|
+/// Create an empty path message.
 pub fn Path::default() -> Path {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let poses : Array[@geometry_msgs.PoseStamped] = []
@@ -151,16 +153,19 @@ pub fn Path::default() -> Path {
 }
 
 ///|
+/// Return the path header.
 pub fn Path::header(self : Path) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the stamped poses in the path.
 pub fn Path::poses(self : Path) -> Array[@geometry_msgs.PoseStamped] {
   self.poses
 }
 
 ///|
+/// Serialize the path as ROS 2 CDR.
 pub fn Path::write_cdr(
   self : Path,
   writer : @cdr.Writer,
@@ -180,6 +185,7 @@ pub fn Path::write_cdr(
 }
 
 ///|
+/// Parse a path from ROS 2 CDR.
 pub fn Path::read_cdr(reader : @cdr.Reader) -> Result[Path, String] {
   let header = match @std_msgs.Header::read_cdr(reader) {
     Ok(value) => value
@@ -208,6 +214,7 @@ pub fn Path::read_cdr(reader : @cdr.Reader) -> Result[Path, String] {
 }
 
 ///|
+/// Serialize the path as CDR bytes.
 pub fn Path::to_cdr_bytes(self : Path) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -218,6 +225,7 @@ pub fn Path::to_cdr_bytes(self : Path) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a path from CDR bytes.
 pub fn Path::from_cdr_bytes(input : Bytes) -> Result[Path, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -234,6 +242,7 @@ pub fn Path::from_cdr_bytes(input : Bytes) -> Result[Path, String] {
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/Path`.
 pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b"
 
 ///|
