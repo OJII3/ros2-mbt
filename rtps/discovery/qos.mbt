@@ -3,6 +3,7 @@
 pub const RELIABILITY_BEST_EFFORT : UInt = 1
 
 ///|
+/// Reliable delivery.
 pub const RELIABILITY_RELIABLE : UInt = 2
 
 ///|
@@ -10,12 +11,15 @@ pub const RELIABILITY_RELIABLE : UInt = 2
 pub const DURABILITY_VOLATILE : UInt = 0
 
 ///|
+/// Transient-local durability.
 pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
 
 ///|
+/// Transient durability.
 pub const DURABILITY_TRANSIENT : UInt = 2
 
 ///|
+/// Persistent durability.
 pub const DURABILITY_PERSISTENT : UInt = 3
 
 ///|
@@ -23,6 +27,7 @@ pub const DURABILITY_PERSISTENT : UInt = 3
 pub const HISTORY_KEEP_LAST : UInt = 0
 
 ///|
+/// Keep-all history.
 pub const HISTORY_KEEP_ALL : UInt = 1
 
 ///|
@@ -30,9 +35,11 @@ pub const HISTORY_KEEP_ALL : UInt = 1
 pub const LIVELINESS_AUTOMATIC : UInt = 0
 
 ///|
+/// Manual liveliness asserted by the participant.
 pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
 
 ///|
+/// Manual liveliness asserted by the topic.
 pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
 
 ///|
@@ -40,6 +47,7 @@ pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
 pub const OWNERSHIP_SHARED : UInt = 0
 
 ///|
+/// Exclusive ownership.
 pub const OWNERSHIP_EXCLUSIVE : UInt = 1
 
 ///|
@@ -47,6 +55,7 @@ pub const OWNERSHIP_EXCLUSIVE : UInt = 1
 pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
 
 ///|
+/// Order by source timestamp.
 pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
 
 ///|
