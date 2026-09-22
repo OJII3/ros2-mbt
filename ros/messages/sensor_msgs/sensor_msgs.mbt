@@ -1433,6 +1433,7 @@ pub struct CameraInfo {
 } derive(Eq, Debug)
 
 ///|
+/// Create a camera information message.
 pub fn CameraInfo::new(
   header : @std.Header,
   height : UInt,
@@ -1462,6 +1463,7 @@ pub fn CameraInfo::new(
 }
 
 ///|
+/// Create an empty camera information message.
 pub fn CameraInfo::default() -> CameraInfo {
   let header : @std.Header = @std.Header::default()
   let height : UInt = 0
@@ -1489,61 +1491,73 @@ pub fn CameraInfo::default() -> CameraInfo {
 }
 
 ///|
+/// Return the camera info header.
 pub fn CameraInfo::header(self : CameraInfo) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the camera image height.
 pub fn CameraInfo::height(self : CameraInfo) -> UInt {
   self.height
 }
 
 ///|
+/// Return the camera image width.
 pub fn CameraInfo::width(self : CameraInfo) -> UInt {
   self.width
 }
 
 ///|
+/// Return the distortion model name.
 pub fn CameraInfo::distortion_model(self : CameraInfo) -> String {
   self.distortion_model
 }
 
 ///|
+/// Return the distortion coefficients.
 pub fn CameraInfo::d(self : CameraInfo) -> Array[Double] {
   self.d
 }
 
 ///|
+/// Return the intrinsic camera matrix.
 pub fn CameraInfo::k(self : CameraInfo) -> Array[Double] {
   self.k
 }
 
 ///|
+/// Return the rectification matrix.
 pub fn CameraInfo::r(self : CameraInfo) -> Array[Double] {
   self.r
 }
 
 ///|
+/// Return the projection matrix.
 pub fn CameraInfo::p(self : CameraInfo) -> Array[Double] {
   self.p
 }
 
 ///|
+/// Return the horizontal binning factor.
 pub fn CameraInfo::binning_x(self : CameraInfo) -> UInt {
   self.binning_x
 }
 
 ///|
+/// Return the vertical binning factor.
 pub fn CameraInfo::binning_y(self : CameraInfo) -> UInt {
   self.binning_y
 }
 
 ///|
+/// Return the region of interest.
 pub fn CameraInfo::roi(self : CameraInfo) -> RegionOfInterest {
   self.roi
 }
 
 ///|
+/// Serialize camera information as ROS 2 CDR.
 pub fn CameraInfo::write_cdr(
   self : CameraInfo,
   writer : @cdr.Writer,
@@ -1587,6 +1601,7 @@ pub fn CameraInfo::write_cdr(
 }
 
 ///|
+/// Parse camera information from ROS 2 CDR.
 pub fn CameraInfo::read_cdr(reader : @cdr.Reader) -> Result[CameraInfo, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -1668,6 +1683,7 @@ pub fn CameraInfo::read_cdr(reader : @cdr.Reader) -> Result[CameraInfo, String] 
 }
 
 ///|
+/// Serialize camera information as CDR bytes.
 pub fn CameraInfo::to_cdr_bytes(self : CameraInfo) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -1678,6 +1694,7 @@ pub fn CameraInfo::to_cdr_bytes(self : CameraInfo) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse camera information from CDR bytes.
 pub fn CameraInfo::from_cdr_bytes(input : Bytes) -> Result[CameraInfo, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
