@@ -56,12 +56,14 @@ inputs = {
 };
 ```
 
-Then add the package to a NixOS module:
+Then add the package to a devShell:
 
 ```nix
-environment.systemPackages = [
-  inputs.ros2-mbt.packages.${pkgs.system}.ros2-mbt
-];
+devShells.${system}.default = pkgs.mkShell {
+  packages = [
+    inputs.ros2-mbt.packages.${system}.ros2-mbt
+  ];
+};
 ```
 
 ## Try the examples
