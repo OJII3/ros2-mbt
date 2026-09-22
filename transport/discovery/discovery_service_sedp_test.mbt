@@ -59,7 +59,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Err(message) => fail(message)
   }
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       sender,
       local_participant,
       reader_id,
@@ -70,7 +70,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let endpoint_id = match @rtps.EntityId::new(b"def", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -228,7 +228,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       service_socket,
       local_participant,
       reader_id,
@@ -239,7 +239,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   service.graph().ingest(Participant(remote_participant))
   service.graph().ingest(Participant(second_remote_participant))
   let endpoint_id = match @rtps.EntityId::new(b"def", 0xC2) {
