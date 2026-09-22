@@ -16,6 +16,18 @@ pub struct RosServicePayloadHeader {
 } derive(Eq, Debug)
 
 ///|
+pub extend RosService with Eq::{not_equal, equal}
+
+///|
+pub extend RosService with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosServicePayloadHeader with Eq::{not_equal, equal}
+
+///|
+pub extend RosServicePayloadHeader with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn RosServicePayloadHeader::new(
   client_id : UInt64,
   sequence_number : Int64,
