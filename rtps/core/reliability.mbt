@@ -64,21 +64,25 @@ pub fn HeartbeatSubmessage::with_final(
 }
 
 ///|
+/// Return the HEARTBEAT flags.
 pub fn HeartbeatSubmessage::flags(self : HeartbeatSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the HEARTBEAT reader entity identifier.
 pub fn HeartbeatSubmessage::reader_id(self : HeartbeatSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the HEARTBEAT writer entity identifier.
 pub fn HeartbeatSubmessage::writer_id(self : HeartbeatSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the first available HEARTBEAT sequence number.
 pub fn HeartbeatSubmessage::first_sequence_number(
   self : HeartbeatSubmessage,
 ) -> Int64 {
@@ -86,6 +90,7 @@ pub fn HeartbeatSubmessage::first_sequence_number(
 }
 
 ///|
+/// Return the last available HEARTBEAT sequence number.
 pub fn HeartbeatSubmessage::last_sequence_number(
   self : HeartbeatSubmessage,
 ) -> Int64 {
@@ -93,6 +98,7 @@ pub fn HeartbeatSubmessage::last_sequence_number(
 }
 
 ///|
+/// Return the HEARTBEAT count.
 pub fn HeartbeatSubmessage::count(self : HeartbeatSubmessage) -> UInt {
   self.count
 }
@@ -174,36 +180,43 @@ pub fn GapSubmessage::new(
 }
 
 ///|
+/// Return the GAP flags.
 pub fn GapSubmessage::flags(self : GapSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the GAP reader entity identifier.
 pub fn GapSubmessage::reader_id(self : GapSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the GAP writer entity identifier.
 pub fn GapSubmessage::writer_id(self : GapSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the first sequence number covered by the GAP.
 pub fn GapSubmessage::gap_start(self : GapSubmessage) -> Int64 {
   self.gap_start
 }
 
 ///|
+/// Return the base sequence number of the GAP bitmap.
 pub fn GapSubmessage::gap_list_base(self : GapSubmessage) -> Int64 {
   self.gap_list_base
 }
 
 ///|
+/// Return the number of valid bits in the GAP bitmap.
 pub fn GapSubmessage::gap_list_num_bits(self : GapSubmessage) -> UInt {
   self.gap_list_num_bits
 }
 
 ///|
+/// Return the words of the GAP bitmap.
 pub fn GapSubmessage::gap_list_bitmap(self : GapSubmessage) -> Array[UInt] {
   self.gap_list_bitmap
 }
@@ -270,36 +283,43 @@ pub fn AckNackSubmessage::with_final(
 }
 
 ///|
+/// Return the ACKNACK flags.
 pub fn AckNackSubmessage::flags(self : AckNackSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the ACKNACK reader entity identifier.
 pub fn AckNackSubmessage::reader_id(self : AckNackSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the ACKNACK writer entity identifier.
 pub fn AckNackSubmessage::writer_id(self : AckNackSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the base sequence number of the ACKNACK bitmap.
 pub fn AckNackSubmessage::bitmap_base(self : AckNackSubmessage) -> Int64 {
   self.bitmap_base
 }
 
 ///|
+/// Return the number of valid bits in the ACKNACK bitmap.
 pub fn AckNackSubmessage::num_bits(self : AckNackSubmessage) -> UInt {
   self.num_bits
 }
 
 ///|
+/// Return the words of the ACKNACK bitmap.
 pub fn AckNackSubmessage::bitmap(self : AckNackSubmessage) -> Array[UInt] {
   self.bitmap
 }
 
 ///|
+/// Return the ACKNACK count.
 pub fn AckNackSubmessage::count(self : AckNackSubmessage) -> UInt {
   self.count
 }
