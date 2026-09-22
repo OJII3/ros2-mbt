@@ -99,21 +99,25 @@ pub struct Twist {
 } derive(Eq, Debug)
 
 ///|
+/// Create a twist from linear and angular vectors.
 pub fn Twist::new(linear : Vector3, angular : Vector3) -> Twist {
   { linear, angular, }
 }
 
 ///|
+/// Create a zero twist.
 pub fn Twist::default() -> Twist {
   Twist::new(Vector3::default(), Vector3::default())
 }
 
 ///|
+/// Return the linear velocity vector.
 pub fn Twist::linear(self : Twist) -> Vector3 {
   self.linear
 }
 
 ///|
+/// Return the angular velocity vector.
 pub fn Twist::angular(self : Twist) -> Vector3 {
   self.angular
 }
