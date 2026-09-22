@@ -18,11 +18,13 @@ pub struct RosActionGoalHandle {
 }
 
 ///|
+/// Return the action goal identifier.
 pub fn RosActionGoalHandle::goal_id(self : RosActionGoalHandle) -> Bytes {
   self.goal_id
 }
 
 ///|
+/// Return whether the action goal was accepted.
 pub fn RosActionGoalHandle::accepted(self : RosActionGoalHandle) -> Bool {
   self.accepted
 }
