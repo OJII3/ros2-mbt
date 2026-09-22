@@ -243,7 +243,7 @@ fn rosidl_parse_field_type(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    Ok((base_type, string_upper_bound, MessageFieldCollection::Scalar))
+    Ok((base_type, string_upper_bound, Scalar))
   } else if parts.length() != 2 {
     Err("ROS message field type has an invalid collection suffix")
   } else {
@@ -258,7 +258,7 @@ fn rosidl_parse_field_type(
     }
     let inner = suffix[0:suffix.length() - 1].to_owned()
     if inner.length() == 0 {
-      Ok((base_type, string_upper_bound, MessageFieldCollection::Sequence))
+      Ok((base_type, string_upper_bound, Sequence))
     } else if inner[0] == '<' {
       if inner.length() <= 2 || inner[1] != '=' {
         return Err("ROS bounded sequence must use the <=N form")
@@ -267,25 +267,13 @@ fn rosidl_parse_field_type(
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok(
-        (
-          base_type,
-          string_upper_bound,
-          MessageFieldCollection::BoundedSequence(bound),
-        ),
-      )
+      Ok((base_type, string_upper_bound, BoundedSequence(bound)))
     } else {
       let length = match rosidl_positive_int(inner) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      Ok(
-        (
-          base_type,
-          string_upper_bound,
-          MessageFieldCollection::FixedArray(length),
-        ),
-      )
+      Ok((base_type, string_upper_bound, FixedArray(length)))
     }
   }
 }
