@@ -1,6 +1,6 @@
 ///|
 test "discovery graph upserts and matches endpoints" {
-  let graph = DiscoveryGraph::new()
+  let graph = @discovery.DiscoveryGraph::new()
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
@@ -83,7 +83,7 @@ test "discovery graph removes a participant and its endpoints" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let graph = DiscoveryGraph::new()
+  let graph = @discovery.DiscoveryGraph::new()
   graph.ingest(Participant(participant))
   graph.ingest(Publication(publication))
   graph.ingest(Subscription(subscription))
@@ -133,7 +133,7 @@ test "discovery graph upserts ROS participant entities" {
     Err(message) => fail(message)
   }
   second.add_node(second_node)
-  let graph = DiscoveryGraph::new()
+  let graph = @discovery.DiscoveryGraph::new()
   graph.ingest_ros_discovery_info(first)
   graph.ingest_ros_discovery_info(second)
   assert_eq(graph.ros_participant_count(), 1)
@@ -145,7 +145,7 @@ test "discovery graph upserts ROS participant entities" {
 
 ///|
 test "discovery graph filters publications by basic QoS" {
-  let graph = DiscoveryGraph::new()
+  let graph = @discovery.DiscoveryGraph::new()
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
