@@ -364,14 +364,8 @@ test "ROS message generator handles fixed arrays and sequences" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(
-    definition.fields()[0].collection(),
-    MessageFieldCollection::FixedArray(3),
-  )
-  assert_eq(
-    definition.fields()[1].collection(),
-    MessageFieldCollection::Sequence,
-  )
+  assert_eq(definition.fields()[0].collection(), FixedArray(3))
+  assert_eq(definition.fields()[1].collection(), Sequence)
   let generated = definition.generate_moonbit()
   assert_true(generated.contains("for _ in 0..<3"))
   assert_true(generated.contains("writer.write_u32(self.samples.length()"))
@@ -400,10 +394,7 @@ test "ROS message generator handles bounded sequences" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(
-    definition.fields()[0].collection(),
-    MessageFieldCollection::BoundedSequence(3),
-  )
+  assert_eq(definition.fields()[0].collection(), BoundedSequence(3))
   let generated = definition.generate_moonbit()
   assert_true(generated.contains("writer.write_u32(self.values.length()"))
   assert_true(generated.contains("if self.values.length() > 3"))
@@ -421,18 +412,9 @@ test "ROS message parser preserves bounded string metadata and array shapes" {
   assert_eq(definition.fields()[0].type_name(), "string")
   assert_eq(definition.fields()[0].string_upper_bound(), Some(12))
   assert_eq(definition.fields()[1].string_upper_bound(), Some(8))
-  assert_eq(
-    definition.fields()[1].collection(),
-    MessageFieldCollection::FixedArray(2),
-  )
-  assert_eq(
-    definition.fields()[2].collection(),
-    MessageFieldCollection::Sequence,
-  )
-  assert_eq(
-    definition.fields()[3].collection(),
-    MessageFieldCollection::BoundedSequence(3),
-  )
+  assert_eq(definition.fields()[1].collection(), FixedArray(2))
+  assert_eq(definition.fields()[2].collection(), Sequence)
+  assert_eq(definition.fields()[3].collection(), BoundedSequence(3))
   let generated = definition.generate_moonbit()
   assert_true(generated.contains("text : String"))
   assert_true(generated.contains("labels : Array[String]"))
