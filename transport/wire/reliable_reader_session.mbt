@@ -472,6 +472,7 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
 }
 
 ///|
+/// Return the number of samples accepted by the reader session.
 pub fn ReliableDataReaderSession::sample_count(
   self : ReliableDataReaderSession,
 ) -> Int {
@@ -479,6 +480,7 @@ pub fn ReliableDataReaderSession::sample_count(
 }
 
 ///|
+/// Close the reader session socket.
 pub fn ReliableDataReaderSession::close(
   self : ReliableDataReaderSession,
 ) -> Unit {
