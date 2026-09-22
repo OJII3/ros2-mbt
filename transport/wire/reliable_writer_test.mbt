@@ -13,10 +13,10 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let writer = match
-    ReliableDataWriter::new(
+    @wire.ReliableDataWriter::new(
       sender,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -106,8 +106,8 @@ async test "reliable writer directs discovered endpoint traffic" {
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
     receiver.local_addr().port().reinterpret_as_uint(),
@@ -119,7 +119,7 @@ async test "reliable writer directs discovered endpoint traffic" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   subscription.add_unicast_locator(locator)
-  let writer = ReliableDataWriter::new_for_subscription(
+  let writer = @wire.ReliableDataWriter::new_for_subscription(
     sender,
     local_prefix,
     @rtps.VendorId::new(1, 15),
@@ -154,12 +154,12 @@ async test "reliable writer receives ACKNACK from its socket" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let writer_socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let writer_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let writer_address = writer_socket.local_addr()
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let ack_sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let writer = match
-    ReliableDataWriter::new(
+    @wire.ReliableDataWriter::new(
       writer_socket,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -232,9 +232,9 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let writer = ReliableDataWriter::new(
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let writer = @wire.ReliableDataWriter::new(
     sender,
     prefix,
     @rtps.VendorId::new(1, 15),
@@ -351,8 +351,8 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender_address = sender.local_addr()
   let locator = match
     @rtps.Locator::udp_v4(
@@ -376,7 +376,7 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
   )
   remote.add_metatraffic_unicast(locator)
   let writer = match
-    ReliableSedpWriter::new(
+    @wire.ReliableSedpWriter::new(
       sender,
       @rtps.VendorId::new(1, 15),
       endpoint,
