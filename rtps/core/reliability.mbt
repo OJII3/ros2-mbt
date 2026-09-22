@@ -352,7 +352,7 @@ pub fn HeartbeatSubmessage::to_payload(self : HeartbeatSubmessage) -> Bytes {
 pub fn HeartbeatSubmessage::to_submessage(
   self : HeartbeatSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::Heartbeat, self.flags, self.to_payload())
+  Submessage::new(Heartbeat, self.flags, self.to_payload())
 }
 
 ///|
@@ -372,7 +372,7 @@ pub fn HeartbeatSubmessage::to_message(
 pub fn HeartbeatSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[HeartbeatSubmessage, String] {
-  if submessage.id() != SubmessageId::Heartbeat {
+  if submessage.id() != Heartbeat {
     return Err("expected an RTPS HEARTBEAT submessage")
   }
   if submessage.payload.length() != HEARTBEAT_BODY_LENGTH {
@@ -434,7 +434,7 @@ pub fn AckNackSubmessage::to_payload(self : AckNackSubmessage) -> Bytes {
 ///|
 /// Wrap the ACKNACK body in an RTPS submessage.
 pub fn AckNackSubmessage::to_submessage(self : AckNackSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::AckNack, self.flags, self.to_payload())
+  Submessage::new(AckNack, self.flags, self.to_payload())
 }
 
 ///|
@@ -454,7 +454,7 @@ pub fn AckNackSubmessage::to_message(
 pub fn AckNackSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[AckNackSubmessage, String] {
-  if submessage.id() != SubmessageId::AckNack {
+  if submessage.id() != AckNack {
     return Err("expected an RTPS ACKNACK submessage")
   }
   if submessage.payload.length() < 24 {
@@ -526,7 +526,7 @@ pub fn GapSubmessage::to_payload(self : GapSubmessage) -> Bytes {
 ///|
 /// Wrap the GAP body in an RTPS submessage.
 pub fn GapSubmessage::to_submessage(self : GapSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::Gap, self.flags, self.to_payload())
+  Submessage::new(Gap, self.flags, self.to_payload())
 }
 
 ///|
@@ -546,7 +546,7 @@ pub fn GapSubmessage::to_message(
 pub fn GapSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[GapSubmessage, String] {
-  if submessage.id() != SubmessageId::Gap {
+  if submessage.id() != Gap {
     return Err("expected an RTPS GAP submessage")
   }
   if submessage.payload.length() < 28 {
