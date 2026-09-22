@@ -46,10 +46,22 @@ The module is organized into focused packages:
 - `rtps` — RTPS wire and discovery types
 - `transport` — UDP transport, discovery, topics, services, and actions
 
-Install the native diagnostic CLI as a Nix package:
+Add the native diagnostic CLI to a Nix flake:
 
-```sh
-nix profile add github:OJII3/ros2-mbt#ros2-mbt
+In the flake inputs:
+
+```nix
+inputs = {
+  ros2-mbt.url = "github:OJII3/ros2-mbt";
+};
+```
+
+Then add the package to a NixOS module:
+
+```nix
+environment.systemPackages = [
+  inputs.ros2-mbt.packages.${pkgs.system}.ros2-mbt
+];
 ```
 
 ## Try the examples
