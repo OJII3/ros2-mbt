@@ -861,6 +861,66 @@ pub struct TwistWithCovariance {
 } derive(Eq, Debug)
 
 ///|
+pub extend Vector3 with Eq::{not_equal, equal}
+
+///|
+pub extend Vector3 with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Twist with Eq::{not_equal, equal}
+
+///|
+pub extend Twist with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Point with Eq::{not_equal, equal}
+
+///|
+pub extend Point with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Quaternion with Eq::{not_equal, equal}
+
+///|
+pub extend Quaternion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Pose with Eq::{not_equal, equal}
+
+///|
+pub extend Pose with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Transform with Eq::{not_equal, equal}
+
+///|
+pub extend Transform with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransformStamped with Eq::{not_equal, equal}
+
+///|
+pub extend TransformStamped with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PoseStamped with Eq::{not_equal, equal}
+
+///|
+pub extend PoseStamped with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PoseWithCovariance with Eq::{not_equal, equal}
+
+///|
+pub extend PoseWithCovariance with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TwistWithCovariance with Eq::{not_equal, equal}
+
+///|
+pub extend TwistWithCovariance with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn TwistWithCovariance::new(
   twist : Twist,
   covariance : Array[Double],
