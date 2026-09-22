@@ -1,17 +1,22 @@
 {
   lib,
-  moonPlatform,
-  moonModJson,
+  moonNix,
   moonRegistryIndex,
 }:
 
-moonPlatform.buildMoonPackage {
+moonNix.buildMoonPackage {
   name = "ros2-mbt";
   version = "0.1.0";
 
   src = lib.cleanSource ../.;
 
-  inherit moonModJson moonRegistryIndex;
+  moonMod = {
+    name = "ojii3/ros2-mbt";
+    version = "0.1.0";
+    preferred-target = "native";
+    deps."moonbitlang/async" = "0.22.0";
+  };
+  inherit moonRegistryIndex;
   moonFlags = [ "cmd/ros2-mbt" ];
   doCheck = false;
 
