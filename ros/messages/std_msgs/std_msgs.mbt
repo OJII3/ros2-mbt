@@ -3,16 +3,19 @@
 pub const STD_MSGS_STRING_TYPE_HASH : String = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
 
 ///|
+/// A ROS 2 `std_msgs/msg/String` message value.
 pub struct StringMessage {
   data : String
 }
 
 ///|
+/// Create a string message.
 pub fn StringMessage::new(data : String) -> StringMessage {
   { data, }
 }
 
 ///|
+/// Return the string message data.
 pub fn StringMessage::data(self : StringMessage) -> String {
   self.data
 }
