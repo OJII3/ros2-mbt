@@ -3,6 +3,10 @@
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
+    moon-registry = {
+      url = "git+https://mooncakes.io/git/index";
+      flake = false;
+    };
     nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/master";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";
     moonbit-overlay.url = "github:moonbit-community/moonbit-overlay";
@@ -27,14 +31,15 @@
             ];
           };
           moonbit = pkgs.moonbit-bin.moonbit.latest;
-          asyncSrc = pkgs.fetchFromGitHub {
-            owner = "moonbitlang";
-            repo = "async";
-            rev = "v0.22.0";
-            hash = "sha256-yVW0POrXxzgJk9n/MHs6wPEpgQ0FSJE3S8AJrjpS4CA=";
-          };
+          moonModJson = pkgs.writeText "ros2-mbt-moon.mod.json" (builtins.toJSON {
+            name = "ojii3/ros2-mbt";
+            version = "0.1.0";
+            preferred-target = "native";
+            deps."moonbitlang/async" = "0.22.0";
+          });
           ros2-mbt = pkgs.callPackage ./nix/ros2-mbt.nix {
-            inherit moonbit asyncSrc;
+            inherit moonModJson;
+            moonRegistryIndex = inputs.moon-registry;
           };
         in
         {

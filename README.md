@@ -108,6 +108,13 @@ moon run cmd/ros2-mbt -- node list
 moon run cmd/ros2-mbt -- topic hz /chatter
 ```
 
+The CLI can also be built and run through Nix:
+
+```sh
+nix build .#ros2-mbt
+nix run .#ros2-mbt -- topic list
+```
+
 Build a native binary with:
 
 ```sh
