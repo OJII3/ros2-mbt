@@ -803,6 +803,7 @@ pub struct JointState {
 } derive(Eq, Debug)
 
 ///|
+/// Create a joint state message.
 pub fn JointState::new(
   header : @std.Header,
   name : Array[String],
@@ -814,6 +815,7 @@ pub fn JointState::new(
 }
 
 ///|
+/// Create an empty joint state message.
 pub fn JointState::default() -> JointState {
   let header : @std.Header = @std.Header::default()
   let name : Array[String] = []
@@ -824,31 +826,37 @@ pub fn JointState::default() -> JointState {
 }
 
 ///|
+/// Return the joint state header.
 pub fn JointState::header(self : JointState) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the joint names.
 pub fn JointState::name(self : JointState) -> Array[String] {
   self.name
 }
 
 ///|
+/// Return the joint positions.
 pub fn JointState::position(self : JointState) -> Array[Double] {
   self.position
 }
 
 ///|
+/// Return the joint velocities.
 pub fn JointState::velocity(self : JointState) -> Array[Double] {
   self.velocity
 }
 
 ///|
+/// Return the joint efforts.
 pub fn JointState::effort(self : JointState) -> Array[Double] {
   self.effort
 }
 
 ///|
+/// Serialize the joint state as ROS 2 CDR.
 pub fn JointState::write_cdr(
   self : JointState,
   writer : @cdr.Writer,
@@ -877,6 +885,7 @@ pub fn JointState::write_cdr(
 }
 
 ///|
+/// Parse a joint state from ROS 2 CDR.
 pub fn JointState::read_cdr(reader : @cdr.Reader) -> Result[JointState, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -950,6 +959,7 @@ pub fn JointState::read_cdr(reader : @cdr.Reader) -> Result[JointState, String] 
 }
 
 ///|
+/// Serialize the joint state as CDR bytes.
 pub fn JointState::to_cdr_bytes(self : JointState) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -960,6 +970,7 @@ pub fn JointState::to_cdr_bytes(self : JointState) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a joint state from CDR bytes.
 pub fn JointState::from_cdr_bytes(input : Bytes) -> Result[JointState, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
