@@ -497,6 +497,7 @@ pub struct Image {
 } derive(Eq, Debug)
 
 ///|
+/// Create an image message.
 pub fn Image::new(
   header : @std.Header,
   height : UInt,
@@ -510,6 +511,7 @@ pub fn Image::new(
 }
 
 ///|
+/// Create an empty image message.
 pub fn Image::default() -> Image {
   let header : @std.Header = @std.Header::default()
   let height : UInt = 0
@@ -522,41 +524,49 @@ pub fn Image::default() -> Image {
 }
 
 ///|
+/// Return the image header.
 pub fn Image::header(self : Image) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the image height in pixels.
 pub fn Image::height(self : Image) -> UInt {
   self.height
 }
 
 ///|
+/// Return the image width in pixels.
 pub fn Image::width(self : Image) -> UInt {
   self.width
 }
 
 ///|
+/// Return the image encoding name.
 pub fn Image::encoding(self : Image) -> String {
   self.encoding
 }
 
 ///|
+/// Return the image byte order flag.
 pub fn Image::is_bigendian(self : Image) -> Byte {
   self.is_bigendian
 }
 
 ///|
+/// Return the image row step in bytes.
 pub fn Image::step(self : Image) -> UInt {
   self.step
 }
 
 ///|
+/// Return the image data bytes.
 pub fn Image::data(self : Image) -> Array[Byte] {
   self.data
 }
 
 ///|
+/// Serialize the image as ROS 2 CDR.
 pub fn Image::write_cdr(
   self : Image,
   writer : @cdr.Writer,
@@ -578,6 +588,7 @@ pub fn Image::write_cdr(
 }
 
 ///|
+/// Parse an image from ROS 2 CDR.
 pub fn Image::read_cdr(reader : @cdr.Reader) -> Result[Image, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -623,6 +634,7 @@ pub fn Image::read_cdr(reader : @cdr.Reader) -> Result[Image, String] {
 }
 
 ///|
+/// Serialize the image as CDR bytes.
 pub fn Image::to_cdr_bytes(self : Image) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -633,6 +645,7 @@ pub fn Image::to_cdr_bytes(self : Image) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse an image from CDR bytes.
 pub fn Image::from_cdr_bytes(input : Bytes) -> Result[Image, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
