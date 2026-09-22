@@ -263,6 +263,7 @@ pub fn RosServiceClient::new_with_shared_socket_and_wire_format(
 }
 
 ///|
+/// Return the client service descriptor.
 pub fn RosServiceClient::service(
   self : RosServiceClient,
 ) -> @ros_types.RosService {
@@ -380,6 +381,7 @@ pub async fn RosServiceClient::receive_request_control(
 }
 
 ///|
+/// Close the service client sockets.
 pub fn RosServiceClient::close(self : RosServiceClient) -> Unit {
   self.request_writer.close()
   if !self.shared_socket {
@@ -547,6 +549,7 @@ pub fn RosServiceServer::new_with_shared_socket_and_wire_format(
 }
 
 ///|
+/// Return the server service descriptor.
 pub fn RosServiceServer::service(
   self : RosServiceServer,
 ) -> @ros_types.RosService {
@@ -641,6 +644,7 @@ pub async fn RosServiceServer::receive_response_control(
 }
 
 ///|
+/// Close the service server sockets.
 pub fn RosServiceServer::close(self : RosServiceServer) -> Unit {
   self.request_reader.close()
   if !self.shared_socket {
