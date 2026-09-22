@@ -381,16 +381,19 @@ pub fn ServiceDefinition::new(
 }
 
 ///|
+/// Return the ROS package name.
 pub fn ServiceDefinition::package_name(self : ServiceDefinition) -> String {
   self.package_name
 }
 
 ///|
+/// Return the ROS service name.
 pub fn ServiceDefinition::service_name(self : ServiceDefinition) -> String {
   self.service_name
 }
 
 ///|
+/// Return the service request message definition.
 pub fn ServiceDefinition::request(
   self : ServiceDefinition,
 ) -> MessageDefinition {
@@ -398,6 +401,7 @@ pub fn ServiceDefinition::request(
 }
 
 ///|
+/// Return the service response message definition.
 pub fn ServiceDefinition::response(
   self : ServiceDefinition,
 ) -> MessageDefinition {
