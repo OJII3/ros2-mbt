@@ -488,7 +488,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
 ///|
 test "SEDP rejects malformed deadline and liveliness QoS" {
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -499,7 +499,7 @@ test "SEDP rejects malformed deadline and liveliness QoS" {
   assert_true(endpoint.qos() is Err(_))
 
   let liveliness_endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -524,7 +524,7 @@ test "SEDP rejects invalid reliability, durability, and history QoS" {
   ]
   for parameter in invalid_parameters {
     let endpoint = SedpEndpointData::new(
-      SedpEndpointKind::Publication,
+      Publication,
       sedp_test_guid(0xC2).unwrap(),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -537,7 +537,7 @@ test "SEDP rejects invalid reliability, durability, and history QoS" {
 ///|
 test "SEDP omitted reliability defaults depend on endpoint kind" {
   let publication = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rr/add_two_intsReply",
     "example_interfaces::srv::dds_::AddTwoInts_Response_",
@@ -546,7 +546,7 @@ test "SEDP omitted reliability defaults depend on endpoint kind" {
   assert_eq(publication.qos().unwrap().reliability(), RELIABILITY_RELIABLE)
 
   let subscription = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rq/add_two_intsRequest",
     "example_interfaces::srv::dds_::AddTwoInts_Request_",
@@ -558,7 +558,7 @@ test "SEDP omitted reliability defaults depend on endpoint kind" {
 ///|
 test "SEDP matches endpoints only when data representations overlap" {
   let publication = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -567,7 +567,7 @@ test "SEDP matches endpoints only when data representations overlap" {
     qos_data_representation([DATA_REPRESENTATION_XCDR2]),
   )
   let subscription_xcdr2 = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -578,7 +578,7 @@ test "SEDP matches endpoints only when data representations overlap" {
   assert_true(publication.qos_compatible_with(subscription_xcdr2).unwrap())
 
   let subscription_xcdr1 = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -592,7 +592,7 @@ test "SEDP matches endpoints only when data representations overlap" {
 ///|
 test "SEDP rejects malformed data representation sequences" {
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -610,7 +610,7 @@ test "SEDP rejects malformed data representation sequences" {
 test "SEDP rejects overflowing variable-length fields" {
   let oversized_length = b"\xFC\xFF\xFF\x7F"
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -621,7 +621,7 @@ test "SEDP rejects overflowing variable-length fields" {
   assert_true(endpoint.qos() is Err(_))
 
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -629,11 +629,7 @@ test "SEDP rejects overflowing variable-length fields" {
   let parameters = endpoint.to_parameter_list().unwrap()
   parameters.add(@core.Parameter::new(@core.PID_USER_DATA, oversized_length))
   assert_true(
-    SedpEndpointData::from_parameter_list(
-      SedpEndpointKind::Publication,
-      parameters,
-    )
-    is Err(_),
+    SedpEndpointData::from_parameter_list(Publication, parameters) is Err(_),
   )
 
   let parameters = @core.ParameterList::new()
@@ -645,11 +641,7 @@ test "SEDP rejects overflowing variable-length fields" {
   )
   parameters.add(@core.Parameter::new(@core.PID_TOPIC_NAME, oversized_length))
   assert_true(
-    SedpEndpointData::from_parameter_list(
-      SedpEndpointKind::Publication,
-      parameters,
-    )
-    is Err(_),
+    SedpEndpointData::from_parameter_list(Publication, parameters) is Err(_),
   )
 }
 
@@ -661,7 +653,7 @@ test "SEDP subscription advertises that it does not expect inline QoS" {
   }
   let endpoint = match
     SedpEndpointData::new(
-      SedpEndpointKind::Subscription,
+      Subscription,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -691,7 +683,7 @@ test "SEDP does not duplicate direction-specific standard parameters" {
   }
   let endpoint = match
     SedpEndpointData::new(
-      SedpEndpointKind::Publication,
+      Publication,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -718,7 +710,7 @@ test "SEDP does not duplicate direction-specific standard parameters" {
 test "SEDP DATA accepts an unencapsulated ParameterList" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     endpoint_guid,
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -732,10 +724,7 @@ test "SEDP DATA accepts an unencapsulated ParameterList" {
     1L,
     encoded[4:].to_owned(),
   )
-  let decoded = SedpEndpointData::from_data_submessage(
-    SedpEndpointKind::Publication,
-    data,
-  ).unwrap()
+  let decoded = SedpEndpointData::from_data_submessage(Publication, data).unwrap()
   assert_eq(decoded.endpoint_guid(), endpoint_guid)
   assert_eq(decoded.topic_name(), "rt/chatter")
 }
