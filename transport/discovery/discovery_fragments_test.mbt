@@ -26,7 +26,7 @@ async test "discovery session reassembles fragmented SPDP participant data" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -201,7 +201,7 @@ async test "discovery session filters SEDP data for another builtin reader" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     participant,
     spdp_reader,
