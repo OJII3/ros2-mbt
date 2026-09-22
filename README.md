@@ -108,6 +108,13 @@ moon run cmd/ros2-mbt -- node list
 moon run cmd/ros2-mbt -- topic hz /chatter
 ```
 
+Build a native binary with:
+
+```sh
+moon build --target native --release cmd/ros2-mbt
+_build/native/release/build/cmd/ros2-mbt/ros2-mbt.exe topic list
+```
+
 Discovery waits one second by default. Adjust it with `--spin-time-ms`; the
 `topic hz` command measures for five seconds by default and accepts
 `--duration-ms`. The current `topic hz` implementation measures the first
