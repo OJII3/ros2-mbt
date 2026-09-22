@@ -141,7 +141,7 @@ async test "reliable ROS service client and server correlate a response" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  @async.sleep(10)
+  test_receive(() => client.receive_request_control()).unwrap()
   match server.respond(request_identity, b"response") {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -274,7 +274,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   ack_sender
   .send_acknack(request_acknack, server_prefix, vendor_id, client_address)
   .unwrap()
-  @async.sleep(10)
+  test_receive(() => client.receive_request_control()).unwrap()
   server.respond(request_identity, b"accepted goal response").unwrap()
   let (response, _) = test_receive(() => {
     client.receive_response(request_identity)

@@ -222,7 +222,6 @@ async test "discovery service expires participants after the SPDP lease" {
   assert_true(publication_event is Publication(_))
   assert_eq(service.graph().publication_count(), 1)
 
-  @async.sleep(300)
   sender
   .send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
   .unwrap()
