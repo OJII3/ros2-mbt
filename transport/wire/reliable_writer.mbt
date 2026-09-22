@@ -75,6 +75,7 @@ fn reliable_writer_fragment_data(
 }
 
 ///|
+/// Reliable RTPS writer state with retransmission history.
 pub struct ReliableDataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
@@ -236,6 +237,7 @@ fn ReliableDataWriter::acknack_targets(
 }
 
 ///|
+/// Return the next data sequence number.
 pub fn ReliableDataWriter::next_sequence_number(
   self : ReliableDataWriter,
 ) -> Int64 {
@@ -251,6 +253,7 @@ pub fn ReliableDataWriter::vendor_id(
 }
 
 ///|
+/// Return the next HEARTBEAT count value.
 pub fn ReliableDataWriter::next_heartbeat_count(
   self : ReliableDataWriter,
 ) -> UInt {
