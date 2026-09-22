@@ -502,6 +502,7 @@ pub struct Transform {
 } derive(Eq, Debug)
 
 ///|
+/// Create a transform.
 pub fn Transform::new(
   translation : Vector3,
   rotation : Quaternion,
@@ -510,6 +511,7 @@ pub fn Transform::new(
 }
 
 ///|
+/// Create the identity transform.
 pub fn Transform::default() -> Transform {
   let translation : Vector3 = Vector3::default()
   let rotation : Quaternion = Quaternion::default()
@@ -517,16 +519,19 @@ pub fn Transform::default() -> Transform {
 }
 
 ///|
+/// Return the transform translation.
 pub fn Transform::translation(self : Transform) -> Vector3 {
   self.translation
 }
 
 ///|
+/// Return the transform rotation.
 pub fn Transform::rotation(self : Transform) -> Quaternion {
   self.rotation
 }
 
 ///|
+/// Serialize the transform as ROS 2 CDR.
 pub fn Transform::write_cdr(
   self : Transform,
   writer : @cdr.Writer,
@@ -543,6 +548,7 @@ pub fn Transform::write_cdr(
 }
 
 ///|
+/// Parse a transform from ROS 2 CDR.
 pub fn Transform::read_cdr(reader : @cdr.Reader) -> Result[Transform, String] {
   let translation = match Vector3::read_cdr(reader) {
     Ok(value) => value
@@ -556,6 +562,7 @@ pub fn Transform::read_cdr(reader : @cdr.Reader) -> Result[Transform, String] {
 }
 
 ///|
+/// Serialize the transform as CDR bytes.
 pub fn Transform::to_cdr_bytes(self : Transform) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -566,6 +573,7 @@ pub fn Transform::to_cdr_bytes(self : Transform) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a transform from CDR bytes.
 pub fn Transform::from_cdr_bytes(input : Bytes) -> Result[Transform, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -582,6 +590,7 @@ pub fn Transform::from_cdr_bytes(input : Bytes) -> Result[Transform, String] {
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/Transform`.
 pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb20010c43d55374d81bd041f1ba2581fddc"
 
 ///|
