@@ -158,7 +158,7 @@ pub fn Writer::write_f64(self : Writer, value : Double) -> Unit {
 ///|
 /// Write a raw, fixed-size byte array without a sequence length.
 pub fn Writer::write_byte_array(self : Writer, value : Bytes) -> Unit {
-  self.buffer.write_bytes(value[:])
+  self.buffer.write_bytes(value)
 }
 
 ///|
