@@ -282,7 +282,7 @@ test "SEDP extracts an endpoint GUID from key-only data" {
 test "SEDP builds an endpoint dispose DATA sample" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     endpoint_guid,
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -305,7 +305,7 @@ test "SEDP builds an endpoint dispose DATA sample" {
 test "SEDP endpoint type hash is optional and validates malformed user data" {
   let endpoint_guid = sedp_test_guid(0xC2).unwrap()
   let endpoint = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     endpoint_guid,
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -324,11 +324,7 @@ test "SEDP parser rejects missing required fields" {
     @core.Parameter::new(@core.PID_TOPIC_NAME, b"\x01\x00\x00\x00\x00"),
   )
   assert_true(
-    SedpEndpointData::from_parameter_list(
-      SedpEndpointKind::Subscription,
-      parameters,
-    )
-    is Err(_),
+    SedpEndpointData::from_parameter_list(Subscription, parameters) is Err(_),
   )
 }
 
@@ -348,11 +344,11 @@ test "SEDP resolves predefined builtin writer entity IDs" {
   }
   assert_eq(
     SedpEndpointKind::from_builtin_writer_id(publication_writer),
-    Ok(SedpEndpointKind::Publication),
+    Ok(Publication),
   )
   assert_eq(
     SedpEndpointKind::from_builtin_writer_id(subscription_writer),
-    Ok(SedpEndpointKind::Subscription),
+    Ok(Subscription),
   )
   assert_true(
     SedpEndpointKind::from_builtin_writer_id(unknown_writer) is Err(_),
@@ -392,7 +388,7 @@ test "SEDP reads basic QoS and checks offered compatibility" {
   }
   let publication = match
     SedpEndpointData::new(
-      SedpEndpointKind::Publication,
+      Publication,
       @core.Guid::new(prefix, writer_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
