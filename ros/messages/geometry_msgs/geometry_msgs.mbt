@@ -997,6 +997,7 @@ pub extend TwistWithCovariance with Eq::{not_equal, equal}
 pub extend TwistWithCovariance with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create a twist with covariance.
 pub fn TwistWithCovariance::new(
   twist : Twist,
   covariance : Array[Double],
@@ -1005,6 +1006,7 @@ pub fn TwistWithCovariance::new(
 }
 
 ///|
+/// Create a twist with zero covariance.
 pub fn TwistWithCovariance::default() -> TwistWithCovariance {
   let twist : Twist = Twist::default()
   let covariance : Array[Double] = []
@@ -1015,11 +1017,13 @@ pub fn TwistWithCovariance::default() -> TwistWithCovariance {
 }
 
 ///|
+/// Return the twist component.
 pub fn TwistWithCovariance::twist(self : TwistWithCovariance) -> Twist {
   self.twist
 }
 
 ///|
+/// Return the covariance values.
 pub fn TwistWithCovariance::covariance(
   self : TwistWithCovariance,
 ) -> Array[Double] {
@@ -1027,6 +1031,7 @@ pub fn TwistWithCovariance::covariance(
 }
 
 ///|
+/// Serialize the twist with covariance as ROS 2 CDR.
 pub fn TwistWithCovariance::write_cdr(
   self : TwistWithCovariance,
   writer : @cdr.Writer,
@@ -1045,6 +1050,7 @@ pub fn TwistWithCovariance::write_cdr(
 }
 
 ///|
+/// Parse a twist with covariance from ROS 2 CDR.
 pub fn TwistWithCovariance::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[TwistWithCovariance, String] {
@@ -1065,6 +1071,7 @@ pub fn TwistWithCovariance::read_cdr(
 }
 
 ///|
+/// Serialize the twist with covariance as CDR bytes.
 pub fn TwistWithCovariance::to_cdr_bytes(
   self : TwistWithCovariance,
 ) -> Result[Bytes, String] {
@@ -1077,6 +1084,7 @@ pub fn TwistWithCovariance::to_cdr_bytes(
 }
 
 ///|
+/// Parse a twist with covariance from CDR bytes.
 pub fn TwistWithCovariance::from_cdr_bytes(
   input : Bytes,
 ) -> Result[TwistWithCovariance, String] {
@@ -1095,4 +1103,5 @@ pub fn TwistWithCovariance::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/TwistWithCovariance`.
 pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"
