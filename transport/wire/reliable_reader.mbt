@@ -119,6 +119,7 @@ fn ReliableFragmentedSample::to_data(
 }
 
 ///|
+/// Reliable RTPS reader state for one remote writer.
 pub struct ReliableDataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
@@ -151,6 +152,7 @@ pub fn ReliableDataReader::new(
 }
 
 ///|
+/// Return the next ACKNACK count value.
 pub fn ReliableDataReader::next_acknack_count(
   self : ReliableDataReader,
 ) -> UInt {
@@ -158,6 +160,7 @@ pub fn ReliableDataReader::next_acknack_count(
 }
 
 ///|
+/// Return the next NACKFRAG count value.
 pub fn ReliableDataReader::next_nackfrag_count(
   self : ReliableDataReader,
 ) -> UInt {
