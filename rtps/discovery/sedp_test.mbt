@@ -401,7 +401,7 @@ test "SEDP reads basic QoS and checks offered compatibility" {
   publication.add_parameter(qos_history(HISTORY_KEEP_LAST, 1))
   let subscription = match
     SedpEndpointData::new(
-      SedpEndpointKind::Subscription,
+      Subscription,
       @core.Guid::new(prefix, reader_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -430,7 +430,7 @@ test "SEDP reads basic QoS and checks offered compatibility" {
 ///|
 test "SEDP matches deadline and liveliness offered/requested QoS" {
   let publication = SedpEndpointData::new(
-    SedpEndpointKind::Publication,
+    Publication,
     sedp_test_guid(0xC2).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -441,7 +441,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   )
 
   let compatible_subscription = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -453,7 +453,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   assert_true(publication.qos_compatible_with(compatible_subscription).unwrap())
 
   let deadline_too_strict = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -463,7 +463,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   assert_false(publication.qos_compatible_with(deadline_too_strict).unwrap())
 
   let liveliness_too_strict = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -475,7 +475,7 @@ test "SEDP matches deadline and liveliness offered/requested QoS" {
   assert_false(publication.qos_compatible_with(liveliness_too_strict).unwrap())
 
   let lease_too_strict = SedpEndpointData::new(
-    SedpEndpointKind::Subscription,
+    Subscription,
     sedp_test_guid(0xC7).unwrap(),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
