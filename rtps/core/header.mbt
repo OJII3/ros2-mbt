@@ -3,6 +3,7 @@
 pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 ///|
+/// The fixed minor component of the RTPS protocol version.
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
 ///|
@@ -46,16 +47,19 @@ pub struct Header {
 } derive(Eq, Debug)
 
 ///|
+/// Create an RTPS protocol version.
 pub fn ProtocolVersion::new(major : Byte, minor : Byte) -> ProtocolVersion {
   { major, minor, }
 }
 
 ///|
+/// Create a vendor identifier.
 pub fn VendorId::new(major : Byte, minor : Byte) -> VendorId {
   { major, minor, }
 }
 
 ///|
+/// Create a GUID prefix from its wire-format bytes.
 pub fn GuidPrefix::new(bytes : Bytes) -> Result[GuidPrefix, String] {
   if bytes.length() != 12 {
     Err("a GUID prefix must contain exactly 12 bytes")
@@ -65,6 +69,7 @@ pub fn GuidPrefix::new(bytes : Bytes) -> Result[GuidPrefix, String] {
 }
 
 ///|
+/// Create a GUID prefix from an array of bytes.
 pub fn GuidPrefix::from_array(
   bytes : Array[Byte],
 ) -> Result[GuidPrefix, String] {
@@ -72,11 +77,13 @@ pub fn GuidPrefix::from_array(
 }
 
 ///|
+/// Return the GUID prefix bytes.
 pub fn GuidPrefix::as_bytes(self : GuidPrefix) -> Bytes {
   self.bytes
 }
 
 ///|
+/// Create an RTPS message header.
 pub fn Header::new(guid_prefix : GuidPrefix, vendor_id : VendorId) -> Header {
   {
     protocol_version: ProtocolVersion::new(
@@ -154,6 +161,7 @@ pub(all) enum SubmessageId {
 } derive(Eq, Debug)
 
 ///|
+/// Convert a submessage identifier to its wire byte.
 pub fn SubmessageId::to_byte(self : SubmessageId) -> Byte {
   match self {
     Pad => 0x01
@@ -172,6 +180,7 @@ pub fn SubmessageId::to_byte(self : SubmessageId) -> Byte {
 }
 
 ///|
+/// Parse a submessage identifier from its wire byte.
 pub fn SubmessageId::from_byte(value : Byte) -> Result[SubmessageId, String] {
   match value {
     0x01 => Ok(Pad)
@@ -234,6 +243,7 @@ pub extend Submessage with Eq::{not_equal, equal}
 pub extend Submessage with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create an opaque RTPS submessage.
 pub fn Submessage::new(
   id : SubmessageId,
   flags : Byte,
@@ -249,11 +259,13 @@ pub fn Submessage::little_endian(self : Submessage) -> Submessage {
 }
 
 ///|
+/// Return the submessage identifier.
 pub fn Submessage::id(self : Submessage) -> SubmessageId {
   self.id
 }
 
 ///|
+/// Return the submessage flags.
 pub fn Submessage::flags(self : Submessage) -> Byte {
   self.flags
 }
