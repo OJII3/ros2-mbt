@@ -96,6 +96,24 @@ pub struct SedpQos {
 } derive(Eq, Debug)
 
 ///|
+pub extend SedpEndpointKind with Eq::{not_equal, equal}
+
+///|
+pub extend SedpEndpointKind with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SedpEndpointData with Eq::{not_equal, equal}
+
+///|
+pub extend SedpEndpointData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SedpQos with Eq::{not_equal, equal}
+
+///|
+pub extend SedpQos with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 const SEDP_QOS_DURATION_INFINITE_SECONDS : Int = 0x7FFFFFFF
 
 ///|
