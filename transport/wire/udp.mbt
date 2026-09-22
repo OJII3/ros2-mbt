@@ -25,7 +25,7 @@ pub struct Udp {
 ///|
 /// Bind a UDP socket to an address.
 pub async fn Udp::bind(addr : @socket.Addr) -> Udp {
-  { server: @socket.UdpServer(addr), }
+  { server: UdpServer(addr), }
 }
 
 ///|
@@ -273,7 +273,7 @@ pub async fn Udp::receive_data(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
+    if submessage.id() != Data {
       continue
     }
     let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -333,7 +333,7 @@ pub async fn Udp::receive_heartbeat(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Heartbeat {
+    if submessage.id() != Heartbeat {
       continue
     }
     let heartbeat = match
@@ -356,7 +356,7 @@ pub async fn Udp::receive_acknack(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::AckNack {
+    if submessage.id() != AckNack {
       continue
     }
     let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
@@ -378,7 +378,7 @@ pub async fn Udp::receive_nack_frag(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::NackFrag {
+    if submessage.id() != NackFrag {
       continue
     }
     let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
@@ -400,7 +400,7 @@ pub async fn Udp::receive_spdp(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
+    if submessage.id() != Data {
       continue
     }
     let data = match @rtps.DataSubmessage::from_submessage(submessage) {
