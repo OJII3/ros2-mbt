@@ -198,6 +198,42 @@ pub struct Submessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend ProtocolVersion with Eq::{not_equal, equal}
+
+///|
+pub extend ProtocolVersion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend VendorId with Eq::{not_equal, equal}
+
+///|
+pub extend VendorId with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend GuidPrefix with Eq::{not_equal, equal}
+
+///|
+pub extend GuidPrefix with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Header with Eq::{not_equal, equal}
+
+///|
+pub extend Header with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SubmessageId with Eq::{not_equal, equal}
+
+///|
+pub extend SubmessageId with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Submessage with Eq::{not_equal, equal}
+
+///|
+pub extend Submessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn Submessage::new(
   id : SubmessageId,
   flags : Byte,
