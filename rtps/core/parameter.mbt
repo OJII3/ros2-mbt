@@ -125,6 +125,12 @@ pub struct Parameter {
 } derive(Eq, Debug)
 
 ///|
+pub extend Parameter with Eq::{not_equal, equal}
+
+///|
+pub extend Parameter with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn Parameter::new(id : UInt16, value : Bytes) -> Parameter {
   { id, value, }
 }
