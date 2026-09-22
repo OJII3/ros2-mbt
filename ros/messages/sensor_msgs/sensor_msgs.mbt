@@ -1290,6 +1290,7 @@ pub struct RegionOfInterest {
 ///|
 
 ///|
+/// Create a region-of-interest message.
 pub fn RegionOfInterest::new(
   x_offset : UInt,
   y_offset : UInt,
@@ -1301,6 +1302,7 @@ pub fn RegionOfInterest::new(
 }
 
 ///|
+/// Create an empty region-of-interest message.
 pub fn RegionOfInterest::default() -> RegionOfInterest {
   let x_offset : UInt = 0
   let y_offset : UInt = 0
@@ -1311,31 +1313,37 @@ pub fn RegionOfInterest::default() -> RegionOfInterest {
 }
 
 ///|
+/// Return the horizontal offset.
 pub fn RegionOfInterest::x_offset(self : RegionOfInterest) -> UInt {
   self.x_offset
 }
 
 ///|
+/// Return the vertical offset.
 pub fn RegionOfInterest::y_offset(self : RegionOfInterest) -> UInt {
   self.y_offset
 }
 
 ///|
+/// Return the region height.
 pub fn RegionOfInterest::height(self : RegionOfInterest) -> UInt {
   self.height
 }
 
 ///|
+/// Return the region width.
 pub fn RegionOfInterest::width(self : RegionOfInterest) -> UInt {
   self.width
 }
 
 ///|
+/// Return whether the region should be rectified.
 pub fn RegionOfInterest::do_rectify(self : RegionOfInterest) -> Bool {
   self.do_rectify
 }
 
 ///|
+/// Serialize the region of interest as ROS 2 CDR.
 pub fn RegionOfInterest::write_cdr(
   self : RegionOfInterest,
   writer : @cdr.Writer,
@@ -1349,6 +1357,7 @@ pub fn RegionOfInterest::write_cdr(
 }
 
 ///|
+/// Parse a region of interest from ROS 2 CDR.
 pub fn RegionOfInterest::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[RegionOfInterest, String] {
@@ -1376,6 +1385,7 @@ pub fn RegionOfInterest::read_cdr(
 }
 
 ///|
+/// Serialize the region of interest as CDR bytes.
 pub fn RegionOfInterest::to_cdr_bytes(
   self : RegionOfInterest,
 ) -> Result[Bytes, String] {
@@ -1388,6 +1398,7 @@ pub fn RegionOfInterest::to_cdr_bytes(
 }
 
 ///|
+/// Parse a region of interest from CDR bytes.
 pub fn RegionOfInterest::from_cdr_bytes(
   input : Bytes,
 ) -> Result[RegionOfInterest, String] {
