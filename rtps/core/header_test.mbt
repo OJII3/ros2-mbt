@@ -32,7 +32,7 @@ test "RTPS header rejects invalid input" {
 
 ///|
 test "RTPS submessage round trip" {
-  let submessage = Submessage::new(SubmessageId::Data, 0, b"payload").little_endian()
+  let submessage = Submessage::new(Data, 0, b"payload").little_endian()
   let encoded = match submessage.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -43,7 +43,7 @@ test "RTPS submessage round trip" {
     Err(message) => fail(message)
   }
   assert_eq(consumed, encoded.length())
-  assert_eq(decoded.id, SubmessageId::Data)
+  assert_eq(decoded.id, Data)
   assert_eq(decoded.flags.to_int(), 1)
   assert_eq(decoded.payload, b"payload")
 }
@@ -70,8 +70,8 @@ test "RTPS message accepts a PAD submessage" {
   }
   assert_eq(message.header().guid_prefix(), prefix)
   assert_eq(message.submessages().length(), 2)
-  assert_eq(message.submessages()[0].id(), SubmessageId::Pad)
-  assert_eq(message.submessages()[1].id(), SubmessageId::Data)
+  assert_eq(message.submessages()[0].id(), Pad)
+  assert_eq(message.submessages()[1].id(), Data)
 }
 
 ///|
@@ -84,8 +84,8 @@ test "RTPS message preserves an unknown submessage and continues parsing" {
     Err(message) => fail(message)
   }
   assert_eq(message.submessages().length(), 2)
-  assert_eq(message.submessages()[0].id(), SubmessageId::Unknown(0x7F))
-  assert_eq(message.submessages()[1].id(), SubmessageId::Data)
+  assert_eq(message.submessages()[0].id(), Unknown(0x7F))
+  assert_eq(message.submessages()[1].id(), Data)
 }
 
 ///|
@@ -98,6 +98,6 @@ test "RTPS final submessage with zero length consumes the remainder" {
     Err(message) => fail(message)
   }
   assert_eq(message.submessages().length(), 1)
-  assert_eq(message.submessages()[0].id(), SubmessageId::Data)
+  assert_eq(message.submessages()[0].id(), Data)
   assert_eq(message.submessages()[0].payload.length(), 20)
 }
