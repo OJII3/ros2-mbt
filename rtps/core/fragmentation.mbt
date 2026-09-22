@@ -105,7 +105,7 @@ pub fn HeartbeatFragSubmessage::to_payload(
 pub fn HeartbeatFragSubmessage::to_submessage(
   self : HeartbeatFragSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::HeartbeatFrag, self.flags, self.to_payload())
+  Submessage::new(HeartbeatFrag, self.flags, self.to_payload())
 }
 
 ///|
@@ -123,7 +123,7 @@ pub fn HeartbeatFragSubmessage::to_message(
 pub fn HeartbeatFragSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[HeartbeatFragSubmessage, String] {
-  if submessage.id() != SubmessageId::HeartbeatFrag {
+  if submessage.id() != HeartbeatFrag {
     return Err("expected an RTPS HEARTBEAT_FRAG submessage")
   }
   if submessage.payload.length() != HEARTBEAT_FRAG_BODY_LENGTH {
@@ -272,7 +272,7 @@ pub fn NackFragSubmessage::to_payload(self : NackFragSubmessage) -> Bytes {
 pub fn NackFragSubmessage::to_submessage(
   self : NackFragSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::NackFrag, self.flags, self.to_payload())
+  Submessage::new(NackFrag, self.flags, self.to_payload())
 }
 
 ///|
@@ -290,7 +290,7 @@ pub fn NackFragSubmessage::to_message(
 pub fn NackFragSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[NackFragSubmessage, String] {
-  if submessage.id() != SubmessageId::NackFrag {
+  if submessage.id() != NackFrag {
     return Err("expected an RTPS NACK_FRAG submessage")
   }
   if submessage.payload.length() < 28 {
