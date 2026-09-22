@@ -20,7 +20,7 @@ async test "best-effort reader accepts its discovered publication" {
   }
   let publication = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -124,7 +124,7 @@ async test "best-effort reader accepts DATA with an unknown reader ID" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -159,7 +159,7 @@ async test "best-effort reader reassembles DATA_FRAG over UDP" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
