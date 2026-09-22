@@ -10,6 +10,14 @@ pub struct InfoDestinationSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend InfoDestinationSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend InfoDestinationSubmessage with @moonbitlang/core/debug.Debug::{
+  to_repr,
+}
+
+///|
 /// Create a little-endian INFO_DST submessage.
 pub fn InfoDestinationSubmessage::new(
   guid_prefix : GuidPrefix,
@@ -18,6 +26,7 @@ pub fn InfoDestinationSubmessage::new(
 }
 
 ///|
+/// Return the INFO_DST submessage flags.
 pub fn InfoDestinationSubmessage::flags(
   self : InfoDestinationSubmessage,
 ) -> Byte {
@@ -25,6 +34,7 @@ pub fn InfoDestinationSubmessage::flags(
 }
 
 ///|
+/// Return the destination GUID prefix.
 pub fn InfoDestinationSubmessage::guid_prefix(
   self : InfoDestinationSubmessage,
 ) -> GuidPrefix {
@@ -44,7 +54,7 @@ pub fn InfoDestinationSubmessage::to_payload(
 pub fn InfoDestinationSubmessage::to_submessage(
   self : InfoDestinationSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::InfoDestination, self.flags, self.to_payload())
+  Submessage::new(InfoDestination, self.flags, self.to_payload())
 }
 
 ///|
@@ -64,7 +74,7 @@ pub fn InfoDestinationSubmessage::to_message(
 pub fn InfoDestinationSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[InfoDestinationSubmessage, String] {
-  if submessage.id() != SubmessageId::InfoDestination {
+  if submessage.id() != InfoDestination {
     return Err("expected an RTPS INFO_DST submessage")
   }
   if submessage.payload.length() != 12 {

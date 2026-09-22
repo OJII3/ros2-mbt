@@ -19,6 +19,12 @@ pub struct Locator {
 } derive(Eq, Debug)
 
 ///|
+pub extend Locator with Eq::{not_equal, equal}
+
+///|
+pub extend Locator with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a locator from its wire-format fields.
 pub fn Locator::new(
   kind : Int,
@@ -60,16 +66,19 @@ pub fn Locator::udp_v4(address : Bytes, port : UInt) -> Result[Locator, String] 
 }
 
 ///|
+/// Return the locator kind.
 pub fn Locator::kind(self : Locator) -> Int {
   self.kind
 }
 
 ///|
+/// Return the locator port.
 pub fn Locator::port(self : Locator) -> UInt {
   self.port
 }
 
 ///|
+/// Return the locator address bytes.
 pub fn Locator::address(self : Locator) -> Bytes {
   self.address
 }

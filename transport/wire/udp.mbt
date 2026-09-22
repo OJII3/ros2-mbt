@@ -25,7 +25,7 @@ pub struct Udp {
 ///|
 /// Bind a UDP socket to an address.
 pub async fn Udp::bind(addr : @socket.Addr) -> Udp {
-  { server: @socket.UdpServer(addr), }
+  { server: UdpServer(addr), }
 }
 
 ///|
@@ -273,7 +273,7 @@ pub async fn Udp::receive_data(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
+    if submessage.id() != Data {
       continue
     }
     let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -333,7 +333,7 @@ pub async fn Udp::receive_heartbeat(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Heartbeat {
+    if submessage.id() != Heartbeat {
       continue
     }
     let heartbeat = match
@@ -356,7 +356,7 @@ pub async fn Udp::receive_acknack(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::AckNack {
+    if submessage.id() != AckNack {
       continue
     }
     let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
@@ -378,7 +378,7 @@ pub async fn Udp::receive_nack_frag(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::NackFrag {
+    if submessage.id() != NackFrag {
       continue
     }
     let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
@@ -400,7 +400,7 @@ pub async fn Udp::receive_spdp(
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != @rtps.SubmessageId::Data {
+    if submessage.id() != Data {
       continue
     }
     let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -639,7 +639,7 @@ pub async fn Udp::receive_sedp(
       Err(message) => return Err(message)
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::Data {
+      if submessage.id() != Data {
         continue
       }
       let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -682,7 +682,7 @@ pub async fn Udp::receive_discovery(
       Err(message) => return Err(message)
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::Data {
+      if submessage.id() != Data {
         continue
       }
       let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -709,9 +709,7 @@ pub async fn Udp::receive_discovery(
                 Ok(value) => value
                 Err(_) => continue
               }
-              return Ok(
-                (DiscoveryEvent::EndpointRemoved(kind, endpoint_guid), source),
-              )
+              return Ok((EndpointRemoved(kind, endpoint_guid), source))
             }
             _ => ()
           }
@@ -721,10 +719,8 @@ pub async fn Udp::receive_discovery(
             Err(_) => continue
           }
           match kind {
-            @rtps.SedpEndpointKind::Publication =>
-              return Ok((DiscoveryEvent::Publication(endpoint), source))
-            @rtps.SedpEndpointKind::Subscription =>
-              return Ok((DiscoveryEvent::Subscription(endpoint), source))
+            Publication => return Ok((Publication(endpoint), source))
+            Subscription => return Ok((Subscription(endpoint), source))
           }
         }
         Err(_) => {
@@ -746,17 +742,14 @@ pub async fn Udp::receive_discovery(
                 Ok(value) => value
                 Err(_) => continue
               }
-              return Ok(
-                (DiscoveryEvent::ParticipantRemoved(participant_guid), source),
-              )
+              return Ok((ParticipantRemoved(participant_guid), source))
             }
             _ => ()
           }
         }
       }
       match @rtps.SpdpParticipantData::from_data_submessage(data) {
-        Ok(participant) =>
-          return Ok((DiscoveryEvent::Participant(participant), source))
+        Ok(participant) => return Ok((Participant(participant), source))
         Err(_) => continue
       }
     }

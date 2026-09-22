@@ -1,6 +1,6 @@
 ///|
 test "ROS action parser splits goal, result, and feedback messages" {
-  let action = parse_action(
+  let action = @compiler.parse_action(
     "example_interfaces", "Fibonacci", "# Goal\nint32 order\n---\n# Result\nint32[] sequence\n---\n# Feedback\nint32[] sequence",
   ).unwrap()
   assert_eq(action.package_name(), "example_interfaces")
@@ -10,10 +10,7 @@ test "ROS action parser splits goal, result, and feedback messages" {
   assert_eq(action.feedback().type_name(), "Fibonacci_Feedback")
   assert_eq(action.goal().interface_namespace(), "action")
   assert_eq(action.goal().fields()[0].name(), "order")
-  assert_eq(
-    action.result().fields()[0].collection(),
-    MessageFieldCollection::Sequence,
-  )
+  assert_eq(action.result().fields()[0].collection(), Sequence)
   let generated = action.generate_moonbit()
   assert_true(generated.contains("pub struct Fibonacci_Goal"))
   assert_true(generated.contains("pub struct Fibonacci_Result"))
@@ -25,16 +22,21 @@ test "ROS action parser splits goal, result, and feedback messages" {
 ///|
 test "ROS action parser requires exactly two standalone separators" {
   assert_true(
-    parse_action("demo", "TooMany", "int32 value\n---\nint32 result\n---\n---")
+    @compiler.parse_action(
+      "demo", "TooMany", "int32 value\n---\nint32 result\n---\n---",
+    )
     is Err(_),
   )
   assert_true(
-    parse_action("demo", "Empty", "int32 value\n---\nint32 result") is Err(_),
+    @compiler.parse_action("demo", "Empty", "int32 value\n---\nint32 result")
+    is Err(_),
   )
-  let empty_sections = parse_action("demo", "Empty", "int32 value\n---\n---").unwrap()
+  let empty_sections = @compiler.parse_action(
+    "demo", "Empty", "int32 value\n---\n---",
+  ).unwrap()
   assert_eq(empty_sections.result().fields().length(), 0)
   assert_eq(empty_sections.feedback().fields().length(), 0)
-  let action = parse_action(
+  let action = @compiler.parse_action(
     "demo", "Separated", "string DELIMITER=\"---\"\n---\n# --- is a comment\nint32 result\n---\nint32 feedback",
   ).unwrap()
   assert_eq(action.goal().constants().length(), 1)
@@ -44,48 +46,50 @@ test "ROS action parser requires exactly two standalone separators" {
 
 ///|
 test "ROS workspace generates action codecs with nested imports and hashes" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "std_msgs", "msg", "Header", "uint32 seq\nstring frame_id",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
     ).unwrap(),
   )
   .unwrap()
   workspace
-  .add_import(MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap())
+  .add_import(
+    @compiler.MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap(),
+  )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
@@ -116,31 +120,31 @@ test "ROS workspace generates action codecs with nested imports and hashes" {
 
 ///|
 test "ROS action protocol message hashes match Jazzy Fibonacci" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
@@ -195,12 +199,12 @@ test "ROS action protocol message hashes match Jazzy Fibonacci" {
       "action_tutorials_interfaces", "Fibonacci", "int32 order\n---\nint32[] sequence\n---\nint32[] partial_sequence",
     )
     .unwrap()
-  let tutorials_type_names = [
+  let tutorials_type_names : ReadOnlyArray[String] = [
     "Fibonacci_Goal", "Fibonacci_Result", "Fibonacci_Feedback", "Fibonacci_SendGoal_Request",
     "Fibonacci_SendGoal_Response", "Fibonacci_GetResult_Request", "Fibonacci_GetResult_Response",
     "Fibonacci_FeedbackMessage",
   ]
-  let tutorials_hashes = [
+  let tutorials_hashes : ReadOnlyArray[String] = [
     "RIHS01_1777164fa0531c60597c89fa7f70d22944bb360df049a77689100b1360c43960", "RIHS01_6158c1af5630cccfabec7f0c4b75a11fa39e313a4231d8eae6e5ce921c739ab0",
     "RIHS01_e852234f7e7085fc3e14da27175b5b56a59463eea51e9146e8da58a5115f5f3d", "RIHS01_cf867fa8462d62fc5436ec5605ff7894053a03a856d4bbaaef97808389ded602",
     "RIHS01_7fbc4b8abac3cd2a14e146c4b635ecee917cb7ffcad38868d8afa4a31115b542", "RIHS01_b200a8bd0b94170de44d257a5147443fb863c3e608fcda16399e090018b1af0d",
@@ -217,16 +221,16 @@ test "ROS action protocol message hashes match Jazzy Fibonacci" {
 
 ///|
 test "ROS CancelGoal request and response hashes match their nested messages" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   for
     source in [
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalInfo", "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
       ),
     ] {
@@ -237,7 +241,7 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
   }
   assert_true(
     workspace.add_import(
-      MessageImport::new(
+      @compiler.MessageImport::new(
         "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
       ).unwrap(),
     )
@@ -245,17 +249,17 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
   )
   assert_true(
     workspace.add_import(
-      MessageImport::new(
+      @compiler.MessageImport::new(
         "builtin_interfaces", "builtin_interfaces/msg", "builtin",
       ).unwrap(),
     )
     is Ok(_),
   )
-  let service = parse_service_with_types(
+  let service = @compiler.parse_service_with_types(
     "action_msgs",
     "CancelGoal",
     "GoalInfo goal_info\n---\nint8 return_code\nGoalInfo[] goals_canceling",
-    [MessageTypeReference::new("GoalInfo", "GoalInfo")],
+    [@compiler.MessageTypeReference::new("GoalInfo", "GoalInfo")],
   ).unwrap()
   let request_hash = match
     workspace.type_hash_for_definition(service.request()) {
@@ -277,22 +281,22 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
 
 ///|
 test "ROS Jazzy GoalStatusArray hash includes its nested message definitions" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   for
     source in [
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalStatusArray", "GoalStatus[] status_list",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalStatus", "int8 STATUS_UNKNOWN=0\nint8 STATUS_ACCEPTED=1\nint8 STATUS_EXECUTING=2\nint8 STATUS_CANCELING=3\nint8 STATUS_SUCCEEDED=4\nint8 STATUS_CANCELED=5\nint8 STATUS_ABORTED=6\nGoalInfo goal_info\nint8 status",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalInfo", "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
       ),
     ] {
@@ -303,14 +307,14 @@ test "ROS Jazzy GoalStatusArray hash includes its nested message definitions" {
   }
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )

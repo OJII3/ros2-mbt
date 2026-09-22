@@ -59,7 +59,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Err(message) => fail(message)
   }
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       sender,
       local_participant,
       reader_id,
@@ -70,14 +70,14 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let endpoint_id = match @rtps.EntityId::new(b"def", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(local_prefix, endpoint_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -94,8 +94,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match
-    receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+  let (decoded, source) = match receiver.receive_sedp(Publication) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -135,14 +134,8 @@ async test "discovery service announces SEDP endpoints to a participant" {
   }
   assert_eq(decoded_acknack.count(), 1U)
   assert_eq(reliable_writer.history_length(), 1)
-  assert_eq(
-    service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
-    1L,
-  )
-  assert_eq(
-    service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Subscription),
-    1L,
-  )
+  assert_eq(service.next_sedp_sequence_number(Publication), 1L)
+  assert_eq(service.next_sedp_sequence_number(Subscription), 1L)
   service.close()
   receiver.close()
 }
@@ -235,7 +228,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       service_socket,
       local_participant,
       reader_id,
@@ -246,18 +239,16 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
-  service.graph().ingest(@wire.DiscoveryEvent::Participant(remote_participant))
-  service
-  .graph()
-  .ingest(@wire.DiscoveryEvent::Participant(second_remote_participant))
+  let service = @discovery.DiscoveryService::new(session)
+  service.graph().ingest(Participant(remote_participant))
+  service.graph().ingest(Participant(second_remote_participant))
   let endpoint_id = match @rtps.EntityId::new(b"def", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(local_prefix, endpoint_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -274,10 +265,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let decoded = match
-    @rtps.SedpEndpointData::from_data_submessage(
-      @rtps.SedpEndpointKind::Publication,
-      decoded_data,
-    ) {
+    @rtps.SedpEndpointData::from_data_submessage(Publication, decoded_data) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -292,7 +280,7 @@ async test "discovery service announces SEDP to all discovered participants" {
   }
   let second_remote_decoded = match
     @rtps.SedpEndpointData::from_data_submessage(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       second_remote_decoded_data,
     ) {
     Ok(value) => value
@@ -308,10 +296,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let second = match
-    @rtps.SedpEndpointData::from_data_submessage(
-      @rtps.SedpEndpointKind::Publication,
-      second_data,
-    ) {
+    @rtps.SedpEndpointData::from_data_submessage(Publication, second_data) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -326,7 +311,7 @@ async test "discovery service announces SEDP to all discovered participants" {
   }
   let second_remote_second = match
     @rtps.SedpEndpointData::from_data_submessage(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       second_remote_second_data,
     ) {
     Ok(value) => value
@@ -349,10 +334,7 @@ async test "discovery service announces SEDP to all discovered participants" {
   assert_eq(second_heartbeat.count(), 2U)
   assert_eq(second_remote_first_heartbeat.count(), 1U)
   assert_eq(second_remote_second_heartbeat.count(), 2U)
-  assert_eq(
-    service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
-    3L,
-  )
+  assert_eq(service.next_sedp_sequence_number(Publication), 3L)
   match service.dispose_sedp_to_all(endpoint) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -386,10 +368,7 @@ async test "discovery service announces SEDP to all discovered participants" {
   }
   assert_eq(dispose_heartbeat.count(), 3U)
   assert_eq(second_dispose_heartbeat.count(), 3U)
-  assert_eq(
-    service.next_sedp_sequence_number(@rtps.SedpEndpointKind::Publication),
-    4L,
-  )
+  assert_eq(service.next_sedp_sequence_number(Publication), 4L)
   service.close()
   remote_receiver.close()
   second_remote_receiver.close()

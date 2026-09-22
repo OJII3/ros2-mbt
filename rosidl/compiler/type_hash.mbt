@@ -71,11 +71,10 @@ fn rosidl_hash_field_type_json(
       }
   }
   let (type_id, capacity) = match field.collection() {
-    MessageFieldCollection::Scalar => (base_type_id, 0)
-    MessageFieldCollection::FixedArray(length) => (base_type_id + 48, length)
-    MessageFieldCollection::BoundedSequence(length) =>
-      (base_type_id + 96, length)
-    MessageFieldCollection::Sequence => (base_type_id + 144, 0)
+    Scalar => (base_type_id, 0)
+    FixedArray(length) => (base_type_id + 48, length)
+    BoundedSequence(length) => (base_type_id + 96, length)
+    Sequence => (base_type_id + 144, 0)
   }
   let type_name = match rosidl_hash_primitive_type_id(field.type_name()) {
     Ok(_) => ""
@@ -424,9 +423,7 @@ fn rosidl_service_hash_definitions(
       [
         MessageField::new("uint8", "event_type"),
         MessageField::new(time_type_name, "stamp"),
-        MessageField::new("char", "client_gid").with_collection(
-          MessageFieldCollection::FixedArray(16),
-        ),
+        MessageField::new("char", "client_gid").with_collection(FixedArray(16)),
         MessageField::new("int64", "sequence_number"),
       ],
       [MessageTypeReference::new(time_type_name, "Time")],
@@ -442,10 +439,10 @@ fn rosidl_service_hash_definitions(
       [
         MessageField::new(info_type_name, "info"),
         MessageField::new(request_type_name, "request").with_collection(
-          MessageFieldCollection::BoundedSequence(1),
+          BoundedSequence(1),
         ),
         MessageField::new(response_type_name, "response").with_collection(
-          MessageFieldCollection::BoundedSequence(1),
+          BoundedSequence(1),
         ),
       ],
       [

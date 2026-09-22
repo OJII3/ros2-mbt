@@ -7,9 +7,8 @@ fn action_service_wire_format(
     participant
     .graph()
     .participant_vendor_id(response_publication.participant_guid()) {
-    Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
-      @transport.RosServiceWireFormat::CycloneDdsPayload
-    _ => @transport.RosServiceWireFormat::DdsRpcInline
+    Some(vendor) if vendor == @rtps.VendorId::new(1, 16) => CycloneDdsPayload
+    _ => DdsRpcInline
   }
 }
 
@@ -25,7 +24,7 @@ async fn register_action_topic_subscription(
 ) -> Result[Unit, String] {
   let endpoint = match
     topic.to_sedp_with_qos_and_type_hash(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, endpoint_id),
       qos,
       type_hash,

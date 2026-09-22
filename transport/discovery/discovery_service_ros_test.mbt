@@ -29,13 +29,13 @@ async test "discovery service ingests ros_discovery_info samples" {
   let receiver_address = receiver.local_addr()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       receiver, participant, spdp_reader, spdp_writer, receiver_address, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let gid = match @ros.Gid::new(b"0123456789abcdef") {
     Ok(value) => value
     Err(message) => fail(message)
@@ -111,7 +111,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   let publication = match
     @ros.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(publisher_prefix, publisher_id),
     ) {
     Ok(value) => value
@@ -119,7 +119,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   let subscription = match
     @ros.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(subscriber_prefix, subscriber_id),
     ) {
     Ok(value) => value
@@ -158,14 +158,14 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Err(message) => fail(message)
   }
   let service_session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       service_socket, service_participant, service_reader_id, service_writer_id,
       service_address, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(service_session)
+  let service = @discovery.DiscoveryService::new(service_session)
   let reader = match
     @wire.ReliableDataReaderSession::new_for_publication(
       subscriber_socket,

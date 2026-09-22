@@ -7,26 +7,31 @@ pub struct Vector3 {
 } derive(Eq, Debug)
 
 ///|
+/// Create a 3D vector.
 pub fn Vector3::new(x : Double, y : Double, z : Double) -> Vector3 {
   { x, y, z, }
 }
 
 ///|
+/// Create a zero vector.
 pub fn Vector3::default() -> Vector3 {
   Vector3::new(0.0, 0.0, 0.0)
 }
 
 ///|
+/// Return the vector x component.
 pub fn Vector3::x(self : Vector3) -> Double {
   self.x
 }
 
 ///|
+/// Return the vector y component.
 pub fn Vector3::y(self : Vector3) -> Double {
   self.y
 }
 
 ///|
+/// Return the vector z component.
 pub fn Vector3::z(self : Vector3) -> Double {
   self.z
 }
@@ -94,21 +99,25 @@ pub struct Twist {
 } derive(Eq, Debug)
 
 ///|
+/// Create a twist from linear and angular vectors.
 pub fn Twist::new(linear : Vector3, angular : Vector3) -> Twist {
   { linear, angular, }
 }
 
 ///|
+/// Create a zero twist.
 pub fn Twist::default() -> Twist {
   Twist::new(Vector3::default(), Vector3::default())
 }
 
 ///|
+/// Return the linear velocity vector.
 pub fn Twist::linear(self : Twist) -> Vector3 {
   self.linear
 }
 
 ///|
+/// Return the angular velocity vector.
 pub fn Twist::angular(self : Twist) -> Vector3 {
   self.angular
 }
@@ -174,14 +183,17 @@ pub struct Point {
 } derive(Eq, Debug)
 
 ///|
+/// Type hash for `geometry_msgs/msg/Point`.
 pub const Point_TYPE_HASH : String = "RIHS01_6963084842a9b04494d6b2941d11444708d892da2f4b09843b9c43f42a7f6881"
 
 ///|
+/// Create a 3D point.
 pub fn Point::new(x : Double, y : Double, z : Double) -> Point {
   { x, y, z, }
 }
 
 ///|
+/// Create a point at the origin.
 pub fn Point::default() -> Point {
   let x : Double = 0.0
   let y : Double = 0.0
@@ -190,21 +202,25 @@ pub fn Point::default() -> Point {
 }
 
 ///|
+/// Return the point x coordinate.
 pub fn Point::x(self : Point) -> Double {
   self.x
 }
 
 ///|
+/// Return the point y coordinate.
 pub fn Point::y(self : Point) -> Double {
   self.y
 }
 
 ///|
+/// Return the point z coordinate.
 pub fn Point::z(self : Point) -> Double {
   self.z
 }
 
 ///|
+/// Serialize the point as ROS 2 CDR.
 pub fn Point::write_cdr(
   self : Point,
   writer : @cdr.Writer,
@@ -216,6 +232,7 @@ pub fn Point::write_cdr(
 }
 
 ///|
+/// Parse a point from ROS 2 CDR.
 pub fn Point::read_cdr(reader : @cdr.Reader) -> Result[Point, String] {
   let x = match reader.read_f64() {
     Ok(value) => value
@@ -233,6 +250,7 @@ pub fn Point::read_cdr(reader : @cdr.Reader) -> Result[Point, String] {
 }
 
 ///|
+/// Serialize the point as CDR bytes.
 pub fn Point::to_cdr_bytes(self : Point) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -243,6 +261,7 @@ pub fn Point::to_cdr_bytes(self : Point) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a point from CDR bytes.
 pub fn Point::from_cdr_bytes(input : Bytes) -> Result[Point, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -268,9 +287,11 @@ pub struct Quaternion {
 } derive(Eq, Debug)
 
 ///|
+/// Type hash for `geometry_msgs/msg/Quaternion`.
 pub const Quaternion_TYPE_HASH : String = "RIHS01_8a765f66778c8ff7c8ab94afcc590a2ed5325a1d9a076ffff38fbce36f458684"
 
 ///|
+/// Create a quaternion.
 pub fn Quaternion::new(
   x : Double,
   y : Double,
@@ -281,6 +302,7 @@ pub fn Quaternion::new(
 }
 
 ///|
+/// Create the identity quaternion.
 pub fn Quaternion::default() -> Quaternion {
   let x : Double = 0.0
   let y : Double = 0.0
@@ -290,26 +312,31 @@ pub fn Quaternion::default() -> Quaternion {
 }
 
 ///|
+/// Return the quaternion x component.
 pub fn Quaternion::x(self : Quaternion) -> Double {
   self.x
 }
 
 ///|
+/// Return the quaternion y component.
 pub fn Quaternion::y(self : Quaternion) -> Double {
   self.y
 }
 
 ///|
+/// Return the quaternion z component.
 pub fn Quaternion::z(self : Quaternion) -> Double {
   self.z
 }
 
 ///|
+/// Return the quaternion w component.
 pub fn Quaternion::w(self : Quaternion) -> Double {
   self.w
 }
 
 ///|
+/// Serialize the quaternion as ROS 2 CDR.
 pub fn Quaternion::write_cdr(
   self : Quaternion,
   writer : @cdr.Writer,
@@ -322,6 +349,7 @@ pub fn Quaternion::write_cdr(
 }
 
 ///|
+/// Parse a quaternion from ROS 2 CDR.
 pub fn Quaternion::read_cdr(reader : @cdr.Reader) -> Result[Quaternion, String] {
   let x = match reader.read_f64() {
     Ok(value) => value
@@ -343,6 +371,7 @@ pub fn Quaternion::read_cdr(reader : @cdr.Reader) -> Result[Quaternion, String] 
 }
 
 ///|
+/// Serialize the quaternion as CDR bytes.
 pub fn Quaternion::to_cdr_bytes(self : Quaternion) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -353,6 +382,7 @@ pub fn Quaternion::to_cdr_bytes(self : Quaternion) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a quaternion from CDR bytes.
 pub fn Quaternion::from_cdr_bytes(input : Bytes) -> Result[Quaternion, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -376,11 +406,13 @@ pub struct Pose {
 } derive(Eq, Debug)
 
 ///|
+/// Create a pose from a position and orientation.
 pub fn Pose::new(position : Point, orientation : Quaternion) -> Pose {
   { position, orientation, }
 }
 
 ///|
+/// Create a pose at the origin with identity orientation.
 pub fn Pose::default() -> Pose {
   let position : Point = Point::default()
   let orientation : Quaternion = Quaternion::default()
@@ -388,16 +420,19 @@ pub fn Pose::default() -> Pose {
 }
 
 ///|
+/// Return the pose position.
 pub fn Pose::position(self : Pose) -> Point {
   self.position
 }
 
 ///|
+/// Return the pose orientation.
 pub fn Pose::orientation(self : Pose) -> Quaternion {
   self.orientation
 }
 
 ///|
+/// Serialize the pose as ROS 2 CDR.
 pub fn Pose::write_cdr(
   self : Pose,
   writer : @cdr.Writer,
@@ -414,6 +449,7 @@ pub fn Pose::write_cdr(
 }
 
 ///|
+/// Parse a pose from ROS 2 CDR.
 pub fn Pose::read_cdr(reader : @cdr.Reader) -> Result[Pose, String] {
   let position = match Point::read_cdr(reader) {
     Ok(value) => value
@@ -427,6 +463,7 @@ pub fn Pose::read_cdr(reader : @cdr.Reader) -> Result[Pose, String] {
 }
 
 ///|
+/// Serialize the pose as CDR bytes.
 pub fn Pose::to_cdr_bytes(self : Pose) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -437,6 +474,7 @@ pub fn Pose::to_cdr_bytes(self : Pose) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a pose from CDR bytes.
 pub fn Pose::from_cdr_bytes(input : Bytes) -> Result[Pose, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -453,6 +491,7 @@ pub fn Pose::from_cdr_bytes(input : Bytes) -> Result[Pose, String] {
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/Pose`.
 pub const Pose_TYPE_HASH : String = "RIHS01_d501954e9476cea2996984e812054b68026ae0bfae789d9a10b23daf35cc90fa"
 
 ///|
@@ -463,6 +502,7 @@ pub struct Transform {
 } derive(Eq, Debug)
 
 ///|
+/// Create a transform.
 pub fn Transform::new(
   translation : Vector3,
   rotation : Quaternion,
@@ -471,6 +511,7 @@ pub fn Transform::new(
 }
 
 ///|
+/// Create the identity transform.
 pub fn Transform::default() -> Transform {
   let translation : Vector3 = Vector3::default()
   let rotation : Quaternion = Quaternion::default()
@@ -478,16 +519,19 @@ pub fn Transform::default() -> Transform {
 }
 
 ///|
+/// Return the transform translation.
 pub fn Transform::translation(self : Transform) -> Vector3 {
   self.translation
 }
 
 ///|
+/// Return the transform rotation.
 pub fn Transform::rotation(self : Transform) -> Quaternion {
   self.rotation
 }
 
 ///|
+/// Serialize the transform as ROS 2 CDR.
 pub fn Transform::write_cdr(
   self : Transform,
   writer : @cdr.Writer,
@@ -504,6 +548,7 @@ pub fn Transform::write_cdr(
 }
 
 ///|
+/// Parse a transform from ROS 2 CDR.
 pub fn Transform::read_cdr(reader : @cdr.Reader) -> Result[Transform, String] {
   let translation = match Vector3::read_cdr(reader) {
     Ok(value) => value
@@ -517,6 +562,7 @@ pub fn Transform::read_cdr(reader : @cdr.Reader) -> Result[Transform, String] {
 }
 
 ///|
+/// Serialize the transform as CDR bytes.
 pub fn Transform::to_cdr_bytes(self : Transform) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -527,6 +573,7 @@ pub fn Transform::to_cdr_bytes(self : Transform) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a transform from CDR bytes.
 pub fn Transform::from_cdr_bytes(input : Bytes) -> Result[Transform, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -543,6 +590,7 @@ pub fn Transform::from_cdr_bytes(input : Bytes) -> Result[Transform, String] {
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/Transform`.
 pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb20010c43d55374d81bd041f1ba2581fddc"
 
 ///|
@@ -554,6 +602,7 @@ pub struct TransformStamped {
 } derive(Eq, Debug)
 
 ///|
+/// Create a stamped transform.
 pub fn TransformStamped::new(
   header : @std_msgs.Header,
   child_frame_id : String,
@@ -563,6 +612,7 @@ pub fn TransformStamped::new(
 }
 
 ///|
+/// Create an empty stamped transform.
 pub fn TransformStamped::default() -> TransformStamped {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let child_frame_id : String = ""
@@ -571,21 +621,25 @@ pub fn TransformStamped::default() -> TransformStamped {
 }
 
 ///|
+/// Return the stamped transform header.
 pub fn TransformStamped::header(self : TransformStamped) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the child frame identifier.
 pub fn TransformStamped::child_frame_id(self : TransformStamped) -> String {
   self.child_frame_id
 }
 
 ///|
+/// Return the stamped transform value.
 pub fn TransformStamped::transform(self : TransformStamped) -> Transform {
   self.transform
 }
 
 ///|
+/// Serialize the stamped transform as ROS 2 CDR.
 pub fn TransformStamped::write_cdr(
   self : TransformStamped,
   writer : @cdr.Writer,
@@ -603,6 +657,7 @@ pub fn TransformStamped::write_cdr(
 }
 
 ///|
+/// Parse a stamped transform from ROS 2 CDR.
 pub fn TransformStamped::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[TransformStamped, String] {
@@ -622,6 +677,7 @@ pub fn TransformStamped::read_cdr(
 }
 
 ///|
+/// Serialize the stamped transform as CDR bytes.
 pub fn TransformStamped::to_cdr_bytes(
   self : TransformStamped,
 ) -> Result[Bytes, String] {
@@ -634,6 +690,7 @@ pub fn TransformStamped::to_cdr_bytes(
 }
 
 ///|
+/// Parse a stamped transform from CDR bytes.
 pub fn TransformStamped::from_cdr_bytes(
   input : Bytes,
 ) -> Result[TransformStamped, String] {
@@ -652,6 +709,7 @@ pub fn TransformStamped::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/TransformStamped`.
 pub const TransformStamped_TYPE_HASH : String = "RIHS01_0a241f87d04668d94099cbb5ba11691d5ad32c2f29682e4eb5653424bd275206"
 
 ///|
@@ -662,11 +720,13 @@ pub struct PoseStamped {
 } derive(Eq, Debug)
 
 ///|
+/// Create a stamped pose.
 pub fn PoseStamped::new(header : @std_msgs.Header, pose : Pose) -> PoseStamped {
   { header, pose, }
 }
 
 ///|
+/// Create an empty stamped pose.
 pub fn PoseStamped::default() -> PoseStamped {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let pose : Pose = Pose::default()
@@ -674,16 +734,19 @@ pub fn PoseStamped::default() -> PoseStamped {
 }
 
 ///|
+/// Return the stamped pose header.
 pub fn PoseStamped::header(self : PoseStamped) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the stamped pose value.
 pub fn PoseStamped::pose(self : PoseStamped) -> Pose {
   self.pose
 }
 
 ///|
+/// Serialize the stamped pose as ROS 2 CDR.
 pub fn PoseStamped::write_cdr(
   self : PoseStamped,
   writer : @cdr.Writer,
@@ -700,6 +763,7 @@ pub fn PoseStamped::write_cdr(
 }
 
 ///|
+/// Parse a stamped pose from ROS 2 CDR.
 pub fn PoseStamped::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[PoseStamped, String] {
@@ -715,6 +779,7 @@ pub fn PoseStamped::read_cdr(
 }
 
 ///|
+/// Serialize the stamped pose as CDR bytes.
 pub fn PoseStamped::to_cdr_bytes(self : PoseStamped) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -725,6 +790,7 @@ pub fn PoseStamped::to_cdr_bytes(self : PoseStamped) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a stamped pose from CDR bytes.
 pub fn PoseStamped::from_cdr_bytes(
   input : Bytes,
 ) -> Result[PoseStamped, String] {
@@ -743,6 +809,7 @@ pub fn PoseStamped::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/PoseStamped`.
 pub const PoseStamped_TYPE_HASH : String = "RIHS01_10f3786d7d40fd2b54367835614bff85d4ad3b5dab62bf8bca0cc232d73b4cd8"
 
 ///|
@@ -753,6 +820,7 @@ pub struct PoseWithCovariance {
 } derive(Eq, Debug)
 
 ///|
+/// Create a pose with covariance.
 pub fn PoseWithCovariance::new(
   pose : Pose,
   covariance : Array[Double],
@@ -761,6 +829,7 @@ pub fn PoseWithCovariance::new(
 }
 
 ///|
+/// Create a pose with zero covariance.
 pub fn PoseWithCovariance::default() -> PoseWithCovariance {
   let pose : Pose = Pose::default()
   let covariance : Array[Double] = []
@@ -771,11 +840,13 @@ pub fn PoseWithCovariance::default() -> PoseWithCovariance {
 }
 
 ///|
+/// Return the pose component.
 pub fn PoseWithCovariance::pose(self : PoseWithCovariance) -> Pose {
   self.pose
 }
 
 ///|
+/// Return the covariance values.
 pub fn PoseWithCovariance::covariance(
   self : PoseWithCovariance,
 ) -> Array[Double] {
@@ -783,6 +854,7 @@ pub fn PoseWithCovariance::covariance(
 }
 
 ///|
+/// Serialize the pose with covariance as ROS 2 CDR.
 pub fn PoseWithCovariance::write_cdr(
   self : PoseWithCovariance,
   writer : @cdr.Writer,
@@ -801,6 +873,7 @@ pub fn PoseWithCovariance::write_cdr(
 }
 
 ///|
+/// Parse a pose with covariance from ROS 2 CDR.
 pub fn PoseWithCovariance::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[PoseWithCovariance, String] {
@@ -821,6 +894,7 @@ pub fn PoseWithCovariance::read_cdr(
 }
 
 ///|
+/// Serialize the pose with covariance as CDR bytes.
 pub fn PoseWithCovariance::to_cdr_bytes(
   self : PoseWithCovariance,
 ) -> Result[Bytes, String] {
@@ -833,6 +907,7 @@ pub fn PoseWithCovariance::to_cdr_bytes(
 }
 
 ///|
+/// Parse a pose with covariance from CDR bytes.
 pub fn PoseWithCovariance::from_cdr_bytes(
   input : Bytes,
 ) -> Result[PoseWithCovariance, String] {
@@ -851,6 +926,7 @@ pub fn PoseWithCovariance::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/PoseWithCovariance`.
 pub const PoseWithCovariance_TYPE_HASH : String = "RIHS01_9a7c0fd234b7f45c6098745ecccd773ca1085670e64107135397aee31c02e1bb"
 
 ///|
@@ -861,6 +937,67 @@ pub struct TwistWithCovariance {
 } derive(Eq, Debug)
 
 ///|
+pub extend Vector3 with Eq::{not_equal, equal}
+
+///|
+pub extend Vector3 with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Twist with Eq::{not_equal, equal}
+
+///|
+pub extend Twist with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Point with Eq::{not_equal, equal}
+
+///|
+pub extend Point with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Quaternion with Eq::{not_equal, equal}
+
+///|
+pub extend Quaternion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Pose with Eq::{not_equal, equal}
+
+///|
+pub extend Pose with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Transform with Eq::{not_equal, equal}
+
+///|
+pub extend Transform with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransformStamped with Eq::{not_equal, equal}
+
+///|
+pub extend TransformStamped with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PoseStamped with Eq::{not_equal, equal}
+
+///|
+pub extend PoseStamped with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PoseWithCovariance with Eq::{not_equal, equal}
+
+///|
+pub extend PoseWithCovariance with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TwistWithCovariance with Eq::{not_equal, equal}
+
+///|
+pub extend TwistWithCovariance with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create a twist with covariance.
 pub fn TwistWithCovariance::new(
   twist : Twist,
   covariance : Array[Double],
@@ -869,6 +1006,7 @@ pub fn TwistWithCovariance::new(
 }
 
 ///|
+/// Create a twist with zero covariance.
 pub fn TwistWithCovariance::default() -> TwistWithCovariance {
   let twist : Twist = Twist::default()
   let covariance : Array[Double] = []
@@ -879,11 +1017,13 @@ pub fn TwistWithCovariance::default() -> TwistWithCovariance {
 }
 
 ///|
+/// Return the twist component.
 pub fn TwistWithCovariance::twist(self : TwistWithCovariance) -> Twist {
   self.twist
 }
 
 ///|
+/// Return the covariance values.
 pub fn TwistWithCovariance::covariance(
   self : TwistWithCovariance,
 ) -> Array[Double] {
@@ -891,6 +1031,7 @@ pub fn TwistWithCovariance::covariance(
 }
 
 ///|
+/// Serialize the twist with covariance as ROS 2 CDR.
 pub fn TwistWithCovariance::write_cdr(
   self : TwistWithCovariance,
   writer : @cdr.Writer,
@@ -909,6 +1050,7 @@ pub fn TwistWithCovariance::write_cdr(
 }
 
 ///|
+/// Parse a twist with covariance from ROS 2 CDR.
 pub fn TwistWithCovariance::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[TwistWithCovariance, String] {
@@ -929,6 +1071,7 @@ pub fn TwistWithCovariance::read_cdr(
 }
 
 ///|
+/// Serialize the twist with covariance as CDR bytes.
 pub fn TwistWithCovariance::to_cdr_bytes(
   self : TwistWithCovariance,
 ) -> Result[Bytes, String] {
@@ -941,6 +1084,7 @@ pub fn TwistWithCovariance::to_cdr_bytes(
 }
 
 ///|
+/// Parse a twist with covariance from CDR bytes.
 pub fn TwistWithCovariance::from_cdr_bytes(
   input : Bytes,
 ) -> Result[TwistWithCovariance, String] {
@@ -959,4 +1103,5 @@ pub fn TwistWithCovariance::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/TwistWithCovariance`.
 pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"

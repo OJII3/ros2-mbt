@@ -10,6 +10,12 @@ pub struct ActionDefinition {
 } derive(Eq, Debug)
 
 ///|
+pub extend ActionDefinition with Eq::{not_equal, equal}
+
+///|
+pub extend ActionDefinition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a validated ROS action definition.
 pub fn ActionDefinition::new(
   package_name : String,
@@ -44,26 +50,31 @@ fn rosidl_action_message_identity(
 }
 
 ///|
+/// Return the ROS package name.
 pub fn ActionDefinition::package_name(self : ActionDefinition) -> String {
   self.package_name
 }
 
 ///|
+/// Return the ROS action name.
 pub fn ActionDefinition::action_name(self : ActionDefinition) -> String {
   self.action_name
 }
 
 ///|
+/// Return the goal message definition.
 pub fn ActionDefinition::goal(self : ActionDefinition) -> MessageDefinition {
   self.goal
 }
 
 ///|
+/// Return the result message definition.
 pub fn ActionDefinition::result(self : ActionDefinition) -> MessageDefinition {
   self.result
 }
 
 ///|
+/// Return the feedback message definition.
 pub fn ActionDefinition::feedback(self : ActionDefinition) -> MessageDefinition {
   self.feedback
 }
@@ -236,7 +247,7 @@ pub fn parse_action_with_types(
 fn rosidl_action_sections(
   source : String,
 ) -> Result[(String, String, String), String] {
-  let sections = ["", "", ""]
+  let sections : FixedArray[String] = ["", "", ""]
   let mut section_index = 0
   for raw_line in source.split("\n") {
     if rosidl_trim(raw_line.to_owned()) == "---" {

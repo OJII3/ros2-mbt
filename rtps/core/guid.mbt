@@ -13,6 +13,18 @@ pub struct Guid {
 } derive(Eq, Debug)
 
 ///|
+pub extend EntityId with Eq::{not_equal, equal}
+
+///|
+pub extend EntityId with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Guid with Eq::{not_equal, equal}
+
+///|
+pub extend Guid with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create an entity identifier from its three-byte key and kind byte.
 pub fn EntityId::new(key : Bytes, kind : Byte) -> Result[EntityId, String] {
   if key.length() != 3 {

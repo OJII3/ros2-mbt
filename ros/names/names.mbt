@@ -7,6 +7,12 @@ pub(all) enum DdsTopicKind {
 } derive(Eq, Debug)
 
 ///|
+pub extend DdsTopicKind with Eq::{not_equal, equal}
+
+///|
+pub extend DdsTopicKind with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 fn validate_name(value : String, label : String) -> Result[Unit, String] {
   if value.length() == 0 {
     Err("ROS " + label + " must not be empty")
@@ -26,9 +32,9 @@ pub fn ros_name_to_dds(
     Ok(_) => ()
   }
   let prefix = match kind {
-    DdsTopicKind::Topic => "rt/"
-    DdsTopicKind::ServiceRequest => "rq/"
-    DdsTopicKind::ServiceResponse => "rr/"
+    Topic => "rt/"
+    ServiceRequest => "rq/"
+    ServiceResponse => "rr/"
   }
   if name[0] == '/' {
     Ok(prefix + name[1:].to_owned())
@@ -40,23 +46,19 @@ pub fn ros_name_to_dds(
 ///|
 /// Convert a ROS topic name to its DDS topic name.
 pub fn ros_topic_to_dds(name : String) -> Result[String, String] {
-  ros_name_to_dds(name, DdsTopicKind::Topic)
+  ros_name_to_dds(name, Topic)
 }
 
 ///|
 /// Convert a ROS service name to its DDS request topic name.
 pub fn ros_service_request_to_dds(name : String) -> Result[String, String] {
-  ros_name_to_dds(name, DdsTopicKind::ServiceRequest).map(fn(value) {
-    value + "Request"
-  })
+  ros_name_to_dds(name, ServiceRequest).map(fn(value) { value + "Request" })
 }
 
 ///|
 /// Convert a ROS service name to its DDS response topic name.
 pub fn ros_service_response_to_dds(name : String) -> Result[String, String] {
-  ros_name_to_dds(name, DdsTopicKind::ServiceResponse).map(fn(value) {
-    value + "Reply"
-  })
+  ros_name_to_dds(name, ServiceResponse).map(fn(value) { value + "Reply" })
 }
 
 ///|

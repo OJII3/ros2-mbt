@@ -21,10 +21,7 @@ fn DiscoverySession::dispatch_sedp_data(
         return
       }
       match @rtps.SedpEndpointData::endpoint_guid_from_key_data(data) {
-        Ok(endpoint_guid) =>
-          events.push(
-            @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid),
-          )
+        Ok(endpoint_guid) => events.push(EndpointRemoved(kind, endpoint_guid))
         Err(_) => ()
       }
     }
@@ -33,10 +30,8 @@ fn DiscoverySession::dispatch_sedp_data(
         Ok(endpoint) =>
           events.push(
             match kind {
-              @rtps.SedpEndpointKind::Publication =>
-                @wire.DiscoveryEvent::Publication(endpoint)
-              @rtps.SedpEndpointKind::Subscription =>
-                @wire.DiscoveryEvent::Subscription(endpoint)
+              Publication => Publication(endpoint)
+              Subscription => Subscription(endpoint)
             },
           )
         Err(_) => ()
@@ -66,9 +61,7 @@ fn DiscoverySession::dispatch_spdp_data(
       match @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
         Ok(participant_guid) => {
           self.forget_remote_participant(participant_guid)
-          events.push(
-            @wire.DiscoveryEvent::ParticipantRemoved(participant_guid),
-          )
+          events.push(ParticipantRemoved(participant_guid))
         }
         Err(_) => ()
       }
@@ -82,7 +75,7 @@ fn DiscoverySession::dispatch_spdp_data(
         Ok(participant) =>
           if participant.domain_id() == self.participant.domain_id() {
             self.remember_remote_participant(participant)
-            events.push(@wire.DiscoveryEvent::Participant(participant))
+            events.push(Participant(participant))
           }
         Err(_) => ()
       }

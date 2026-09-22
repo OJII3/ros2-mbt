@@ -8,6 +8,7 @@ pub struct Odometry {
 } derive(Eq, Debug)
 
 ///|
+/// Create an odometry message.
 pub fn Odometry::new(
   header : @std_msgs.Header,
   child_frame_id : String,
@@ -18,6 +19,7 @@ pub fn Odometry::new(
 }
 
 ///|
+/// Create an empty odometry message.
 pub fn Odometry::default() -> Odometry {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let child_frame_id : String = ""
@@ -27,26 +29,31 @@ pub fn Odometry::default() -> Odometry {
 }
 
 ///|
+/// Return the odometry header.
 pub fn Odometry::header(self : Odometry) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the child frame identifier.
 pub fn Odometry::child_frame_id(self : Odometry) -> String {
   self.child_frame_id
 }
 
 ///|
+/// Return the pose estimate.
 pub fn Odometry::pose(self : Odometry) -> @geometry_msgs.PoseWithCovariance {
   self.pose
 }
 
 ///|
+/// Return the twist estimate.
 pub fn Odometry::twist(self : Odometry) -> @geometry_msgs.TwistWithCovariance {
   self.twist
 }
 
 ///|
+/// Serialize odometry as ROS 2 CDR.
 pub fn Odometry::write_cdr(
   self : Odometry,
   writer : @cdr.Writer,
@@ -68,6 +75,7 @@ pub fn Odometry::write_cdr(
 }
 
 ///|
+/// Parse odometry from ROS 2 CDR.
 pub fn Odometry::read_cdr(reader : @cdr.Reader) -> Result[Odometry, String] {
   let header = match @std_msgs.Header::read_cdr(reader) {
     Ok(value) => value
@@ -89,6 +97,7 @@ pub fn Odometry::read_cdr(reader : @cdr.Reader) -> Result[Odometry, String] {
 }
 
 ///|
+/// Serialize odometry as CDR bytes.
 pub fn Odometry::to_cdr_bytes(self : Odometry) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -99,6 +108,7 @@ pub fn Odometry::to_cdr_bytes(self : Odometry) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse odometry from CDR bytes.
 pub fn Odometry::from_cdr_bytes(input : Bytes) -> Result[Odometry, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -115,6 +125,7 @@ pub fn Odometry::from_cdr_bytes(input : Bytes) -> Result[Odometry, String] {
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/Odometry`.
 pub const Odometry_TYPE_HASH : String = "RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0"
 
 ///|
@@ -125,6 +136,7 @@ pub struct Path {
 } derive(Eq, Debug)
 
 ///|
+/// Create a path message.
 pub fn Path::new(
   header : @std_msgs.Header,
   poses : Array[@geometry_msgs.PoseStamped],
@@ -133,6 +145,7 @@ pub fn Path::new(
 }
 
 ///|
+/// Create an empty path message.
 pub fn Path::default() -> Path {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let poses : Array[@geometry_msgs.PoseStamped] = []
@@ -140,16 +153,19 @@ pub fn Path::default() -> Path {
 }
 
 ///|
+/// Return the path header.
 pub fn Path::header(self : Path) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the stamped poses in the path.
 pub fn Path::poses(self : Path) -> Array[@geometry_msgs.PoseStamped] {
   self.poses
 }
 
 ///|
+/// Serialize the path as ROS 2 CDR.
 pub fn Path::write_cdr(
   self : Path,
   writer : @cdr.Writer,
@@ -169,6 +185,7 @@ pub fn Path::write_cdr(
 }
 
 ///|
+/// Parse a path from ROS 2 CDR.
 pub fn Path::read_cdr(reader : @cdr.Reader) -> Result[Path, String] {
   let header = match @std_msgs.Header::read_cdr(reader) {
     Ok(value) => value
@@ -197,6 +214,7 @@ pub fn Path::read_cdr(reader : @cdr.Reader) -> Result[Path, String] {
 }
 
 ///|
+/// Serialize the path as CDR bytes.
 pub fn Path::to_cdr_bytes(self : Path) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -207,6 +225,7 @@ pub fn Path::to_cdr_bytes(self : Path) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a path from CDR bytes.
 pub fn Path::from_cdr_bytes(input : Bytes) -> Result[Path, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -223,6 +242,7 @@ pub fn Path::from_cdr_bytes(input : Bytes) -> Result[Path, String] {
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/Path`.
 pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b"
 
 ///|
@@ -236,6 +256,7 @@ pub struct MapMetaData {
 } derive(Eq, Debug)
 
 ///|
+/// Create map metadata.
 pub fn MapMetaData::new(
   map_load_time : @builtin_interfaces.Time,
   resolution : Float,
@@ -247,6 +268,7 @@ pub fn MapMetaData::new(
 }
 
 ///|
+/// Create empty map metadata.
 pub fn MapMetaData::default() -> MapMetaData {
   let map_load_time : @builtin_interfaces.Time = @builtin_interfaces.Time::default()
   let resolution : Float = 0.0F
@@ -257,6 +279,7 @@ pub fn MapMetaData::default() -> MapMetaData {
 }
 
 ///|
+/// Return the map load time.
 pub fn MapMetaData::map_load_time(
   self : MapMetaData,
 ) -> @builtin_interfaces.Time {
@@ -264,26 +287,31 @@ pub fn MapMetaData::map_load_time(
 }
 
 ///|
+/// Return the map resolution.
 pub fn MapMetaData::resolution(self : MapMetaData) -> Float {
   self.resolution
 }
 
 ///|
+/// Return the map width.
 pub fn MapMetaData::width(self : MapMetaData) -> UInt {
   self.width
 }
 
 ///|
+/// Return the map height.
 pub fn MapMetaData::height(self : MapMetaData) -> UInt {
   self.height
 }
 
 ///|
+/// Return the map origin pose.
 pub fn MapMetaData::origin(self : MapMetaData) -> @geometry_msgs.Pose {
   self.origin
 }
 
 ///|
+/// Serialize map metadata as ROS 2 CDR.
 pub fn MapMetaData::write_cdr(
   self : MapMetaData,
   writer : @cdr.Writer,
@@ -303,6 +331,7 @@ pub fn MapMetaData::write_cdr(
 }
 
 ///|
+/// Parse map metadata from ROS 2 CDR.
 pub fn MapMetaData::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[MapMetaData, String] {
@@ -330,6 +359,7 @@ pub fn MapMetaData::read_cdr(
 }
 
 ///|
+/// Serialize map metadata as CDR bytes.
 pub fn MapMetaData::to_cdr_bytes(self : MapMetaData) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -340,6 +370,7 @@ pub fn MapMetaData::to_cdr_bytes(self : MapMetaData) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse map metadata from CDR bytes.
 pub fn MapMetaData::from_cdr_bytes(
   input : Bytes,
 ) -> Result[MapMetaData, String] {
@@ -358,6 +389,7 @@ pub fn MapMetaData::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/MapMetaData`.
 pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd3946c1369f817fb4f75677d916d27c17d763c8"
 
 ///|
@@ -369,6 +401,31 @@ pub struct OccupancyGrid {
 } derive(Eq, Debug)
 
 ///|
+pub extend Odometry with Eq::{not_equal, equal}
+
+///|
+pub extend Odometry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Path with Eq::{not_equal, equal}
+
+///|
+pub extend Path with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MapMetaData with Eq::{not_equal, equal}
+
+///|
+pub extend MapMetaData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OccupancyGrid with Eq::{not_equal, equal}
+
+///|
+pub extend OccupancyGrid with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create an occupancy grid.
 pub fn OccupancyGrid::new(
   header : @std_msgs.Header,
   info : MapMetaData,
@@ -378,6 +435,7 @@ pub fn OccupancyGrid::new(
 }
 
 ///|
+/// Create an empty occupancy grid.
 pub fn OccupancyGrid::default() -> OccupancyGrid {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let info : MapMetaData = MapMetaData::default()
@@ -386,21 +444,25 @@ pub fn OccupancyGrid::default() -> OccupancyGrid {
 }
 
 ///|
+/// Return the occupancy grid header.
 pub fn OccupancyGrid::header(self : OccupancyGrid) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the map metadata.
 pub fn OccupancyGrid::info(self : OccupancyGrid) -> MapMetaData {
   self.info
 }
 
 ///|
+/// Return the occupancy values.
 pub fn OccupancyGrid::data(self : OccupancyGrid) -> Array[Int] {
   self.data
 }
 
 ///|
+/// Serialize the occupancy grid as ROS 2 CDR.
 pub fn OccupancyGrid::write_cdr(
   self : OccupancyGrid,
   writer : @cdr.Writer,
@@ -424,6 +486,7 @@ pub fn OccupancyGrid::write_cdr(
 }
 
 ///|
+/// Parse an occupancy grid from ROS 2 CDR.
 pub fn OccupancyGrid::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[OccupancyGrid, String] {
@@ -455,6 +518,7 @@ pub fn OccupancyGrid::read_cdr(
 }
 
 ///|
+/// Serialize the occupancy grid as CDR bytes.
 pub fn OccupancyGrid::to_cdr_bytes(
   self : OccupancyGrid,
 ) -> Result[Bytes, String] {
@@ -467,6 +531,7 @@ pub fn OccupancyGrid::to_cdr_bytes(
 }
 
 ///|
+/// Parse an occupancy grid from CDR bytes.
 pub fn OccupancyGrid::from_cdr_bytes(
   input : Bytes,
 ) -> Result[OccupancyGrid, String] {
@@ -485,4 +550,5 @@ pub fn OccupancyGrid::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/OccupancyGrid`.
 pub const OccupancyGrid_TYPE_HASH : String = "RIHS01_8d348150c12913a31ee0ec170fbf25089e4745d17035792a1ba94d6f0bc0cfc7"

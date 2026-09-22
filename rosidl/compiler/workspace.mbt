@@ -24,21 +24,25 @@ pub fn MessageSource::new(
 }
 
 ///|
+/// Return the ROS package name.
 pub fn MessageSource::package_name(self : MessageSource) -> String {
   self.package_name
 }
 
 ///|
+/// Return the interface namespace, such as `msg`, `srv`, or `action`.
 pub fn MessageSource::interface_namespace(self : MessageSource) -> String {
   self.interface_namespace
 }
 
 ///|
+/// Return the ROS type name.
 pub fn MessageSource::type_name(self : MessageSource) -> String {
   self.type_name
 }
 
 ///|
+/// Return the source definition text.
 pub fn MessageSource::source(self : MessageSource) -> String {
   self.source
 }
@@ -50,6 +54,18 @@ pub struct MessageImport {
   moon_package_path : String
   moon_alias : String
 } derive(Eq, Debug)
+
+///|
+pub extend MessageSource with Eq::{not_equal, equal}
+
+///|
+pub extend MessageSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageImport with Eq::{not_equal, equal}
+
+///|
+pub extend MessageImport with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create an import mapping from a ROS package name to a MoonBit package.
@@ -71,16 +87,19 @@ pub fn MessageImport::new(
 }
 
 ///|
+/// Return the ROS package name represented by this import.
 pub fn MessageImport::ros_package_name(self : MessageImport) -> String {
   self.ros_package_name
 }
 
 ///|
+/// Return the imported MoonBit package path.
 pub fn MessageImport::moon_package_path(self : MessageImport) -> String {
   self.moon_package_path
 }
 
 ///|
+/// Return the alias used for the imported MoonBit package.
 pub fn MessageImport::moon_alias(self : MessageImport) -> String {
   self.moon_alias
 }
@@ -93,6 +112,7 @@ pub struct MessageWorkspace {
 }
 
 ///|
+/// Create an empty message workspace.
 pub fn MessageWorkspace::new() -> MessageWorkspace {
   { sources: [], imports: [], }
 }
@@ -137,11 +157,13 @@ pub fn MessageWorkspace::add_import(
 }
 
 ///|
+/// Return the number of message sources in the workspace.
 pub fn MessageWorkspace::source_count(self : MessageWorkspace) -> Int {
   self.sources.length()
 }
 
 ///|
+/// Return the number of external imports in the workspace.
 pub fn MessageWorkspace::import_count(self : MessageWorkspace) -> Int {
   self.imports.length()
 }

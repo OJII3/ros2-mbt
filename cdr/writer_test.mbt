@@ -1,6 +1,6 @@
 ///|
 test "CDR writer writes encapsulation and aligned integers" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   writer.write_u8(0x7F)
   writer.write_u32(0x01020304U)
   assert_eq(
@@ -11,7 +11,7 @@ test "CDR writer writes encapsulation and aligned integers" {
 
 ///|
 test "CDR writer writes floating point values" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   writer.write_f32(1.0F)
   writer.write_f64(1.0)
   assert_eq(
@@ -22,7 +22,7 @@ test "CDR writer writes floating point values" {
 
 ///|
 test "CDR aligns aggregate fields after the encapsulation header" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   writer.write_i64(2L)
   writer.write_i64(3L)
   assert_eq(
@@ -33,7 +33,7 @@ test "CDR aligns aggregate fields after the encapsulation header" {
 
 ///|
 test "CDR writer writes strings and byte sequences" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   writer.write_string("hi")
   writer.write_byte_sequence(b"\x01\x02\x03")
   assert_eq(
@@ -44,7 +44,7 @@ test "CDR writer writes strings and byte sequences" {
 
 ///|
 test "CDR writer accepts non-ASCII UTF-8 strings" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   writer.write_string("こんにちは")
   assert_eq(
     writer.to_bytes(),
@@ -54,7 +54,7 @@ test "CDR writer accepts non-ASCII UTF-8 strings" {
 
 ///|
 test "CDR writer widens UTF-16 wide-string code units to CDR wchar" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   assert_eq(writer.write_wstring("A猫🙂"), Ok(()))
   assert_eq(
     writer.to_bytes(),
@@ -64,7 +64,7 @@ test "CDR writer widens UTF-16 wide-string code units to CDR wchar" {
 
 ///|
 test "CDR writer enforces bounded wide-string code-unit counts" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   assert_eq(writer.write_bounded_wstring("🙂", 2), Ok(()))
   let before = writer.to_bytes()
   assert_true(writer.write_bounded_wstring("🙂", 1) is Err(_))
@@ -74,7 +74,7 @@ test "CDR writer enforces bounded wide-string code-unit counts" {
 
 ///|
 test "CDR writer enforces bounded string character counts" {
-  let writer = Writer::new()
+  let writer = @cdr.Writer::new()
   assert_eq(writer.write_bounded_string("猫", 1), Ok(()))
   let before = writer.to_bytes()
   assert_true(writer.write_bounded_string("猫犬", 1) is Err(_))

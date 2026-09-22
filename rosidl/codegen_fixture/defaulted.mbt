@@ -10,6 +10,13 @@ pub struct Defaulted {
 } derive(Eq, Debug)
 
 ///|
+pub extend Defaulted with Eq::{not_equal, equal}
+
+///|
+pub extend Defaulted with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create a message with the defaulted fields.
 pub fn Defaulted::new(
   enabled : Bool,
   count : Int,
@@ -22,6 +29,7 @@ pub fn Defaulted::new(
 }
 
 ///|
+/// Create the message using its declared default values.
 pub fn Defaulted::default() -> Defaulted {
   let enabled : Bool = true
   let count : Int = 42
@@ -36,31 +44,37 @@ pub fn Defaulted::default() -> Defaulted {
 }
 
 ///|
+/// Return whether the message is enabled.
 pub fn Defaulted::enabled(self : Defaulted) -> Bool {
   self.enabled
 }
 
 ///|
+/// Return the message count.
 pub fn Defaulted::count(self : Defaulted) -> Int {
   self.count
 }
 
 ///|
+/// Return the message label.
 pub fn Defaulted::label(self : Defaulted) -> String {
   self.label
 }
 
 ///|
+/// Return the message samples.
 pub fn Defaulted::samples(self : Defaulted) -> Array[Int] {
   self.samples
 }
 
 ///|
+/// Return the message history.
 pub fn Defaulted::history(self : Defaulted) -> Array[Int] {
   self.history
 }
 
 ///|
+/// Return the message zero values.
 pub fn Defaulted::zeros(self : Defaulted) -> Array[Int] {
   self.zeros
 }

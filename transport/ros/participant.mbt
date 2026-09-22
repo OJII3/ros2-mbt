@@ -235,8 +235,8 @@ pub fn RosParticipant::participant_entities_info(
     }
     let gid = @ros_types.Gid::from_guid(endpoint.endpoint_guid())
     match endpoint.kind() {
-      @rtps.SedpEndpointKind::Publication => node.add_writer_gid(gid)
-      @rtps.SedpEndpointKind::Subscription => node.add_reader_gid(gid)
+      Publication => node.add_writer_gid(gid)
+      Subscription => node.add_reader_gid(gid)
     }
   }
   let info = @ros_types.ParticipantEntitiesInfo::new(
@@ -440,7 +440,7 @@ async fn RosParticipant::register_service_server_with_optional_type_hashes(
   let response_guid = @rtps.Guid::new(prefix, response_writer_id)
   let request = match
     service.request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       request_guid,
       response_guid,
     ) {
@@ -459,7 +459,7 @@ async fn RosParticipant::register_service_server_with_optional_type_hashes(
   }
   let response = match
     service.response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       response_guid,
       request_guid,
     ) {
@@ -526,7 +526,7 @@ async fn RosParticipant::register_service_client_with_optional_type_hashes(
   let response_guid = @rtps.Guid::new(prefix, response_reader_id)
   let request = match
     service.request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       request_guid,
       response_guid,
     ) {
@@ -545,7 +545,7 @@ async fn RosParticipant::register_service_client_with_optional_type_hashes(
   }
   let response = match
     service.response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       response_guid,
       request_guid,
     ) {
@@ -607,7 +607,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
   let prefix = self.participant.participant_guid().prefix()
   let publication = match
     @ros_types.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, publication_id),
     ) {
     Ok(value) => value
@@ -620,7 +620,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
   }
   let subscription = match
     @ros_types.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, subscription_id),
     ) {
     Ok(value) => value
@@ -991,7 +991,7 @@ pub async fn RosParticipant::receive_discovery_once(
     Err(message) => return Err(message)
   }
   match event {
-    @wire.DiscoveryEvent::Participant(remote_participant) =>
+    Participant(remote_participant) =>
       if remote_participant.participant_guid() !=
         self.participant.participant_guid() {
         for endpoint in self.local_endpoints {
@@ -1002,24 +1002,22 @@ pub async fn RosParticipant::receive_discovery_once(
           }
         }
       }
-    @wire.DiscoveryEvent::Publication(publication) =>
+    Publication(publication) =>
       match self.ensure_ros_discovery_publication(publication) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
-    @wire.DiscoveryEvent::Subscription(subscription) =>
+    Subscription(subscription) =>
       match self.ensure_ros_discovery_subscription(subscription, true) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
-    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) =>
+    EndpointRemoved(kind, endpoint_guid) =>
       match kind {
-        @rtps.SedpEndpointKind::Publication =>
-          self.forget_graph_publication(endpoint_guid)
-        @rtps.SedpEndpointKind::Subscription =>
-          self.forget_graph_subscription(endpoint_guid)
+        Publication => self.forget_graph_publication(endpoint_guid)
+        Subscription => self.forget_graph_subscription(endpoint_guid)
       }
-    @wire.DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+    ParticipantRemoved(participant_guid) =>
       self.forget_graph_participant(participant_guid.prefix())
   }
   Ok((source, event))

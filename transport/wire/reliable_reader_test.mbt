@@ -8,7 +8,7 @@ test "reliable reader creates an ACKNACK for missing samples" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let first = @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"first")
   match reader.accept_data(first) {
     Ok(_) => ()
@@ -53,7 +53,7 @@ test "reliable reader creates an ACKNACK for missing samples" {
 test "reliable reader limits ACKNACK to the first missing window" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let heartbeat = @rtps.HeartbeatSubmessage::new(
     reader_id, writer_id, 1L, 300L, 1U,
   ).unwrap()
@@ -93,7 +93,7 @@ test "reliable reader limits ACKNACK to the first missing window" {
 test "reliable reader accepts a multicast HEARTBEAT with unknown reader" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let heartbeat = @rtps.HeartbeatSubmessage::new(
     @rtps.EntityId::unknown(),
     writer_id,
@@ -111,7 +111,7 @@ test "reliable reader accepts a multicast HEARTBEAT with unknown reader" {
 test "reliable reader accepts DATA with an unknown reader ID" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let data = @rtps.DataSubmessage::new(
     @rtps.EntityId::unknown(),
     writer_id,
@@ -126,7 +126,7 @@ test "reliable reader accepts DATA with an unknown reader ID" {
 test "reliable reader does not request sequences declared by GAP" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let gap = @rtps.GapSubmessage::new(reader_id, writer_id, 2L, 4L, 5U, [
     0x90000000U,
   ]).unwrap()
@@ -144,7 +144,7 @@ test "reliable reader does not request sequences declared by GAP" {
 test "reliable reader reassembles DATA_FRAG samples out of order" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let final_fragment = @rtps.DataFragSubmessage::new(
     reader_id,
     writer_id,
@@ -192,7 +192,7 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
 test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let first = @rtps.DataFragSubmessage::new(
     reader_id,
     writer_id,
@@ -214,12 +214,12 @@ test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
     b"cd",
   ).unwrap()
   let first_key = @rtps.Submessage::new(
-    @rtps.SubmessageId::DataFrag,
+    DataFrag,
     (first.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
     first.to_payload(),
   )
   let second_key = @rtps.Submessage::new(
-    @rtps.SubmessageId::DataFrag,
+    DataFrag,
     (second.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
     second.to_payload(),
   )
@@ -239,7 +239,7 @@ test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
 test "reliable reader requests missing DATA_FRAGs" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let first_fragment = @rtps.DataFragSubmessage::new(
     reader_id,
     writer_id,
@@ -279,7 +279,7 @@ test "reliable reader requests missing DATA_FRAGs" {
 test "reliable reader splits a large HEARTBEAT_FRAG into NACK_FRAG windows" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let reader = ReliableDataReader::new(reader_id, writer_id)
+  let reader = @wire.ReliableDataReader::new(reader_id, writer_id)
   let heartbeat = @rtps.HeartbeatFragSubmessage::new(
     reader_id, writer_id, 10L, 300U, 1U,
   ).unwrap()

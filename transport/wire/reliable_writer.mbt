@@ -75,6 +75,7 @@ fn reliable_writer_fragment_data(
 }
 
 ///|
+/// Reliable RTPS writer state with retransmission history.
 pub struct ReliableDataWriter {
   socket : Udp
   guid_prefix : @rtps.GuidPrefix
@@ -128,7 +129,7 @@ pub fn ReliableDataWriter::new_for_subscription(
   subscription : @rtps.SedpEndpointData,
   first_sequence_number : Int64,
 ) -> Result[ReliableDataWriter, String] {
-  if subscription.kind() != @rtps.SedpEndpointKind::Subscription {
+  if subscription.kind() != Subscription {
     return Err("a reliable writer target must be an SEDP subscription")
   }
   let unicast_locators = subscription.unicast_locators()
@@ -236,6 +237,7 @@ fn ReliableDataWriter::acknack_targets(
 }
 
 ///|
+/// Return the next data sequence number.
 pub fn ReliableDataWriter::next_sequence_number(
   self : ReliableDataWriter,
 ) -> Int64 {
@@ -251,6 +253,7 @@ pub fn ReliableDataWriter::vendor_id(
 }
 
 ///|
+/// Return the next HEARTBEAT count value.
 pub fn ReliableDataWriter::next_heartbeat_count(
   self : ReliableDataWriter,
 ) -> UInt {
@@ -620,7 +623,7 @@ pub async fn ReliableDataWriter::receive_acknack(
       Err(_) => continue
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::AckNack ||
+      if submessage.id() != AckNack ||
         !self.acknack_targets(message, submessage) {
         continue
       }
@@ -663,7 +666,7 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       Err(_) => continue
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::NackFrag {
+      if submessage.id() != NackFrag {
         continue
       }
       let nackfrag = match
@@ -710,7 +713,7 @@ pub async fn ReliableDataWriter::receive_control(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::AckNack => {
+        AckNack => {
           if !self.acknack_targets(message, submessage) {
             continue
           }
@@ -733,7 +736,7 @@ pub async fn ReliableDataWriter::receive_control(
             Err(message) => return Err(message)
           }
         }
-        @rtps.SubmessageId::NackFrag => {
+        NackFrag => {
           let nackfrag = match
             @rtps.NackFragSubmessage::from_submessage(submessage) {
             Ok(value) => value

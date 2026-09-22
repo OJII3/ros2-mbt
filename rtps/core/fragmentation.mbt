@@ -22,6 +22,12 @@ pub struct HeartbeatFragSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend HeartbeatFragSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend HeartbeatFragSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian HEARTBEAT_FRAG.
 pub fn HeartbeatFragSubmessage::new(
   reader_id : EntityId,
@@ -44,11 +50,13 @@ pub fn HeartbeatFragSubmessage::new(
 }
 
 ///|
+/// Return the HEARTBEAT_FRAG submessage flags.
 pub fn HeartbeatFragSubmessage::flags(self : HeartbeatFragSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the reader entity ID.
 pub fn HeartbeatFragSubmessage::reader_id(
   self : HeartbeatFragSubmessage,
 ) -> EntityId {
@@ -56,6 +64,7 @@ pub fn HeartbeatFragSubmessage::reader_id(
 }
 
 ///|
+/// Return the writer entity ID.
 pub fn HeartbeatFragSubmessage::writer_id(
   self : HeartbeatFragSubmessage,
 ) -> EntityId {
@@ -63,6 +72,7 @@ pub fn HeartbeatFragSubmessage::writer_id(
 }
 
 ///|
+/// Return the writer sequence number.
 pub fn HeartbeatFragSubmessage::writer_sequence_number(
   self : HeartbeatFragSubmessage,
 ) -> Int64 {
@@ -70,6 +80,7 @@ pub fn HeartbeatFragSubmessage::writer_sequence_number(
 }
 
 ///|
+/// Return the last fragment number.
 pub fn HeartbeatFragSubmessage::last_fragment_number(
   self : HeartbeatFragSubmessage,
 ) -> UInt {
@@ -77,6 +88,7 @@ pub fn HeartbeatFragSubmessage::last_fragment_number(
 }
 
 ///|
+/// Return the heartbeat count.
 pub fn HeartbeatFragSubmessage::count(self : HeartbeatFragSubmessage) -> UInt {
   self.count
 }
@@ -102,13 +114,15 @@ pub fn HeartbeatFragSubmessage::to_payload(
 }
 
 ///|
+/// Encode the HEARTBEAT_FRAG as an RTPS submessage.
 pub fn HeartbeatFragSubmessage::to_submessage(
   self : HeartbeatFragSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::HeartbeatFrag, self.flags, self.to_payload())
+  Submessage::new(HeartbeatFrag, self.flags, self.to_payload())
 }
 
 ///|
+/// Encode the HEARTBEAT_FRAG as an RTPS message.
 pub fn HeartbeatFragSubmessage::to_message(
   self : HeartbeatFragSubmessage,
   guid_prefix : GuidPrefix,
@@ -120,10 +134,11 @@ pub fn HeartbeatFragSubmessage::to_message(
 }
 
 ///|
+/// Decode a HEARTBEAT_FRAG from an RTPS submessage.
 pub fn HeartbeatFragSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[HeartbeatFragSubmessage, String] {
-  if submessage.id() != SubmessageId::HeartbeatFrag {
+  if submessage.id() != HeartbeatFrag {
     return Err("expected an RTPS HEARTBEAT_FRAG submessage")
   }
   if submessage.payload.length() != HEARTBEAT_FRAG_BODY_LENGTH {
@@ -172,6 +187,12 @@ pub struct NackFragSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend NackFragSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend NackFragSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian NACK_FRAG with a FragmentNumberSet bitmap.
 pub fn NackFragSubmessage::new(
   reader_id : EntityId,
@@ -205,21 +226,25 @@ pub fn NackFragSubmessage::new(
 }
 
 ///|
+/// Return the NACK_FRAG submessage flags.
 pub fn NackFragSubmessage::flags(self : NackFragSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the reader entity ID.
 pub fn NackFragSubmessage::reader_id(self : NackFragSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the writer entity ID.
 pub fn NackFragSubmessage::writer_id(self : NackFragSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the writer sequence number.
 pub fn NackFragSubmessage::writer_sequence_number(
   self : NackFragSubmessage,
 ) -> Int64 {
@@ -227,21 +252,25 @@ pub fn NackFragSubmessage::writer_sequence_number(
 }
 
 ///|
+/// Return the first fragment number represented by the bitmap.
 pub fn NackFragSubmessage::bitmap_base(self : NackFragSubmessage) -> UInt {
   self.bitmap_base
 }
 
 ///|
+/// Return the number of bitmap bits.
 pub fn NackFragSubmessage::num_bits(self : NackFragSubmessage) -> UInt {
   self.num_bits
 }
 
 ///|
+/// Return the fragment bitmap words.
 pub fn NackFragSubmessage::bitmap(self : NackFragSubmessage) -> Array[UInt] {
   self.bitmap
 }
 
 ///|
+/// Return the NACK count.
 pub fn NackFragSubmessage::count(self : NackFragSubmessage) -> UInt {
   self.count
 }
@@ -269,13 +298,15 @@ pub fn NackFragSubmessage::to_payload(self : NackFragSubmessage) -> Bytes {
 }
 
 ///|
+/// Encode the NACK_FRAG as an RTPS submessage.
 pub fn NackFragSubmessage::to_submessage(
   self : NackFragSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::NackFrag, self.flags, self.to_payload())
+  Submessage::new(NackFrag, self.flags, self.to_payload())
 }
 
 ///|
+/// Encode the NACK_FRAG as an RTPS message.
 pub fn NackFragSubmessage::to_message(
   self : NackFragSubmessage,
   guid_prefix : GuidPrefix,
@@ -287,10 +318,11 @@ pub fn NackFragSubmessage::to_message(
 }
 
 ///|
+/// Decode a NACK_FRAG from an RTPS submessage.
 pub fn NackFragSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[NackFragSubmessage, String] {
-  if submessage.id() != SubmessageId::NackFrag {
+  if submessage.id() != NackFrag {
     return Err("expected an RTPS NACK_FRAG submessage")
   }
   if submessage.payload.length() < 28 {

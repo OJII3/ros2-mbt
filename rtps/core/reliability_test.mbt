@@ -1,10 +1,10 @@
 ///|
-fn reliability_test_ids() -> Result[(EntityId, EntityId), String] {
-  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+fn reliability_test_ids() -> Result[(@core.EntityId, @core.EntityId), String] {
+  let reader_id = match @core.EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+  let writer_id = match @core.EntityId::new(b"wrt", 0xC2) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -31,7 +31,7 @@ fn reliability_test_append_sequence_be(
 ///|
 fn reliability_test_append_entity_id(
   bytes : Array[Byte],
-  entity_id : EntityId,
+  entity_id : @core.EntityId,
 ) -> Unit {
   let encoded = entity_id.to_bytes()
   for index in 0..<encoded.length() {
@@ -41,14 +41,14 @@ fn reliability_test_append_entity_id(
 
 ///|
 fn reliability_test_decode_big_endian_submessage(
-  id : SubmessageId,
+  id : @core.SubmessageId,
   flags : Byte,
   payload : Array[Byte],
-) -> Submessage {
-  let encoded = Submessage::new(id, flags, Bytes::from_array(payload))
+) -> @core.Submessage {
+  let encoded = @core.Submessage::new(id, flags, Bytes::from_array(payload))
     .to_bytes()
     .unwrap()
-  Submessage::from_bytes(encoded).unwrap().0
+  @core.Submessage::from_bytes(encoded).unwrap().0
 }
 
 ///|
@@ -58,7 +58,7 @@ test "RTPS HEARTBEAT round trip" {
     Err(message) => fail(message)
   }
   let heartbeat = match
-    HeartbeatSubmessage::new(reader_id, writer_id, 1L, 3L, 7U) {
+    @core.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 3L, 7U) {
     Ok(value) => value.with_final()
     Err(message) => fail(message)
   }
@@ -67,12 +67,15 @@ test "RTPS HEARTBEAT round trip" {
     Err(message) => fail(message)
   }
   assert_eq(encoded[0], 0x07)
-  assert_eq(encoded[1], HEARTBEAT_FLAG_LITTLE_ENDIAN | HEARTBEAT_FLAG_FINAL)
-  let submessage = match Submessage::from_bytes(encoded) {
+  assert_eq(
+    encoded[1],
+    @core.HEARTBEAT_FLAG_LITTLE_ENDIAN | @core.HEARTBEAT_FLAG_FINAL,
+  )
+  let submessage = match @core.Submessage::from_bytes(encoded) {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
-  let decoded = match HeartbeatSubmessage::from_submessage(submessage) {
+  let decoded = match @core.HeartbeatSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -92,10 +95,10 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_sequence_be(heartbeat_body, 1U)
   reliability_test_append_sequence_be(heartbeat_body, 3U)
   reliability_test_append_u32_be(heartbeat_body, 7U)
-  let heartbeat = HeartbeatSubmessage::from_submessage(
+  let heartbeat = @core.HeartbeatSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::Heartbeat,
-      HEARTBEAT_FLAG_FINAL,
+      Heartbeat,
+      @core.HEARTBEAT_FLAG_FINAL,
       heartbeat_body,
     ),
   ).unwrap()
@@ -104,7 +107,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   assert_eq(heartbeat.count(), 7U)
   assert_eq(
     heartbeat.flags(),
-    HEARTBEAT_FLAG_LITTLE_ENDIAN | HEARTBEAT_FLAG_FINAL,
+    @core.HEARTBEAT_FLAG_LITTLE_ENDIAN | @core.HEARTBEAT_FLAG_FINAL,
   )
 
   let acknack_body : Array[Byte] = []
@@ -115,10 +118,10 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(acknack_body, 0x80000001U)
   reliability_test_append_u32_be(acknack_body, 0x00000001U)
   reliability_test_append_u32_be(acknack_body, 4U)
-  let acknack = AckNackSubmessage::from_submessage(
+  let acknack = @core.AckNackSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::AckNack,
-      ACKNACK_FLAG_FINAL,
+      AckNack,
+      @core.ACKNACK_FLAG_FINAL,
       acknack_body,
     ),
   ).unwrap()
@@ -126,7 +129,10 @@ test "RTPS reliability parsers accept big-endian submessages" {
   assert_eq(acknack.num_bits(), 33U)
   assert_eq(acknack.bitmap(), [0x80000001U, 0x00000001U])
   assert_eq(acknack.count(), 4U)
-  assert_eq(acknack.flags(), ACKNACK_FLAG_LITTLE_ENDIAN | ACKNACK_FLAG_FINAL)
+  assert_eq(
+    acknack.flags(),
+    @core.ACKNACK_FLAG_LITTLE_ENDIAN | @core.ACKNACK_FLAG_FINAL,
+  )
 
   let gap_body : Array[Byte] = []
   reliability_test_append_entity_id(gap_body, reader_id)
@@ -135,18 +141,14 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_sequence_be(gap_body, 4U)
   reliability_test_append_u32_be(gap_body, 5U)
   reliability_test_append_u32_be(gap_body, 0x90000000U)
-  let gap = GapSubmessage::from_submessage(
-    reliability_test_decode_big_endian_submessage(
-      SubmessageId::Gap,
-      0,
-      gap_body,
-    ),
+  let gap = @core.GapSubmessage::from_submessage(
+    reliability_test_decode_big_endian_submessage(Gap, 0, gap_body),
   ).unwrap()
   assert_eq(gap.gap_start(), 2L)
   assert_eq(gap.gap_list_base(), 4L)
   assert_eq(gap.gap_list_num_bits(), 5U)
   assert_eq(gap.gap_list_bitmap(), [0x90000000U])
-  assert_eq(gap.flags(), GAP_FLAG_LITTLE_ENDIAN)
+  assert_eq(gap.flags(), @core.GAP_FLAG_LITTLE_ENDIAN)
 
   let heartbeat_frag_body : Array[Byte] = []
   reliability_test_append_entity_id(heartbeat_frag_body, reader_id)
@@ -154,9 +156,9 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_sequence_be(heartbeat_frag_body, 9U)
   reliability_test_append_u32_be(heartbeat_frag_body, 7U)
   reliability_test_append_u32_be(heartbeat_frag_body, 3U)
-  let heartbeat_frag = HeartbeatFragSubmessage::from_submessage(
+  let heartbeat_frag = @core.HeartbeatFragSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::HeartbeatFrag,
+      HeartbeatFrag,
       0,
       heartbeat_frag_body,
     ),
@@ -164,7 +166,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   assert_eq(heartbeat_frag.writer_sequence_number(), 9L)
   assert_eq(heartbeat_frag.last_fragment_number(), 7U)
   assert_eq(heartbeat_frag.count(), 3U)
-  assert_eq(heartbeat_frag.flags(), HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN)
+  assert_eq(heartbeat_frag.flags(), @core.HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN)
 
   let nack_frag_body : Array[Byte] = []
   reliability_test_append_entity_id(nack_frag_body, reader_id)
@@ -174,19 +176,15 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(nack_frag_body, 7U)
   reliability_test_append_u32_be(nack_frag_body, 0xA0000000U)
   reliability_test_append_u32_be(nack_frag_body, 4U)
-  let nack_frag = NackFragSubmessage::from_submessage(
-    reliability_test_decode_big_endian_submessage(
-      SubmessageId::NackFrag,
-      0,
-      nack_frag_body,
-    ),
+  let nack_frag = @core.NackFragSubmessage::from_submessage(
+    reliability_test_decode_big_endian_submessage(NackFrag, 0, nack_frag_body),
   ).unwrap()
   assert_eq(nack_frag.writer_sequence_number(), 9L)
   assert_eq(nack_frag.bitmap_base(), 1U)
   assert_eq(nack_frag.num_bits(), 7U)
   assert_eq(nack_frag.bitmap(), [0xA0000000U])
   assert_eq(nack_frag.count(), 4U)
-  assert_eq(nack_frag.flags(), NACK_FRAG_FLAG_LITTLE_ENDIAN)
+  assert_eq(nack_frag.flags(), @core.NACK_FRAG_FLAG_LITTLE_ENDIAN)
 }
 
 ///|
@@ -196,7 +194,7 @@ test "RTPS ACKNACK round trips a partial bitmap" {
     Err(message) => fail(message)
   }
   let acknack = match
-    AckNackSubmessage::new(
+    @core.AckNackSubmessage::new(
       reader_id,
       writer_id,
       5L,
@@ -208,7 +206,7 @@ test "RTPS ACKNACK round trips a partial bitmap" {
     Err(message) => fail(message)
   }
   let submessage = match
-    Submessage::from_bytes(
+    @core.Submessage::from_bytes(
       match acknack.to_submessage().to_bytes() {
         Ok(value) => value
         Err(message) => fail(message)
@@ -217,7 +215,7 @@ test "RTPS ACKNACK round trips a partial bitmap" {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
-  let decoded = match AckNackSubmessage::from_submessage(submessage) {
+  let decoded = match @core.AckNackSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -231,11 +229,18 @@ test "RTPS ACKNACK round trips a partial bitmap" {
 ///|
 test "RTPS ACKNACK accepts an empty preemptive bitmap" {
   let (reader_id, writer_id) = reliability_test_ids().unwrap()
-  let acknack = AckNackSubmessage::new(reader_id, writer_id, 0L, 0U, [], 1U).unwrap()
-  let submessage = Submessage::from_bytes(
+  let acknack = @core.AckNackSubmessage::new(
+    reader_id,
+    writer_id,
+    0L,
+    0U,
+    [],
+    1U,
+  ).unwrap()
+  let submessage = @core.Submessage::from_bytes(
       acknack.to_submessage().to_bytes().unwrap(),
     ).unwrap().0
-  let decoded = AckNackSubmessage::from_submessage(submessage).unwrap()
+  let decoded = @core.AckNackSubmessage::from_submessage(submessage).unwrap()
   assert_eq(decoded.bitmap_base(), 0L)
   assert_eq(decoded.num_bits(), 0U)
   assert_eq(decoded.bitmap(), [])
@@ -248,12 +253,12 @@ test "RTPS GAP round trips range and bitmap gaps" {
     Err(message) => fail(message)
   }
   let gap = match
-    GapSubmessage::new(reader_id, writer_id, 2L, 4L, 5U, [0x90000000U]) {
+    @core.GapSubmessage::new(reader_id, writer_id, 2L, 4L, 5U, [0x90000000U]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let submessage = match
-    Submessage::from_bytes(
+    @core.Submessage::from_bytes(
       match gap.to_submessage().to_bytes() {
         Ok(value) => value
         Err(message) => fail(message)
@@ -262,7 +267,7 @@ test "RTPS GAP round trips range and bitmap gaps" {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
-  let decoded = match GapSubmessage::from_submessage(submessage) {
+  let decoded = match @core.GapSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -287,40 +292,45 @@ test "RTPS reliability codecs reject invalid ranges" {
     Err(message) => fail(message)
   }
   assert_true(
-    HeartbeatSubmessage::new(reader_id, writer_id, 3L, 2L, 1U) is Err(_),
+    @core.HeartbeatSubmessage::new(reader_id, writer_id, 3L, 2L, 1U) is Err(_),
   )
   assert_true(
-    AckNackSubmessage::new(reader_id, writer_id, 1L, 33U, [0U], 1U) is Err(_),
+    @core.AckNackSubmessage::new(reader_id, writer_id, 1L, 33U, [0U], 1U)
+    is Err(_),
   )
   assert_true(
-    AckNackSubmessage::new(reader_id, writer_id, 1L, 257U, [], 1U) is Err(_),
+    @core.AckNackSubmessage::new(reader_id, writer_id, 1L, 257U, [], 1U)
+    is Err(_),
   )
   assert_true(
-    AckNackSubmessage::new(reader_id, writer_id, 0L, 1U, [0U], 1U) is Err(_),
+    @core.AckNackSubmessage::new(reader_id, writer_id, 0L, 1U, [0U], 1U)
+    is Err(_),
   )
   assert_true(
-    GapSubmessage::new(reader_id, writer_id, 3L, 2L, 0U, []) is Err(_),
+    @core.GapSubmessage::new(reader_id, writer_id, 3L, 2L, 0U, []) is Err(_),
   )
   assert_true(
-    GapSubmessage::new(reader_id, writer_id, 1L, 1L, 33U, []) is Err(_),
+    @core.GapSubmessage::new(reader_id, writer_id, 1L, 1L, 33U, []) is Err(_),
   )
 }
 
 ///|
 test "RTPS fragment reliability codecs round trip" {
   let (reader_id, writer_id) = reliability_test_ids().unwrap()
-  let heartbeat = HeartbeatFragSubmessage::new(reader_id, writer_id, 9L, 7U, 3U).unwrap()
-  let heartbeat_submessage = Submessage::from_bytes(
+  let heartbeat = @core.HeartbeatFragSubmessage::new(
+    reader_id, writer_id, 9L, 7U, 3U,
+  ).unwrap()
+  let heartbeat_submessage = @core.Submessage::from_bytes(
       heartbeat.to_submessage().to_bytes().unwrap(),
     ).unwrap().0
-  let decoded_heartbeat = HeartbeatFragSubmessage::from_submessage(
+  let decoded_heartbeat = @core.HeartbeatFragSubmessage::from_submessage(
     heartbeat_submessage,
   ).unwrap()
   assert_eq(decoded_heartbeat.writer_sequence_number(), 9L)
   assert_eq(decoded_heartbeat.last_fragment_number(), 7U)
   assert_eq(decoded_heartbeat.count(), 3U)
 
-  let nack = NackFragSubmessage::new(
+  let nack = @core.NackFragSubmessage::new(
     reader_id,
     writer_id,
     9L,
@@ -329,10 +339,10 @@ test "RTPS fragment reliability codecs round trip" {
     [0xA0000000U],
     4U,
   ).unwrap()
-  let nack_submessage = Submessage::from_bytes(
+  let nack_submessage = @core.Submessage::from_bytes(
       nack.to_submessage().to_bytes().unwrap(),
     ).unwrap().0
-  let decoded_nack = NackFragSubmessage::from_submessage(nack_submessage).unwrap()
+  let decoded_nack = @core.NackFragSubmessage::from_submessage(nack_submessage).unwrap()
   assert_eq(decoded_nack.writer_sequence_number(), 9L)
   assert_eq(decoded_nack.bitmap_base(), 1U)
   assert_eq(decoded_nack.num_bits(), 7U)

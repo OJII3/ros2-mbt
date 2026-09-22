@@ -7,6 +7,13 @@ pub struct WideStrings {
 } derive(Eq, Debug)
 
 ///|
+pub extend WideStrings with Eq::{not_equal, equal}
+
+///|
+pub extend WideStrings with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create a wide string message.
 pub fn WideStrings::new(
   data : String,
   bounded : String,
@@ -16,6 +23,7 @@ pub fn WideStrings::new(
 }
 
 ///|
+/// Create the wide string message using its default values.
 pub fn WideStrings::default() -> WideStrings {
   let data : String = "A猫🙂"
   let bounded : String = "🙂"
@@ -24,6 +32,7 @@ pub fn WideStrings::default() -> WideStrings {
 }
 
 ///|
+/// Serialize the wide string message as ROS 2 CDR.
 pub fn WideStrings::write_cdr(
   self : WideStrings,
   writer : @cdr.Writer,
@@ -47,6 +56,7 @@ pub fn WideStrings::write_cdr(
 }
 
 ///|
+/// Parse a wide string message from ROS 2 CDR.
 pub fn WideStrings::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[WideStrings, String] {
@@ -78,6 +88,7 @@ pub fn WideStrings::read_cdr(
 }
 
 ///|
+/// Serialize the wide string message as CDR bytes.
 pub fn WideStrings::to_cdr_bytes(self : WideStrings) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -88,6 +99,7 @@ pub fn WideStrings::to_cdr_bytes(self : WideStrings) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a wide string message from CDR bytes.
 pub fn WideStrings::from_cdr_bytes(
   input : Bytes,
 ) -> Result[WideStrings, String] {

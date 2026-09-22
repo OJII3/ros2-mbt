@@ -1,6 +1,8 @@
 ///|
 test "ROS action descriptor maps all five endpoints" {
-  let action = RosAction::new("/fibonacci", "example_interfaces", "Fibonacci").unwrap()
+  let action = @endpoints.RosAction::new(
+    "/fibonacci", "example_interfaces", "Fibonacci",
+  ).unwrap()
   assert_eq(action.ros_name(), "/fibonacci")
 
   let send_goal = action.send_goal_service()
@@ -70,7 +72,7 @@ test "ROS action descriptor maps all five endpoints" {
 
 ///|
 test "ROS service default namespace remains srv" {
-  let service = RosService::new(
+  let service = @endpoints.RosService::new(
     "/add_two_ints", "example_interfaces", "AddTwoInts",
   ).unwrap()
   assert_eq(

@@ -29,25 +29,19 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   let publication = match
-    topic.to_sedp(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, writer_id),
-    ) {
+    topic.to_sedp(Publication, @rtps.Guid::new(prefix, writer_id)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   publication.add_unicast_locator(sender_locator)
   let subscription = match
-    topic.to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(prefix, reader_id),
-    ) {
+    topic.to_sedp(Subscription, @rtps.Guid::new(prefix, reader_id)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   subscription.add_unicast_locator(receiver_locator)
   let publisher = match
-    ReliableRosPublisher::new_for_subscription(
+    @ros.ReliableRosPublisher::new_for_subscription(
       topic,
       sender,
       prefix,
@@ -60,7 +54,7 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   let subscriber = match
-    ReliableRosSubscription::new_for_publication(
+    @ros.ReliableRosSubscription::new_for_publication(
       topic,
       receiver,
       prefix,

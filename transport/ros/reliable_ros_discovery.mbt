@@ -15,10 +15,7 @@ pub fn ReliableRosDiscoveryPublisher::new_for_subscription(
   first_sequence_number : Int64,
 ) -> Result[ReliableRosDiscoveryPublisher, String] {
   match
-    @ros_types.validate_ros_discovery_info_endpoint(
-      subscription,
-      @rtps.SedpEndpointKind::Subscription,
-    ) {
+    @ros_types.validate_ros_discovery_info_endpoint(subscription, Subscription) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -126,10 +123,7 @@ pub fn ReliableRosDiscoverySubscription::new_for_publication(
   publication : @rtps.SedpEndpointData,
 ) -> Result[ReliableRosDiscoverySubscription, String] {
   match
-    @ros_types.validate_ros_discovery_info_endpoint(
-      publication,
-      @rtps.SedpEndpointKind::Publication,
-    ) {
+    @ros_types.validate_ros_discovery_info_endpoint(publication, Publication) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }

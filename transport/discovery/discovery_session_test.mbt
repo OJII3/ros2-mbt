@@ -32,7 +32,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     participant_reader,
@@ -42,7 +42,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
   ).unwrap()
   let endpoint_writer = @rtps.EntityId::new(b"pub", 0x03).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(remote_prefix, endpoint_writer),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -72,7 +72,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
   .unwrap()
   let (event, _) = session.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::Publication(decoded) => {
+    Publication(decoded) => {
       assert_eq(decoded.topic_name(), "rt/chatter")
       assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
     }
@@ -123,7 +123,7 @@ async test "discovery session repeats SPDP announcements" {
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       sender,
       participant,
       reader_id,
@@ -148,28 +148,20 @@ async test "discovery session repeats SPDP announcements" {
     Err(message) => fail(message)
   }
   match first {
-    @wire.DiscoveryEvent::Participant(decoded) =>
+    Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SPDP participant event")
+    Publication(_) => fail("expected an SPDP participant event")
+    Subscription(_) => fail("expected an SPDP participant event")
+    EndpointRemoved(_, _) => fail("expected an SPDP participant event")
+    ParticipantRemoved(_) => fail("expected an SPDP participant event")
   }
   match second {
-    @wire.DiscoveryEvent::Participant(decoded) =>
+    Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SPDP participant event")
+    Publication(_) => fail("expected an SPDP participant event")
+    Subscription(_) => fail("expected an SPDP participant event")
+    EndpointRemoved(_, _) => fail("expected an SPDP participant event")
+    ParticipantRemoved(_) => fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
   receiver
@@ -184,16 +176,12 @@ async test "discovery session repeats SPDP announcements" {
   .unwrap()
   let (removed, _) = session.receive_once().unwrap()
   match removed {
-    @wire.DiscoveryEvent::ParticipantRemoved(removed_guid) =>
+    ParticipantRemoved(removed_guid) =>
       assert_eq(removed_guid, participant_guid)
-    @wire.DiscoveryEvent::Participant(_) =>
-      fail("expected an SPDP removal event")
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an SPDP removal event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SPDP removal event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SPDP removal event")
+    Participant(_) => fail("expected an SPDP removal event")
+    Publication(_) => fail("expected an SPDP removal event")
+    Subscription(_) => fail("expected an SPDP removal event")
+    EndpointRemoved(_, _) => fail("expected an SPDP removal event")
   }
   match session.dispose_once() {
     Ok(_) => ()
@@ -201,16 +189,12 @@ async test "discovery session repeats SPDP announcements" {
   }
   let (outgoing_removed, _) = receiver.receive_discovery().unwrap()
   match outgoing_removed {
-    @wire.DiscoveryEvent::ParticipantRemoved(removed_guid) =>
+    ParticipantRemoved(removed_guid) =>
       assert_eq(removed_guid, participant_guid)
-    @wire.DiscoveryEvent::Participant(_) =>
-      fail("expected an outgoing SPDP removal")
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an outgoing SPDP removal")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an outgoing SPDP removal")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an outgoing SPDP removal")
+    Participant(_) => fail("expected an outgoing SPDP removal")
+    Publication(_) => fail("expected an outgoing SPDP removal")
+    Subscription(_) => fail("expected an outgoing SPDP removal")
+    EndpointRemoved(_, _) => fail("expected an outgoing SPDP removal")
   }
   session.close()
   receiver.close()
@@ -252,7 +236,7 @@ async test "discovery session ignores DATA without payload or key" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -265,7 +249,7 @@ async test "discovery session ignores DATA without payload or key" {
   )
   message.add(
     @rtps.Submessage::new(
-      @rtps.SubmessageId::Data,
+      Data,
       @rtps.DATA_FLAG_LITTLE_ENDIAN | @rtps.DATA_FLAG_INLINE_QOS,
       @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"").to_payload(),
     ),
@@ -278,16 +262,12 @@ async test "discovery session ignores DATA without payload or key" {
   sender.send_message(message, session.socket.local_addr()).unwrap()
   let (event, _) = session.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::Participant(decoded) =>
+    Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), remote_participant.to_cdr_bytes())
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected the SPDP participant")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected the SPDP participant")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected the SPDP participant")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected the SPDP participant")
+    Publication(_) => fail("expected the SPDP participant")
+    Subscription(_) => fail("expected the SPDP participant")
+    EndpointRemoved(_, _) => fail("expected the SPDP participant")
+    ParticipantRemoved(_) => fail("expected the SPDP participant")
   }
   session.close()
   sender.close()
@@ -330,7 +310,7 @@ async test "discovery session ignores SPDP from another domain" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -358,15 +338,11 @@ async test "discovery session ignores SPDP from another domain" {
   .unwrap()
   let (event, _) = session.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::Participant(participant) =>
-      assert_eq(participant.domain_id(), 0U)
-    @wire.DiscoveryEvent::Publication(_) => fail("expected a participant event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected a participant event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected a participant event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected a participant event")
+    Participant(participant) => assert_eq(participant.domain_id(), 0U)
+    Publication(_) => fail("expected a participant event")
+    Subscription(_) => fail("expected a participant event")
+    EndpointRemoved(_, _) => fail("expected a participant event")
+    ParticipantRemoved(_) => fail("expected a participant event")
   }
   sender.close()
   session.close()
@@ -425,7 +401,7 @@ async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
   message.add(data.to_submessage())
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -436,15 +412,11 @@ async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
   sender.send_message(message, session.socket.local_addr()).unwrap()
   let (event, _) = session.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::Participant(participant) =>
-      assert_eq(participant.domain_id(), 49U)
-    @wire.DiscoveryEvent::Publication(_) => fail("expected an SPDP participant")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SPDP participant")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SPDP participant")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SPDP participant")
+    Participant(participant) => assert_eq(participant.domain_id(), 49U)
+    Publication(_) => fail("expected an SPDP participant")
+    Subscription(_) => fail("expected an SPDP participant")
+    EndpointRemoved(_, _) => fail("expected an SPDP participant")
+    ParticipantRemoved(_) => fail("expected an SPDP participant")
   }
   session.close()
   sender.close()
@@ -491,7 +463,7 @@ async test "discovery session receives from an additional metatraffic socket" {
   let primary = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new_with_receive_sockets(
+    @discovery.DiscoverySession::new_with_receive_sockets(
       primary,
       [metatraffic],
       participant,
@@ -519,16 +491,12 @@ async test "discovery session receives from an additional metatraffic socket" {
     Err(message) => fail(message)
   }
   match event {
-    @wire.DiscoveryEvent::Participant(decoded) =>
+    Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SPDP participant event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SPDP participant event")
+    Publication(_) => fail("expected an SPDP participant event")
+    Subscription(_) => fail("expected an SPDP participant event")
+    EndpointRemoved(_, _) => fail("expected an SPDP participant event")
+    ParticipantRemoved(_) => fail("expected an SPDP participant event")
   }
   assert_eq(source.ip(), 0x7F000001U)
   session.close()

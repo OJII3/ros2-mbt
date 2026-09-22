@@ -25,7 +25,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
   }
   let publication = match
     @ros_types.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
     ) {
     Ok(value) => value
@@ -34,7 +34,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
   publication.add_unicast_locator(sender_locator)
   let subscription = match
     @ros_types.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, reader_id),
     ) {
     Ok(value) => value
@@ -42,7 +42,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
   }
   subscription.add_unicast_locator(receiver_locator)
   let publisher = match
-    ReliableRosDiscoveryPublisher::new_for_subscription(
+    @ros.ReliableRosDiscoveryPublisher::new_for_subscription(
       sender,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -54,7 +54,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Err(message) => fail(message)
   }
   let subscriber = match
-    ReliableRosDiscoverySubscription::new_for_publication(
+    @ros.ReliableRosDiscoverySubscription::new_for_publication(
       receiver,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -119,7 +119,7 @@ test "ROS graph endpoint validation requires reliable matching SEDP data" {
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME,
       @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME,
@@ -131,10 +131,7 @@ test "ROS graph endpoint validation requires reliable matching SEDP data" {
     @rtps.qos_reliability(@rtps.RELIABILITY_BEST_EFFORT, 0, 0),
   )
   assert_true(
-    @ros_types.validate_ros_discovery_info_endpoint(
-      endpoint,
-      @rtps.SedpEndpointKind::Publication,
-    )
+    @ros_types.validate_ros_discovery_info_endpoint(endpoint, Publication)
     is Err(_),
   )
 }

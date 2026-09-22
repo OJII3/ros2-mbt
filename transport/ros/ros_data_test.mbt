@@ -41,7 +41,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   }
   let publication = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       best_effort_qos,
     ) {
@@ -51,7 +51,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   publication.add_unicast_locator(sender_locator)
   let subscription = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, reader_id),
       best_effort_qos,
     ) {
@@ -60,7 +60,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   }
   subscription.add_unicast_locator(receiver_locator)
   assert_true(
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       other_topic,
       sender,
       prefix,
@@ -73,7 +73,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   )
   let reliable_subscription = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, reader_id),
       @rtps.SedpQos::new(
         @rtps.RELIABILITY_RELIABLE,
@@ -87,7 +87,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   }
   reliable_subscription.add_unicast_locator(receiver_locator)
   assert_true(
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       topic,
       sender,
       prefix,
@@ -140,7 +140,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
   }
   let publication = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       best_effort_qos,
     ) {
@@ -150,7 +150,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
   publication.add_unicast_locator(sender_locator)
   let subscription = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, reader_id),
       best_effort_qos,
     ) {
@@ -159,7 +159,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
   }
   subscription.add_unicast_locator(receiver_locator)
   let publisher = match
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       topic,
       sender,
       prefix,
@@ -172,7 +172,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   let subscriber = match
-    RosSubscription::new_for_publication(
+    @ros.RosSubscription::new_for_publication(
       topic, receiver, reader_id, publication,
     ) {
     Ok(value) => value

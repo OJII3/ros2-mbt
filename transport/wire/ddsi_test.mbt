@@ -1,20 +1,20 @@
 ///|
 test "DDSI-RTPS default discovery ports" {
-  assert_eq(ddsi_spdp_multicast_port(0), Ok(7400))
-  assert_eq(ddsi_spdp_multicast_port(1), Ok(7650))
-  assert_eq(ddsi_spdp_unicast_port(0, 3), Ok(7416))
-  assert_eq(ddsi_spdp_unicast_port(2, 4), Ok(7918))
-  assert_eq(ddsi_user_multicast_port(0), Ok(7401))
-  assert_eq(ddsi_user_unicast_port(0, 0), Ok(7411))
-  assert_eq(ddsi_user_unicast_port(3, 2), Ok(8165))
-  assert_true(ddsi_spdp_multicast_port(1000) is Err(_))
-  assert_true(ddsi_spdp_multicast_port(0xFFFFFFFFU) is Err(_))
-  assert_true(ddsi_spdp_unicast_port(0, 0xFFFFFFFFU) is Err(_))
+  assert_eq(@wire.ddsi_spdp_multicast_port(0), Ok(7400))
+  assert_eq(@wire.ddsi_spdp_multicast_port(1), Ok(7650))
+  assert_eq(@wire.ddsi_spdp_unicast_port(0, 3), Ok(7416))
+  assert_eq(@wire.ddsi_spdp_unicast_port(2, 4), Ok(7918))
+  assert_eq(@wire.ddsi_user_multicast_port(0), Ok(7401))
+  assert_eq(@wire.ddsi_user_unicast_port(0, 0), Ok(7411))
+  assert_eq(@wire.ddsi_user_unicast_port(3, 2), Ok(8165))
+  assert_true(@wire.ddsi_spdp_multicast_port(1000) is Err(_))
+  assert_true(@wire.ddsi_spdp_multicast_port(0xFFFFFFFFU) is Err(_))
+  assert_true(@wire.ddsi_spdp_unicast_port(0, 0xFFFFFFFFU) is Err(_))
 }
 
 ///|
 test "DDSI-RTPS default SPDP multicast address" {
-  let address = match ddsi_default_spdp_multicast_addr(0) {
+  let address = match @wire.ddsi_default_spdp_multicast_addr(0) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -24,15 +24,15 @@ test "DDSI-RTPS default SPDP multicast address" {
 
 ///|
 test "DDSI-RTPS default IPv4 addresses" {
-  let spdp = match ddsi_default_spdp_unicast_addr(0, 0, 0x7F000001U) {
+  let spdp = match @wire.ddsi_default_spdp_unicast_addr(0, 0, 0x7F000001U) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let user = match ddsi_default_user_unicast_addr(0, 0, 0x7F000001U) {
+  let user = match @wire.ddsi_default_user_unicast_addr(0, 0, 0x7F000001U) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let multicast = match ddsi_default_user_multicast_addr(0) {
+  let multicast = match @wire.ddsi_default_user_multicast_addr(0) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -52,7 +52,7 @@ test "DDSI participant helper advertises standard locators" {
     Err(message) => fail(message)
   }
   let participant = match
-    new_ddsi_participant(
+    @wire.new_ddsi_participant(
       prefix,
       @rtps.VendorId::new(1, 15),
       0,

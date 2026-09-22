@@ -39,13 +39,13 @@ async test "discovery service ingests received participant events" {
   let receiver_address = receiver.local_addr()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       receiver, participant, reader_id, writer_id, receiver_address, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   match
     sender.send_spdp(participant, reader_id, writer_id, 1L, receiver_address) {
     Ok(_) => ()
@@ -103,10 +103,10 @@ async test "discovery service resolves unspecified SEDP endpoint locators" {
   ).unwrap()
   let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = socket.local_addr()
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, participant_id, receiver_address, 1L,
   ).unwrap()
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   sender
   .send_spdp(
@@ -114,9 +114,9 @@ async test "discovery service resolves unspecified SEDP endpoint locators" {
   )
   .unwrap()
   let (_, participant_event) = service.receive_once().unwrap()
-  assert_true(participant_event is @wire.DiscoveryEvent::Participant(_))
+  assert_true(participant_event is Participant(_))
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Subscription,
+    Subscription,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"\x00\x00\x02", 0x04).unwrap(),
@@ -139,7 +139,7 @@ async test "discovery service resolves unspecified SEDP endpoint locators" {
   .unwrap()
   let (_, endpoint_event) = service.receive_once().unwrap()
   let normalized = match endpoint_event {
-    @wire.DiscoveryEvent::Subscription(endpoint) => endpoint
+    Subscription(endpoint) => endpoint
     _ => fail("expected the normalized SEDP subscription")
   }
   assert_eq(normalized.unicast_locators(), [
@@ -185,19 +185,19 @@ async test "discovery service expires participants after the SPDP lease" {
   let writer_id = participant_entity
   let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = socket.local_addr()
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, writer_id, receiver_address, 1L,
   ).unwrap()
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   sender
   .send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)
   .unwrap()
   let (_, first_event) = service.receive_once().unwrap()
-  assert_true(first_event is @wire.DiscoveryEvent::Participant(_))
+  assert_true(first_event is Participant(_))
   assert_eq(service.graph().participant_count(), 1)
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -213,7 +213,7 @@ async test "discovery service expires participants after the SPDP lease" {
   )
   .unwrap()
   let (_, publication_event) = service.receive_once().unwrap()
-  assert_true(publication_event is @wire.DiscoveryEvent::Publication(_))
+  assert_true(publication_event is Publication(_))
   assert_eq(service.graph().publication_count(), 1)
 
   @async.sleep(300)
@@ -221,7 +221,7 @@ async test "discovery service expires participants after the SPDP lease" {
   .send_spdp(remote_participant, reader_id, writer_id, 2L, receiver_address)
   .unwrap()
   let (_, refresh_event) = service.receive_once().unwrap()
-  assert_true(refresh_event is @wire.DiscoveryEvent::Participant(_))
+  assert_true(refresh_event is Participant(_))
   let before_expiry = @async.with_timeout_opt(300, async fn() {
     service.receive_once()
   })
@@ -229,7 +229,7 @@ async test "discovery service expires participants after the SPDP lease" {
 
   let (_, event) = service.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::ParticipantRemoved(guid) =>
+    ParticipantRemoved(guid) =>
       assert_eq(guid, remote_participant.participant_guid())
     _ => fail("expected the expired participant removal")
   }

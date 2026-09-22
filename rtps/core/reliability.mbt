@@ -64,21 +64,25 @@ pub fn HeartbeatSubmessage::with_final(
 }
 
 ///|
+/// Return the HEARTBEAT flags.
 pub fn HeartbeatSubmessage::flags(self : HeartbeatSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the HEARTBEAT reader entity identifier.
 pub fn HeartbeatSubmessage::reader_id(self : HeartbeatSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the HEARTBEAT writer entity identifier.
 pub fn HeartbeatSubmessage::writer_id(self : HeartbeatSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the first available HEARTBEAT sequence number.
 pub fn HeartbeatSubmessage::first_sequence_number(
   self : HeartbeatSubmessage,
 ) -> Int64 {
@@ -86,6 +90,7 @@ pub fn HeartbeatSubmessage::first_sequence_number(
 }
 
 ///|
+/// Return the last available HEARTBEAT sequence number.
 pub fn HeartbeatSubmessage::last_sequence_number(
   self : HeartbeatSubmessage,
 ) -> Int64 {
@@ -93,6 +98,7 @@ pub fn HeartbeatSubmessage::last_sequence_number(
 }
 
 ///|
+/// Return the HEARTBEAT count.
 pub fn HeartbeatSubmessage::count(self : HeartbeatSubmessage) -> UInt {
   self.count
 }
@@ -120,6 +126,24 @@ pub struct GapSubmessage {
   gap_list_num_bits : UInt
   gap_list_bitmap : Array[UInt]
 } derive(Eq, Debug)
+
+///|
+pub extend HeartbeatSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend HeartbeatSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AckNackSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend AckNackSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend GapSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend GapSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a little-endian GAP with a valid SequenceNumberSet.
@@ -156,36 +180,43 @@ pub fn GapSubmessage::new(
 }
 
 ///|
+/// Return the GAP flags.
 pub fn GapSubmessage::flags(self : GapSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the GAP reader entity identifier.
 pub fn GapSubmessage::reader_id(self : GapSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the GAP writer entity identifier.
 pub fn GapSubmessage::writer_id(self : GapSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the first sequence number covered by the GAP.
 pub fn GapSubmessage::gap_start(self : GapSubmessage) -> Int64 {
   self.gap_start
 }
 
 ///|
+/// Return the base sequence number of the GAP bitmap.
 pub fn GapSubmessage::gap_list_base(self : GapSubmessage) -> Int64 {
   self.gap_list_base
 }
 
 ///|
+/// Return the number of valid bits in the GAP bitmap.
 pub fn GapSubmessage::gap_list_num_bits(self : GapSubmessage) -> UInt {
   self.gap_list_num_bits
 }
 
 ///|
+/// Return the words of the GAP bitmap.
 pub fn GapSubmessage::gap_list_bitmap(self : GapSubmessage) -> Array[UInt] {
   self.gap_list_bitmap
 }
@@ -252,36 +283,43 @@ pub fn AckNackSubmessage::with_final(
 }
 
 ///|
+/// Return the ACKNACK flags.
 pub fn AckNackSubmessage::flags(self : AckNackSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the ACKNACK reader entity identifier.
 pub fn AckNackSubmessage::reader_id(self : AckNackSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the ACKNACK writer entity identifier.
 pub fn AckNackSubmessage::writer_id(self : AckNackSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the base sequence number of the ACKNACK bitmap.
 pub fn AckNackSubmessage::bitmap_base(self : AckNackSubmessage) -> Int64 {
   self.bitmap_base
 }
 
 ///|
+/// Return the number of valid bits in the ACKNACK bitmap.
 pub fn AckNackSubmessage::num_bits(self : AckNackSubmessage) -> UInt {
   self.num_bits
 }
 
 ///|
+/// Return the words of the ACKNACK bitmap.
 pub fn AckNackSubmessage::bitmap(self : AckNackSubmessage) -> Array[UInt] {
   self.bitmap
 }
 
 ///|
+/// Return the ACKNACK count.
 pub fn AckNackSubmessage::count(self : AckNackSubmessage) -> UInt {
   self.count
 }
@@ -352,7 +390,7 @@ pub fn HeartbeatSubmessage::to_payload(self : HeartbeatSubmessage) -> Bytes {
 pub fn HeartbeatSubmessage::to_submessage(
   self : HeartbeatSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::Heartbeat, self.flags, self.to_payload())
+  Submessage::new(Heartbeat, self.flags, self.to_payload())
 }
 
 ///|
@@ -372,7 +410,7 @@ pub fn HeartbeatSubmessage::to_message(
 pub fn HeartbeatSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[HeartbeatSubmessage, String] {
-  if submessage.id() != SubmessageId::Heartbeat {
+  if submessage.id() != Heartbeat {
     return Err("expected an RTPS HEARTBEAT submessage")
   }
   if submessage.payload.length() != HEARTBEAT_BODY_LENGTH {
@@ -434,7 +472,7 @@ pub fn AckNackSubmessage::to_payload(self : AckNackSubmessage) -> Bytes {
 ///|
 /// Wrap the ACKNACK body in an RTPS submessage.
 pub fn AckNackSubmessage::to_submessage(self : AckNackSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::AckNack, self.flags, self.to_payload())
+  Submessage::new(AckNack, self.flags, self.to_payload())
 }
 
 ///|
@@ -454,7 +492,7 @@ pub fn AckNackSubmessage::to_message(
 pub fn AckNackSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[AckNackSubmessage, String] {
-  if submessage.id() != SubmessageId::AckNack {
+  if submessage.id() != AckNack {
     return Err("expected an RTPS ACKNACK submessage")
   }
   if submessage.payload.length() < 24 {
@@ -526,7 +564,7 @@ pub fn GapSubmessage::to_payload(self : GapSubmessage) -> Bytes {
 ///|
 /// Wrap the GAP body in an RTPS submessage.
 pub fn GapSubmessage::to_submessage(self : GapSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::Gap, self.flags, self.to_payload())
+  Submessage::new(Gap, self.flags, self.to_payload())
 }
 
 ///|
@@ -546,7 +584,7 @@ pub fn GapSubmessage::to_message(
 pub fn GapSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[GapSubmessage, String] {
-  if submessage.id() != SubmessageId::Gap {
+  if submessage.id() != Gap {
     return Err("expected an RTPS GAP submessage")
   }
   if submessage.payload.length() < 28 {

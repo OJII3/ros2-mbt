@@ -10,6 +10,13 @@ pub struct SampleIdentity {
 } derive(Eq, Debug)
 
 ///|
+pub extend SampleIdentity with Eq::{not_equal, equal}
+
+///|
+pub extend SampleIdentity with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create a sample identity.
 pub fn SampleIdentity::new(
   writer_guid : Guid,
   sequence_number : Int64,
@@ -31,11 +38,13 @@ pub fn SampleIdentity::unknown_sequence(writer_guid : Guid) -> SampleIdentity {
 }
 
 ///|
+/// Return the sample identity writer GUID.
 pub fn SampleIdentity::writer_guid(self : SampleIdentity) -> Guid {
   self.writer_guid
 }
 
 ///|
+/// Return the sample identity sequence number.
 pub fn SampleIdentity::sequence_number(self : SampleIdentity) -> Int64 {
   self.sequence_number
 }

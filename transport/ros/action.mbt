@@ -39,7 +39,7 @@ pub async fn RosActionEndpoints::discover(
         feedback_publication is None ||
         status_publication is None {
     match participant.receive_discovery_once() {
-      Ok((_, @wire.DiscoveryEvent::Publication(publication))) => {
+      Ok((_, Publication(publication))) => {
         if publication.topic_name() == send_goal.dds_response_name() &&
           publication.type_name() == send_goal.dds_response_type_name() {
           send_goal_response_publication = Some(publication)
@@ -61,7 +61,7 @@ pub async fn RosActionEndpoints::discover(
           status_publication = Some(publication)
         }
       }
-      Ok((_, @wire.DiscoveryEvent::Subscription(subscription))) => {
+      Ok((_, Subscription(subscription))) => {
         if subscription.topic_name() == send_goal.dds_request_name() &&
           subscription.type_name() == send_goal.dds_request_type_name() {
           send_goal_request_subscription = Some(subscription)
@@ -110,6 +110,7 @@ pub async fn RosActionEndpoints::discover(
 }
 
 ///|
+/// Return the send-goal request subscription.
 pub fn RosActionEndpoints::send_goal_request_subscription(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -117,6 +118,7 @@ pub fn RosActionEndpoints::send_goal_request_subscription(
 }
 
 ///|
+/// Return the send-goal response publication.
 pub fn RosActionEndpoints::send_goal_response_publication(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -124,6 +126,7 @@ pub fn RosActionEndpoints::send_goal_response_publication(
 }
 
 ///|
+/// Return the get-result request subscription.
 pub fn RosActionEndpoints::get_result_request_subscription(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -131,6 +134,7 @@ pub fn RosActionEndpoints::get_result_request_subscription(
 }
 
 ///|
+/// Return the get-result response publication.
 pub fn RosActionEndpoints::get_result_response_publication(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -138,6 +142,7 @@ pub fn RosActionEndpoints::get_result_response_publication(
 }
 
 ///|
+/// Return the cancel-goal request subscription.
 pub fn RosActionEndpoints::cancel_goal_request_subscription(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -145,6 +150,7 @@ pub fn RosActionEndpoints::cancel_goal_request_subscription(
 }
 
 ///|
+/// Return the cancel-goal response publication.
 pub fn RosActionEndpoints::cancel_goal_response_publication(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -152,6 +158,7 @@ pub fn RosActionEndpoints::cancel_goal_response_publication(
 }
 
 ///|
+/// Return the feedback publication.
 pub fn RosActionEndpoints::feedback_publication(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {
@@ -159,6 +166,7 @@ pub fn RosActionEndpoints::feedback_publication(
 }
 
 ///|
+/// Return the status publication.
 pub fn RosActionEndpoints::status_publication(
   self : RosActionEndpoints,
 ) -> @rtps.SedpEndpointData {

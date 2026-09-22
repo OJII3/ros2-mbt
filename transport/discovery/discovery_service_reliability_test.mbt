@@ -38,8 +38,8 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
   ).unwrap()
   remote_participant.add_metatraffic_unicast(receiver_locator)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let service = DiscoveryService::new(
-    DiscoverySession::new(
+  let service = @discovery.DiscoveryService::new(
+    @discovery.DiscoverySession::new(
       sender,
       local_participant,
       spdp_reader,
@@ -49,15 +49,13 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
     ).unwrap(),
   )
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(local_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   service.announce_sedp_once(endpoint, remote_participant).unwrap()
-  let (initial_data, _) = receiver
-    .receive_sedp(@rtps.SedpEndpointKind::Publication)
-    .unwrap()
+  let (initial_data, _) = receiver.receive_sedp(Publication).unwrap()
   assert_eq(initial_data.topic_name(), "rt/chatter")
   ignore(receiver.receive_heartbeat().unwrap())
   let acknack = @rtps.AckNackSubmessage::new(
@@ -86,16 +84,12 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
   )
   .unwrap()
   match service.receive_once().unwrap().1 {
-    @wire.DiscoveryEvent::Participant(participant) =>
+    Participant(participant) =>
       assert_eq(participant.participant_guid().prefix(), remote_prefix)
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected the follow-up SPDP event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected the follow-up SPDP event")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected the follow-up SPDP event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected the follow-up SPDP event")
+    Publication(_) => fail("expected the follow-up SPDP event")
+    Subscription(_) => fail("expected the follow-up SPDP event")
+    EndpointRemoved(_, _) => fail("expected the follow-up SPDP event")
+    ParticipantRemoved(_) => fail("expected the follow-up SPDP event")
   }
   let (retransmitted_message, _) = receiver.receive_message().unwrap()
   assert_eq(
@@ -107,7 +101,7 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
   ).unwrap()
   assert_eq(retransmitted.writer_sequence_number(), 1L)
   let decoded = @rtps.SedpEndpointData::from_data_submessage(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     retransmitted,
   ).unwrap()
   assert_eq(decoded.topic_name(), "rt/chatter")

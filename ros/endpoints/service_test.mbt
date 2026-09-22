@@ -4,7 +4,7 @@ test "Cyclone DDS service payload header round trips" {
   body_writer.write_i64(2L)
   body_writer.write_i64(3L)
   let client_id = 9L.reinterpret_as_uint64()
-  let header = RosServicePayloadHeader::new(client_id, 12L)
+  let header = @endpoints.RosServicePayloadHeader::new(client_id, 12L)
   let encoded = header.to_cdr_payload(body_writer.to_bytes()).unwrap()
   assert_eq(encoded.length(), 36)
   assert_eq(encoded[0], 0)
@@ -12,7 +12,9 @@ test "Cyclone DDS service payload header round trips" {
   assert_eq(encoded[4], 9)
   assert_eq(encoded[12], 12)
   assert_eq(encoded[20], 2)
-  let (decoded_header, decoded_body) = ros_service_payload_from_cdr(encoded).unwrap()
+  let (decoded_header, decoded_body) = @endpoints.ros_service_payload_from_cdr(
+    encoded,
+  ).unwrap()
   assert_eq(decoded_header, header)
   assert_eq(decoded_body, body_writer.to_bytes())
 }
@@ -20,7 +22,9 @@ test "Cyclone DDS service payload header round trips" {
 ///|
 test "ROS service descriptor maps request and response endpoints" {
   let service = match
-    RosService::new("/add_two_ints", "example_interfaces", "AddTwoInts") {
+    @endpoints.RosService::new(
+      "/add_two_ints", "example_interfaces", "AddTwoInts",
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -45,10 +49,7 @@ test "ROS service descriptor maps request and response endpoints" {
     Err(message) => fail(message)
   }
   let request = match
-    service.request_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, endpoint_id),
-    ) {
+    service.request_to_sedp(Publication, @rtps.Guid::new(prefix, endpoint_id)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -64,10 +65,7 @@ test "ROS service descriptor maps request and response endpoints" {
   assert_eq(request_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
   assert_eq(request_qos.depth(), 10)
   let response = match
-    service.response_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
-      @rtps.Guid::new(prefix, endpoint_id),
-    ) {
+    service.response_to_sedp(Subscription, @rtps.Guid::new(prefix, endpoint_id)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -80,7 +78,7 @@ test "ROS service descriptor maps request and response endpoints" {
 
 ///|
 test "ROS service rejects incompatible QoS" {
-  let service = match RosService::new("/service", "pkg", "Type") {
+  let service = match @endpoints.RosService::new("/service", "pkg", "Type") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -95,7 +93,7 @@ test "ROS service rejects incompatible QoS" {
   }
   assert_true(
     service.request_to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, endpoint_id),
       @rtps.SedpQos::new(
         @rtps.RELIABILITY_BEST_EFFORT,
@@ -110,7 +108,7 @@ test "ROS service rejects incompatible QoS" {
 
 ///|
 test "ROS service SEDP links request and response endpoints" {
-  let service = RosService::new(
+  let service = @endpoints.RosService::new(
     "/add_two_ints", "example_interfaces", "AddTwoInts",
   ).unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
@@ -122,24 +120,24 @@ test "ROS service SEDP links request and response endpoints" {
   let response_guid = @rtps.Guid::new(prefix, response_id)
   let request = service
     .request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       request_guid,
       response_guid,
     )
     .unwrap()
   let response = service
     .response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       response_guid,
       request_guid,
     )
     .unwrap()
   let decoded_request = @rtps.SedpEndpointData::from_cdr_bytes(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     request.to_cdr_bytes().unwrap(),
   ).unwrap()
   let decoded_response = @rtps.SedpEndpointData::from_cdr_bytes(
-    @rtps.SedpEndpointKind::Subscription,
+    Subscription,
     response.to_cdr_bytes().unwrap(),
   ).unwrap()
   let request_parameters = decoded_request.to_parameter_list().unwrap().values()
@@ -165,7 +163,7 @@ test "ROS service SEDP links request and response endpoints" {
 
 ///|
 test "ROS service SEDP can advertise request and response type hashes" {
-  let service = RosService::new(
+  let service = @endpoints.RosService::new(
     "/add_two_ints", "example_interfaces", "AddTwoInts",
   ).unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
@@ -183,7 +181,7 @@ test "ROS service SEDP can advertise request and response type hashes" {
   let response_hash = "RIHS01_response_hash"
   let request = service
     .request_to_sedp_with_qos_and_type_hash(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       request_guid,
       @rtps.SedpQos::new(
         @rtps.RELIABILITY_RELIABLE,
@@ -196,7 +194,7 @@ test "ROS service SEDP can advertise request and response type hashes" {
     .unwrap()
   let response = service
     .response_to_sedp_with_qos_and_type_hash(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       response_guid,
       @rtps.SedpQos::new(
         @rtps.RELIABILITY_RELIABLE,

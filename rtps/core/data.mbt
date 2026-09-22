@@ -48,6 +48,12 @@ pub struct DataSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend DataSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend DataSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a DATA submessage carrying a serialized payload and no inline QoS.
 pub fn DataSubmessage::new(
   reader_id : EntityId,
@@ -136,31 +142,37 @@ pub fn DataSubmessage::with_status_info(
 }
 
 ///|
+/// Return the DATA submessage flags.
 pub fn DataSubmessage::flags(self : DataSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the reader entity ID.
 pub fn DataSubmessage::reader_id(self : DataSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the writer entity ID.
 pub fn DataSubmessage::writer_id(self : DataSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the writer sequence number.
 pub fn DataSubmessage::writer_sequence_number(self : DataSubmessage) -> Int64 {
   self.writer_sequence_number
 }
 
 ///|
+/// Return the inline QoS parameter bytes.
 pub fn DataSubmessage::inline_qos(self : DataSubmessage) -> Bytes {
   self.inline_qos
 }
 
 ///|
+/// Return the serialized payload bytes.
 pub fn DataSubmessage::serialized_payload(self : DataSubmessage) -> Bytes {
   self.serialized_payload
 }
@@ -294,7 +306,7 @@ pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
 ///|
 /// Wrap the DATA body in an RTPS submessage.
 pub fn DataSubmessage::to_submessage(self : DataSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::Data, self.flags, self.to_payload())
+  Submessage::new(Data, self.flags, self.to_payload())
 }
 
 ///|
@@ -342,7 +354,7 @@ fn data_inline_qos_from_bytes(
 pub fn DataSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[DataSubmessage, String] {
-  if submessage.id != SubmessageId::Data {
+  if submessage.id != Data {
     return Err("expected an RTPS DATA submessage")
   }
   if submessage.payload.length() < DATA_FIXED_BODY_LENGTH {

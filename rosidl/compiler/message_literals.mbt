@@ -39,21 +39,17 @@ fn rosidl_field_default_literal(
   value : String,
 ) -> Result[String, String] {
   match collection {
-    MessageFieldCollection::Scalar =>
+    Scalar =>
       rosidl_field_scalar_default_literal(type_name, string_upper_bound, value)
-    MessageFieldCollection::FixedArray(_)
-    | MessageFieldCollection::Sequence
-    | MessageFieldCollection::BoundedSequence(_) => {
+    FixedArray(_) | Sequence | BoundedSequence(_) => {
       let elements = match rosidl_array_default_elements(type_name, value) {
         Ok(value) => value
         Err(message) => return Err(message)
       }
       match collection {
-        MessageFieldCollection::FixedArray(expected) if elements.length() !=
-          expected =>
+        FixedArray(expected) if elements.length() != expected =>
           return Err("ROS fixed-array defaults must match the declared length")
-        MessageFieldCollection::BoundedSequence(maximum) if elements.length() >
-          maximum =>
+        BoundedSequence(maximum) if elements.length() > maximum =>
           return Err("ROS bounded-sequence defaults exceed their bound")
         _ => ()
       }

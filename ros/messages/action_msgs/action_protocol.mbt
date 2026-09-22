@@ -3,21 +3,27 @@
 pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
 
 ///|
+/// Goal status for an accepted goal.
 pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
 
 ///|
+/// Goal status for a goal currently executing.
 pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
 
 ///|
+/// Goal status for a goal being canceled.
 pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
 
 ///|
+/// Goal status for a successfully completed goal.
 pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
 
 ///|
+/// Goal status for a canceled goal.
 pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
 
 ///|
+/// Goal status for an aborted goal.
 pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
 
 ///|
@@ -29,6 +35,7 @@ pub struct RosActionGoalInfo {
 } derive(Eq, Debug)
 
 ///|
+/// Create action goal information.
 pub fn RosActionGoalInfo::new(
   goal_id : Bytes,
   stamp_sec : Int,
@@ -41,16 +48,19 @@ pub fn RosActionGoalInfo::new(
 }
 
 ///|
+/// Return the action goal identifier.
 pub fn RosActionGoalInfo::goal_id(self : RosActionGoalInfo) -> Bytes {
   self.goal_id
 }
 
 ///|
+/// Return the goal timestamp seconds.
 pub fn RosActionGoalInfo::stamp_sec(self : RosActionGoalInfo) -> Int {
   self.stamp_sec
 }
 
 ///|
+/// Return the goal timestamp nanoseconds.
 pub fn RosActionGoalInfo::stamp_nanosec(self : RosActionGoalInfo) -> UInt {
   self.stamp_nanosec
 }
@@ -63,6 +73,7 @@ pub struct RosActionGoalStatus {
 } derive(Eq, Debug)
 
 ///|
+/// Create a goal status value.
 pub fn RosActionGoalStatus::new(
   goal_info : RosActionGoalInfo,
   status : Int,
@@ -74,6 +85,7 @@ pub fn RosActionGoalStatus::new(
 }
 
 ///|
+/// Return the goal information.
 pub fn RosActionGoalStatus::goal_info(
   self : RosActionGoalStatus,
 ) -> RosActionGoalInfo {
@@ -81,6 +93,7 @@ pub fn RosActionGoalStatus::goal_info(
 }
 
 ///|
+/// Return the goal status code.
 pub fn RosActionGoalStatus::status(self : RosActionGoalStatus) -> Int {
   self.status
 }
@@ -100,6 +113,7 @@ pub struct RosActionGoalStatusArray {
 } derive(Eq, Debug)
 
 ///|
+/// Create an action goal status array.
 pub fn RosActionGoalStatusArray::new(
   status_list : Array[RosActionGoalStatus],
 ) -> RosActionGoalStatusArray {
@@ -107,6 +121,7 @@ pub fn RosActionGoalStatusArray::new(
 }
 
 ///|
+/// Return the goal status entries.
 pub fn RosActionGoalStatusArray::status_list(
   self : RosActionGoalStatusArray,
 ) -> Array[RosActionGoalStatus] {
@@ -168,6 +183,7 @@ pub struct RosCancelGoalRequest {
 } derive(Eq, Debug)
 
 ///|
+/// Create a CancelGoal request.
 pub fn RosCancelGoalRequest::new(
   goal_info : RosActionGoalInfo,
 ) -> RosCancelGoalRequest {
@@ -175,6 +191,7 @@ pub fn RosCancelGoalRequest::new(
 }
 
 ///|
+/// Return the CancelGoal request goal information.
 pub fn RosCancelGoalRequest::goal_info(
   self : RosCancelGoalRequest,
 ) -> RosActionGoalInfo {
@@ -216,6 +233,39 @@ pub struct RosCancelGoalResponse {
 } derive(Eq, Debug)
 
 ///|
+pub extend RosActionGoalInfo with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosActionGoalStatus with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosActionGoalStatusArray with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalStatusArray with @moonbitlang/core/debug.Debug::{
+  to_repr,
+}
+
+///|
+pub extend RosCancelGoalRequest with Eq::{not_equal, equal}
+
+///|
+pub extend RosCancelGoalRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosCancelGoalResponse with Eq::{not_equal, equal}
+
+///|
+pub extend RosCancelGoalResponse with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Create a CancelGoal response.
 pub fn RosCancelGoalResponse::new(
   return_code : Int,
   goals_canceling : Array[RosActionGoalInfo],
@@ -227,11 +277,13 @@ pub fn RosCancelGoalResponse::new(
 }
 
 ///|
+/// Return the CancelGoal response code.
 pub fn RosCancelGoalResponse::return_code(self : RosCancelGoalResponse) -> Int {
   self.return_code
 }
 
 ///|
+/// Return the goals that are being canceled.
 pub fn RosCancelGoalResponse::goals_canceling(
   self : RosCancelGoalResponse,
 ) -> Array[RosActionGoalInfo] {

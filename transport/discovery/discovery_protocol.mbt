@@ -16,7 +16,7 @@ async fn DiscoverySession::decode_message(
   let events : Array[@wire.DiscoveryEvent] = []
   for submessage in message.submessages() {
     match submessage.id() {
-      @rtps.SubmessageId::Data => {
+      Data => {
         if (submessage.flags() & (@rtps.DATA_FLAG_DATA | @rtps.DATA_FLAG_KEY)) ==
           0x00 {
           continue
@@ -50,7 +50,7 @@ async fn DiscoverySession::decode_message(
           }
         }
       }
-      @rtps.SubmessageId::DataFrag => {
+      DataFrag => {
         let fragment = match
           @rtps.DataFragSubmessage::from_submessage(submessage) {
           Ok(value) => value
@@ -112,7 +112,7 @@ async fn DiscoverySession::decode_message(
           }
         }
       }
-      @rtps.SubmessageId::Heartbeat => {
+      Heartbeat => {
         let heartbeat = match
           @rtps.HeartbeatSubmessage::from_submessage(submessage) {
           Ok(value) => value
@@ -143,7 +143,7 @@ async fn DiscoverySession::decode_message(
           }
         }
       }
-      @rtps.SubmessageId::HeartbeatFrag => {
+      HeartbeatFrag => {
         let heartbeat = match
           @rtps.HeartbeatFragSubmessage::from_submessage(submessage) {
           Ok(value) => value
@@ -160,7 +160,7 @@ async fn DiscoverySession::decode_message(
           Err(message) => return Err(message)
         }
       }
-      @rtps.SubmessageId::Gap => {
+      Gap => {
         let gap = match @rtps.GapSubmessage::from_submessage(submessage) {
           Ok(value) => value
           Err(_) => continue
@@ -179,7 +179,7 @@ async fn DiscoverySession::decode_message(
           self.record_sedp_gap(message.header().guid_prefix(), gap)
         }
       }
-      @rtps.SubmessageId::AckNack => {
+      AckNack => {
         let acknack = match
           @rtps.AckNackSubmessage::from_submessage(submessage) {
           Ok(value) => value

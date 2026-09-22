@@ -23,7 +23,7 @@ async fn discover_subscription(
       None => quiet_periods += 1
       Some(Ok((_, event))) => {
         match event {
-          @transport.DiscoveryEvent::Subscription(subscription) =>
+          Subscription(subscription) =>
             if subscription.topic_name() == topic.dds_name() &&
               subscription.type_name() == topic.dds_type_name() {
               remote_subscription = Some(subscription)
@@ -230,7 +230,7 @@ async fn main {
   match
     participant.register_topic_endpoint_with_type_hash(
       topic,
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       writer_id,
       qos,
       @ros.STD_MSGS_STRING_TYPE_HASH,

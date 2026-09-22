@@ -65,9 +65,9 @@ pub fn ros_discovery_info_to_sedp(
     @rtps.qos_data_representation([@rtps.DATA_REPRESENTATION_XCDR1]),
   )
   match kind {
-    @rtps.SedpEndpointKind::Publication =>
+    Publication =>
       endpoint.add_parameter(@rtps.qos_history(@rtps.HISTORY_KEEP_LAST, 1))
-    @rtps.SedpEndpointKind::Subscription =>
+    Subscription =>
       endpoint.add_parameter(@rtps.qos_history(@rtps.HISTORY_KEEP_ALL, 1))
   }
   endpoint.add_parameter(

@@ -16,6 +16,12 @@ pub struct InfoTimestampSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend InfoTimestampSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend InfoTimestampSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian INFO_TS with a valid timestamp.
 pub fn InfoTimestampSubmessage::new(
   seconds : Int,
@@ -36,16 +42,19 @@ pub fn InfoTimestampSubmessage::invalid() -> InfoTimestampSubmessage {
 }
 
 ///|
+/// Return the INFO_TS flags.
 pub fn InfoTimestampSubmessage::flags(self : InfoTimestampSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the timestamp seconds.
 pub fn InfoTimestampSubmessage::seconds(self : InfoTimestampSubmessage) -> Int {
   self.seconds
 }
 
 ///|
+/// Return the timestamp fractional seconds.
 pub fn InfoTimestampSubmessage::fraction(
   self : InfoTimestampSubmessage,
 ) -> UInt {
@@ -53,6 +62,7 @@ pub fn InfoTimestampSubmessage::fraction(
 }
 
 ///|
+/// Return whether the timestamp is valid.
 pub fn InfoTimestampSubmessage::is_valid(
   self : InfoTimestampSubmessage,
 ) -> Bool {
@@ -121,7 +131,7 @@ pub fn InfoTimestampSubmessage::to_payload(
 pub fn InfoTimestampSubmessage::to_submessage(
   self : InfoTimestampSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::InfoTimestamp, self.flags, self.to_payload())
+  Submessage::new(InfoTimestamp, self.flags, self.to_payload())
 }
 
 ///|
@@ -141,7 +151,7 @@ pub fn InfoTimestampSubmessage::to_message(
 pub fn InfoTimestampSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[InfoTimestampSubmessage, String] {
-  if submessage.id() != SubmessageId::InfoTimestamp {
+  if submessage.id() != InfoTimestamp {
     return Err("expected an RTPS INFO_TS submessage")
   }
   let invalidate = (submessage.flags() & INFO_TIMESTAMP_FLAG_INVALIDATE) != 0

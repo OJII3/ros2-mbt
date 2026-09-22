@@ -77,31 +77,37 @@ pub fn RosAction::new(
 }
 
 ///|
+/// Return the ROS action name.
 pub fn RosAction::ros_name(self : RosAction) -> String {
   self.ros_name
 }
 
 ///|
+/// Return the send-goal service descriptor.
 pub fn RosAction::send_goal_service(self : RosAction) -> RosService {
   self.send_goal_service
 }
 
 ///|
+/// Return the get-result service descriptor.
 pub fn RosAction::get_result_service(self : RosAction) -> RosService {
   self.get_result_service
 }
 
 ///|
+/// Return the cancel-goal service descriptor.
 pub fn RosAction::cancel_goal_service(self : RosAction) -> RosService {
   self.cancel_goal_service
 }
 
 ///|
+/// Return the feedback topic descriptor.
 pub fn RosAction::feedback_topic(self : RosAction) -> RosTopic {
   self.feedback_topic
 }
 
 ///|
+/// Return the status topic descriptor.
 pub fn RosAction::status_topic(self : RosAction) -> RosTopic {
   self.status_topic
 }
