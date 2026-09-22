@@ -113,7 +113,7 @@ async test "reliable writer directs discovered endpoint traffic" {
     receiver.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   let subscription = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Subscription,
+    Subscription,
     @rtps.Guid::new(remote_prefix, reader_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -343,7 +343,7 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, endpoint_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
