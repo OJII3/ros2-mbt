@@ -287,9 +287,11 @@ pub struct Quaternion {
 } derive(Eq, Debug)
 
 ///|
+/// Type hash for `geometry_msgs/msg/Quaternion`.
 pub const Quaternion_TYPE_HASH : String = "RIHS01_8a765f66778c8ff7c8ab94afcc590a2ed5325a1d9a076ffff38fbce36f458684"
 
 ///|
+/// Create a quaternion.
 pub fn Quaternion::new(
   x : Double,
   y : Double,
@@ -300,6 +302,7 @@ pub fn Quaternion::new(
 }
 
 ///|
+/// Create the identity quaternion.
 pub fn Quaternion::default() -> Quaternion {
   let x : Double = 0.0
   let y : Double = 0.0
@@ -309,26 +312,31 @@ pub fn Quaternion::default() -> Quaternion {
 }
 
 ///|
+/// Return the quaternion x component.
 pub fn Quaternion::x(self : Quaternion) -> Double {
   self.x
 }
 
 ///|
+/// Return the quaternion y component.
 pub fn Quaternion::y(self : Quaternion) -> Double {
   self.y
 }
 
 ///|
+/// Return the quaternion z component.
 pub fn Quaternion::z(self : Quaternion) -> Double {
   self.z
 }
 
 ///|
+/// Return the quaternion w component.
 pub fn Quaternion::w(self : Quaternion) -> Double {
   self.w
 }
 
 ///|
+/// Serialize the quaternion as ROS 2 CDR.
 pub fn Quaternion::write_cdr(
   self : Quaternion,
   writer : @cdr.Writer,
@@ -341,6 +349,7 @@ pub fn Quaternion::write_cdr(
 }
 
 ///|
+/// Parse a quaternion from ROS 2 CDR.
 pub fn Quaternion::read_cdr(reader : @cdr.Reader) -> Result[Quaternion, String] {
   let x = match reader.read_f64() {
     Ok(value) => value
@@ -362,6 +371,7 @@ pub fn Quaternion::read_cdr(reader : @cdr.Reader) -> Result[Quaternion, String] 
 }
 
 ///|
+/// Serialize the quaternion as CDR bytes.
 pub fn Quaternion::to_cdr_bytes(self : Quaternion) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -372,6 +382,7 @@ pub fn Quaternion::to_cdr_bytes(self : Quaternion) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a quaternion from CDR bytes.
 pub fn Quaternion::from_cdr_bytes(input : Bytes) -> Result[Quaternion, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
