@@ -111,7 +111,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   let publication = match
     @ros.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(publisher_prefix, publisher_id),
     ) {
     Ok(value) => value
@@ -119,7 +119,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   let subscription = match
     @ros.ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(subscriber_prefix, subscriber_id),
     ) {
     Ok(value) => value
