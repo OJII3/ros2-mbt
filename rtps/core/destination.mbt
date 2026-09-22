@@ -10,6 +10,14 @@ pub struct InfoDestinationSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend InfoDestinationSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend InfoDestinationSubmessage with @moonbitlang/core/debug.Debug::{
+  to_repr,
+}
+
+///|
 /// Create a little-endian INFO_DST submessage.
 pub fn InfoDestinationSubmessage::new(
   guid_prefix : GuidPrefix,
