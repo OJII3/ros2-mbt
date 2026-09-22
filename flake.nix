@@ -10,8 +10,8 @@
     nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/master";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";
     moonbit-overlay.url = "github:moonbit-community/moonbit-overlay";
-    moon-nix = {
-      url = "github:moonbit-community/moon-nix";
+    moon2nix = {
+      url = "github:moonbit-community/moon2nix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.moonbit-overlay.follows = "moonbit-overlay";
     };
@@ -36,12 +36,12 @@
             ];
           };
           moonbit = pkgs.moonbit-bin.moonbit.latest;
-          moonNix = inputs.moon-nix.lib.mkMoonNix {
+          moon2nix = inputs.moon2nix.lib.mkMoon2Nix {
             inherit pkgs;
             toolchain = moonbit;
           };
           ros2-mbt = pkgs.callPackage ./nix/ros2-mbt.nix {
-            inherit moonNix;
+            inherit moon2nix;
             moonRegistryIndex = inputs.moon-registry;
           };
         in

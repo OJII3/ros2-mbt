@@ -36,29 +36,6 @@
         "type": "github"
       }
     },
-    "moon-nix": {
-      "inputs": {
-        "moonbit-overlay": [
-          "moonbit-overlay"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1790086550,
-        "narHash": "sha256-Nh/5vg/BIAVGZjwHvG/2chp7b2mc0qPA+r/HirVH7w8=",
-        "owner": "moonbit-community",
-        "repo": "moon-nix",
-        "rev": "8dd641350f27d2c9337f241c5b06345728b904f9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "moonbit-community",
-        "repo": "moon-nix",
-        "type": "github"
-      }
-    },
     "moon-registry": {
       "flake": false,
       "locked": {
@@ -73,6 +50,29 @@
       "original": {
         "type": "git",
         "url": "https://mooncakes.io/git/index"
+      }
+    },
+    "moon2nix": {
+      "inputs": {
+        "moonbit-overlay": [
+          "moonbit-overlay"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790106536,
+        "narHash": "sha256-4PLtcvtHUgo1zDSTpFvWr++wtjqK7MutmbUcQdZT9NU=",
+        "owner": "moonbit-community",
+        "repo": "moon2nix",
+        "rev": "2aedf357c4ae945e121c03a4cb56ac86e9edbee2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "moonbit-community",
+        "repo": "moon2nix",
+        "type": "github"
       }
     },
     "moonbit-overlay": {
@@ -165,8 +165,8 @@
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
-        "moon-nix": "moon-nix",
         "moon-registry": "moon-registry",
+        "moon2nix": "moon2nix",
         "moonbit-overlay": "moonbit-overlay",
         "nix-ros-overlay": "nix-ros-overlay",
         "nixpkgs": [

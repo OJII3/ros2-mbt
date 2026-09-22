@@ -1,10 +1,10 @@
 {
   lib,
-  moonNix,
+  moon2nix,
   moonRegistryIndex,
 }:
 
-moonNix.buildMoonPackage {
+moon2nix.buildMoonPackage {
   name = "ros2-mbt";
   version = "0.1.0";
 
