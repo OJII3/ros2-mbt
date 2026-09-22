@@ -48,6 +48,12 @@ pub struct DataSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend DataSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend DataSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a DATA submessage carrying a serialized payload and no inline QoS.
 pub fn DataSubmessage::new(
   reader_id : EntityId,
