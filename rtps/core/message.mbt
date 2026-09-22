@@ -46,7 +46,7 @@ pub fn Message::destination_guid_prefix(
 ) -> Result[GuidPrefix?, String] {
   let mut destination : GuidPrefix? = None
   for submessage in self.submessages {
-    if submessage.id() != SubmessageId::InfoDestination {
+    if submessage.id() != InfoDestination {
       continue
     }
     let info = match InfoDestinationSubmessage::from_submessage(submessage) {
@@ -85,7 +85,7 @@ pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
         }
         let encoded_padding = match
           Submessage::new(
-            SubmessageId::Pad,
+            Pad,
             SUBMESSAGE_FLAG_LITTLE_ENDIAN,
             Bytes::from_array(padding),
           ).to_bytes() {
