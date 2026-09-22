@@ -60,7 +60,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   }
   subscription.add_unicast_locator(receiver_locator)
   assert_true(
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       other_topic,
       sender,
       prefix,
@@ -87,7 +87,7 @@ async test "ROS publisher and subscription validate the topic identity" {
   }
   reliable_subscription.add_unicast_locator(receiver_locator)
   assert_true(
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       topic,
       sender,
       prefix,
@@ -159,7 +159,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
   }
   subscription.add_unicast_locator(receiver_locator)
   let publisher = match
-    RosPublisher::new_for_subscription(
+    @ros.RosPublisher::new_for_subscription(
       topic,
       sender,
       prefix,
@@ -172,7 +172,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Err(message) => fail(message)
   }
   let subscriber = match
-    RosSubscription::new_for_publication(
+    @ros.RosSubscription::new_for_publication(
       topic, receiver, reader_id, publication,
     ) {
     Ok(value) => value
