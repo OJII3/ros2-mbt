@@ -19,6 +19,12 @@ pub struct Locator {
 } derive(Eq, Debug)
 
 ///|
+pub extend Locator with Eq::{not_equal, equal}
+
+///|
+pub extend Locator with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a locator from its wire-format fields.
 pub fn Locator::new(
   kind : Int,
