@@ -59,7 +59,7 @@ fn data_reader_for_publication(
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[DataReader, String] {
-  if publication.kind() != @rtps.SedpEndpointKind::Publication {
+  if publication.kind() != Publication {
     return Err("a DataReader target must be an SEDP publication")
   }
   Ok({
@@ -97,7 +97,7 @@ pub async fn DataReader::receive(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::Data => {
+        Data => {
           let data = match @rtps.DataSubmessage::from_submessage(submessage) {
             Ok(value) => value
             Err(message) => return Err(message)
@@ -119,7 +119,7 @@ pub async fn DataReader::receive(
             Err(_) => continue
           }
         }
-        @rtps.SubmessageId::DataFrag => {
+        DataFrag => {
           let fragment = match
             @rtps.DataFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
