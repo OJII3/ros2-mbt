@@ -128,7 +128,7 @@ pub fn ReliableDataWriter::new_for_subscription(
   subscription : @rtps.SedpEndpointData,
   first_sequence_number : Int64,
 ) -> Result[ReliableDataWriter, String] {
-  if subscription.kind() != @rtps.SedpEndpointKind::Subscription {
+  if subscription.kind() != Subscription {
     return Err("a reliable writer target must be an SEDP subscription")
   }
   let unicast_locators = subscription.unicast_locators()
@@ -620,7 +620,7 @@ pub async fn ReliableDataWriter::receive_acknack(
       Err(_) => continue
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::AckNack ||
+      if submessage.id() != AckNack ||
         !self.acknack_targets(message, submessage) {
         continue
       }
@@ -663,7 +663,7 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       Err(_) => continue
     }
     for submessage in message.submessages() {
-      if submessage.id() != @rtps.SubmessageId::NackFrag {
+      if submessage.id() != NackFrag {
         continue
       }
       let nackfrag = match
@@ -710,7 +710,7 @@ pub async fn ReliableDataWriter::receive_control(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::AckNack => {
+        AckNack => {
           if !self.acknack_targets(message, submessage) {
             continue
           }
@@ -733,7 +733,7 @@ pub async fn ReliableDataWriter::receive_control(
             Err(message) => return Err(message)
           }
         }
-        @rtps.SubmessageId::NackFrag => {
+        NackFrag => {
           let nackfrag = match
             @rtps.NackFragSubmessage::from_submessage(submessage) {
             Ok(value) => value
