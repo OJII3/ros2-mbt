@@ -216,6 +216,38 @@ pub struct RosCancelGoalResponse {
 } derive(Eq, Debug)
 
 ///|
+pub extend RosActionGoalInfo with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosActionGoalStatus with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosActionGoalStatusArray with Eq::{not_equal, equal}
+
+///|
+pub extend RosActionGoalStatusArray with @moonbitlang/core/debug.Debug::{
+  to_repr,
+}
+
+///|
+pub extend RosCancelGoalRequest with Eq::{not_equal, equal}
+
+///|
+pub extend RosCancelGoalRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RosCancelGoalResponse with Eq::{not_equal, equal}
+
+///|
+pub extend RosCancelGoalResponse with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn RosCancelGoalResponse::new(
   return_code : Int,
   goals_canceling : Array[RosActionGoalInfo],
