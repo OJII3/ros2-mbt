@@ -42,16 +42,19 @@ pub fn InfoTimestampSubmessage::invalid() -> InfoTimestampSubmessage {
 }
 
 ///|
+/// Return the INFO_TS flags.
 pub fn InfoTimestampSubmessage::flags(self : InfoTimestampSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the timestamp seconds.
 pub fn InfoTimestampSubmessage::seconds(self : InfoTimestampSubmessage) -> Int {
   self.seconds
 }
 
 ///|
+/// Return the timestamp fractional seconds.
 pub fn InfoTimestampSubmessage::fraction(
   self : InfoTimestampSubmessage,
 ) -> UInt {
@@ -59,6 +62,7 @@ pub fn InfoTimestampSubmessage::fraction(
 }
 
 ///|
+/// Return whether the timestamp is valid.
 pub fn InfoTimestampSubmessage::is_valid(
   self : InfoTimestampSubmessage,
 ) -> Bool {
