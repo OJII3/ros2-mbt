@@ -42,7 +42,7 @@ async test "reliable ROS service client and server correlate a response" {
   let server_response_guid = @rtps.Guid::new(server_prefix, server_response_id)
   let client_request_publication = match
     service.request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       client_request_guid,
       client_response_guid,
     ) {
@@ -54,7 +54,7 @@ async test "reliable ROS service client and server correlate a response" {
   )
   let server_request_subscription = match
     service.request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       server_request_guid,
       server_response_guid,
     ) {
@@ -66,7 +66,7 @@ async test "reliable ROS service client and server correlate a response" {
   )
   let server_response_publication = match
     service.response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       server_response_guid,
       server_request_guid,
     ) {
@@ -78,7 +78,7 @@ async test "reliable ROS service client and server correlate a response" {
   )
   let client_response_subscription = match
     service.response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       client_response_guid,
       client_request_guid,
     ) {
@@ -204,7 +204,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   let server_response_guid = @rtps.Guid::new(server_prefix, server_response_id)
   let client_request = service
     .request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       client_request_guid,
       client_response_guid,
     )
@@ -214,7 +214,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   )
   let server_request = service
     .request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       server_request_guid,
       server_response_guid,
     )
@@ -224,7 +224,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   )
   let server_response = service
     .response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       server_response_guid,
       server_request_guid,
     )
@@ -234,7 +234,7 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   )
   let client_response = service
     .response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       client_response_guid,
       client_request_guid,
     )
@@ -288,14 +288,14 @@ async test "ROS service rejects mismatched related endpoint metadata" {
   let wrong_response_guid = @rtps.Guid::new(prefix, wrong_response_id)
   let request = service
     .request_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       request_guid,
       wrong_response_guid,
     )
     .unwrap()
   let response = service
     .response_to_sedp_with_related_endpoint(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       response_guid,
       request_guid,
     )
