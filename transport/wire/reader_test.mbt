@@ -28,10 +28,10 @@ async test "best-effort reader accepts its discovered publication" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let reader = match
-    DataReader::new_for_publication_with_prefix(
+    @wire.DataReader::new_for_publication_with_prefix(
       receiver, prefix, reader_id, publication,
     ) {
     Ok(value) => value
@@ -129,9 +129,11 @@ async test "best-effort reader accepts DATA with an unknown reader ID" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let reader = DataReader::new_for_publication(receiver, reader_id, publication).unwrap()
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let reader = @wire.DataReader::new_for_publication(
+    receiver, reader_id, publication,
+  ).unwrap()
   sender
   .send_data(
     @rtps.DataSubmessage::new(
@@ -164,9 +166,11 @@ async test "best-effort reader reassembles DATA_FRAG over UDP" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let reader = DataReader::new_for_publication(receiver, reader_id, publication).unwrap()
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let reader = @wire.DataReader::new_for_publication(
+    receiver, reader_id, publication,
+  ).unwrap()
   let fragments = [
     @rtps.DataFragSubmessage::new(
       reader_id,
