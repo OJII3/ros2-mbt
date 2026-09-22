@@ -39,13 +39,13 @@ async test "discovery service ingests received participant events" {
   let receiver_address = receiver.local_addr()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       receiver, participant, reader_id, writer_id, receiver_address, 1L,
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   match
     sender.send_spdp(participant, reader_id, writer_id, 1L, receiver_address) {
     Ok(_) => ()
@@ -103,10 +103,10 @@ async test "discovery service resolves unspecified SEDP endpoint locators" {
   ).unwrap()
   let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = socket.local_addr()
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, participant_id, receiver_address, 1L,
   ).unwrap()
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   sender
   .send_spdp(
@@ -185,10 +185,10 @@ async test "discovery service expires participants after the SPDP lease" {
   let writer_id = participant_entity
   let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let receiver_address = socket.local_addr()
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, writer_id, receiver_address, 1L,
   ).unwrap()
-  let service = DiscoveryService::new(session)
+  let service = @discovery.DiscoveryService::new(session)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   sender
   .send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)
