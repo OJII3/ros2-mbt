@@ -23,7 +23,10 @@ fn discovery_topic_test_parameter(
 ///|
 test "ROS discovery topic uses the standard DDS identity and writer QoS" {
   let endpoint = match
-    ros_discovery_info_to_sedp(Publication, discovery_topic_test_guid(0xC2)) {
+    @discovery.ros_discovery_info_to_sedp(
+      Publication,
+      discovery_topic_test_guid(0xC2),
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -32,7 +35,10 @@ test "ROS discovery topic uses the standard DDS identity and writer QoS" {
     endpoint.type_name(),
     "rmw_dds_common::msg::dds_::ParticipantEntitiesInfo_",
   )
-  assert_eq(endpoint.type_hash(), Ok(Some(ROS_DISCOVERY_INFO_TYPE_HASH)))
+  assert_eq(
+    endpoint.type_hash(),
+    Ok(Some(@discovery.ROS_DISCOVERY_INFO_TYPE_HASH)),
+  )
   assert_eq(
     discovery_topic_test_parameter(endpoint, @rtps.PID_RELIABILITY).value(),
     b"\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
@@ -54,7 +60,10 @@ test "ROS discovery topic uses the standard DDS identity and writer QoS" {
 ///|
 test "ROS discovery topic uses keep-all for the reader" {
   let endpoint = match
-    ros_discovery_info_to_sedp(Subscription, discovery_topic_test_guid(0xC7)) {
+    @discovery.ros_discovery_info_to_sedp(
+      Subscription,
+      discovery_topic_test_guid(0xC7),
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
