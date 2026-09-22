@@ -7,26 +7,31 @@ pub struct Vector3 {
 } derive(Eq, Debug)
 
 ///|
+/// Create a 3D vector.
 pub fn Vector3::new(x : Double, y : Double, z : Double) -> Vector3 {
   { x, y, z, }
 }
 
 ///|
+/// Create a zero vector.
 pub fn Vector3::default() -> Vector3 {
   Vector3::new(0.0, 0.0, 0.0)
 }
 
 ///|
+/// Return the vector x component.
 pub fn Vector3::x(self : Vector3) -> Double {
   self.x
 }
 
 ///|
+/// Return the vector y component.
 pub fn Vector3::y(self : Vector3) -> Double {
   self.y
 }
 
 ///|
+/// Return the vector z component.
 pub fn Vector3::z(self : Vector3) -> Double {
   self.z
 }
