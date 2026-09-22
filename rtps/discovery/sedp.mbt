@@ -27,9 +27,9 @@ pub fn SedpEndpointKind::builtin_reader_id(
   self : SedpEndpointKind,
 ) -> @core.EntityId {
   match self {
-    SedpEndpointKind::Publication =>
+    Publication =>
       @core.EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_READER).unwrap()
-    SedpEndpointKind::Subscription =>
+    Subscription =>
       @core.EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_READER).unwrap()
   }
 }
@@ -40,9 +40,9 @@ pub fn SedpEndpointKind::builtin_writer_id(
   self : SedpEndpointKind,
 ) -> @core.EntityId {
   match self {
-    SedpEndpointKind::Publication =>
+    Publication =>
       @core.EntityId::new(b"\x00\x00\x03", ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap()
-    SedpEndpointKind::Subscription =>
+    Subscription =>
       @core.EntityId::new(b"\x00\x00\x04", ENTITYID_SEDP_SUBSCRIPTIONS_WRITER).unwrap()
   }
 }
@@ -59,10 +59,10 @@ pub fn SedpEndpointKind::from_builtin_writer_id(
     return Err("the entity is not an SEDP writer")
   }
   if writer_id.key() == b"\x00\x00\x03" {
-    return Ok(SedpEndpointKind::Publication)
+    return Ok(Publication)
   }
   if writer_id.key() == b"\x00\x00\x04" {
-    return Ok(SedpEndpointKind::Subscription)
+    return Ok(Subscription)
   }
   Err("the entity is not a predefined SEDP writer")
 }
