@@ -26,7 +26,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
   )
   let publication = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       best_effort_qos,
     ) {
@@ -35,7 +35,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
   }
   let subscription = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(prefix, reader_id),
       best_effort_qos,
     ) {
@@ -242,7 +242,7 @@ async test "two discovery services establish a ROS String data path" {
   )
   let publication = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(publisher_prefix, publisher_id),
       best_effort_qos,
     ) {
@@ -251,7 +251,7 @@ async test "two discovery services establish a ROS String data path" {
   }
   let subscription = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       @rtps.Guid::new(subscriber_prefix, subscriber_id),
       best_effort_qos,
     ) {
