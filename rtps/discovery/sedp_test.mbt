@@ -51,7 +51,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   }
   let endpoint = match
     SedpEndpointData::new(
-      SedpEndpointKind::Publication,
+      Publication,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -98,8 +98,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   assert_true(key_hash_found)
   assert_true(type_max_size_found)
   assert_true(user_data_found)
-  let decoded = match
-    SedpEndpointData::from_cdr_bytes(SedpEndpointKind::Publication, encoded) {
+  let decoded = match SedpEndpointData::from_cdr_bytes(Publication, encoded) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -107,7 +106,7 @@ test "SEDP endpoint data round trips required fields and locators" {
   assert_eq(decoded.participant_guid(), participant_guid)
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
-  assert_eq(decoded.kind(), SedpEndpointKind::Publication)
+  assert_eq(decoded.kind(), Publication)
   let decoded_user_data = decoded.extra_parameters()
   let mut decoded_user_data_found = false
   for parameter in decoded_user_data {
@@ -159,8 +158,7 @@ test "SEDP endpoint data round trips required fields and locators" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let parsed = match
-    SedpEndpointData::from_data_submessage(SedpEndpointKind::Publication, data) {
+  let parsed = match SedpEndpointData::from_data_submessage(Publication, data) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -236,7 +234,7 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
 
   let serialized_payload = Bytes::from_array(payload)
   let decoded = SedpEndpointData::from_cdr_bytes(
-    SedpEndpointKind::Publication,
+    Publication,
     serialized_payload,
   ).unwrap()
   assert_eq(decoded.endpoint_guid(), endpoint_guid)
@@ -255,7 +253,7 @@ test "SEDP decodes PL_CDR_BE endpoint fields and QoS" {
     serialized_payload,
   )
   assert_eq(
-    SedpEndpointData::from_data_submessage(SedpEndpointKind::Publication, data)
+    SedpEndpointData::from_data_submessage(Publication, data)
     .unwrap()
     .topic_name(),
     "rt/chatter",
