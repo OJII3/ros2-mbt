@@ -10,6 +10,12 @@ pub struct ActionDefinition {
 } derive(Eq, Debug)
 
 ///|
+pub extend ActionDefinition with Eq::{not_equal, equal}
+
+///|
+pub extend ActionDefinition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a validated ROS action definition.
 pub fn ActionDefinition::new(
   package_name : String,
