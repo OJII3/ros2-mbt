@@ -6,6 +6,12 @@ pub struct Message {
 } derive(Eq, Debug)
 
 ///|
+pub extend Message with Eq::{not_equal, equal}
+
+///|
+pub extend Message with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn Message::new(header : Header) -> Message {
   { header, submessages: [], }
 }
