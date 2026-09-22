@@ -3,39 +3,51 @@
 pub const PID_SENTINEL : UInt16 = 0x0001
 
 ///|
+/// Participant lease duration advertised in discovery data.
 pub const PID_PARTICIPANT_LEASE_DURATION : UInt16 = 0x0002
 
 ///|
+/// DDS domain identifier.
 pub const PID_DOMAIN_ID : UInt16 = 0x000F
 
 ///|
+/// Topic name.
 pub const PID_TOPIC_NAME : UInt16 = 0x0005
 
 ///|
+/// Type name.
 pub const PID_TYPE_NAME : UInt16 = 0x0007
 
 ///|
+/// Unicast locator for an endpoint.
 pub const PID_UNICAST_LOCATOR : UInt16 = 0x002F
 
 ///|
+/// Multicast locator for an endpoint.
 pub const PID_MULTICAST_LOCATOR : UInt16 = 0x0030
 
 ///|
+/// Reliability QoS policy.
 pub const PID_RELIABILITY : UInt16 = 0x001A
 
 ///|
+/// Durability QoS policy.
 pub const PID_DURABILITY : UInt16 = 0x001D
 
 ///|
+/// Deadline QoS policy.
 pub const PID_DEADLINE : UInt16 = 0x0023
 
 ///|
+/// Latency budget QoS policy.
 pub const PID_LATENCY_BUDGET : UInt16 = 0x0027
 
 ///|
+/// Liveliness QoS policy.
 pub const PID_LIVELINESS : UInt16 = 0x001B
 
 ///|
+/// Lifespan QoS policy.
 pub const PID_LIFESPAN : UInt16 = 0x002B
 
 ///|
@@ -43,30 +55,39 @@ pub const PID_LIFESPAN : UInt16 = 0x002B
 pub const PID_USER_DATA : UInt16 = 0x002C
 
 ///|
+/// Destination order QoS policy.
 pub const PID_DESTINATION_ORDER : UInt16 = 0x0025
 
 ///|
+/// History QoS policy.
 pub const PID_HISTORY : UInt16 = 0x0040
 
 ///|
+/// Resource limits QoS policy.
 pub const PID_RESOURCE_LIMITS : UInt16 = 0x0041
 
 ///|
+/// Whether inline QoS parameters are expected.
 pub const PID_EXPECTS_INLINE_QOS : UInt16 = 0x0043
 
 ///|
+/// Ownership QoS policy.
 pub const PID_OWNERSHIP : UInt16 = 0x001F
 
 ///|
+/// Ownership strength QoS policy.
 pub const PID_OWNERSHIP_STRENGTH : UInt16 = 0x0006
 
 ///|
+/// Participant GUID.
 pub const PID_PARTICIPANT_GUID : UInt16 = 0x0050
 
 ///|
+/// Endpoint GUID.
 pub const PID_ENDPOINT_GUID : UInt16 = 0x005A
 
 ///|
+/// Supported data representation identifiers.
 pub const PID_DATA_REPRESENTATION : UInt16 = 0x0073
 
 ///|
@@ -86,6 +107,7 @@ pub const PID_TOPIC_ALIASES : UInt16 = 0x0082
 pub const PID_RELATED_SAMPLE_IDENTITY : UInt16 = 0x0083
 
 ///|
+/// Maximum serialized size of the data type.
 pub const PID_TYPE_MAX_SIZE_SERIALIZED : UInt16 = 0x0060
 
 ///|
@@ -97,24 +119,31 @@ pub const PID_KEY_HASH : UInt16 = 0x0070
 pub const PID_STATUS_INFO : UInt16 = 0x0071
 
 ///|
+/// RTPS protocol version.
 pub const PID_PROTOCOL_VERSION : UInt16 = 0x0015
 
 ///|
+/// Vendor identifier.
 pub const PID_VENDOR_ID : UInt16 = 0x0016
 
 ///|
+/// Unicast locator for metatraffic.
 pub const PID_METATRAFFIC_UNICAST_LOCATOR : UInt16 = 0x0032
 
 ///|
+/// Multicast locator for metatraffic.
 pub const PID_METATRAFFIC_MULTICAST_LOCATOR : UInt16 = 0x0033
 
 ///|
+/// Default unicast locator for user traffic.
 pub const PID_DEFAULT_UNICAST_LOCATOR : UInt16 = 0x0031
 
 ///|
+/// Default multicast locator for user traffic.
 pub const PID_DEFAULT_MULTICAST_LOCATOR : UInt16 = 0x0048
 
 ///|
+/// Set of builtin endpoints enabled by a participant.
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
 ///|
@@ -131,16 +160,19 @@ pub extend Parameter with Eq::{not_equal, equal}
 pub extend Parameter with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create an RTPS parameter.
 pub fn Parameter::new(id : UInt16, value : Bytes) -> Parameter {
   { id, value, }
 }
 
 ///|
+/// Return the parameter identifier.
 pub fn Parameter::id(self : Parameter) -> UInt16 {
   self.id
 }
 
 ///|
+/// Return the parameter value bytes.
 pub fn Parameter::value(self : Parameter) -> Bytes {
   self.value
 }
@@ -152,6 +184,7 @@ pub struct ParameterList {
 }
 
 ///|
+/// Create an empty parameter list.
 pub fn ParameterList::new() -> ParameterList {
   { values: [], }
 }
