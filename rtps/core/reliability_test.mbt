@@ -94,7 +94,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(heartbeat_body, 7U)
   let heartbeat = HeartbeatSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::Heartbeat,
+      Heartbeat,
       HEARTBEAT_FLAG_FINAL,
       heartbeat_body,
     ),
@@ -117,7 +117,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(acknack_body, 4U)
   let acknack = AckNackSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::AckNack,
+      AckNack,
       ACKNACK_FLAG_FINAL,
       acknack_body,
     ),
@@ -136,11 +136,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(gap_body, 5U)
   reliability_test_append_u32_be(gap_body, 0x90000000U)
   let gap = GapSubmessage::from_submessage(
-    reliability_test_decode_big_endian_submessage(
-      SubmessageId::Gap,
-      0,
-      gap_body,
-    ),
+    reliability_test_decode_big_endian_submessage(Gap, 0, gap_body),
   ).unwrap()
   assert_eq(gap.gap_start(), 2L)
   assert_eq(gap.gap_list_base(), 4L)
@@ -156,7 +152,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(heartbeat_frag_body, 3U)
   let heartbeat_frag = HeartbeatFragSubmessage::from_submessage(
     reliability_test_decode_big_endian_submessage(
-      SubmessageId::HeartbeatFrag,
+      HeartbeatFrag,
       0,
       heartbeat_frag_body,
     ),
@@ -175,11 +171,7 @@ test "RTPS reliability parsers accept big-endian submessages" {
   reliability_test_append_u32_be(nack_frag_body, 0xA0000000U)
   reliability_test_append_u32_be(nack_frag_body, 4U)
   let nack_frag = NackFragSubmessage::from_submessage(
-    reliability_test_decode_big_endian_submessage(
-      SubmessageId::NackFrag,
-      0,
-      nack_frag_body,
-    ),
+    reliability_test_decode_big_endian_submessage(NackFrag, 0, nack_frag_body),
   ).unwrap()
   assert_eq(nack_frag.writer_sequence_number(), 9L)
   assert_eq(nack_frag.bitmap_base(), 1U)
