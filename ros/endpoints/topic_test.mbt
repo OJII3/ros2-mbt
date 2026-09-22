@@ -1,6 +1,7 @@
 ///|
 test "ROS topic descriptor maps names into SEDP identity" {
-  let topic = match RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+  let topic = match
+    @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -40,7 +41,8 @@ test "ROS topic descriptor maps names into SEDP identity" {
 
 ///|
 test "ROS topic descriptor applies explicit reliable QoS" {
-  let topic = match RosTopic::new("/chatter", "std_msgs", "msg", "String") {
+  let topic = match
+    @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -86,7 +88,7 @@ test "ROS topic descriptor applies explicit reliable QoS" {
 
 ///|
 test "ROS topic descriptor advertises deadline and liveliness QoS" {
-  let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let topic = @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
@@ -111,7 +113,7 @@ test "ROS topic descriptor advertises deadline and liveliness QoS" {
 
 ///|
 test "ROS topic descriptor advertises its supported data representation" {
-  let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let topic = @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
@@ -147,7 +149,7 @@ test "ROS topic descriptor advertises its supported data representation" {
 
 ///|
 test "ROS topic descriptor advertises its RIHS01 type hash" {
-  let topic = RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let topic = @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
