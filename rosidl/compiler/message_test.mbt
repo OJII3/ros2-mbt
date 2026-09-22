@@ -1,7 +1,7 @@
 ///|
 test "ROS message parser ignores comments and generates a primitive CDR codec" {
   let definition = match
-    parse_message(
+    @compiler.parse_message(
       "demo_msgs", "msg", "Pose", "# position\nbool valid\nchar sign\nint8 i8\nuint8 u8\nint16 i16\nuint16 u16\nint32 x\nuint32 y\nint64 timestamp\nuint64 sequence\nfloat32 weight\nfloat64 height # inline comment\nstring frame_id\n",
     ) {
     Ok(value) => value
@@ -31,7 +31,7 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
 ///|
 test "ROS service parser generates request and response codecs" {
   let definition = match
-    parse_service(
+    @compiler.parse_service(
       "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum\n",
     ) {
     Ok(value) => value
@@ -57,7 +57,7 @@ test "ROS service parser generates request and response codecs" {
 
 ///|
 test "ROS service request and response hashes match RIHS01 vectors" {
-  let definition = parse_service(
+  let definition = @compiler.parse_service(
     "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum",
   ).unwrap()
   assert_eq(
@@ -76,7 +76,7 @@ test "ROS service request and response hashes match RIHS01 vectors" {
 
 ///|
 test "ROS service hash includes the generated event type" {
-  let definition = parse_service(
+  let definition = @compiler.parse_service(
     "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum",
   ).unwrap()
   assert_eq(
@@ -89,15 +89,16 @@ test "ROS service hash includes the generated event type" {
 
 ///|
 test "ROS service parser requires exactly one separator" {
-  assert_true(parse_service("demo", "Empty", "int32 value") is Err(_))
+  assert_true(@compiler.parse_service("demo", "Empty", "int32 value") is Err(_))
   assert_true(
-    parse_service("demo", "Empty", "int32 value\n---\n---\n") is Err(_),
+    @compiler.parse_service("demo", "Empty", "int32 value\n---\n---\n")
+    is Err(_),
   )
 }
 
 ///|
 test "ROS service parser recognizes only a standalone separator line" {
-  let definition = parse_service(
+  let definition = @compiler.parse_service(
     "demo", "Separated", "string DELIMITER=\"---\"\n# --- is part of this comment\n---\nint32 value",
   ).unwrap()
   assert_eq(definition.request().constants().length(), 1)
@@ -106,7 +107,7 @@ test "ROS service parser recognizes only a standalone separator line" {
 
 ///|
 test "ROS message parser treats tabs as whitespace" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "Tabbed", "\tint32\tvalue\n\tfloat64\tSCALE\t=\t1.5",
   ).unwrap()
   assert_eq(definition.fields().length(), 1)
@@ -118,7 +119,7 @@ test "ROS message parser treats tabs as whitespace" {
 ///|
 test "ROS message parser generates validated primitive field defaults" {
   let source = "bool enabled TrUe\nint32 count 42\nstring label hello world\nint32[3] samples [1, 2, 3]\nint32[<=3] history []\nint32[2] zeros"
-  let definition = parse_message("demo", "msg", "Defaulted", source).unwrap()
+  let definition = @compiler.parse_message("demo", "msg", "Defaulted", source).unwrap()
   assert_eq(definition.fields().length(), 6)
   assert_eq(definition.fields()[0].default_value(), Some("true"))
   assert_eq(definition.fields()[1].default_value(), Some("42"))
@@ -136,7 +137,7 @@ test "ROS message parser generates validated primitive field defaults" {
   assert_true(generated.contains("let zeros : Array[Int] = []"))
   assert_true(generated.contains("for _ in 0..<2 {"))
   assert_true(generated.contains("zeros.push(0)"))
-  let without_defaults = parse_message(
+  let without_defaults = @compiler.parse_message(
     "demo", "msg", "Defaulted", "bool enabled\nint32 count\nstring label\nint32[3] samples\nint32[<=3] history\nint32[2] zeros",
   ).unwrap()
   assert_eq(definition.type_hash(), without_defaults.type_hash())
@@ -144,7 +145,7 @@ test "ROS message parser generates validated primitive field defaults" {
 
 ///|
 test "ROS message parser validates float and string-array defaults" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "ArrayDefaults", "float32 ratio 1.5\nstring<=12[] names [\"alpha, beta\", \"gamma\"]",
   ).unwrap()
   assert_eq(definition.fields()[0].default_value(), Some("1.5F"))
@@ -161,7 +162,7 @@ test "ROS message parser validates float and string-array defaults" {
 
 ///|
 test "ROS string field defaults preserve assignment characters" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "StringDefaults", "string scalar \"a=b\"\nstring unquoted a=b=c\nstring[] values [\"a=b\", \"c<=d\"]",
   ).unwrap()
   assert_eq(definition.fields()[0].default_value(), Some("\"a=b\""))
@@ -171,7 +172,7 @@ test "ROS string field defaults preserve assignment characters" {
 
 ///|
 test "ROS message parser generates CDR codecs for wide strings" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "WideStrings", "wstring LABEL=\"猫\"\nwstring data\nwstring<=4 label\nwstring<=2 bounded \"🙂\"\nwstring[] values [\"猫\", \"🙂\"]",
   ).unwrap()
   assert_eq(definition.constants()[0].value(), "\"猫\"")
@@ -187,7 +188,9 @@ test "ROS message parser generates CDR codecs for wide strings" {
   assert_true(generated.contains("pub const LABEL : String = \"猫\""))
   assert_true(generated.contains("let bounded : String = \"🙂\""))
   assert_true(
-    parse_message("demo", "msg", "TooWide", "wstring<=1 value \"🙂\"")
+    @compiler.parse_message(
+      "demo", "msg", "TooWide", "wstring<=1 value \"🙂\"",
+    )
     is Err(_),
   )
 }
@@ -195,24 +198,29 @@ test "ROS message parser generates CDR codecs for wide strings" {
 ///|
 test "ROS message parser rejects malformed primitive field defaults" {
   assert_true(
-    parse_message("demo", "msg", "Invalid", "int8 value 128") is Err(_),
-  )
-  assert_true(
-    parse_message("demo", "msg", "Invalid", "int32[2] values [1]") is Err(_),
-  )
-  assert_true(
-    parse_message("demo", "msg", "Invalid", "uint8[<=2] values [1, 256]")
+    @compiler.parse_message("demo", "msg", "Invalid", "int8 value 128")
     is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "string<=3 name too long") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "int32[2] values [1]")
+    is Err(_),
+  )
+  assert_true(
+    @compiler.parse_message(
+      "demo", "msg", "Invalid", "uint8[<=2] values [1, 256]",
+    )
+    is Err(_),
+  )
+  assert_true(
+    @compiler.parse_message("demo", "msg", "Invalid", "string<=3 name too long")
+    is Err(_),
   )
 }
 
 ///|
 test "ROS message parser and generator handle scalar constants" {
   let definition = match
-    parse_message(
+    @compiler.parse_message(
       "demo", "msg", "Limits", "bool ENABLED=1\nbool DISABLED=0\nint32 MAX=42\nfloat64 SCALE=1.5\nstring LABEL=\"demo\"\nint32 value",
     ) {
     Ok(value) => value
@@ -232,7 +240,7 @@ test "ROS message parser and generator handle scalar constants" {
 
 ///|
 test "ROS string constants preserve assignment characters in values" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "StringConstant", "string COMPARISON=\"a<=b=c\"",
   ).unwrap()
   assert_eq(definition.constants().length(), 1)
@@ -246,7 +254,7 @@ test "ROS string constants preserve assignment characters in values" {
 
 ///|
 test "ROS float constants accept exponent notation" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "FloatConstants", "float32 SMALL=1.25e-3\nfloat32 WHOLE=1\nfloat64 LARGE=-2E+9\nfloat64 POSITIVE=+2E3\nfloat64 LEADING=.5\nfloat64 TRAILING=1.\nfloat64 GROUPED=1_000.5e+2",
   ).unwrap()
   let generated = definition.generate_moonbit()
@@ -258,19 +266,22 @@ test "ROS float constants accept exponent notation" {
   assert_true(generated.contains("pub const TRAILING : Double = 1.0"))
   assert_true(generated.contains("pub const GROUPED : Double = 1000.5e+2"))
   assert_true(
-    parse_message("demo", "msg", "Invalid", "float64 BAD=1e") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "float64 BAD=1e")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "float32 BAD=1.2.3") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "float32 BAD=1.2.3")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "float64 BAD=1__0.0") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "float64 BAD=1__0.0")
+    is Err(_),
   )
 }
 
 ///|
 test "ROS string constants accept quoted and unquoted values" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "StringConstants", "string SINGLE='single quoted'\nstring RAW=unquoted value\nstring ESCAPED=\"say \\\"hi\\\"\"\nstring UNICODE=\"猫\"",
   ).unwrap()
   let generated = definition.generate_moonbit()
@@ -283,7 +294,9 @@ test "ROS string constants accept quoted and unquoted values" {
   )
   assert_true(generated.contains("pub const UNICODE : String = \"猫\""))
   assert_true(
-    parse_message("demo", "msg", "Invalid", "string BAD=\"bad \"quote\"\"")
+    @compiler.parse_message(
+      "demo", "msg", "Invalid", "string BAD=\"bad \"quote\"\"",
+    )
     is Err(_),
   )
 }
@@ -291,7 +304,7 @@ test "ROS string constants accept quoted and unquoted values" {
 ///|
 test "ROS string constants escape backslashes in generated literals" {
   let source = "string PATH=\"a" + "\\" + "\\" + "b\""
-  let generated = parse_message("demo", "msg", "StringPath", source)
+  let generated = @compiler.parse_message("demo", "msg", "StringPath", source)
     .unwrap()
     .generate_moonbit()
   let four_backslashes = "\\" + "\\" + "\\" + "\\"
@@ -304,7 +317,7 @@ test "ROS string constants escape backslashes in generated literals" {
 
 ///|
 test "ROS integer constants accept base prefixes and normalize literals" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "IntegerConstants", "int8 MIN=-0x80\nuint8 BYTE=0xFF\nint16 OCTAL=0o77_777\nuint32 BINARY=0b11111111111111111111111111111111\nint64 WIDE=-0x8000000000000000\nuint64 UNSIGNED=0xFFFF_FFFF_FFFF_FFFF",
   ).unwrap()
   let generated = definition.generate_moonbit()
@@ -328,31 +341,41 @@ test "ROS integer constants reject values outside their declared widths" {
     "uint64 VALUE=18446744073709551616", "byte VALUE=-1", "char VALUE=256",
   ]
   for constant in invalid_constants {
-    assert_true(parse_message("demo", "msg", "Invalid", constant) is Err(_))
+    assert_true(
+      @compiler.parse_message("demo", "msg", "Invalid", constant) is Err(_),
+    )
   }
 }
 
 ///|
 test "ROS message parser rejects duplicate names and invalid constant names" {
   assert_true(
-    parse_message("demo", "msg", "Duplicate", "int32 value\nint32 value")
+    @compiler.parse_message(
+      "demo", "msg", "Duplicate", "int32 value\nint32 value",
+    )
     is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Duplicate", "int32 VALUE=1\nint32 VALUE=2")
+    @compiler.parse_message(
+      "demo", "msg", "Duplicate", "int32 VALUE=1\nint32 VALUE=2",
+    )
     is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "int32 value=1") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "int32 value=1") is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "int32 VALUE_=1") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "int32 VALUE_=1")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "int32 VALUE__1=1") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "int32 VALUE__1=1")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Valid", "int32 VALUE_1=1\nint32 value")
+    @compiler.parse_message(
+      "demo", "msg", "Valid", "int32 VALUE_1=1\nint32 value",
+    )
     is Ok(_),
   )
 }
@@ -360,7 +383,9 @@ test "ROS message parser rejects duplicate names and invalid constant names" {
 ///|
 test "ROS message generator handles fixed arrays and sequences" {
   let definition = match
-    parse_message("demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples") {
+    @compiler.parse_message(
+      "demo", "msg", "Arrays", "int32[3] values\nfloat64[] samples",
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -374,7 +399,7 @@ test "ROS message generator handles fixed arrays and sequences" {
 
 ///|
 test "ROS message writer checks narrow integer field ranges" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "IntegerWidths", "int8 small\nint16 medium\nuint16 count\nint8[] samples",
   ).unwrap()
   let generated = definition.generate_moonbit()
@@ -390,7 +415,7 @@ test "ROS message writer checks narrow integer field ranges" {
 ///|
 test "ROS message generator handles bounded sequences" {
   let definition = match
-    parse_message("demo", "msg", "Bounded", "int32[<=3] values") {
+    @compiler.parse_message("demo", "msg", "Bounded", "int32[<=3] values") {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -406,7 +431,7 @@ test "ROS message generator handles bounded sequences" {
 
 ///|
 test "ROS message parser preserves bounded string metadata and array shapes" {
-  let definition = parse_message(
+  let definition = @compiler.parse_message(
     "demo", "msg", "Strings", "string<=12 text\nstring<=8[2] labels\nstring<=4[] names\nstring<=7[<=3] tags",
   ).unwrap()
   assert_eq(definition.fields()[0].type_name(), "string")
@@ -425,8 +450,12 @@ test "ROS message parser preserves bounded string metadata and array shapes" {
   assert_true(generated.contains("writer.write_bounded_string(value, 8)"))
   assert_true(generated.contains("reader.read_bounded_string(8)"))
 
-  let unbounded = parse_message("demo", "msg", "Strings", "string text").unwrap()
-  let larger_bound = parse_message("demo", "msg", "Strings", "string<=13 text").unwrap()
+  let unbounded = @compiler.parse_message(
+    "demo", "msg", "Strings", "string text",
+  ).unwrap()
+  let larger_bound = @compiler.parse_message(
+    "demo", "msg", "Strings", "string<=13 text",
+  ).unwrap()
   assert_true(definition.type_hash().unwrap() != unbounded.type_hash().unwrap())
   assert_true(
     unbounded.type_hash().unwrap() != larger_bound.type_hash().unwrap(),
@@ -436,23 +465,26 @@ test "ROS message parser preserves bounded string metadata and array shapes" {
 ///|
 test "ROS message parser rejects malformed bounded string types" {
   assert_true(
-    parse_message("demo", "msg", "Invalid", "string<=0 name") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "string<=0 name")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "int32<=4 value") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "int32<=4 value")
+    is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Invalid", "string<=x name") is Err(_),
+    @compiler.parse_message("demo", "msg", "Invalid", "string<=x name")
+    is Err(_),
   )
 }
 
 ///|
 test "ROS message generator handles nested message fields" {
-  let nested_types : Array[MessageTypeReference] = [
-    MessageTypeReference::new("geometry_msgs/msg/Vector3", "Vector3"),
+  let nested_types : Array[@compiler.MessageTypeReference] = [
+    @compiler.MessageTypeReference::new("geometry_msgs/msg/Vector3", "Vector3"),
   ]
   let definition = match
-    parse_message_with_types(
+    @compiler.parse_message_with_types(
       "demo", "msg", "Pose", "geometry_msgs/msg/Vector3 position\ngeometry_msgs/msg/Vector3[] history\ngeometry_msgs/msg/Vector3[<=2] bounded",
       nested_types,
     ) {
@@ -474,20 +506,20 @@ test "ROS message generator handles nested message fields" {
 ///|
 test "ROS message workspace resolves local dependencies in dependency order" {
   let vector = match
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z\n",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let pose = match
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Pose", "Vector3 position\nVector3[] history\n",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   match workspace.add_source(pose) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -516,18 +548,20 @@ test "ROS message workspace resolves local dependencies in dependency order" {
 ///|
 test "ROS message workspace generates qualified external imports" {
   let mapping = match
-    MessageImport::new("geometry_msgs", "vendor/geometry_msgs/msg", "geometry") {
+    @compiler.MessageImport::new(
+      "geometry_msgs", "vendor/geometry_msgs/msg", "geometry",
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let pose = match
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Pose", "geometry_msgs/Vector3 position\n",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   match workspace.add_import(mapping) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -549,13 +583,13 @@ test "ROS message workspace generates qualified external imports" {
 ///|
 test "ROS message workspace rejects missing imports and cycles" {
   let missing = match
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Pose", "geometry_msgs/Vector3 position\n",
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let missing_workspace = MessageWorkspace::new()
+  let missing_workspace = @compiler.MessageWorkspace::new()
   match missing_workspace.add_source(missing) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -566,16 +600,16 @@ test "ROS message workspace rejects missing imports and cycles" {
   )
 
   let first = match
-    MessageSource::new("demo_msgs", "msg", "First", "Second value\n") {
+    @compiler.MessageSource::new("demo_msgs", "msg", "First", "Second value\n") {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let second = match
-    MessageSource::new("demo_msgs", "msg", "Second", "First value\n") {
+    @compiler.MessageSource::new("demo_msgs", "msg", "Second", "First value\n") {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let cyclic_workspace = MessageWorkspace::new()
+  let cyclic_workspace = @compiler.MessageWorkspace::new()
   match cyclic_workspace.add_source(first) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -589,23 +623,31 @@ test "ROS message workspace rejects missing imports and cycles" {
 
 ///|
 test "ROS message parser rejects unsupported definitions" {
-  assert_true(parse_message("demo", "msg", "Bad", "int32[<3] values") is Err(_))
   assert_true(
-    parse_message("demo", "msg", "Bad", "int32[<=0] values") is Err(_),
-  )
-  assert_true(parse_message("demo", "msg", "Bad", "other_type value") is Err(_))
-  assert_true(
-    parse_message("demo", "msg", "Bad", "int32 VALUE-NOT-ID") is Err(_),
+    @compiler.parse_message("demo", "msg", "Bad", "int32[<3] values") is Err(_),
   )
   assert_true(
-    parse_message("demo", "msg", "Bad", "int32 BAD=not_number") is Err(_),
+    @compiler.parse_message("demo", "msg", "Bad", "int32[<=0] values") is Err(_),
   )
-  assert_true(parse_message("demo", "msg", "Bad", "bool INVALID=2") is Err(_))
-  let nested_types : Array[MessageTypeReference] = [
-    MessageTypeReference::new("Vector3", "Vector3"),
+  assert_true(
+    @compiler.parse_message("demo", "msg", "Bad", "other_type value") is Err(_),
+  )
+  assert_true(
+    @compiler.parse_message("demo", "msg", "Bad", "int32 VALUE-NOT-ID")
+    is Err(_),
+  )
+  assert_true(
+    @compiler.parse_message("demo", "msg", "Bad", "int32 BAD=not_number")
+    is Err(_),
+  )
+  assert_true(
+    @compiler.parse_message("demo", "msg", "Bad", "bool INVALID=2") is Err(_),
+  )
+  let nested_types : Array[@compiler.MessageTypeReference] = [
+    @compiler.MessageTypeReference::new("Vector3", "Vector3"),
   ]
   assert_true(
-    parse_message_with_types(
+    @compiler.parse_message_with_types(
       "demo", "msg", "Bad", "Missing value", nested_types,
     )
     is Err(_),
