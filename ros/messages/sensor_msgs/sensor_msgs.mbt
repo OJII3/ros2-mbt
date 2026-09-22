@@ -245,6 +245,7 @@ pub struct LaserScan {
 } derive(Eq, Debug)
 
 ///|
+/// Create a laser scan message.
 pub fn LaserScan::new(
   header : @std.Header,
   angle_min : Float,
@@ -272,6 +273,7 @@ pub fn LaserScan::new(
 }
 
 ///|
+/// Create an empty laser scan message.
 pub fn LaserScan::default() -> LaserScan {
   let header : @std.Header = @std.Header::default()
   let angle_min : Float = 0.0F
@@ -290,56 +292,67 @@ pub fn LaserScan::default() -> LaserScan {
 }
 
 ///|
+/// Return the laser scan header.
 pub fn LaserScan::header(self : LaserScan) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the minimum scan angle.
 pub fn LaserScan::angle_min(self : LaserScan) -> Float {
   self.angle_min
 }
 
 ///|
+/// Return the maximum scan angle.
 pub fn LaserScan::angle_max(self : LaserScan) -> Float {
   self.angle_max
 }
 
 ///|
+/// Return the angular increment between measurements.
 pub fn LaserScan::angle_increment(self : LaserScan) -> Float {
   self.angle_increment
 }
 
 ///|
+/// Return the time increment between measurements.
 pub fn LaserScan::time_increment(self : LaserScan) -> Float {
   self.time_increment
 }
 
 ///|
+/// Return the time between scans.
 pub fn LaserScan::scan_time(self : LaserScan) -> Float {
   self.scan_time
 }
 
 ///|
+/// Return the minimum measurable range.
 pub fn LaserScan::range_min(self : LaserScan) -> Float {
   self.range_min
 }
 
 ///|
+/// Return the maximum measurable range.
 pub fn LaserScan::range_max(self : LaserScan) -> Float {
   self.range_max
 }
 
 ///|
+/// Return the range measurements.
 pub fn LaserScan::ranges(self : LaserScan) -> Array[Float] {
   self.ranges
 }
 
 ///|
+/// Return the intensity measurements.
 pub fn LaserScan::intensities(self : LaserScan) -> Array[Float] {
   self.intensities
 }
 
 ///|
+/// Serialize the laser scan as ROS 2 CDR.
 pub fn LaserScan::write_cdr(
   self : LaserScan,
   writer : @cdr.Writer,
@@ -367,6 +380,7 @@ pub fn LaserScan::write_cdr(
 }
 
 ///|
+/// Parse a laser scan from ROS 2 CDR.
 pub fn LaserScan::read_cdr(reader : @cdr.Reader) -> Result[LaserScan, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -441,6 +455,7 @@ pub fn LaserScan::read_cdr(reader : @cdr.Reader) -> Result[LaserScan, String] {
 }
 
 ///|
+/// Serialize the laser scan as CDR bytes.
 pub fn LaserScan::to_cdr_bytes(self : LaserScan) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -451,6 +466,7 @@ pub fn LaserScan::to_cdr_bytes(self : LaserScan) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a laser scan from CDR bytes.
 pub fn LaserScan::from_cdr_bytes(input : Bytes) -> Result[LaserScan, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
