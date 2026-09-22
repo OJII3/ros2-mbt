@@ -40,6 +40,20 @@ test "ROS topic descriptor maps names into SEDP identity" {
 }
 
 ///|
+test "ROS topic descriptor accepts a discovered DDS identity" {
+  let topic = match
+    @endpoints.RosTopic::from_dds(
+      "/chatter", "rt/chatter", "std_msgs::msg::dds_::String_",
+    ) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(topic.ros_name(), "/chatter")
+  assert_eq(topic.dds_name(), "rt/chatter")
+  assert_eq(topic.dds_type_name(), "std_msgs::msg::dds_::String_")
+}
+
+///|
 test "ROS topic descriptor applies explicit reliable QoS" {
   let topic = match
     @endpoints.RosTopic::new("/chatter", "std_msgs", "msg", "String") {

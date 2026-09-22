@@ -97,6 +97,22 @@ actions, and parameters:
 | `examples/action_client` | Fibonacci Action client |
 | `examples/parameter_client` | ROS 2 parameter client |
 
+## Diagnostic CLI
+
+The repository also includes a small native CLI for inspecting the ROS graph:
+
+```sh
+nix develop
+moon run cmd/ros2-mbt -- topic list
+moon run cmd/ros2-mbt -- node list
+moon run cmd/ros2-mbt -- topic hz /chatter
+```
+
+Discovery waits one second by default. Adjust it with `--spin-time-ms`; the
+`topic hz` command measures for five seconds by default and accepts
+`--duration-ms`. The current `topic hz` implementation measures the first
+discovered publisher for the topic and does not decode the CDR payload.
+
 ## Supported scope
 
 The current release has been tested with:

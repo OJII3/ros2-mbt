@@ -27,6 +27,22 @@ pub fn RosTopic::new(
 }
 
 ///|
+/// Create a topic descriptor from an already discovered DDS identity.
+pub fn RosTopic::from_dds(
+  ros_name : String,
+  dds_name : String,
+  dds_type_name : String,
+) -> Result[RosTopic, String] {
+  if ros_name.length() == 0 {
+    return Err("ROS topic name must not be empty")
+  }
+  if dds_name.length() == 0 || dds_type_name.length() == 0 {
+    return Err("DDS topic and type names must not be empty")
+  }
+  Ok({ ros_name, dds_name, dds_type_name, })
+}
+
+///|
 /// Return the original ROS topic name.
 pub fn RosTopic::ros_name(self : RosTopic) -> String {
   self.ros_name
