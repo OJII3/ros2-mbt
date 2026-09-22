@@ -256,6 +256,7 @@ pub struct MapMetaData {
 } derive(Eq, Debug)
 
 ///|
+/// Create map metadata.
 pub fn MapMetaData::new(
   map_load_time : @builtin_interfaces.Time,
   resolution : Float,
@@ -267,6 +268,7 @@ pub fn MapMetaData::new(
 }
 
 ///|
+/// Create empty map metadata.
 pub fn MapMetaData::default() -> MapMetaData {
   let map_load_time : @builtin_interfaces.Time = @builtin_interfaces.Time::default()
   let resolution : Float = 0.0F
@@ -277,6 +279,7 @@ pub fn MapMetaData::default() -> MapMetaData {
 }
 
 ///|
+/// Return the map load time.
 pub fn MapMetaData::map_load_time(
   self : MapMetaData,
 ) -> @builtin_interfaces.Time {
@@ -284,26 +287,31 @@ pub fn MapMetaData::map_load_time(
 }
 
 ///|
+/// Return the map resolution.
 pub fn MapMetaData::resolution(self : MapMetaData) -> Float {
   self.resolution
 }
 
 ///|
+/// Return the map width.
 pub fn MapMetaData::width(self : MapMetaData) -> UInt {
   self.width
 }
 
 ///|
+/// Return the map height.
 pub fn MapMetaData::height(self : MapMetaData) -> UInt {
   self.height
 }
 
 ///|
+/// Return the map origin pose.
 pub fn MapMetaData::origin(self : MapMetaData) -> @geometry_msgs.Pose {
   self.origin
 }
 
 ///|
+/// Serialize map metadata as ROS 2 CDR.
 pub fn MapMetaData::write_cdr(
   self : MapMetaData,
   writer : @cdr.Writer,
@@ -323,6 +331,7 @@ pub fn MapMetaData::write_cdr(
 }
 
 ///|
+/// Parse map metadata from ROS 2 CDR.
 pub fn MapMetaData::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[MapMetaData, String] {
@@ -350,6 +359,7 @@ pub fn MapMetaData::read_cdr(
 }
 
 ///|
+/// Serialize map metadata as CDR bytes.
 pub fn MapMetaData::to_cdr_bytes(self : MapMetaData) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -360,6 +370,7 @@ pub fn MapMetaData::to_cdr_bytes(self : MapMetaData) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse map metadata from CDR bytes.
 pub fn MapMetaData::from_cdr_bytes(
   input : Bytes,
 ) -> Result[MapMetaData, String] {
@@ -378,6 +389,7 @@ pub fn MapMetaData::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/MapMetaData`.
 pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd3946c1369f817fb4f75677d916d27c17d763c8"
 
 ///|
