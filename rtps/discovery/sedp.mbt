@@ -120,6 +120,7 @@ const SEDP_QOS_DURATION_INFINITE_SECONDS : Int = 0x7FFFFFFF
 const SEDP_QOS_DURATION_INFINITE_FRACTION : UInt = 0xFFFFFFFFU
 
 ///|
+/// Create an SEDP QoS value.
 pub fn SedpQos::new(
   reliability : UInt,
   durability : UInt,
@@ -201,21 +202,25 @@ fn sedp_duration_is_valid(seconds : Int, nanoseconds : UInt) -> Bool {
 }
 
 ///|
+/// Return the reliability kind.
 pub fn SedpQos::reliability(self : SedpQos) -> UInt {
   self.reliability
 }
 
 ///|
+/// Return the durability kind.
 pub fn SedpQos::durability(self : SedpQos) -> UInt {
   self.durability
 }
 
 ///|
+/// Return the history kind.
 pub fn SedpQos::history(self : SedpQos) -> UInt {
   self.history
 }
 
 ///|
+/// Return the history depth.
 pub fn SedpQos::depth(self : SedpQos) -> Int {
   self.depth
 }
@@ -239,6 +244,7 @@ pub fn SedpQos::deadline_fraction(self : SedpQos) -> UInt {
 }
 
 ///|
+/// Return the liveliness kind.
 pub fn SedpQos::liveliness(self : SedpQos) -> UInt {
   self.liveliness
 }
@@ -256,11 +262,13 @@ pub fn SedpQos::liveliness_lease_fraction(self : SedpQos) -> UInt {
 }
 
 ///|
+/// Return the deadline QoS parameter.
 pub fn SedpQos::deadline_parameter(self : SedpQos) -> @core.Parameter {
   qos_deadline_fraction(self.deadline_seconds, self.deadline_fraction)
 }
 
 ///|
+/// Return the liveliness QoS parameter.
 pub fn SedpQos::liveliness_parameter(self : SedpQos) -> @core.Parameter {
   qos_liveliness_fraction(
     self.liveliness,
@@ -325,16 +333,19 @@ pub fn SedpEndpointData::with_unicast_locators(
 }
 
 ///|
+/// Return the endpoint kind.
 pub fn SedpEndpointData::kind(self : SedpEndpointData) -> SedpEndpointKind {
   self.kind
 }
 
 ///|
+/// Return the endpoint GUID.
 pub fn SedpEndpointData::endpoint_guid(self : SedpEndpointData) -> @core.Guid {
   self.endpoint_guid
 }
 
 ///|
+/// Return the participant GUID.
 pub fn SedpEndpointData::participant_guid(
   self : SedpEndpointData,
 ) -> @core.Guid {
@@ -342,16 +353,19 @@ pub fn SedpEndpointData::participant_guid(
 }
 
 ///|
+/// Return the topic name.
 pub fn SedpEndpointData::topic_name(self : SedpEndpointData) -> String {
   self.topic_name
 }
 
 ///|
+/// Return the type name.
 pub fn SedpEndpointData::type_name(self : SedpEndpointData) -> String {
   self.type_name
 }
 
 ///|
+/// Return the unicast locators.
 pub fn SedpEndpointData::unicast_locators(
   self : SedpEndpointData,
 ) -> Array[@core.Locator] {
@@ -359,6 +373,7 @@ pub fn SedpEndpointData::unicast_locators(
 }
 
 ///|
+/// Return the multicast locators.
 pub fn SedpEndpointData::multicast_locators(
   self : SedpEndpointData,
 ) -> Array[@core.Locator] {
@@ -366,6 +381,7 @@ pub fn SedpEndpointData::multicast_locators(
 }
 
 ///|
+/// Return the additional parameters.
 pub fn SedpEndpointData::extra_parameters(
   self : SedpEndpointData,
 ) -> Array[@core.Parameter] {
@@ -694,6 +710,7 @@ pub fn SedpEndpointData::qos_compatible_with(
 }
 
 ///|
+/// Add a unicast locator to the endpoint.
 pub fn SedpEndpointData::add_unicast_locator(
   self : SedpEndpointData,
   locator : @core.Locator,
@@ -702,6 +719,7 @@ pub fn SedpEndpointData::add_unicast_locator(
 }
 
 ///|
+/// Add a multicast locator to the endpoint.
 pub fn SedpEndpointData::add_multicast_locator(
   self : SedpEndpointData,
   locator : @core.Locator,
