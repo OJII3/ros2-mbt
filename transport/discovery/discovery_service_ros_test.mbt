@@ -26,8 +26,10 @@ async test "discovery service ingests ros_discovery_info samples" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let receiver_address = receiver.local_addr()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let session = match
     @discovery.DiscoverySession::new(
       receiver, participant, spdp_reader, spdp_writer, receiver_address, 1L,
@@ -92,7 +94,9 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Err(message) => fail(message)
   }
   let publisher_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer publisher_socket.close()
   let subscriber_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer subscriber_socket.close()
   let publisher_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
@@ -128,6 +132,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   publication.add_unicast_locator(publisher_locator)
   subscription.add_unicast_locator(subscriber_locator)
   let service_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer service_socket.close()
   let service_address = service_socket.local_addr()
   let service_participant_id = match @rtps.EntityId::new(b"gph", 0xC1) {
     Ok(value) => value

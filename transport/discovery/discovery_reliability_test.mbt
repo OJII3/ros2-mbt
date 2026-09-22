@@ -20,8 +20,11 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   ).unwrap()
   let sedp_writer = @rtps.EntityId::new(b"\x00\x00\x03", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let ack_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer ack_receiver.close()
   let participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(local_prefix, participant_id),
     @rtps.VendorId::new(1, 15),
@@ -209,7 +212,9 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
     participant,
@@ -316,7 +321,9 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
     participant,
@@ -494,7 +501,9 @@ async test "discovery session requests missing SEDP fragments" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
     participant,

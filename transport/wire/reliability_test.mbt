@@ -43,7 +43,9 @@ async test "UDP sends and receives HEARTBEAT and ACKNACK" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   match
     sender.send_heartbeat(
       heartbeat,
