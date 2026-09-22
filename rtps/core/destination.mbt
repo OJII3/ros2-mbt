@@ -26,6 +26,7 @@ pub fn InfoDestinationSubmessage::new(
 }
 
 ///|
+/// Return the INFO_DST submessage flags.
 pub fn InfoDestinationSubmessage::flags(
   self : InfoDestinationSubmessage,
 ) -> Byte {
@@ -33,6 +34,7 @@ pub fn InfoDestinationSubmessage::flags(
 }
 
 ///|
+/// Return the destination GUID prefix.
 pub fn InfoDestinationSubmessage::guid_prefix(
   self : InfoDestinationSubmessage,
 ) -> GuidPrefix {
