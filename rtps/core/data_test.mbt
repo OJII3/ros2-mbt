@@ -1,6 +1,6 @@
 ///|
-fn test_entity_id(kind : Byte) -> Result[EntityId, String] {
-  EntityId::new(b"abc", kind)
+fn test_entity_id(kind : Byte) -> Result[@core.EntityId, String] {
+  @core.EntityId::new(b"abc", kind)
 }
 
 ///|
@@ -13,7 +13,9 @@ test "RTPS DATA submessage round trip" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let data = DataSubmessage::new(reader_id, writer_id, 7L, b"\x00\x01\x00\x00")
+  let data = @core.DataSubmessage::new(
+    reader_id, writer_id, 7L, b"\x00\x01\x00\x00",
+  )
   let encoded = match data.to_submessage().to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -21,11 +23,11 @@ test "RTPS DATA submessage round trip" {
   assert_eq(
     encoded, b"\x15\x05\x18\x00\x00\x00\x10\x00abc\xC7abc\xC2\x00\x00\x00\x00\x07\x00\x00\x00\x00\x01\x00\x00",
   )
-  let submessage = match Submessage::from_bytes(encoded) {
+  let submessage = match @core.Submessage::from_bytes(encoded) {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
-  let decoded = match DataSubmessage::from_submessage(submessage) {
+  let decoded = match @core.DataSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -34,22 +36,30 @@ test "RTPS DATA submessage round trip" {
 
 ///|
 test "RTPS DATA parser accepts a big-endian body" {
-  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
-  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
-  let submessage = Submessage::new(
+  let reader_id = @core.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()
+  let submessage = @core.Submessage::new(
     Data,
-    DATA_FLAG_DATA,
+    @core.DATA_FLAG_DATA,
     b"\x00\x00\x00\x10rdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x01payload",
   )
-  let decoded = DataSubmessage::from_submessage(submessage).unwrap()
-  assert_eq(decoded, DataSubmessage::new(reader_id, writer_id, 1L, b"payload"))
+  let decoded = @core.DataSubmessage::from_submessage(submessage).unwrap()
+  assert_eq(
+    decoded,
+    @core.DataSubmessage::new(reader_id, writer_id, 1L, b"payload"),
+  )
 }
 
 ///|
 test "RTPS DATA parser normalizes big-endian inline QoS" {
-  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
-  let prefix = GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).unwrap()
-  let identity = SampleIdentity::new(Guid::new(prefix, writer_id), 9L).unwrap()
+  let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()
+  let prefix = @core.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let identity = @core.SampleIdentity::new(
+    @core.Guid::new(prefix, writer_id),
+    9L,
+  ).unwrap()
   let inline_qos : Array[Byte] = [
     0x00, 0x71, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x83, 0x00, 0x18,
   ]
@@ -73,14 +83,14 @@ test "RTPS DATA parser normalizes big-endian inline QoS" {
   for byte in b"key" {
     body.push(byte)
   }
-  let decoded = DataSubmessage::from_submessage(
-    Submessage::new(
+  let decoded = @core.DataSubmessage::from_submessage(
+    @core.Submessage::new(
       Data,
-      DATA_FLAG_DATA | DATA_FLAG_INLINE_QOS,
+      @core.DATA_FLAG_DATA | @core.DATA_FLAG_INLINE_QOS,
       Bytes::from_array(body),
     ),
   ).unwrap()
-  assert_eq(decoded.status_info(), Ok(Some(STATUS_INFO_DISPOSED)))
+  assert_eq(decoded.status_info(), Ok(Some(@core.STATUS_INFO_DISPOSED)))
   assert_eq(decoded.related_sample_identity(), Ok(Some(identity)))
   assert_eq(decoded.serialized_payload(), b"key")
 }
@@ -95,13 +105,13 @@ test "RTPS DATA supports inline QoS" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let inline_qos = ParameterList::new()
-  inline_qos.add(Parameter::new(PID_VENDOR_ID, b"\x01\x0F\x00\x00"))
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"payload").with_inline_qos(
+  let inline_qos = @core.ParameterList::new()
+  inline_qos.add(@core.Parameter::new(@core.PID_VENDOR_ID, b"\x01\x0F\x00\x00"))
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"payload").with_inline_qos(
     inline_qos.to_bytes(),
   )
   let submessage = match
-    Submessage::from_bytes(
+    @core.Submessage::from_bytes(
       match data.to_submessage().to_bytes() {
         Ok(value) => value
         Err(message) => fail(message)
@@ -110,7 +120,7 @@ test "RTPS DATA supports inline QoS" {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
-  let decoded = match DataSubmessage::from_submessage(submessage) {
+  let decoded = match @core.DataSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -120,12 +130,12 @@ test "RTPS DATA supports inline QoS" {
 
 ///|
 test "RTPS DATA_FRAG parser accepts a big-endian body" {
-  let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
-  let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
-  let decoded = DataFragSubmessage::from_submessage(
-    Submessage::new(
+  let reader_id = @core.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()
+  let decoded = @core.DataFragSubmessage::from_submessage(
+    @core.Submessage::new(
       DataFrag,
-      DATA_FLAG_DATA,
+      @core.DATA_FLAG_DATA,
       b"\x00\x00\x00\x1Crdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x09\x00\x00\x00\x01\x00\x01\x00\x04\x00\x00\x00\x04data",
     ),
   ).unwrap()
@@ -137,7 +147,10 @@ test "RTPS DATA_FRAG parser accepts a big-endian body" {
   assert_eq(decoded.fragment_size(), 4U.to_uint16())
   assert_eq(decoded.sample_size(), 4U)
   assert_eq(decoded.serialized_payload(), b"data")
-  assert_eq(decoded.flags(), DATA_FLAG_LITTLE_ENDIAN | DATA_FLAG_DATA)
+  assert_eq(
+    decoded.flags(),
+    @core.DATA_FLAG_LITTLE_ENDIAN | @core.DATA_FLAG_DATA,
+  )
 }
 
 ///|
@@ -150,15 +163,15 @@ test "RTPS DATA preserves extra flags and inline QoS offset wire order" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"payload")
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"payload")
   let payload = data.to_payload()
   assert_eq(payload[0], 0)
   assert_eq(payload[1], 0)
   assert_eq(payload[2], 16)
   assert_eq(payload[3], 0)
   let decoded = match
-    DataSubmessage::from_submessage(
-      Submessage::new(Data, data.flags(), payload),
+    @core.DataSubmessage::from_submessage(
+      @core.Submessage::new(Data, data.flags(), payload),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -170,29 +183,30 @@ test "RTPS DATA preserves extra flags and inline QoS offset wire order" {
 ///|
 test "RTPS DATA carries a related sample identity" {
   let prefix = match
-    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+  let writer_id = match @core.EntityId::new(b"wrt", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+  let reader_id = match @core.EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let identity = match SampleIdentity::new(Guid::new(prefix, writer_id), 9L) {
+  let identity = match
+    @core.SampleIdentity::new(@core.Guid::new(prefix, writer_id), 9L) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"reply").with_related_sample_identity(
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"reply").with_related_sample_identity(
     identity,
   )
   let decoded = match
-    DataSubmessage::from_submessage(
+    @core.DataSubmessage::from_submessage(
       match
-        Submessage::from_bytes(
+        @core.Submessage::from_bytes(
           match data.to_submessage().to_bytes() {
             Ok(value) => value
             Err(message) => fail(message)
@@ -213,12 +227,12 @@ test "RTPS DATA carries a related sample identity" {
 test "RTPS DATA carries status info" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
-  let status = STATUS_INFO_DISPOSED | STATUS_INFO_UNREGISTERED
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_status_info(
+  let status = @core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_status_info(
     status,
   )
-  let decoded = DataSubmessage::from_submessage(
-    Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
+  let decoded = @core.DataSubmessage::from_submessage(
+    @core.Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
   ).unwrap()
   assert_eq(decoded.status_info(), Ok(Some(status)))
   assert_eq(decoded.related_sample_identity(), Ok(None))
@@ -228,13 +242,13 @@ test "RTPS DATA carries status info" {
 test "RTPS DATA supports key-only payloads" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_key(
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"key").with_key(
     b"endpoint-key",
   )
-  assert_eq(data.flags() & DATA_FLAG_DATA, 0x00)
-  assert_true((data.flags() & DATA_FLAG_KEY) != 0x00)
-  let decoded = DataSubmessage::from_submessage(
-    Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
+  assert_eq(data.flags() & @core.DATA_FLAG_DATA, 0x00)
+  assert_true((data.flags() & @core.DATA_FLAG_KEY) != 0x00)
+  let decoded = @core.DataSubmessage::from_submessage(
+    @core.Submessage::from_bytes(data.to_submessage().to_bytes().unwrap()).unwrap().0,
   ).unwrap()
   assert_eq(decoded.serialized_payload(), b"endpoint-key")
   assert_eq(decoded.flags(), data.flags())
@@ -250,23 +264,29 @@ test "RTPS DATA rejects malformed flags and body" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let data = DataSubmessage::new(reader_id, writer_id, 1L, b"data")
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 1L, b"data")
   let payload = data.to_payload()
   assert_true(
-    DataSubmessage::from_submessage(Submessage::new(Data, 0x04, payload))
+    @core.DataSubmessage::from_submessage(
+      @core.Submessage::new(Data, 0x04, payload),
+    )
     is Err(_),
   )
   assert_true(
-    DataSubmessage::from_submessage(Submessage::new(Data, 0x01, b"short"))
+    @core.DataSubmessage::from_submessage(
+      @core.Submessage::new(Data, 0x01, b"short"),
+    )
     is Err(_),
   )
   assert_true(
-    DataSubmessage::from_submessage(Submessage::new(Heartbeat, 0x01, payload))
+    @core.DataSubmessage::from_submessage(
+      @core.Submessage::new(Heartbeat, 0x01, payload),
+    )
     is Err(_),
   )
   assert_true(
-    DataSubmessage::from_submessage(
-      Submessage::new(Data, 0x0D, data.to_payload()),
+    @core.DataSubmessage::from_submessage(
+      @core.Submessage::new(Data, 0x0D, data.to_payload()),
     )
     is Err(_),
   )
@@ -275,23 +295,23 @@ test "RTPS DATA rejects malformed flags and body" {
 ///|
 test "DATA builds an RTPS message" {
   let prefix = match
-    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let reader_id = match EntityId::new(b"rdr", 0xC7) {
+  let reader_id = match @core.EntityId::new(b"rdr", 0xC7) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let writer_id = match EntityId::new(b"wrt", 0xC2) {
+  let writer_id = match @core.EntityId::new(b"wrt", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let data = DataSubmessage::new(reader_id, writer_id, 4L, b"payload")
-  let message = data.to_message(prefix, VendorId::new(1, 15))
+  let data = @core.DataSubmessage::new(reader_id, writer_id, 4L, b"payload")
+  let message = data.to_message(prefix, @core.VendorId::new(1, 15))
   assert_eq(message.submessages().length(), 1)
   let decoded = match
-    DataSubmessage::from_submessage(message.submessages()[0]) {
+    @core.DataSubmessage::from_submessage(message.submessages()[0]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -302,7 +322,7 @@ test "DATA builds an RTPS message" {
 test "RTPS DATA_FRAG round trips a final multi-fragment payload" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
-  let data_frag = DataFragSubmessage::new(
+  let data_frag = @core.DataFragSubmessage::new(
     reader_id,
     writer_id,
     7L,
@@ -312,10 +332,10 @@ test "RTPS DATA_FRAG round trips a final multi-fragment payload" {
     10U,
     b"efghij",
   ).unwrap()
-  let submessage = Submessage::from_bytes(
+  let submessage = @core.Submessage::from_bytes(
       data_frag.to_submessage().to_bytes().unwrap(),
     ).unwrap().0
-  let decoded = DataFragSubmessage::from_submessage(submessage).unwrap()
+  let decoded = @core.DataFragSubmessage::from_submessage(submessage).unwrap()
   assert_eq(decoded.writer_sequence_number(), 7L)
   assert_eq(decoded.fragment_starting_number(), 2U)
   assert_eq(decoded.fragments_in_submessage(), (2 : Int).to_uint16())
@@ -330,7 +350,7 @@ test "RTPS DATA_FRAG rejects a short non-final fragment" {
   let reader_id = test_entity_id(0xC7).unwrap()
   let writer_id = test_entity_id(0xC2).unwrap()
   assert_true(
-    DataFragSubmessage::new(
+    @core.DataFragSubmessage::new(
       reader_id,
       writer_id,
       1L,
