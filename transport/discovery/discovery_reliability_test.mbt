@@ -65,7 +65,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   .unwrap()
   let (participant_event, _) = session.receive_once().unwrap()
   match participant_event {
-    @wire.DiscoveryEvent::Participant(discovered) =>
+    Participant(discovered) =>
       assert_eq(discovered.participant_guid().prefix(), remote_prefix)
     _ => fail("expected an SPDP participant")
   }
@@ -85,7 +85,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   )
   .unwrap()
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -102,15 +102,12 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   .unwrap()
   let (event, _) = session.receive_once().unwrap()
   match event {
-    @wire.DiscoveryEvent::Publication(publication) =>
+    Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/chatter")
-    @wire.DiscoveryEvent::Participant(_) => fail("expected an SEDP publication")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SEDP publication")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SEDP publication")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SEDP publication")
+    Participant(_) => fail("expected an SEDP publication")
+    Subscription(_) => fail("expected an SEDP publication")
+    EndpointRemoved(_, _) => fail("expected an SEDP publication")
+    ParticipantRemoved(_) => fail("expected an SEDP publication")
   }
   let (acknack, _) = ack_receiver.receive_acknack().unwrap()
   assert_eq(
@@ -148,15 +145,11 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   .unwrap()
   let (complete_event, _) = session.receive_once().unwrap()
   match complete_event {
-    @wire.DiscoveryEvent::Publication(_) => ()
-    @wire.DiscoveryEvent::Participant(_) =>
-      fail("expected a repeated publication")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected a repeated publication")
-    @wire.DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected a repeated publication")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected a repeated publication")
+    Publication(_) => ()
+    Participant(_) => fail("expected a repeated publication")
+    Subscription(_) => fail("expected a repeated publication")
+    EndpointRemoved(_, _) => fail("expected a repeated publication")
+    ParticipantRemoved(_) => fail("expected a repeated publication")
   }
   let (complete_acknack, _) = ack_receiver.receive_acknack().unwrap()
   assert_eq(complete_acknack.bitmap_base(), 2L)
@@ -175,18 +168,14 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   .unwrap()
   let (removed_event, _) = session.receive_once().unwrap()
   match removed_event {
-    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
-      assert_eq(kind, @rtps.SedpEndpointKind::Publication)
+    EndpointRemoved(kind, endpoint_guid) => {
+      assert_eq(kind, Publication)
       assert_eq(endpoint_guid, endpoint.endpoint_guid())
     }
-    @wire.DiscoveryEvent::Participant(_) =>
-      fail("expected an SEDP removal event")
-    @wire.DiscoveryEvent::Publication(_) =>
-      fail("expected an SEDP removal event")
-    @wire.DiscoveryEvent::Subscription(_) =>
-      fail("expected an SEDP removal event")
-    @wire.DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SEDP removal event")
+    Participant(_) => fail("expected an SEDP removal event")
+    Publication(_) => fail("expected an SEDP removal event")
+    Subscription(_) => fail("expected an SEDP removal event")
+    ParticipantRemoved(_) => fail("expected an SEDP removal event")
   }
   session.close()
   sender.close()
@@ -231,7 +220,7 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
   ).unwrap()
   let publication_writer = @rtps.SedpEndpointKind::Publication.builtin_writer_id()
   let first = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"one", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -240,7 +229,7 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let second = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"two", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -249,7 +238,7 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let third = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"tri", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -273,8 +262,7 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
   sender.send_message(message, session.socket.local_addr()).unwrap()
   let (first_event, _) = session.receive_once().unwrap()
   match first_event {
-    @wire.DiscoveryEvent::Publication(publication) =>
-      assert_eq(publication.topic_name(), "rt/first")
+    Publication(publication) => assert_eq(publication.topic_name(), "rt/first")
     _ => fail("expected the first SEDP publication")
   }
   sender
@@ -289,14 +277,12 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
   .unwrap()
   let (second_event, _) = session.receive_once().unwrap()
   match second_event {
-    @wire.DiscoveryEvent::Publication(publication) =>
-      assert_eq(publication.topic_name(), "rt/second")
+    Publication(publication) => assert_eq(publication.topic_name(), "rt/second")
     _ => fail("expected the second SEDP publication")
   }
   let (third_event, _) = session.receive_once().unwrap()
   match third_event {
-    @wire.DiscoveryEvent::Publication(publication) =>
-      assert_eq(publication.topic_name(), "rt/third")
+    Publication(publication) => assert_eq(publication.topic_name(), "rt/third")
     _ => fail("expected the third SEDP publication")
   }
   session.close()
@@ -341,7 +327,7 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
   ).unwrap()
   let publication_writer = @rtps.SedpEndpointKind::Publication.builtin_writer_id()
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"pub", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -408,13 +394,13 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
   sender.send_message(message, session.socket.local_addr()).unwrap()
   let (publication_event, _) = session.receive_once().unwrap()
   match publication_event {
-    @wire.DiscoveryEvent::Publication(publication) =>
+    Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/fragmented")
     _ => fail("expected the reassembled SEDP publication")
   }
   let (participant_event, _) = session.receive_once().unwrap()
   match participant_event {
-    @wire.DiscoveryEvent::Participant(discovered) =>
+    Participant(discovered) =>
       assert_eq(discovered.participant_guid().prefix(), remote_prefix)
     _ => fail("expected the coalesced SPDP participant")
   }
@@ -457,22 +443,22 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
   )
   fragmented_dispose.add(
     @rtps.Submessage::new(
-      @rtps.SubmessageId::DataFrag,
+      DataFrag,
       (final_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
       final_key_fragment.to_payload(),
     ),
   )
   fragmented_dispose.add(
     @rtps.Submessage::new(
-      @rtps.SubmessageId::DataFrag,
+      DataFrag,
       (first_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
       first_key_fragment.to_payload(),
     ),
   )
   sender.send_message(fragmented_dispose, session.socket.local_addr()).unwrap()
   match session.receive_once().unwrap().0 {
-    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
-      assert_eq(kind, @rtps.SedpEndpointKind::Publication)
+    EndpointRemoved(kind, endpoint_guid) => {
+      assert_eq(kind, Publication)
       assert_eq(endpoint_guid, endpoint.endpoint_guid())
     }
     _ => fail("expected the reassembled SEDP endpoint removal")
@@ -519,7 +505,7 @@ async test "discovery session requests missing SEDP fragments" {
   ).unwrap()
   let publication_writer = @rtps.SedpEndpointKind::Publication.builtin_writer_id()
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       remote_prefix,
       @rtps.EntityId::new(b"pub", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -572,7 +558,7 @@ async test "discovery session requests missing SEDP fragments" {
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
   match session.receive_once().unwrap().0 {
-    @wire.DiscoveryEvent::Participant(_) => ()
+    Participant(_) => ()
     _ => fail("expected the coalesced SPDP participant")
   }
   let (nackfrag, source) = sender.receive_nack_frag().unwrap()
