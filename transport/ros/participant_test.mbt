@@ -99,11 +99,11 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
   )
   .unwrap()
   match node.receive_discovery_once().unwrap().1 {
-    @wire.DiscoveryEvent::Participant(_) => ()
+    Participant(_) => ()
     _ => fail("expected the remote SPDP participant")
   }
   let endpoint = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(
       local_prefix,
       @rtps.EntityId::new(b"pub", @rtps.ENTITYID_SEDP_PUBLICATIONS_WRITER).unwrap(),
@@ -114,22 +114,22 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
   endpoint.add_unicast_locator(node.user_locator())
   node.register_endpoint(endpoint).unwrap()
   match remote_receiver.receive_discovery().unwrap().0 {
-    @wire.DiscoveryEvent::Publication(publication) =>
+    Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/chatter")
     _ => fail("expected the SEDP publication announcement")
   }
   ignore(remote_receiver.receive_heartbeat().unwrap())
   node.dispose_and_close().unwrap()
   match remote_receiver.receive_discovery().unwrap().0 {
-    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
-      assert_eq(kind, @rtps.SedpEndpointKind::Publication)
+    EndpointRemoved(kind, endpoint_guid) => {
+      assert_eq(kind, Publication)
       assert_eq(endpoint_guid, endpoint.endpoint_guid())
     }
     _ => fail("expected the SEDP endpoint removal")
   }
   ignore(remote_receiver.receive_heartbeat().unwrap())
   match remote_sender.receive_discovery().unwrap().0 {
-    @wire.DiscoveryEvent::ParticipantRemoved(participant_guid) =>
+    ParticipantRemoved(participant_guid) =>
       assert_eq(participant_guid, local_participant.participant_guid())
     _ => fail("expected the SPDP participant removal")
   }
@@ -205,12 +205,12 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   )
   .unwrap()
   let remote_subscription = @ros_types.ros_discovery_info_to_sedp(
-    @rtps.SedpEndpointKind::Subscription,
+    Subscription,
     @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"sub", 0xC7).unwrap()),
   ).unwrap()
   remote_subscription.add_unicast_locator(node.user_locator())
   let remote_publication = @ros_types.ros_discovery_info_to_sedp(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
   ).unwrap()
   remote_publication.add_unicast_locator(node.user_locator())
@@ -331,7 +331,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
   match
     node.register_topic_endpoint(
       topic,
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       writer_id,
       @rtps.SedpQos::default(),
     ) {
@@ -435,7 +435,7 @@ async test "ROS participant registers a topic endpoint with its type hash" {
   match
     node.register_topic_endpoint_with_type_hash(
       topic,
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       writer_id,
       @rtps.SedpQos::default(),
       type_hash,
@@ -489,15 +489,9 @@ async test "ROS participant registers service client endpoints" {
   }
   assert_eq(node.local_endpoints().length(), 2)
   assert_eq(node.local_endpoints()[0].topic_name(), "rq/add_two_intsRequest")
-  assert_eq(
-    node.local_endpoints()[0].kind(),
-    @rtps.SedpEndpointKind::Publication,
-  )
+  assert_eq(node.local_endpoints()[0].kind(), Publication)
   assert_eq(node.local_endpoints()[1].topic_name(), "rr/add_two_intsReply")
-  assert_eq(
-    node.local_endpoints()[1].kind(),
-    @rtps.SedpEndpointKind::Subscription,
-  )
+  assert_eq(node.local_endpoints()[1].kind(), Subscription)
   let request_qos = node.local_endpoints()[0].qos().unwrap()
   assert_eq(request_qos.reliability(), @rtps.RELIABILITY_RELIABLE)
   assert_eq(node.local_endpoints()[0].type_hash(), Ok(Some(request_hash)))
@@ -769,7 +763,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   match
     publisher.register_topic_endpoint(
       topic,
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       writer_id,
       @rtps.SedpQos::default(),
     ) {
@@ -866,13 +860,13 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   publisher
   .register_topic_endpoint(
     late_topic,
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     late_writer_id,
     @rtps.SedpQos::default(),
   )
   .unwrap()
   match subscriber.receive_discovery_once() {
-    Ok((_, @wire.DiscoveryEvent::Publication(publication))) =>
+    Ok((_, Publication(publication))) =>
       assert_eq(publication.topic_name(), "rt/late_topic")
     Ok(_) => fail("expected the late SEDP publication")
     Err(message) => fail(message)
