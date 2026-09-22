@@ -10,10 +10,7 @@ test "ROS action parser splits goal, result, and feedback messages" {
   assert_eq(action.feedback().type_name(), "Fibonacci_Feedback")
   assert_eq(action.goal().interface_namespace(), "action")
   assert_eq(action.goal().fields()[0].name(), "order")
-  assert_eq(
-    action.result().fields()[0].collection(),
-    MessageFieldCollection::Sequence,
-  )
+  assert_eq(action.result().fields()[0].collection(), Sequence)
   let generated = action.generate_moonbit()
   assert_true(generated.contains("pub struct Fibonacci_Goal"))
   assert_true(generated.contains("pub struct Fibonacci_Result"))
