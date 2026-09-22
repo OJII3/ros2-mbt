@@ -17,7 +17,7 @@ test "RTPS INFO_DST round trips a GUID prefix" {
 test "RTPS INFO_DST rejects non-prefix bodies" {
   assert_true(
     InfoDestinationSubmessage::from_submessage(
-      Submessage::new(SubmessageId::InfoDestination, 0x01, b"short"),
+      Submessage::new(InfoDestination, 0x01, b"short"),
     )
     is Err(_),
   )
@@ -58,5 +58,5 @@ test "RTPS message prepends INFO_DST before existing submessages" {
   let directed = message.with_destination_guid_prefix(destination)
   assert_eq(directed.submessages().length(), 2)
   assert_eq(directed.destination_guid_prefix(), Ok(Some(destination)))
-  assert_eq(directed.submessages()[1].id(), SubmessageId::Data)
+  assert_eq(directed.submessages()[1].id(), Data)
 }
