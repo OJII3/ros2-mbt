@@ -11,6 +11,7 @@ pub struct Imu {
 } derive(Eq, Debug)
 
 ///|
+/// Create an IMU message.
 pub fn Imu::new(
   header : @std.Header,
   orientation : @geometry.Quaternion,
@@ -32,6 +33,7 @@ pub fn Imu::new(
 }
 
 ///|
+/// Create an IMU message with zero-valued fields.
 pub fn Imu::default() -> Imu {
   let header : @std.Header = @std.Header::default()
   let orientation : @geometry.Quaternion = @geometry.Quaternion::default()
@@ -56,41 +58,49 @@ pub fn Imu::default() -> Imu {
 }
 
 ///|
+/// Return the IMU header.
 pub fn Imu::header(self : Imu) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the orientation estimate.
 pub fn Imu::orientation(self : Imu) -> @geometry.Quaternion {
   self.orientation
 }
 
 ///|
+/// Return the orientation covariance.
 pub fn Imu::orientation_covariance(self : Imu) -> Array[Double] {
   self.orientation_covariance
 }
 
 ///|
+/// Return the angular velocity estimate.
 pub fn Imu::angular_velocity(self : Imu) -> @geometry.Vector3 {
   self.angular_velocity
 }
 
 ///|
+/// Return the angular velocity covariance.
 pub fn Imu::angular_velocity_covariance(self : Imu) -> Array[Double] {
   self.angular_velocity_covariance
 }
 
 ///|
+/// Return the linear acceleration estimate.
 pub fn Imu::linear_acceleration(self : Imu) -> @geometry.Vector3 {
   self.linear_acceleration
 }
 
 ///|
+/// Return the linear acceleration covariance.
 pub fn Imu::linear_acceleration_covariance(self : Imu) -> Array[Double] {
   self.linear_acceleration_covariance
 }
 
 ///|
+/// Serialize the IMU message as ROS 2 CDR.
 pub fn Imu::write_cdr(self : Imu, writer : @cdr.Writer) -> Result[Unit, String] {
   if self.orientation_covariance.length() != 9 {
     return Err(
@@ -136,6 +146,7 @@ pub fn Imu::write_cdr(self : Imu, writer : @cdr.Writer) -> Result[Unit, String] 
 }
 
 ///|
+/// Parse an IMU message from ROS 2 CDR.
 pub fn Imu::read_cdr(reader : @cdr.Reader) -> Result[Imu, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -189,6 +200,7 @@ pub fn Imu::read_cdr(reader : @cdr.Reader) -> Result[Imu, String] {
 }
 
 ///|
+/// Serialize the IMU message as CDR bytes.
 pub fn Imu::to_cdr_bytes(self : Imu) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -199,6 +211,7 @@ pub fn Imu::to_cdr_bytes(self : Imu) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse an IMU message from CDR bytes.
 pub fn Imu::from_cdr_bytes(input : Bytes) -> Result[Imu, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
