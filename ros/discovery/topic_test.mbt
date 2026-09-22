@@ -23,10 +23,7 @@ fn discovery_topic_test_parameter(
 ///|
 test "ROS discovery topic uses the standard DDS identity and writer QoS" {
   let endpoint = match
-    ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Publication,
-      discovery_topic_test_guid(0xC2),
-    ) {
+    ros_discovery_info_to_sedp(Publication, discovery_topic_test_guid(0xC2)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -57,10 +54,7 @@ test "ROS discovery topic uses the standard DDS identity and writer QoS" {
 ///|
 test "ROS discovery topic uses keep-all for the reader" {
   let endpoint = match
-    ros_discovery_info_to_sedp(
-      @rtps.SedpEndpointKind::Subscription,
-      discovery_topic_test_guid(0xC7),
-    ) {
+    ros_discovery_info_to_sedp(Subscription, discovery_topic_test_guid(0xC7)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
