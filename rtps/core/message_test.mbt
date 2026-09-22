@@ -1,14 +1,14 @@
 ///|
 test "RTPS message round trip" {
   let prefix = match
-    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let header = Header::new(prefix, VendorId::new(1, 15))
-  let message = Message::new(header)
-  message.add(Submessage::new(InfoTimestamp, 0x01, b"abcd"))
-  message.add(Submessage::new(Data, 0x05, b"payload"))
+  let header = @core.Header::new(prefix, @core.VendorId::new(1, 15))
+  let message = @core.Message::new(header)
+  message.add(@core.Submessage::new(InfoTimestamp, 0x01, b"abcd"))
+  message.add(@core.Submessage::new(Data, 0x05, b"payload"))
   let encoded = match message.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
@@ -16,7 +16,7 @@ test "RTPS message round trip" {
   assert_eq(
     encoded, b"RTPS\x02\x03\x01\x0F\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x09\x01\x04\x00abcd\x15\x05\x07\x00payload",
   )
-  let decoded = match Message::from_bytes(encoded) {
+  let decoded = match @core.Message::from_bytes(encoded) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -27,18 +27,20 @@ test "RTPS message round trip" {
 ///|
 test "RTPS message inserts PAD before an unaligned following submessage" {
   let prefix = match
-    GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+    @core.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let message = Message::new(Header::new(prefix, VendorId::new(1, 15)))
-  message.add(Submessage::new(InfoTimestamp, 0x01, b"abc"))
-  message.add(Submessage::new(Data, 0x05, b"payload"))
+  let message = @core.Message::new(
+    @core.Header::new(prefix, @core.VendorId::new(1, 15)),
+  )
+  message.add(@core.Submessage::new(InfoTimestamp, 0x01, b"abc"))
+  message.add(@core.Submessage::new(Data, 0x05, b"payload"))
   let encoded = match message.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let decoded = match Message::from_bytes(encoded) {
+  let decoded = match @core.Message::from_bytes(encoded) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -51,13 +53,13 @@ test "RTPS message inserts PAD before an unaligned following submessage" {
 
 ///|
 test "RTPS submessage uses big-endian length without little-endian flag" {
-  let submessage = Submessage::new(Data, 0, b"abc")
+  let submessage = @core.Submessage::new(Data, 0, b"abc")
   let encoded = match submessage.to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(encoded, b"\x15\x00\x00\x03abc")
-  let decoded = match Submessage::from_bytes(encoded) {
+  let decoded = match @core.Submessage::from_bytes(encoded) {
     Ok((value, _)) => value
     Err(message) => fail(message)
   }
@@ -67,7 +69,7 @@ test "RTPS submessage uses big-endian length without little-endian flag" {
 ///|
 test "RTPS message rejects truncated submessage" {
   assert_true(
-    Message::from_bytes(
+    @core.Message::from_bytes(
       b"RTPS\x02\x03\x01\x0F\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x15\x01\x08",
     )
     is Err(_),
