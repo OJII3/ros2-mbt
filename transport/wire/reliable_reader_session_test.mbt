@@ -34,7 +34,7 @@ async test "reliable reader session receives discovered publication data" {
   }
   let publication = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, writer_id),
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -163,7 +163,7 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
     sender.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -224,7 +224,7 @@ async test "reliable reader session limits ACKNACK to the first missing window" 
     sender.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -275,7 +275,7 @@ async test "reliable reader session sends NACK_FRAG windows for a large sample" 
     sender.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
@@ -330,7 +330,7 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
     sender.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Publication,
+    Publication,
     @rtps.Guid::new(prefix, writer_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
