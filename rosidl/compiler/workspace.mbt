@@ -52,6 +52,18 @@ pub struct MessageImport {
 } derive(Eq, Debug)
 
 ///|
+pub extend MessageSource with Eq::{not_equal, equal}
+
+///|
+pub extend MessageSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageImport with Eq::{not_equal, equal}
+
+///|
+pub extend MessageImport with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create an import mapping from a ROS package name to a MoonBit package.
 pub fn MessageImport::new(
   ros_package_name : String,
