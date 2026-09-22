@@ -90,7 +90,7 @@ async test "reliable ROS service client and server correlate a response" {
   )
 
   let client = match
-    RosServiceClient::new_with_shared_socket(
+    @ros.RosServiceClient::new_with_shared_socket(
       service, client_socket, client_prefix, vendor_id, client_request_id, server_request_subscription,
       client_response_id, server_response_publication, 1L,
     ) {
@@ -98,7 +98,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   let server = match
-    RosServiceServer::new_with_shared_socket(
+    @ros.RosServiceServer::new_with_shared_socket(
       service, server_socket, server_prefix, vendor_id, server_request_id, client_request_publication,
       server_response_id, client_response_subscription, 1L,
     ) {
@@ -242,11 +242,11 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   client_response.add_unicast_locator(
     service_test_endpoint_locator(client_socket),
   )
-  let client = RosServiceClient::new_with_shared_socket(
+  let client = @ros.RosServiceClient::new_with_shared_socket(
     service, client_socket, client_prefix, vendor_id, client_request_id, server_request,
     client_response_id, server_response, 1L,
   ).unwrap()
-  let server = RosServiceServer::new_with_shared_socket(
+  let server = @ros.RosServiceServer::new_with_shared_socket(
     service, server_socket, server_prefix, vendor_id, server_request_id, client_request,
     server_response_id, client_response, 1L,
   ).unwrap()
@@ -303,7 +303,7 @@ async test "ROS service rejects mismatched related endpoint metadata" {
   let request_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let response_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   assert_true(
-    RosServiceClient::new(
+    @ros.RosServiceClient::new(
       service,
       request_socket,
       response_socket,
