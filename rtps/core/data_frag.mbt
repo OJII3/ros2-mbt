@@ -189,7 +189,7 @@ pub fn DataFragSubmessage::to_payload(self : DataFragSubmessage) -> Bytes {
 pub fn DataFragSubmessage::to_submessage(
   self : DataFragSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::DataFrag, self.flags, self.to_payload())
+  Submessage::new(DataFrag, self.flags, self.to_payload())
 }
 
 ///|
@@ -209,7 +209,7 @@ pub fn DataFragSubmessage::to_message(
 pub fn DataFragSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[DataFragSubmessage, String] {
-  if submessage.id() != SubmessageId::DataFrag {
+  if submessage.id() != DataFrag {
     return Err("expected an RTPS DATA_FRAG submessage")
   }
   if submessage.payload.length() < DATA_FRAG_FIXED_BODY_LENGTH {
