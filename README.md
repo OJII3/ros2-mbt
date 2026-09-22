@@ -46,6 +46,12 @@ The module is organized into focused packages:
 - `rtps` — RTPS wire and discovery types
 - `transport` — UDP transport, discovery, topics, services, and actions
 
+Install the native diagnostic CLI as a Nix package:
+
+```sh
+nix profile add github:OJII3/ros2-mbt#ros2-mbt
+```
+
 ## Try the examples
 
 The examples require Nix and a ROS 2 Jazzy environment. Start a ROS 2 CLI
@@ -96,36 +102,6 @@ actions, and parameters:
 | `examples/service_server` / `service_client` | ROS 2 service server and client |
 | `examples/action_client` | Fibonacci Action client |
 | `examples/parameter_client` | ROS 2 parameter client |
-
-## Diagnostic CLI
-
-The repository also includes a small native CLI for inspecting the ROS graph:
-
-```sh
-nix develop
-moon run cmd/ros2-mbt -- topic list
-moon run cmd/ros2-mbt -- node list
-moon run cmd/ros2-mbt -- topic hz /chatter
-```
-
-The CLI can also be built and run through Nix:
-
-```sh
-nix build .#ros2-mbt
-nix run .#ros2-mbt -- topic list
-```
-
-Build a native binary with:
-
-```sh
-moon build --target native --release cmd/ros2-mbt
-_build/native/release/build/cmd/ros2-mbt/ros2-mbt.exe topic list
-```
-
-Discovery waits one second by default. Adjust it with `--spin-time-ms`; the
-`topic hz` command measures for five seconds by default and accepts
-`--duration-ms`. The current `topic hz` implementation measures the first
-discovered publisher for the topic and does not decode the CDR payload.
 
 ## Supported scope
 
