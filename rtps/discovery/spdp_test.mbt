@@ -20,14 +20,14 @@ test "SPDP participant data builds RTPS parameters" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let participant = SpdpParticipantData::new(
+  let participant = @discovery.SpdpParticipantData::new(
     guid,
     @core.VendorId::new(1, 15),
     42,
     60,
     0,
-    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
-    BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   participant.add_metatraffic_unicast(locator)
   participant.add_default_unicast(locator)
@@ -50,7 +50,7 @@ test "SPDP participant data builds RTPS parameters" {
   }
   assert_eq(decoded.values(), values)
   let decoded_participant = match
-    SpdpParticipantData::from_cdr_bytes(participant.to_cdr_bytes()) {
+    @discovery.SpdpParticipantData::from_cdr_bytes(participant.to_cdr_bytes()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -112,7 +112,9 @@ test "SPDP decodes PL_CDR_BE participant fields and locators" {
   parameter_test_append_be_parameter(payload, @core.PID_SENTINEL, b"")
 
   let serialized_payload = Bytes::from_array(payload)
-  let decoded = SpdpParticipantData::from_cdr_bytes(serialized_payload).unwrap()
+  let decoded = @discovery.SpdpParticipantData::from_cdr_bytes(
+    serialized_payload,
+  ).unwrap()
   assert_eq(decoded.participant_guid(), guid)
   assert_eq(decoded.vendor_id(), @core.VendorId::new(1, 15))
   assert_eq(decoded.domain_id(), 42U)
@@ -120,30 +122,38 @@ test "SPDP decodes PL_CDR_BE participant fields and locators" {
   assert_eq(decoded.lease_nanoseconds(), 0U)
   assert_eq(decoded.metatraffic_unicast_locators(), [locator])
   let data = @core.DataSubmessage::new(
-    @core.EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER).unwrap(),
-    @core.EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER).unwrap(),
+    @core.EntityId::new(
+      b"rdr",
+      @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    ).unwrap(),
+    @core.EntityId::new(
+      b"wrt",
+      @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    ).unwrap(),
     1L,
     serialized_payload,
   )
   assert_eq(
-    SpdpParticipantData::from_data_submessage(data).unwrap().domain_id(),
+    @discovery.SpdpParticipantData::from_data_submessage(data)
+    .unwrap()
+    .domain_id(),
     42U,
   )
 }
 
 ///|
 test "SPDP participant lease duration uses RTPS fractional seconds" {
-  let participant = SpdpParticipantData::new(
+  let participant = @discovery.SpdpParticipantData::new(
     spdp_test_guid().unwrap(),
     @core.VendorId::new(1, 15),
     0,
     2,
     500_000_000U,
-    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
   )
   let lease = participant.to_parameter_list().values()[3]
   assert_eq(lease.value(), b"\x02\x00\x00\x00\x00\x00\x00\x80")
-  let decoded = SpdpParticipantData::from_parameter_list(
+  let decoded = @discovery.SpdpParticipantData::from_parameter_list(
     participant.to_parameter_list(),
   ).unwrap()
   assert_eq(decoded.lease_seconds(), 2)
@@ -154,7 +164,9 @@ test "SPDP participant lease duration uses RTPS fractional seconds" {
 test "SPDP parser requires a participant GUID" {
   let parameters = @core.ParameterList::new()
   parameters.add(@core.Parameter::new(@core.PID_DOMAIN_ID, b"\x00\x00\x00\x00"))
-  assert_true(SpdpParticipantData::from_parameter_list(parameters) is Err(_))
+  assert_true(
+    @discovery.SpdpParticipantData::from_parameter_list(parameters) is Err(_),
+  )
 }
 
 ///|
@@ -172,7 +184,9 @@ test "SPDP parser rejects invalid participant lease durations" {
       Bytes::from_array([0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0]),
     ),
   )
-  assert_true(SpdpParticipantData::from_parameter_list(parameters) is Err(_))
+  assert_true(
+    @discovery.SpdpParticipantData::from_parameter_list(parameters) is Err(_),
+  )
 }
 
 ///|
@@ -181,22 +195,28 @@ test "SPDP participant data creates a DATA submessage" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let participant = SpdpParticipantData::new(
+  let participant = @discovery.SpdpParticipantData::new(
     guid,
     @core.VendorId::new(1, 15),
     0,
     100,
     0,
-    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
-    BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   let reader_id = match
-    @core.EntityId::new(b"rdr", ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER) {
+    @core.EntityId::new(
+      b"rdr",
+      @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let writer_id = match
-    @core.EntityId::new(b"wrt", ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
+    @core.EntityId::new(
+      b"wrt",
+      @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -204,7 +224,7 @@ test "SPDP participant data creates a DATA submessage" {
   assert_eq(data.serialized_payload(), participant.to_cdr_bytes())
   assert_eq(data.writer_sequence_number(), 1L)
   let parsed_participant = match
-    SpdpParticipantData::from_data_submessage(data) {
+    @discovery.SpdpParticipantData::from_data_submessage(data) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -217,22 +237,22 @@ test "SPDP participant data creates a DATA submessage" {
 ///|
 test "SPDP DATA accepts an unencapsulated ParameterList" {
   let guid = spdp_test_guid().unwrap()
-  let participant = SpdpParticipantData::new(
+  let participant = @discovery.SpdpParticipantData::new(
     guid,
     @core.VendorId::new(1, 15),
     0,
     60,
     0,
-    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
-    BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
   let reader_id = @core.EntityId::new(
     b"rdr",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
   ).unwrap()
   let writer_id = @core.EntityId::new(
     b"wrt",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
   ).unwrap()
   let cdr = participant.to_cdr_bytes()
   let data = @core.DataSubmessage::new(
@@ -241,7 +261,7 @@ test "SPDP DATA accepts an unencapsulated ParameterList" {
     1L,
     cdr[4:].to_owned(),
   )
-  let decoded = SpdpParticipantData::from_data_submessage(data).unwrap()
+  let decoded = @discovery.SpdpParticipantData::from_data_submessage(data).unwrap()
   assert_eq(decoded.to_cdr_bytes(), cdr)
 }
 
@@ -250,17 +270,17 @@ test "SPDP extracts a participant GUID from key-only data" {
   let guid = spdp_test_guid().unwrap()
   let reader_id = @core.EntityId::new(
     b"rdr",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
   ).unwrap()
   let writer_id = @core.EntityId::new(
     b"wrt",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
   ).unwrap()
   let data = @core.DataSubmessage::new(reader_id, writer_id, 2L, b"").with_key(
     guid.to_bytes(),
   )
   assert_eq(
-    SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
+    @discovery.SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
     guid,
   )
 }
@@ -268,21 +288,21 @@ test "SPDP extracts a participant GUID from key-only data" {
 ///|
 test "SPDP builds a participant dispose DATA sample" {
   let guid = spdp_test_guid().unwrap()
-  let participant = SpdpParticipantData::new(
+  let participant = @discovery.SpdpParticipantData::new(
     guid,
     @core.VendorId::new(1, 15),
     0,
     60,
     0,
-    BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
+    @discovery.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
   )
   let reader_id = @core.EntityId::new(
     b"rdr",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
   ).unwrap()
   let writer_id = @core.EntityId::new(
     b"wrt",
-    ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+    @discovery.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
   ).unwrap()
   let data = participant.to_dispose_data_submessage(reader_id, writer_id, 3L)
   assert_true((data.flags() & @core.DATA_FLAG_KEY) != 0x00)
@@ -291,7 +311,7 @@ test "SPDP builds a participant dispose DATA sample" {
     Ok(Some(@core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED)),
   )
   assert_eq(
-    SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
+    @discovery.SpdpParticipantData::participant_guid_from_key_data(data).unwrap(),
     guid,
   )
 }
