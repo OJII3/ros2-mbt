@@ -11,19 +11,23 @@ pub extend Bounded with Eq::{not_equal, equal}
 pub extend Bounded with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Type hash for `demo/msg/Bounded`.
 pub const Bounded_TYPE_HASH : String = "RIHS01_69505d1f37dd3187aa9337a7c6103be470f44c1341711181175e5e5e6bb951f5"
 
 ///|
+/// Create a bounded integer sequence message.
 pub fn Bounded::new(values : Array[Int]) -> Bounded {
   { values, }
 }
 
 ///|
+/// Return the bounded integer sequence.
 pub fn Bounded::values(self : Bounded) -> Array[Int] {
   self.values
 }
 
 ///|
+/// Serialize the bounded message as ROS 2 CDR.
 pub fn Bounded::write_cdr(
   self : Bounded,
   writer : @cdr.Writer,
@@ -39,6 +43,7 @@ pub fn Bounded::write_cdr(
 }
 
 ///|
+/// Parse a bounded message from ROS 2 CDR.
 pub fn Bounded::read_cdr(reader : @cdr.Reader) -> Result[Bounded, String] {
   let values_length = match reader.read_u32() {
     Ok(value) => value.reinterpret_as_int()
@@ -63,6 +68,7 @@ pub fn Bounded::read_cdr(reader : @cdr.Reader) -> Result[Bounded, String] {
 }
 
 ///|
+/// Serialize the bounded message as CDR bytes.
 pub fn Bounded::to_cdr_bytes(self : Bounded) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -73,6 +79,7 @@ pub fn Bounded::to_cdr_bytes(self : Bounded) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a bounded message from CDR bytes.
 pub fn Bounded::from_cdr_bytes(input : Bytes) -> Result[Bounded, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
