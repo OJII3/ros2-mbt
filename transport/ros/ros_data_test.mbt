@@ -183,7 +183,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(_) => ()
     Err(error) => fail(error)
   }
-  let (payload, source) = match subscriber.receive() {
+  let (payload, source) = match test_receive(() => subscriber.receive()) {
     Ok(value) => value
     Err(error) => fail(error)
   }

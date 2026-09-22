@@ -98,7 +98,7 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
     node.discovery.session.socket.local_addr(),
   )
   .unwrap()
-  match node.receive_discovery_once().unwrap().1 {
+  match test_receive(() => node.receive_discovery_once()).unwrap().1 {
     Participant(_) => ()
     _ => fail("expected the remote SPDP participant")
   }
@@ -113,22 +113,22 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
   ).unwrap()
   endpoint.add_unicast_locator(node.user_locator())
   node.register_endpoint(endpoint).unwrap()
-  match remote_receiver.receive_discovery().unwrap().0 {
+  match test_receive(() => remote_receiver.receive_discovery()).unwrap().0 {
     Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/chatter")
     _ => fail("expected the SEDP publication announcement")
   }
-  ignore(remote_receiver.receive_heartbeat().unwrap())
+  ignore(test_receive(() => remote_receiver.receive_heartbeat()).unwrap())
   node.dispose_and_close().unwrap()
-  match remote_receiver.receive_discovery().unwrap().0 {
+  match test_receive(() => remote_receiver.receive_discovery()).unwrap().0 {
     EndpointRemoved(kind, endpoint_guid) => {
       assert_eq(kind, Publication)
       assert_eq(endpoint_guid, endpoint.endpoint_guid())
     }
     _ => fail("expected the SEDP endpoint removal")
   }
-  ignore(remote_receiver.receive_heartbeat().unwrap())
-  match remote_sender.receive_discovery().unwrap().0 {
+  ignore(test_receive(() => remote_receiver.receive_heartbeat()).unwrap())
+  match test_receive(() => remote_sender.receive_discovery()).unwrap().0 {
     ParticipantRemoved(participant_guid) =>
       assert_eq(participant_guid, local_participant.participant_guid())
     _ => fail("expected the SPDP participant removal")
@@ -228,7 +228,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   sender
   .send_data(publication_data, remote_prefix, vendor_id, destination)
   .unwrap()
-  ignore(node.receive_discovery_once().unwrap())
+  ignore(test_receive(() => node.receive_discovery_once()).unwrap())
   let subscription_data = remote_subscription
     .to_data_submessage_with_vendor(
       vendor_id,
@@ -240,7 +240,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   sender
   .send_data(subscription_data, remote_prefix, vendor_id, destination)
   .unwrap()
-  ignore(node.receive_discovery_once().unwrap())
+  ignore(test_receive(() => node.receive_discovery_once()).unwrap())
   assert_eq(node.graph_publishers.length(), 1)
   assert_eq(node.graph_subscriptions.length(), 1)
   let publication_dispose = @rtps.DataSubmessage::new(
@@ -254,7 +254,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   sender
   .send_data(publication_dispose, remote_prefix, vendor_id, destination)
   .unwrap()
-  ignore(node.receive_discovery_once().unwrap())
+  ignore(test_receive(() => node.receive_discovery_once()).unwrap())
   let subscription_dispose = @rtps.DataSubmessage::new(
       @rtps.SedpEndpointKind::Subscription.builtin_reader_id(),
       @rtps.SedpEndpointKind::Subscription.builtin_writer_id(),
@@ -266,7 +266,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   sender
   .send_data(subscription_dispose, remote_prefix, vendor_id, destination)
   .unwrap()
-  ignore(node.receive_discovery_once().unwrap())
+  ignore(test_receive(() => node.receive_discovery_once()).unwrap())
   assert_eq(node.graph_publishers.length(), 0)
   assert_eq(node.graph_subscriptions.length(), 0)
   let reappeared_publication = remote_publication
@@ -280,7 +280,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   sender
   .send_data(reappeared_publication, remote_prefix, vendor_id, destination)
   .unwrap()
-  ignore(node.receive_discovery_once().unwrap())
+  ignore(test_receive(() => node.receive_discovery_once()).unwrap())
   assert_eq(node.graph_subscriptions.length(), 1)
   node.close()
   sender.close()
@@ -594,11 +594,11 @@ async test "ROS participants discover service endpoints before request reply" {
   .unwrap()
   client.announce_spdp_once().unwrap()
   server.announce_spdp_once().unwrap()
-  ignore(client.receive_discovery_once().unwrap())
-  ignore(server.receive_discovery_once().unwrap())
+  ignore(test_receive(() => client.receive_discovery_once()).unwrap())
+  ignore(test_receive(() => server.receive_discovery_once()).unwrap())
   for _ in 0..<2 {
-    ignore(client.receive_discovery_once().unwrap())
-    ignore(server.receive_discovery_once().unwrap())
+    ignore(test_receive(() => client.receive_discovery_once()).unwrap())
+    ignore(test_receive(() => server.receive_discovery_once()).unwrap())
   }
   assert_eq(client.graph().publications().length(), 1)
   assert_eq(client.graph().subscriptions().length(), 1)
@@ -635,11 +635,15 @@ async test "ROS participants discover service endpoints before request reply" {
     1L,
   ).unwrap()
   let request_identity = client_facade.request(b"discovered request").unwrap()
-  let (request, received_identity, _) = server_facade.receive_request().unwrap()
+  let (request, received_identity, _) = test_receive(() => {
+    server_facade.receive_request()
+  }).unwrap()
   assert_eq(request, b"discovered request")
   assert_eq(received_identity, request_identity)
   server_facade.respond(request_identity, b"discovered response").unwrap()
-  let (response, _) = client_facade.receive_response(request_identity).unwrap()
+  let (response, _) = test_receive(() => {
+    client_facade.receive_response(request_identity)
+  }).unwrap()
   assert_eq(response, b"discovered response")
   client_facade.close()
   server_facade.close()
@@ -802,16 +806,16 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match publisher.receive_discovery_once() {
+  match test_receive(() => publisher.receive_discovery_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match subscriber.receive_discovery_once() {
+  match test_receive(() => subscriber.receive_discovery_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
   for _ in 0..<2 {
-    match publisher.receive_discovery_once() {
+    match test_receive(() => publisher.receive_discovery_once()) {
       Ok(_) => ()
       Err(message) => fail(message)
     }
@@ -828,7 +832,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Err(message) => fail(message)
   }
   for _ in 0..<3 {
-    match subscriber.receive_discovery_once() {
+    match test_receive(() => subscriber.receive_discovery_once()) {
       Ok(_) => ()
       Err(message) => fail(message)
     }
@@ -839,15 +843,18 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   assert_eq(publisher.ros_discovery_subscription_count(), 1)
   assert_eq(subscriber.ros_discovery_publisher_count(), 1)
   assert_eq(subscriber.ros_discovery_subscription_count(), 1)
-  let (decoded, _) = match subscriber.receive_ros_discovery_info(0) {
+  let (decoded, _) = match
+    test_receive(() => subscriber.receive_ros_discovery_info(0)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match subscriber.receive_ros_discovery_heartbeat(0) {
+  let (heartbeat, _) = match
+    test_receive(() => subscriber.receive_ros_discovery_heartbeat(0)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (acknack, _) = match publisher.receive_ros_discovery_acknack(0) {
+  let (acknack, _) = match
+    test_receive(() => publisher.receive_ros_discovery_acknack(0)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -869,7 +876,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     @rtps.SedpQos::default(),
   )
   .unwrap()
-  match subscriber.receive_discovery_once() {
+  match test_receive(() => subscriber.receive_discovery_once()) {
     Ok((_, Publication(publication))) =>
       assert_eq(publication.topic_name(), "rt/late_topic")
     Ok(_) => fail("expected the late SEDP publication")
@@ -883,7 +890,8 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     refreshed_info.node_entities_info_seq()[0].writer_gid_seq().length(),
     2,
   )
-  let (decoded_refreshed, _) = match subscriber.receive_ros_discovery_info(0) {
+  let (decoded_refreshed, _) = match
+    test_receive(() => subscriber.receive_ros_discovery_info(0)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -899,7 +907,8 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     ),
   )
   .unwrap()
-  let (decoded_removed, _) = match subscriber.receive_ros_discovery_info(0) {
+  let (decoded_removed, _) = match
+    test_receive(() => subscriber.receive_ros_discovery_info(0)) {
     Ok(value) => value
     Err(message) => fail(message)
   }

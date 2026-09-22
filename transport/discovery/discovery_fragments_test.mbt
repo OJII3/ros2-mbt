@@ -104,7 +104,7 @@ async test "discovery session reassembles fragmented SPDP participant data" {
     .to_submessage(),
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  match session.receive_once().unwrap().0 {
+  match test_receive(() => session.receive_once()).unwrap().0 {
     Participant(discovered) =>
       assert_eq(
         discovered.participant_guid(),
@@ -112,7 +112,7 @@ async test "discovery session reassembles fragmented SPDP participant data" {
       )
     _ => fail("expected the reassembled SPDP participant")
   }
-  match session.receive_once().unwrap().0 {
+  match test_receive(() => session.receive_once()).unwrap().0 {
     Publication(publication) => assert_eq(publication.topic_name(), "rt/marker")
     _ => fail("expected the coalesced SEDP publication")
   }
@@ -166,7 +166,7 @@ async test "discovery session reassembles fragmented SPDP participant data" {
     ),
   )
   sender.send_message(fragmented_dispose, session.socket.local_addr()).unwrap()
-  match session.receive_once().unwrap().0 {
+  match test_receive(() => session.receive_once()).unwrap().0 {
     ParticipantRemoved(participant_guid) =>
       assert_eq(participant_guid, remote_participant.participant_guid())
     _ => fail("expected the reassembled SPDP participant removal")
@@ -244,7 +244,7 @@ async test "discovery session filters SEDP data for another builtin reader" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Publication(publication) =>
       assert_eq(publication.endpoint_guid(), endpoint.endpoint_guid())

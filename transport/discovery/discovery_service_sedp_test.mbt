@@ -94,14 +94,15 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_sedp(Publication) {
+  let (decoded, source) = match
+    test_receive(() => receiver.receive_sedp(Publication)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
   assert_eq(source.ip(), 0x7F000001U)
-  let (heartbeat, _) = match receiver.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -128,7 +129,8 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded_acknack, _) = match reliable_writer.receive_acknack() {
+  let (decoded_acknack, _) = match
+    test_receive(() => reliable_writer.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -260,7 +262,8 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded_data, _) = match remote_receiver.receive_data() {
+  let (decoded_data, _) = match
+    test_receive(() => remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -269,12 +272,13 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (first_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+  let (first_heartbeat, _) = match
+    test_receive(() => remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let (second_remote_decoded_data, _) = match
-    second_remote_receiver.receive_data() {
+    test_receive(() => second_remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -287,11 +291,12 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let (second_remote_first_heartbeat, _) = match
-    second_remote_receiver.receive_heartbeat() {
+    test_receive(() => second_remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second_data, _) = match remote_receiver.receive_data() {
+  let (second_data, _) = match
+    test_receive(() => remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -300,12 +305,13 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+  let (second_heartbeat, _) = match
+    test_receive(() => remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let (second_remote_second_data, _) = match
-    second_remote_receiver.receive_data() {
+    test_receive(() => second_remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -318,7 +324,7 @@ async test "discovery service announces SEDP to all discovered participants" {
     Err(message) => fail(message)
   }
   let (second_remote_second_heartbeat, _) = match
-    second_remote_receiver.receive_heartbeat() {
+    test_receive(() => second_remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -339,7 +345,8 @@ async test "discovery service announces SEDP to all discovered participants" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (disposed_data, _) = match remote_receiver.receive_data() {
+  let (disposed_data, _) = match
+    test_receive(() => remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -352,17 +359,19 @@ async test "discovery service announces SEDP to all discovered participants" {
     disposed_data.status_info(),
     Ok(Some(@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)),
   )
-  let (dispose_heartbeat, _) = match remote_receiver.receive_heartbeat() {
+  let (dispose_heartbeat, _) = match
+    test_receive(() => remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second_disposed_data, _) = match second_remote_receiver.receive_data() {
+  let (second_disposed_data, _) = match
+    test_receive(() => second_remote_receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(second_disposed_data.writer_sequence_number(), 3L)
   let (second_dispose_heartbeat, _) = match
-    second_remote_receiver.receive_heartbeat() {
+    test_receive(() => second_remote_receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

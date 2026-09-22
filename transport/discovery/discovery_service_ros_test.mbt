@@ -60,7 +60,7 @@ async test "discovery service ingests ros_discovery_info samples" {
     Err(message) => fail(message)
   }
   let (source, decoded) = match
-    service.receive_ros_discovery_info_from(receiver) {
+    test_receive(() => service.receive_ros_discovery_info_from(receiver)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -212,15 +212,15 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Err(message) => fail(message)
   }
   let (source, decoded) = match
-    service.receive_ros_discovery_info_reliable(reader) {
+    test_receive(() => service.receive_ros_discovery_info_reliable(reader)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match reader.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => reader.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (acknack, _) = match writer.receive_acknack() {
+  let (acknack, _) = match test_receive(() => writer.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

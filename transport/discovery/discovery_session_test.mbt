@@ -70,7 +70,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
     session.socket.local_addr(),
   )
   .unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Publication(decoded) => {
       assert_eq(decoded.topic_name(), "rt/chatter")
@@ -139,11 +139,11 @@ async test "discovery session repeats SPDP announcements" {
     Err(message) => fail(message)
   }
   assert_eq(session.next_sequence_number(), 3L)
-  let (first, source) = match receiver.receive_discovery() {
+  let (first, source) = match test_receive(() => receiver.receive_discovery()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second, _) = match receiver.receive_discovery() {
+  let (second, _) = match test_receive(() => receiver.receive_discovery()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -174,7 +174,7 @@ async test "discovery session repeats SPDP announcements" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (removed, _) = session.receive_once().unwrap()
+  let (removed, _) = test_receive(() => session.receive_once()).unwrap()
   match removed {
     ParticipantRemoved(removed_guid) =>
       assert_eq(removed_guid, participant_guid)
@@ -187,7 +187,7 @@ async test "discovery session repeats SPDP announcements" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (outgoing_removed, _) = receiver.receive_discovery().unwrap()
+  let (outgoing_removed, _) = test_receive(() => receiver.receive_discovery()).unwrap()
   match outgoing_removed {
     ParticipantRemoved(removed_guid) =>
       assert_eq(removed_guid, participant_guid)
@@ -260,7 +260,7 @@ async test "discovery session ignores DATA without payload or key" {
     .to_submessage(),
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Participant(decoded) =>
       assert_eq(decoded.to_cdr_bytes(), remote_participant.to_cdr_bytes())
@@ -336,7 +336,7 @@ async test "discovery session ignores SPDP from another domain" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Participant(participant) => assert_eq(participant.domain_id(), 0U)
     Publication(_) => fail("expected a participant event")
@@ -410,7 +410,7 @@ async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
     1L,
   ).unwrap()
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Participant(participant) => assert_eq(participant.domain_id(), 49U)
     Publication(_) => fail("expected an SPDP participant")
@@ -486,7 +486,7 @@ async test "discovery session receives from an additional metatraffic socket" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (event, source) = match session.receive_once() {
+  let (event, source) = match test_receive(() => session.receive_once()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
