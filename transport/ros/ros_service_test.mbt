@@ -116,7 +116,7 @@ async test "reliable ROS service client and server correlate a response" {
   ).unwrap()
   assert_eq(request_identity, expected_request_identity)
   let (request, received_identity, request_source) = match
-    server.receive_request() {
+    test_receive(() => server.receive_request()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -144,13 +144,14 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   let (response, response_source) = match
-    client.receive_response(request_identity) {
+    test_receive(() => client.receive_response(request_identity)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(response, b"response")
   assert_eq(response_source.ip(), 0x7F000001U)
-  let (retransmitted_request, _, _) = match server.receive_request() {
+  let (retransmitted_request, _, _) = match
+    test_receive(() => server.receive_request()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -160,7 +161,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   let (second_request, second_received_identity, _) = match
-    server.receive_request() {
+    test_receive(() => server.receive_request()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -171,7 +172,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   let (second_response, _) = match
-    client.receive_response(second_request_identity) {
+    test_receive(() => client.receive_response(second_request_identity)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -251,7 +252,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
     server_response_id, client_response, 1L,
   ).unwrap()
   let request_identity = client.request(b"serialized Fibonacci goal").unwrap()
-  let (request, received_identity, _) = server.receive_request().unwrap()
+  let (request, received_identity, _) = test_receive(() => {
+    server.receive_request()
+  }).unwrap()
   assert_eq(request, b"serialized Fibonacci goal")
   assert_eq(received_identity, request_identity)
   let request_acknack = @rtps.AckNackSubmessage::new(
@@ -267,7 +270,9 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   .unwrap()
   @async.sleep(10)
   server.respond(request_identity, b"accepted goal response").unwrap()
-  let (response, _) = client.receive_response(request_identity).unwrap()
+  let (response, _) = test_receive(() => {
+    client.receive_response(request_identity)
+  }).unwrap()
   assert_eq(response, b"accepted goal response")
   client.close()
   server.close()

@@ -86,7 +86,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Ok(_) => ()
     Err(error) => fail(error)
   }
-  let (data, source) = match reader.receive() {
+  let (data, source) = match test_receive(() => reader.receive()) {
     Ok(value) => value
     Err(error) => fail(error)
   }
@@ -213,11 +213,11 @@ async test "two discovery services establish a ROS String data path" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match publisher_service.receive_once() {
+  match test_receive(() => publisher_service.receive_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match subscriber_service.receive_once() {
+  match test_receive(() => subscriber_service.receive_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -288,11 +288,11 @@ async test "two discovery services establish a ROS String data path" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match subscriber_service.receive_once() {
+  match test_receive(() => subscriber_service.receive_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match publisher_service.receive_once() {
+  match test_receive(() => publisher_service.receive_once()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
@@ -324,7 +324,7 @@ async test "two discovery services establish a ROS String data path" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (data, source) = match reader.receive() {
+  let (data, source) = match test_receive(() => reader.receive()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

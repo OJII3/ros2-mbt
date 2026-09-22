@@ -37,11 +37,11 @@ async test "best-effort data writer increments sequence numbers" {
     Err(message) => fail(message)
   }
   assert_eq(writer.next_sequence_number(), 3L)
-  let (first, _) = match receiver.receive_data() {
+  let (first, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second, _) = match receiver.receive_data() {
+  let (second, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -97,11 +97,11 @@ async test "best-effort data writer uses all supported endpoint locators" {
     1L,
   ).unwrap()
   writer.write(b"payload").unwrap()
-  let (message, _) = receiver.receive_message().unwrap()
+  let (message, _) = test_receive(() => receiver.receive_message()).unwrap()
   assert_eq(message.destination_guid_prefix(), Ok(Some(prefix)))
   let data = @rtps.DataSubmessage::from_submessage(message.submessages()[1]).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
-  let (second_data, _) = second_receiver.receive_data().unwrap()
+  let (second_data, _) = test_receive(() => second_receiver.receive_data()).unwrap()
   assert_eq(second_data.serialized_payload(), b"payload")
   writer.close()
   receiver.close()
@@ -134,7 +134,7 @@ async test "best-effort data writer fragments large samples" {
   let expected = Bytes::from_array(payload)
   writer.write(expected).unwrap()
   assert_eq(writer.next_sequence_number(), 2L)
-  let (decoded, source) = reader.receive().unwrap()
+  let (decoded, source) = test_receive(() => reader.receive()).unwrap()
   assert_eq(decoded.writer_sequence_number(), 1L)
   assert_eq(decoded.serialized_payload(), expected)
   assert_eq(source.ip(), 0x7F000001U)

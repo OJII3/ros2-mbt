@@ -41,15 +41,15 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (first, _) = match receiver.receive_data() {
+  let (first, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (second, _) = match receiver.receive_data() {
+  let (second, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match receiver.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -74,7 +74,7 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (retransmitted, _) = match receiver.receive_data() {
+  let (retransmitted, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -131,7 +131,7 @@ async test "reliable writer directs discovered endpoint traffic" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (message, _) = receiver.receive_message().unwrap()
+  let (message, _) = test_receive(() => receiver.receive_message()).unwrap()
   assert_eq(message.destination_guid_prefix(), Ok(Some(remote_prefix)))
   let data = @rtps.DataSubmessage::from_submessage(message.submessages()[1]).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
@@ -210,12 +210,13 @@ async test "reliable writer receives ACKNACK from its socket" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded_acknack, _) = match writer.receive_acknack() {
+  let (decoded_acknack, _) = match
+    test_receive(() => writer.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(decoded_acknack.count(), 1U)
-  let (retransmitted, _) = match receiver.receive_data() {
+  let (retransmitted, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -252,11 +253,11 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
     Err(message) => fail(message)
   }
   assert_eq(writer.history_length(), 1)
-  let (first_message, _) = receiver.receive_message().unwrap()
+  let (first_message, _) = test_receive(() => receiver.receive_message()).unwrap()
   let first_fragment = @rtps.DataFragSubmessage::from_submessage(
     first_message.submessages()[0],
   ).unwrap()
-  let (second_message, _) = receiver.receive_message().unwrap()
+  let (second_message, _) = test_receive(() => receiver.receive_message()).unwrap()
   let second_fragment = @rtps.DataFragSubmessage::from_submessage(
     second_message.submessages()[0],
   ).unwrap()
@@ -264,7 +265,7 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   assert_eq(first_fragment.serialized_payload().length(), 1200)
   assert_eq(second_fragment.fragment_starting_number(), 2U)
   assert_eq(second_fragment.serialized_payload().length(), 1200)
-  let (third_message, _) = receiver.receive_message().unwrap()
+  let (third_message, _) = test_receive(() => receiver.receive_message()).unwrap()
   let third_fragment = @rtps.DataFragSubmessage::from_submessage(
     third_message.submessages()[0],
   ).unwrap()
@@ -274,9 +275,11 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = receiver.receive_heartbeat().unwrap()
+  let (heartbeat, _) = test_receive(() => receiver.receive_heartbeat()).unwrap()
   assert_eq(heartbeat.first_sequence_number(), 1L)
-  let (heartbeat_frag_message, _) = receiver.receive_message().unwrap()
+  let (heartbeat_frag_message, _) = test_receive(() => {
+    receiver.receive_message()
+  }).unwrap()
   let heartbeat_frag = @rtps.HeartbeatFragSubmessage::from_submessage(
     heartbeat_frag_message.submessages()[0],
   ).unwrap()
@@ -300,11 +303,11 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  match writer.receive_control() {
+  match test_receive(() => writer.receive_control()) {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (retransmitted_message, _) = receiver.receive_message().unwrap()
+  let (retransmitted_message, _) = test_receive(() => receiver.receive_message()).unwrap()
   let retransmitted = @rtps.DataFragSubmessage::from_submessage(
     retransmitted_message.submessages()[0],
   ).unwrap()
@@ -318,7 +321,7 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   assert_eq(writer.history_length(), 0)
   writer.handle_nackfrag(nackfrag).unwrap()
   let after_acknowledgement = @async.with_timeout_opt(20, async fn() {
-    receiver.receive_message()
+    test_receive(() => receiver.receive_message())
   })
   assert_true(after_acknowledgement is None)
   writer.close()
@@ -390,11 +393,11 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (data, _) = match receiver.receive_data() {
+  let (data, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match receiver.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -444,7 +447,8 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded_acknack, _) = match writer.receive_acknack() {
+  let (decoded_acknack, _) = match
+    test_receive(() => writer.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

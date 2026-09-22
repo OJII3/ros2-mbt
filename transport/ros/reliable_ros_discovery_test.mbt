@@ -81,15 +81,16 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match subscriber.receive() {
+  let (decoded, source) = match test_receive(() => subscriber.receive()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match subscriber.receive_heartbeat() {
+  let (heartbeat, _) = match
+    test_receive(() => subscriber.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (acknack, _) = match publisher.receive_acknack() {
+  let (acknack, _) = match test_receive(() => publisher.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

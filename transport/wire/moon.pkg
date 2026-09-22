@@ -10,4 +10,5 @@ import {
 
 options(
   "is-main": false,
+  "max-concurrent-tests": 1,
 )

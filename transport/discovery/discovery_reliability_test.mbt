@@ -63,7 +63,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (participant_event, _) = session.receive_once().unwrap()
+  let (participant_event, _) = test_receive(() => session.receive_once()).unwrap()
   match participant_event {
     Participant(discovered) =>
       assert_eq(discovered.participant_guid().prefix(), remote_prefix)
@@ -100,7 +100,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (event, _) = session.receive_once().unwrap()
+  let (event, _) = test_receive(() => session.receive_once()).unwrap()
   match event {
     Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/chatter")
@@ -109,7 +109,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     EndpointRemoved(_, _) => fail("expected an SEDP publication")
     ParticipantRemoved(_) => fail("expected an SEDP publication")
   }
-  let (acknack, _) = ack_receiver.receive_acknack().unwrap()
+  let (acknack, _) = test_receive(() => ack_receiver.receive_acknack()).unwrap()
   assert_eq(
     acknack.reader_id(),
     @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
@@ -143,7 +143,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (complete_event, _) = session.receive_once().unwrap()
+  let (complete_event, _) = test_receive(() => session.receive_once()).unwrap()
   match complete_event {
     Publication(_) => ()
     Participant(_) => fail("expected a repeated publication")
@@ -151,7 +151,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     EndpointRemoved(_, _) => fail("expected a repeated publication")
     ParticipantRemoved(_) => fail("expected a repeated publication")
   }
-  let (complete_acknack, _) = ack_receiver.receive_acknack().unwrap()
+  let (complete_acknack, _) = test_receive(() => ack_receiver.receive_acknack()).unwrap()
   assert_eq(complete_acknack.bitmap_base(), 2L)
   assert_eq(complete_acknack.num_bits(), 0U)
   assert_eq(complete_acknack.bitmap(), [])
@@ -166,7 +166,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     session.socket.local_addr(),
   )
   .unwrap()
-  let (removed_event, _) = session.receive_once().unwrap()
+  let (removed_event, _) = test_receive(() => session.receive_once()).unwrap()
   match removed_event {
     EndpointRemoved(kind, endpoint_guid) => {
       assert_eq(kind, Publication)
@@ -260,7 +260,7 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     .to_submessage(),
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  let (first_event, _) = session.receive_once().unwrap()
+  let (first_event, _) = test_receive(() => session.receive_once()).unwrap()
   match first_event {
     Publication(publication) => assert_eq(publication.topic_name(), "rt/first")
     _ => fail("expected the first SEDP publication")
@@ -275,12 +275,12 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     session.socket.local_addr(),
   )
   .unwrap()
-  let (second_event, _) = session.receive_once().unwrap()
+  let (second_event, _) = test_receive(() => session.receive_once()).unwrap()
   match second_event {
     Publication(publication) => assert_eq(publication.topic_name(), "rt/second")
     _ => fail("expected the second SEDP publication")
   }
-  let (third_event, _) = session.receive_once().unwrap()
+  let (third_event, _) = test_receive(() => session.receive_once()).unwrap()
   match third_event {
     Publication(publication) => assert_eq(publication.topic_name(), "rt/third")
     _ => fail("expected the third SEDP publication")
@@ -392,13 +392,13 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
     .to_submessage(),
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  let (publication_event, _) = session.receive_once().unwrap()
+  let (publication_event, _) = test_receive(() => session.receive_once()).unwrap()
   match publication_event {
     Publication(publication) =>
       assert_eq(publication.topic_name(), "rt/fragmented")
     _ => fail("expected the reassembled SEDP publication")
   }
-  let (participant_event, _) = session.receive_once().unwrap()
+  let (participant_event, _) = test_receive(() => session.receive_once()).unwrap()
   match participant_event {
     Participant(discovered) =>
       assert_eq(discovered.participant_guid().prefix(), remote_prefix)
@@ -456,7 +456,7 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
     ),
   )
   sender.send_message(fragmented_dispose, session.socket.local_addr()).unwrap()
-  match session.receive_once().unwrap().0 {
+  match test_receive(() => session.receive_once()).unwrap().0 {
     EndpointRemoved(kind, endpoint_guid) => {
       assert_eq(kind, Publication)
       assert_eq(endpoint_guid, endpoint.endpoint_guid())
@@ -557,11 +557,11 @@ async test "discovery session requests missing SEDP fragments" {
     .to_submessage(),
   )
   sender.send_message(message, session.socket.local_addr()).unwrap()
-  match session.receive_once().unwrap().0 {
+  match test_receive(() => session.receive_once()).unwrap().0 {
     Participant(_) => ()
     _ => fail("expected the coalesced SPDP participant")
   }
-  let (nackfrag, source) = sender.receive_nack_frag().unwrap()
+  let (nackfrag, source) = test_receive(() => sender.receive_nack_frag()).unwrap()
   assert_eq(
     nackfrag.reader_id(),
     @rtps.SedpEndpointKind::Publication.builtin_reader_id(),

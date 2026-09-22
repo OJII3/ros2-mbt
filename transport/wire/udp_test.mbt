@@ -45,7 +45,7 @@ async test "UDP sends and receives one datagram" {
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   sender.send_to(b"RTPS", receiver.local_addr())
-  let (payload, source) = receiver.receive()
+  let (payload, source) = test_receive(() => receiver.receive())
   assert_eq(payload, b"RTPS")
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()
@@ -68,7 +68,7 @@ async test "UDP sends and receives one RTPS message" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_message() {
+  let (decoded, source) = match test_receive(() => receiver.receive_message()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -106,7 +106,7 @@ async test "UDP sends and receives one DATA sample" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_data() {
+  let (decoded, source) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -156,7 +156,8 @@ async test "UDP sends and receives ROS graph-discovery info" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_ros_discovery_info() {
+  let (decoded, source) = match
+    test_receive(() => receiver.receive_ros_discovery_info()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -208,7 +209,7 @@ async test "UDP sends and receives one SPDP announcement" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_spdp() {
+  let (decoded, source) = match test_receive(() => receiver.receive_spdp()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -264,7 +265,8 @@ async test "UDP sends and receives one SEDP announcement" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match receiver.receive_sedp(Publication) {
+  let (decoded, source) = match
+    test_receive(() => receiver.receive_sedp(Publication)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -333,7 +335,7 @@ async test "UDP classifies discovery samples by builtin writer" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (event, source) = match receiver.receive_discovery() {
+  let (event, source) = match test_receive(() => receiver.receive_discovery()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -403,13 +405,14 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, _) = match receiver.receive_sedp(Publication) {
+  let (decoded, _) = match
+    test_receive(() => receiver.receive_sedp(Publication)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
-  let (heartbeat, _) = match receiver.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -424,7 +427,7 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (disposed, _) = match receiver.receive_data() {
+  let (disposed, _) = match test_receive(() => receiver.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -434,7 +437,8 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     disposed.status_info(),
     Ok(Some(@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)),
   )
-  let (dispose_heartbeat, _) = match receiver.receive_heartbeat() {
+  let (dispose_heartbeat, _) = match
+    test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }

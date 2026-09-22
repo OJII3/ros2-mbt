@@ -106,7 +106,7 @@ async test "best-effort reader accepts its discovered publication" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match reader.receive() {
+  let (decoded, source) = match test_receive(() => reader.receive()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -147,7 +147,7 @@ async test "best-effort reader accepts DATA with an unknown reader ID" {
     reader.socket.local_addr(),
   )
   .unwrap()
-  let (decoded, _) = reader.receive().unwrap()
+  let (decoded, _) = test_receive(() => reader.receive()).unwrap()
   assert_eq(decoded.serialized_payload(), b"multicast payload")
   sender.close()
   reader.close()
@@ -213,7 +213,7 @@ async test "best-effort reader reassembles DATA_FRAG over UDP" {
       Err(message) => fail(message)
     }
   }
-  let (data, _) = reader.receive().unwrap()
+  let (data, _) = test_receive(() => reader.receive()).unwrap()
   assert_eq(data.writer_sequence_number(), 2L)
   assert_eq(data.serialized_payload(), b"abcdefghij")
   sender.close()

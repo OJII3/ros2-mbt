@@ -118,15 +118,15 @@ async test "reliable reader session receives discovered publication data" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (heartbeat, _) = match reader.receive_heartbeat() {
+  let (heartbeat, _) = match test_receive(() => reader.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (decoded, source) = match reader.receive_data() {
+  let (decoded, source) = match test_receive(() => reader.receive_data()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (ack_message, _) = match sender.receive_message() {
+  let (ack_message, _) = match test_receive(() => sender.receive_message()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -200,8 +200,8 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (received, _) = reader.receive_heartbeat().unwrap()
-  let (acknack, _) = sender.receive_acknack().unwrap()
+  let (received, _) = test_receive(() => reader.receive_heartbeat()).unwrap()
+  let (acknack, _) = test_receive(() => sender.receive_acknack()).unwrap()
   assert_eq(received.last_sequence_number(), 5L)
   assert_eq(acknack.bitmap_base(), 1L)
   assert_eq(acknack.num_bits(), 5U)
@@ -248,8 +248,8 @@ async test "reliable reader session limits ACKNACK to the first missing window" 
     receiver.local_addr(),
   )
   .unwrap()
-  let (received, _) = reader.receive_heartbeat().unwrap()
-  let (first, _) = sender.receive_acknack().unwrap()
+  let (received, _) = test_receive(() => reader.receive_heartbeat()).unwrap()
+  let (first, _) = test_receive(() => sender.receive_acknack()).unwrap()
   assert_eq(received.last_sequence_number(), 300L)
   assert_eq(first.bitmap_base(), 1L)
   assert_eq(first.num_bits(), 256U)
@@ -304,10 +304,10 @@ async test "reliable reader session sends NACK_FRAG windows for a large sample" 
     receiver.local_addr(),
   )
   .unwrap()
-  let (_, _) = reader.receive_heartbeat().unwrap()
-  let (first, _) = sender.receive_nack_frag().unwrap()
-  let (second, _) = sender.receive_nack_frag().unwrap()
-  let (_, _) = sender.receive_acknack().unwrap()
+  let (_, _) = test_receive(() => reader.receive_heartbeat()).unwrap()
+  let (first, _) = test_receive(() => sender.receive_nack_frag()).unwrap()
+  let (second, _) = test_receive(() => sender.receive_nack_frag()).unwrap()
+  let (_, _) = test_receive(() => sender.receive_acknack()).unwrap()
   assert_eq(first.bitmap_base(), 1U)
   assert_eq(first.num_bits(), 256U)
   assert_eq(second.bitmap_base(), 257U)
@@ -406,11 +406,13 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
       Err(message) => fail(message)
     }
   }
-  let (data, identity, _) = reader.receive_data_with_identity().unwrap()
+  let (data, identity, _) = test_receive(() => {
+    reader.receive_data_with_identity()
+  }).unwrap()
   assert_eq(data.writer_sequence_number(), 4L)
   assert_eq(data.serialized_payload(), b"abcdefghij")
   assert_eq(identity.sequence_number(), 4L)
-  let (nackfrag, _) = sender.receive_nack_frag().unwrap()
+  let (nackfrag, _) = test_receive(() => sender.receive_nack_frag()).unwrap()
   assert_eq(nackfrag.writer_sequence_number(), 4L)
   assert_eq(nackfrag.bitmap_base(), 1U)
   assert_eq(nackfrag.num_bits(), 3U)

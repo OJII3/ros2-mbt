@@ -64,11 +64,13 @@ async test "UDP sends and receives HEARTBEAT and ACKNACK" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (received_heartbeat, source) = match receiver.receive_heartbeat() {
+  let (received_heartbeat, source) = match
+    test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let (received_acknack, _) = match receiver.receive_acknack() {
+  let (received_acknack, _) = match
+    test_receive(() => receiver.receive_acknack()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
