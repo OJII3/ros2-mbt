@@ -720,11 +720,13 @@ pub struct PoseStamped {
 } derive(Eq, Debug)
 
 ///|
+/// Create a stamped pose.
 pub fn PoseStamped::new(header : @std_msgs.Header, pose : Pose) -> PoseStamped {
   { header, pose, }
 }
 
 ///|
+/// Create an empty stamped pose.
 pub fn PoseStamped::default() -> PoseStamped {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let pose : Pose = Pose::default()
@@ -732,16 +734,19 @@ pub fn PoseStamped::default() -> PoseStamped {
 }
 
 ///|
+/// Return the stamped pose header.
 pub fn PoseStamped::header(self : PoseStamped) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the stamped pose value.
 pub fn PoseStamped::pose(self : PoseStamped) -> Pose {
   self.pose
 }
 
 ///|
+/// Serialize the stamped pose as ROS 2 CDR.
 pub fn PoseStamped::write_cdr(
   self : PoseStamped,
   writer : @cdr.Writer,
@@ -758,6 +763,7 @@ pub fn PoseStamped::write_cdr(
 }
 
 ///|
+/// Parse a stamped pose from ROS 2 CDR.
 pub fn PoseStamped::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[PoseStamped, String] {
@@ -773,6 +779,7 @@ pub fn PoseStamped::read_cdr(
 }
 
 ///|
+/// Serialize the stamped pose as CDR bytes.
 pub fn PoseStamped::to_cdr_bytes(self : PoseStamped) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -783,6 +790,7 @@ pub fn PoseStamped::to_cdr_bytes(self : PoseStamped) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a stamped pose from CDR bytes.
 pub fn PoseStamped::from_cdr_bytes(
   input : Bytes,
 ) -> Result[PoseStamped, String] {
@@ -801,6 +809,7 @@ pub fn PoseStamped::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/PoseStamped`.
 pub const PoseStamped_TYPE_HASH : String = "RIHS01_10f3786d7d40fd2b54367835614bff85d4ad3b5dab62bf8bca0cc232d73b4cd8"
 
 ///|
