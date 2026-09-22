@@ -32,7 +32,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     participant_reader,
@@ -123,7 +123,7 @@ async test "discovery session repeats SPDP announcements" {
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new(
+    @discovery.DiscoverySession::new(
       sender,
       participant,
       reader_id,
@@ -236,7 +236,7 @@ async test "discovery session ignores DATA without payload or key" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -310,7 +310,7 @@ async test "discovery session ignores SPDP from another domain" {
   )
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -401,7 +401,7 @@ async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
   message.add(data.to_submessage())
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let session = DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new(
     receiver,
     local_participant,
     reader_id,
@@ -463,7 +463,7 @@ async test "discovery session receives from an additional metatraffic socket" {
   let primary = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let session = match
-    DiscoverySession::new_with_receive_sockets(
+    @discovery.DiscoverySession::new_with_receive_sockets(
       primary,
       [metatraffic],
       participant,
