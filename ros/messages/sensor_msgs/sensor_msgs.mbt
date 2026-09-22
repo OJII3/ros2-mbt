@@ -2039,18 +2039,23 @@ pub extend NavSatFix with Eq::{not_equal, equal}
 pub extend NavSatFix with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Covariance type is unknown.
 pub const COVARIANCE_TYPE_UNKNOWN : Byte = 0
 
 ///|
+/// Covariance type is approximated.
 pub const COVARIANCE_TYPE_APPROXIMATED : Byte = 1
 
 ///|
+/// Covariance diagonal is known.
 pub const COVARIANCE_TYPE_DIAGONAL_KNOWN : Byte = 2
 
 ///|
+/// Full covariance is known.
 pub const COVARIANCE_TYPE_KNOWN : Byte = 3
 
 ///|
+/// Create a satellite fix message.
 pub fn NavSatFix::new(
   header : @std.Header,
   status : NavSatStatus,
@@ -2072,6 +2077,7 @@ pub fn NavSatFix::new(
 }
 
 ///|
+/// Create a satellite fix message with zero-valued fields.
 pub fn NavSatFix::default() -> NavSatFix {
   let header : @std.Header = @std.Header::default()
   let status : NavSatStatus = NavSatStatus::default()
@@ -2089,41 +2095,49 @@ pub fn NavSatFix::default() -> NavSatFix {
 }
 
 ///|
+/// Return the satellite fix header.
 pub fn NavSatFix::header(self : NavSatFix) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the satellite status.
 pub fn NavSatFix::status(self : NavSatFix) -> NavSatStatus {
   self.status
 }
 
 ///|
+/// Return the latitude in degrees.
 pub fn NavSatFix::latitude(self : NavSatFix) -> Double {
   self.latitude
 }
 
 ///|
+/// Return the longitude in degrees.
 pub fn NavSatFix::longitude(self : NavSatFix) -> Double {
   self.longitude
 }
 
 ///|
+/// Return the altitude in meters.
 pub fn NavSatFix::altitude(self : NavSatFix) -> Double {
   self.altitude
 }
 
 ///|
+/// Return the position covariance values.
 pub fn NavSatFix::position_covariance(self : NavSatFix) -> Array[Double] {
   self.position_covariance
 }
 
 ///|
+/// Return the position covariance type.
 pub fn NavSatFix::position_covariance_type(self : NavSatFix) -> Byte {
   self.position_covariance_type
 }
 
 ///|
+/// Serialize a satellite fix as ROS 2 CDR.
 pub fn NavSatFix::write_cdr(
   self : NavSatFix,
   writer : @cdr.Writer,
@@ -2152,6 +2166,7 @@ pub fn NavSatFix::write_cdr(
 }
 
 ///|
+/// Parse a satellite fix from ROS 2 CDR.
 pub fn NavSatFix::read_cdr(reader : @cdr.Reader) -> Result[NavSatFix, String] {
   let header = match @std.Header::read_cdr(reader) {
     Ok(value) => value
@@ -2194,6 +2209,7 @@ pub fn NavSatFix::read_cdr(reader : @cdr.Reader) -> Result[NavSatFix, String] {
 }
 
 ///|
+/// Serialize a satellite fix as CDR bytes.
 pub fn NavSatFix::to_cdr_bytes(self : NavSatFix) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -2204,6 +2220,7 @@ pub fn NavSatFix::to_cdr_bytes(self : NavSatFix) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a satellite fix from CDR bytes.
 pub fn NavSatFix::from_cdr_bytes(input : Bytes) -> Result[NavSatFix, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
