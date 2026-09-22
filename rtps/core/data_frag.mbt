@@ -105,21 +105,25 @@ pub fn DataFragSubmessage::with_inline_qos(
 }
 
 ///|
+/// Return the DATA_FRAG submessage flags.
 pub fn DataFragSubmessage::flags(self : DataFragSubmessage) -> Byte {
   self.flags
 }
 
 ///|
+/// Return the reader entity ID.
 pub fn DataFragSubmessage::reader_id(self : DataFragSubmessage) -> EntityId {
   self.reader_id
 }
 
 ///|
+/// Return the writer entity ID.
 pub fn DataFragSubmessage::writer_id(self : DataFragSubmessage) -> EntityId {
   self.writer_id
 }
 
 ///|
+/// Return the writer sequence number.
 pub fn DataFragSubmessage::writer_sequence_number(
   self : DataFragSubmessage,
 ) -> Int64 {
@@ -127,6 +131,7 @@ pub fn DataFragSubmessage::writer_sequence_number(
 }
 
 ///|
+/// Return the first fragment number in this submessage.
 pub fn DataFragSubmessage::fragment_starting_number(
   self : DataFragSubmessage,
 ) -> UInt {
@@ -134,6 +139,7 @@ pub fn DataFragSubmessage::fragment_starting_number(
 }
 
 ///|
+/// Return the number of fragments carried by this submessage.
 pub fn DataFragSubmessage::fragments_in_submessage(
   self : DataFragSubmessage,
 ) -> UInt16 {
@@ -141,21 +147,25 @@ pub fn DataFragSubmessage::fragments_in_submessage(
 }
 
 ///|
+/// Return the fragment size in bytes.
 pub fn DataFragSubmessage::fragment_size(self : DataFragSubmessage) -> UInt16 {
   self.fragment_size
 }
 
 ///|
+/// Return the complete sample size in bytes.
 pub fn DataFragSubmessage::sample_size(self : DataFragSubmessage) -> UInt {
   self.sample_size
 }
 
 ///|
+/// Return the inline QoS parameter bytes.
 pub fn DataFragSubmessage::inline_qos(self : DataFragSubmessage) -> Bytes {
   self.inline_qos
 }
 
 ///|
+/// Return the serialized fragment payload bytes.
 pub fn DataFragSubmessage::serialized_payload(
   self : DataFragSubmessage,
 ) -> Bytes {
