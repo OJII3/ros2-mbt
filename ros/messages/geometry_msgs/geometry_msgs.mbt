@@ -820,6 +820,7 @@ pub struct PoseWithCovariance {
 } derive(Eq, Debug)
 
 ///|
+/// Create a pose with covariance.
 pub fn PoseWithCovariance::new(
   pose : Pose,
   covariance : Array[Double],
@@ -828,6 +829,7 @@ pub fn PoseWithCovariance::new(
 }
 
 ///|
+/// Create a pose with zero covariance.
 pub fn PoseWithCovariance::default() -> PoseWithCovariance {
   let pose : Pose = Pose::default()
   let covariance : Array[Double] = []
@@ -838,11 +840,13 @@ pub fn PoseWithCovariance::default() -> PoseWithCovariance {
 }
 
 ///|
+/// Return the pose component.
 pub fn PoseWithCovariance::pose(self : PoseWithCovariance) -> Pose {
   self.pose
 }
 
 ///|
+/// Return the covariance values.
 pub fn PoseWithCovariance::covariance(
   self : PoseWithCovariance,
 ) -> Array[Double] {
@@ -850,6 +854,7 @@ pub fn PoseWithCovariance::covariance(
 }
 
 ///|
+/// Serialize the pose with covariance as ROS 2 CDR.
 pub fn PoseWithCovariance::write_cdr(
   self : PoseWithCovariance,
   writer : @cdr.Writer,
@@ -868,6 +873,7 @@ pub fn PoseWithCovariance::write_cdr(
 }
 
 ///|
+/// Parse a pose with covariance from ROS 2 CDR.
 pub fn PoseWithCovariance::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[PoseWithCovariance, String] {
@@ -888,6 +894,7 @@ pub fn PoseWithCovariance::read_cdr(
 }
 
 ///|
+/// Serialize the pose with covariance as CDR bytes.
 pub fn PoseWithCovariance::to_cdr_bytes(
   self : PoseWithCovariance,
 ) -> Result[Bytes, String] {
@@ -900,6 +907,7 @@ pub fn PoseWithCovariance::to_cdr_bytes(
 }
 
 ///|
+/// Parse a pose with covariance from CDR bytes.
 pub fn PoseWithCovariance::from_cdr_bytes(
   input : Bytes,
 ) -> Result[PoseWithCovariance, String] {
@@ -918,6 +926,7 @@ pub fn PoseWithCovariance::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/PoseWithCovariance`.
 pub const PoseWithCovariance_TYPE_HASH : String = "RIHS01_9a7c0fd234b7f45c6098745ecccd773ca1085670e64107135397aee31c02e1bb"
 
 ///|
