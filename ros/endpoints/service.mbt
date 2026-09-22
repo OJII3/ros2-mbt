@@ -28,6 +28,7 @@ pub extend RosServicePayloadHeader with Eq::{not_equal, equal}
 pub extend RosServicePayloadHeader with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create a service payload header.
 pub fn RosServicePayloadHeader::new(
   client_id : UInt64,
   sequence_number : Int64,
@@ -36,6 +37,7 @@ pub fn RosServicePayloadHeader::new(
 }
 
 ///|
+/// Return the service client identifier.
 pub fn RosServicePayloadHeader::client_id(
   self : RosServicePayloadHeader,
 ) -> UInt64 {
@@ -43,6 +45,7 @@ pub fn RosServicePayloadHeader::client_id(
 }
 
 ///|
+/// Return the service request sequence number.
 pub fn RosServicePayloadHeader::sequence_number(
   self : RosServicePayloadHeader,
 ) -> Int64 {
@@ -156,26 +159,31 @@ pub fn RosService::new_with_interface_namespace(
 }
 
 ///|
+/// Return the ROS service name.
 pub fn RosService::ros_name(self : RosService) -> String {
   self.ros_name
 }
 
 ///|
+/// Return the DDS request topic name.
 pub fn RosService::dds_request_name(self : RosService) -> String {
   self.dds_request_name
 }
 
 ///|
+/// Return the DDS response topic name.
 pub fn RosService::dds_response_name(self : RosService) -> String {
   self.dds_response_name
 }
 
 ///|
+/// Return the DDS request type name.
 pub fn RosService::dds_request_type_name(self : RosService) -> String {
   self.dds_request_type_name
 }
 
 ///|
+/// Return the DDS response type name.
 pub fn RosService::dds_response_type_name(self : RosService) -> String {
   self.dds_response_type_name
 }
