@@ -294,7 +294,7 @@ pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
 ///|
 /// Wrap the DATA body in an RTPS submessage.
 pub fn DataSubmessage::to_submessage(self : DataSubmessage) -> Submessage {
-  Submessage::new(SubmessageId::Data, self.flags, self.to_payload())
+  Submessage::new(Data, self.flags, self.to_payload())
 }
 
 ///|
@@ -342,7 +342,7 @@ fn data_inline_qos_from_bytes(
 pub fn DataSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[DataSubmessage, String] {
-  if submessage.id != SubmessageId::Data {
+  if submessage.id != Data {
     return Err("expected an RTPS DATA submessage")
   }
   if submessage.payload.length() < DATA_FIXED_BODY_LENGTH {
