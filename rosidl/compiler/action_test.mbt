@@ -1,6 +1,6 @@
 ///|
 test "ROS action parser splits goal, result, and feedback messages" {
-  let action = parse_action(
+  let action = @compiler.parse_action(
     "example_interfaces", "Fibonacci", "# Goal\nint32 order\n---\n# Result\nint32[] sequence\n---\n# Feedback\nint32[] sequence",
   ).unwrap()
   assert_eq(action.package_name(), "example_interfaces")
@@ -22,16 +22,21 @@ test "ROS action parser splits goal, result, and feedback messages" {
 ///|
 test "ROS action parser requires exactly two standalone separators" {
   assert_true(
-    parse_action("demo", "TooMany", "int32 value\n---\nint32 result\n---\n---")
+    @compiler.parse_action(
+      "demo", "TooMany", "int32 value\n---\nint32 result\n---\n---",
+    )
     is Err(_),
   )
   assert_true(
-    parse_action("demo", "Empty", "int32 value\n---\nint32 result") is Err(_),
+    @compiler.parse_action("demo", "Empty", "int32 value\n---\nint32 result")
+    is Err(_),
   )
-  let empty_sections = parse_action("demo", "Empty", "int32 value\n---\n---").unwrap()
+  let empty_sections = @compiler.parse_action(
+    "demo", "Empty", "int32 value\n---\n---",
+  ).unwrap()
   assert_eq(empty_sections.result().fields().length(), 0)
   assert_eq(empty_sections.feedback().fields().length(), 0)
-  let action = parse_action(
+  let action = @compiler.parse_action(
     "demo", "Separated", "string DELIMITER=\"---\"\n---\n# --- is a comment\nint32 result\n---\nint32 feedback",
   ).unwrap()
   assert_eq(action.goal().constants().length(), 1)
@@ -41,48 +46,50 @@ test "ROS action parser requires exactly two standalone separators" {
 
 ///|
 test "ROS workspace generates action codecs with nested imports and hashes" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "demo_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "std_msgs", "msg", "Header", "uint32 seq\nstring frame_id",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
     ).unwrap(),
   )
   .unwrap()
   workspace
-  .add_import(MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap())
+  .add_import(
+    @compiler.MessageImport::new("std_msgs", "std_msgs/msg", "std").unwrap(),
+  )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
@@ -113,31 +120,31 @@ test "ROS workspace generates action codecs with nested imports and hashes" {
 
 ///|
 test "ROS action protocol message hashes match Jazzy Fibonacci" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_source(
-    MessageSource::new(
+    @compiler.MessageSource::new(
       "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
@@ -214,16 +221,16 @@ test "ROS action protocol message hashes match Jazzy Fibonacci" {
 
 ///|
 test "ROS CancelGoal request and response hashes match their nested messages" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   for
     source in [
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalInfo", "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
       ),
     ] {
@@ -234,7 +241,7 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
   }
   assert_true(
     workspace.add_import(
-      MessageImport::new(
+      @compiler.MessageImport::new(
         "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
       ).unwrap(),
     )
@@ -242,17 +249,17 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
   )
   assert_true(
     workspace.add_import(
-      MessageImport::new(
+      @compiler.MessageImport::new(
         "builtin_interfaces", "builtin_interfaces/msg", "builtin",
       ).unwrap(),
     )
     is Ok(_),
   )
-  let service = parse_service_with_types(
+  let service = @compiler.parse_service_with_types(
     "action_msgs",
     "CancelGoal",
     "GoalInfo goal_info\n---\nint8 return_code\nGoalInfo[] goals_canceling",
-    [MessageTypeReference::new("GoalInfo", "GoalInfo")],
+    [@compiler.MessageTypeReference::new("GoalInfo", "GoalInfo")],
   ).unwrap()
   let request_hash = match
     workspace.type_hash_for_definition(service.request()) {
@@ -274,22 +281,22 @@ test "ROS CancelGoal request and response hashes match their nested messages" {
 
 ///|
 test "ROS Jazzy GoalStatusArray hash includes its nested message definitions" {
-  let workspace = MessageWorkspace::new()
+  let workspace = @compiler.MessageWorkspace::new()
   for
     source in [
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalStatusArray", "GoalStatus[] status_list",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalStatus", "int8 STATUS_UNKNOWN=0\nint8 STATUS_ACCEPTED=1\nint8 STATUS_EXECUTING=2\nint8 STATUS_CANCELING=3\nint8 STATUS_SUCCEEDED=4\nint8 STATUS_CANCELED=5\nint8 STATUS_ABORTED=6\nGoalInfo goal_info\nint8 status",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "action_msgs", "msg", "GoalInfo", "unique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "builtin_interfaces", "msg", "Time", "int32 sec\nuint32 nanosec",
       ),
-      MessageSource::new(
+      @compiler.MessageSource::new(
         "unique_identifier_msgs", "msg", "UUID", "uint8[16] uuid",
       ),
     ] {
@@ -300,14 +307,14 @@ test "ROS Jazzy GoalStatusArray hash includes its nested message definitions" {
   }
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "builtin_interfaces", "builtin_interfaces/msg", "builtin",
     ).unwrap(),
   )
   .unwrap()
   workspace
   .add_import(
-    MessageImport::new(
+    @compiler.MessageImport::new(
       "unique_identifier_msgs", "unique_identifier_msgs/msg", "unique",
     ).unwrap(),
   )
