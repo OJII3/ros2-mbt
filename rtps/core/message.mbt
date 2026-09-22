@@ -12,21 +12,25 @@ pub extend Message with Eq::{not_equal, equal}
 pub extend Message with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create an RTPS message with the given header.
 pub fn Message::new(header : Header) -> Message {
   { header, submessages: [], }
 }
 
 ///|
+/// Append a submessage to the RTPS message.
 pub fn Message::add(self : Message, submessage : Submessage) -> Unit {
   self.submessages.push(submessage)
 }
 
 ///|
+/// Return the RTPS message header.
 pub fn Message::header(self : Message) -> Header {
   self.header
 }
 
 ///|
+/// Return the RTPS message submessages.
 pub fn Message::submessages(self : Message) -> Array[Submessage] {
   self.submessages
 }
