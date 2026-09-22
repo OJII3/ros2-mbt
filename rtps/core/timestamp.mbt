@@ -121,7 +121,7 @@ pub fn InfoTimestampSubmessage::to_payload(
 pub fn InfoTimestampSubmessage::to_submessage(
   self : InfoTimestampSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::InfoTimestamp, self.flags, self.to_payload())
+  Submessage::new(InfoTimestamp, self.flags, self.to_payload())
 }
 
 ///|
@@ -141,7 +141,7 @@ pub fn InfoTimestampSubmessage::to_message(
 pub fn InfoTimestampSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[InfoTimestampSubmessage, String] {
-  if submessage.id() != SubmessageId::InfoTimestamp {
+  if submessage.id() != InfoTimestamp {
     return Err("expected an RTPS INFO_TS submessage")
   }
   let invalidate = (submessage.flags() & INFO_TIMESTAMP_FLAG_INVALIDATE) != 0
