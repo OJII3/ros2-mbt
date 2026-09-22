@@ -40,6 +40,7 @@ fn DiscoveryGraph::remove_ros_endpoint(
 }
 
 ///|
+/// Create an empty discovery graph.
 pub fn DiscoveryGraph::new() -> DiscoveryGraph {
   {
     participants: [],
@@ -144,16 +145,19 @@ pub fn DiscoveryGraph::ingest(
 }
 
 ///|
+/// Return the number of discovered participants.
 pub fn DiscoveryGraph::participant_count(self : DiscoveryGraph) -> Int {
   self.participants.length()
 }
 
 ///|
+/// Return the number of discovered publications.
 pub fn DiscoveryGraph::publication_count(self : DiscoveryGraph) -> Int {
   self.publications.length()
 }
 
 ///|
+/// Return the number of discovered subscriptions.
 pub fn DiscoveryGraph::subscription_count(self : DiscoveryGraph) -> Int {
   self.subscriptions.length()
 }
@@ -174,11 +178,13 @@ pub fn DiscoveryGraph::ingest_ros_discovery_info(
 }
 
 ///|
+/// Return the number of ROS graph participants.
 pub fn DiscoveryGraph::ros_participant_count(self : DiscoveryGraph) -> Int {
   self.ros_participants.length()
 }
 
 ///|
+/// Return the retained ROS graph participant information.
 pub fn DiscoveryGraph::ros_participants(
   self : DiscoveryGraph,
 ) -> Array[@ros.ParticipantEntitiesInfo] {
@@ -186,6 +192,7 @@ pub fn DiscoveryGraph::ros_participants(
 }
 
 ///|
+/// Return the discovered participants.
 pub fn DiscoveryGraph::participants(
   self : DiscoveryGraph,
 ) -> Array[@rtps.SpdpParticipantData] {
@@ -207,6 +214,7 @@ pub fn DiscoveryGraph::participant_vendor_id(
 }
 
 ///|
+/// Return the discovered publications.
 pub fn DiscoveryGraph::publications(
   self : DiscoveryGraph,
 ) -> Array[@rtps.SedpEndpointData] {
@@ -214,6 +222,7 @@ pub fn DiscoveryGraph::publications(
 }
 
 ///|
+/// Return the discovered subscriptions.
 pub fn DiscoveryGraph::subscriptions(
   self : DiscoveryGraph,
 ) -> Array[@rtps.SedpEndpointData] {
