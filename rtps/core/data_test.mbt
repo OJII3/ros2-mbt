@@ -37,7 +37,7 @@ test "RTPS DATA parser accepts a big-endian body" {
   let reader_id = EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
   let submessage = Submessage::new(
-    SubmessageId::Data,
+    Data,
     DATA_FLAG_DATA,
     b"\x00\x00\x00\x10rdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x01payload",
   )
@@ -75,7 +75,7 @@ test "RTPS DATA parser normalizes big-endian inline QoS" {
   }
   let decoded = DataSubmessage::from_submessage(
     Submessage::new(
-      SubmessageId::Data,
+      Data,
       DATA_FLAG_DATA | DATA_FLAG_INLINE_QOS,
       Bytes::from_array(body),
     ),
@@ -124,7 +124,7 @@ test "RTPS DATA_FRAG parser accepts a big-endian body" {
   let writer_id = EntityId::new(b"wrt", 0xC2).unwrap()
   let decoded = DataFragSubmessage::from_submessage(
     Submessage::new(
-      SubmessageId::DataFrag,
+      DataFrag,
       DATA_FLAG_DATA,
       b"\x00\x00\x00\x1Crdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x09\x00\x00\x00\x01\x00\x01\x00\x04\x00\x00\x00\x04data",
     ),
@@ -158,7 +158,7 @@ test "RTPS DATA preserves extra flags and inline QoS offset wire order" {
   assert_eq(payload[3], 0)
   let decoded = match
     DataSubmessage::from_submessage(
-      Submessage::new(SubmessageId::Data, data.flags(), payload),
+      Submessage::new(Data, data.flags(), payload),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -253,26 +253,20 @@ test "RTPS DATA rejects malformed flags and body" {
   let data = DataSubmessage::new(reader_id, writer_id, 1L, b"data")
   let payload = data.to_payload()
   assert_true(
-    DataSubmessage::from_submessage(
-      Submessage::new(SubmessageId::Data, 0x04, payload),
-    )
+    DataSubmessage::from_submessage(Submessage::new(Data, 0x04, payload))
+    is Err(_),
+  )
+  assert_true(
+    DataSubmessage::from_submessage(Submessage::new(Data, 0x01, b"short"))
+    is Err(_),
+  )
+  assert_true(
+    DataSubmessage::from_submessage(Submessage::new(Heartbeat, 0x01, payload))
     is Err(_),
   )
   assert_true(
     DataSubmessage::from_submessage(
-      Submessage::new(SubmessageId::Data, 0x01, b"short"),
-    )
-    is Err(_),
-  )
-  assert_true(
-    DataSubmessage::from_submessage(
-      Submessage::new(SubmessageId::Heartbeat, 0x01, payload),
-    )
-    is Err(_),
-  )
-  assert_true(
-    DataSubmessage::from_submessage(
-      Submessage::new(SubmessageId::Data, 0x0D, data.to_payload()),
+      Submessage::new(Data, 0x0D, data.to_payload()),
     )
     is Err(_),
   )
