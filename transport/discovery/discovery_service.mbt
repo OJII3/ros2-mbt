@@ -54,11 +54,11 @@ fn DiscoveryService::advance_sedp_counters(
   kind : @rtps.SedpEndpointKind,
 ) -> Unit {
   match kind {
-    @rtps.SedpEndpointKind::Publication => {
+    Publication => {
       self.next_publication_sequence_number += 1L
       self.next_publication_heartbeat_count += 1U
     }
-    @rtps.SedpEndpointKind::Subscription => {
+    Subscription => {
       self.next_subscription_sequence_number += 1L
       self.next_subscription_heartbeat_count += 1U
     }
@@ -122,14 +122,12 @@ pub async fn DiscoveryService::announce_sedp_once(
   remote_participant : @rtps.SpdpParticipantData,
 ) -> Result[Unit, String] {
   let sequence_number = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_sequence_number
+    Publication => self.next_publication_sequence_number
+    Subscription => self.next_subscription_sequence_number
   }
   let heartbeat_count = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_heartbeat_count
+    Publication => self.next_publication_heartbeat_count
+    Subscription => self.next_subscription_heartbeat_count
   }
   match
     self.send_sedp_to_participant(
@@ -175,14 +173,12 @@ pub async fn DiscoveryService::announce_sedp_to_all(
 ) -> Result[Unit, String] {
   let local_guid = self.session.participant.participant_guid()
   let sequence_number = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_sequence_number
+    Publication => self.next_publication_sequence_number
+    Subscription => self.next_subscription_sequence_number
   }
   let heartbeat_count = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_heartbeat_count
+    Publication => self.next_publication_heartbeat_count
+    Subscription => self.next_subscription_heartbeat_count
   }
   let mut sent = false
   for remote_participant in self.graph.participants() {
@@ -215,14 +211,12 @@ pub async fn DiscoveryService::dispose_sedp_to_all(
 ) -> Result[Unit, String] {
   let local_guid = self.session.participant.participant_guid()
   let sequence_number = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_sequence_number
+    Publication => self.next_publication_sequence_number
+    Subscription => self.next_subscription_sequence_number
   }
   let heartbeat_count = match endpoint.kind() {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_heartbeat_count
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_heartbeat_count
+    Publication => self.next_publication_heartbeat_count
+    Subscription => self.next_subscription_heartbeat_count
   }
   let mut sent = false
   for remote_participant in self.graph.participants() {
@@ -300,9 +294,8 @@ pub fn DiscoveryService::next_sedp_sequence_number(
   kind : @rtps.SedpEndpointKind,
 ) -> Int64 {
   match kind {
-    @rtps.SedpEndpointKind::Publication => self.next_publication_sequence_number
-    @rtps.SedpEndpointKind::Subscription =>
-      self.next_subscription_sequence_number
+    Publication => self.next_publication_sequence_number
+    Subscription => self.next_subscription_sequence_number
   }
 }
 
@@ -316,14 +309,12 @@ pub async fn DiscoveryService::receive_once(
     Err(message) => return Err(message)
   }
   let event = match received_event {
-    @wire.DiscoveryEvent::Publication(endpoint) =>
+    Publication(endpoint) =>
       @wire.DiscoveryEvent::Publication(
         self.endpoint_with_participant_locator(endpoint),
       )
-    @wire.DiscoveryEvent::Subscription(endpoint) =>
-      @wire.DiscoveryEvent::Subscription(
-        self.endpoint_with_participant_locator(endpoint),
-      )
+    Subscription(endpoint) =>
+      Subscription(self.endpoint_with_participant_locator(endpoint))
     other => other
   }
   self.graph.ingest(event)
