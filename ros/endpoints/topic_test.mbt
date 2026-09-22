@@ -17,10 +17,7 @@ test "ROS topic descriptor maps names into SEDP identity" {
     Err(message) => fail(message)
   }
   let endpoint = match
-    topic.to_sedp(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, entity_id),
-    ) {
+    topic.to_sedp(Publication, @rtps.Guid::new(prefix, entity_id)) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -58,7 +55,7 @@ test "ROS topic descriptor applies explicit reliable QoS" {
   }
   let endpoint = match
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, entity_id),
       @rtps.SedpQos::new(
         @rtps.RELIABILITY_RELIABLE,
@@ -79,7 +76,7 @@ test "ROS topic descriptor applies explicit reliable QoS" {
   assert_eq(qos.depth(), 10)
   assert_true(
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, entity_id),
       @rtps.SedpQos::new(99U, 0U, 0U, 1),
     )
@@ -100,11 +97,7 @@ test "ROS topic descriptor advertises deadline and liveliness QoS" {
     .with_liveliness(@rtps.LIVELINESS_MANUAL_BY_TOPIC, 5, 250_000_000U)
     .unwrap()
   let endpoint = topic
-    .to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, entity_id),
-      qos,
-    )
+    .to_sedp_with_qos(Publication, @rtps.Guid::new(prefix, entity_id), qos)
     .unwrap()
   let decoded_qos = endpoint.qos().unwrap()
   assert_eq(decoded_qos.deadline_seconds(), 2)
@@ -130,17 +123,13 @@ test "ROS topic descriptor advertises its supported data representation" {
     10,
   ).with_data_representation([@rtps.DATA_REPRESENTATION_XCDR1])
   let endpoint = topic
-    .to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(prefix, entity_id),
-      qos,
-    )
+    .to_sedp_with_qos(Publication, @rtps.Guid::new(prefix, entity_id), qos)
     .unwrap()
   let decoded_qos = endpoint.qos().unwrap()
   assert_eq(decoded_qos.data_representation(), [@rtps.DATA_REPRESENTATION_XCDR1])
   assert_true(
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, entity_id),
       qos.with_data_representation([@rtps.DATA_REPRESENTATION_XCDR2]),
     )
@@ -148,7 +137,7 @@ test "ROS topic descriptor advertises its supported data representation" {
   )
   assert_true(
     topic.to_sedp_with_qos(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, entity_id),
       qos.with_data_representation([]),
     )
@@ -166,7 +155,7 @@ test "ROS topic descriptor advertises its RIHS01 type hash" {
   let type_hash = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
   let endpoint = topic
     .to_sedp_with_qos_and_type_hash(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       @rtps.Guid::new(prefix, entity_id),
       @rtps.SedpQos::default(),
       type_hash,
