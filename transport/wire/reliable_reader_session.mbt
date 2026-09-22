@@ -23,7 +23,7 @@ pub fn ReliableDataReaderSession::new_for_publication(
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[ReliableDataReaderSession, String] {
-  if publication.kind() != @rtps.SedpEndpointKind::Publication {
+  if publication.kind() != Publication {
     return Err("a reliable reader target must be an SEDP publication")
   }
   let unicast_locators = publication.unicast_locators()
@@ -109,7 +109,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::AckNack =>
+        AckNack =>
           match control_writer {
             Some(writer) => {
               let acknack = match
@@ -130,7 +130,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             }
             None => ()
           }
-        @rtps.SubmessageId::NackFrag =>
+        NackFrag =>
           match control_writer {
             Some(writer) => {
               let nackfrag = match
@@ -151,7 +151,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             }
             None => ()
           }
-        @rtps.SubmessageId::Data => {
+        Data => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -175,7 +175,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             Err(_) => continue
           }
         }
-        @rtps.SubmessageId::DataFrag => {
+        DataFrag => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -204,7 +204,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             None => ()
           }
         }
-        @rtps.SubmessageId::Heartbeat => {
+        Heartbeat => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -218,7 +218,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
             Err(_) => continue
           }
         }
-        @rtps.SubmessageId::Gap => {
+        Gap => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -228,7 +228,7 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
           }
           ignore(self.state.accept_gap(gap))
         }
-        @rtps.SubmessageId::HeartbeatFrag => {
+        HeartbeatFrag => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -308,7 +308,7 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
     }
     for submessage in message.submessages() {
       match submessage.id() {
-        @rtps.SubmessageId::Data => {
+        Data => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -331,7 +331,7 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Err(_) => ()
           }
         }
-        @rtps.SubmessageId::DataFrag => {
+        DataFrag => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -350,7 +350,7 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Err(_) => ()
           }
         }
-        @rtps.SubmessageId::Heartbeat => {
+        Heartbeat => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -371,7 +371,7 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
             Err(message) => return Err(message)
           }
         }
-        @rtps.SubmessageId::Gap => {
+        Gap => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
@@ -381,7 +381,7 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
           }
           ignore(self.state.accept_gap(gap))
         }
-        @rtps.SubmessageId::HeartbeatFrag => {
+        HeartbeatFrag => {
           if message.header().guid_prefix() != self.writer_prefix {
             continue
           }
