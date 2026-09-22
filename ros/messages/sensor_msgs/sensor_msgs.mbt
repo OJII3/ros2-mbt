@@ -1727,6 +1727,7 @@ pub struct PointCloud2 {
 } derive(Eq, Debug)
 
 ///|
+/// Create a point cloud message.
 pub fn PointCloud2::new(
   header : @std.Header,
   height : UInt,
@@ -1752,6 +1753,7 @@ pub fn PointCloud2::new(
 }
 
 ///|
+/// Create an empty point cloud message.
 pub fn PointCloud2::default() -> PointCloud2 {
   let header : @std.Header = @std.Header::default()
   let height : UInt = 0
@@ -1768,51 +1770,61 @@ pub fn PointCloud2::default() -> PointCloud2 {
 }
 
 ///|
+/// Return the point cloud header.
 pub fn PointCloud2::header(self : PointCloud2) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the point cloud height.
 pub fn PointCloud2::height(self : PointCloud2) -> UInt {
   self.height
 }
 
 ///|
+/// Return the point cloud width.
 pub fn PointCloud2::width(self : PointCloud2) -> UInt {
   self.width
 }
 
 ///|
+/// Return the point field descriptors.
 pub fn PointCloud2::fields(self : PointCloud2) -> Array[PointField] {
   self.fields
 }
 
 ///|
+/// Return the point cloud byte order flag.
 pub fn PointCloud2::is_bigendian(self : PointCloud2) -> Bool {
   self.is_bigendian
 }
 
 ///|
+/// Return the size of one point in bytes.
 pub fn PointCloud2::point_step(self : PointCloud2) -> UInt {
   self.point_step
 }
 
 ///|
+/// Return the size of one row in bytes.
 pub fn PointCloud2::row_step(self : PointCloud2) -> UInt {
   self.row_step
 }
 
 ///|
+/// Return the point cloud data bytes.
 pub fn PointCloud2::data(self : PointCloud2) -> Array[Byte] {
   self.data
 }
 
 ///|
+/// Return whether all point values are finite.
 pub fn PointCloud2::is_dense(self : PointCloud2) -> Bool {
   self.is_dense
 }
 
 ///|
+/// Serialize the point cloud as ROS 2 CDR.
 pub fn PointCloud2::write_cdr(
   self : PointCloud2,
   writer : @cdr.Writer,
@@ -1842,6 +1854,7 @@ pub fn PointCloud2::write_cdr(
 }
 
 ///|
+/// Parse a point cloud from ROS 2 CDR.
 pub fn PointCloud2::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[PointCloud2, String] {
@@ -1916,6 +1929,7 @@ pub fn PointCloud2::read_cdr(
 }
 
 ///|
+/// Serialize the point cloud as CDR bytes.
 pub fn PointCloud2::to_cdr_bytes(self : PointCloud2) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -1926,6 +1940,7 @@ pub fn PointCloud2::to_cdr_bytes(self : PointCloud2) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a point cloud from CDR bytes.
 pub fn PointCloud2::from_cdr_bytes(
   input : Bytes,
 ) -> Result[PointCloud2, String] {
