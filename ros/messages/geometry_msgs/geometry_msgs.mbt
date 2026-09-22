@@ -406,11 +406,13 @@ pub struct Pose {
 } derive(Eq, Debug)
 
 ///|
+/// Create a pose from a position and orientation.
 pub fn Pose::new(position : Point, orientation : Quaternion) -> Pose {
   { position, orientation, }
 }
 
 ///|
+/// Create a pose at the origin with identity orientation.
 pub fn Pose::default() -> Pose {
   let position : Point = Point::default()
   let orientation : Quaternion = Quaternion::default()
@@ -418,16 +420,19 @@ pub fn Pose::default() -> Pose {
 }
 
 ///|
+/// Return the pose position.
 pub fn Pose::position(self : Pose) -> Point {
   self.position
 }
 
 ///|
+/// Return the pose orientation.
 pub fn Pose::orientation(self : Pose) -> Quaternion {
   self.orientation
 }
 
 ///|
+/// Serialize the pose as ROS 2 CDR.
 pub fn Pose::write_cdr(
   self : Pose,
   writer : @cdr.Writer,
@@ -444,6 +449,7 @@ pub fn Pose::write_cdr(
 }
 
 ///|
+/// Parse a pose from ROS 2 CDR.
 pub fn Pose::read_cdr(reader : @cdr.Reader) -> Result[Pose, String] {
   let position = match Point::read_cdr(reader) {
     Ok(value) => value
@@ -457,6 +463,7 @@ pub fn Pose::read_cdr(reader : @cdr.Reader) -> Result[Pose, String] {
 }
 
 ///|
+/// Serialize the pose as CDR bytes.
 pub fn Pose::to_cdr_bytes(self : Pose) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -467,6 +474,7 @@ pub fn Pose::to_cdr_bytes(self : Pose) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a pose from CDR bytes.
 pub fn Pose::from_cdr_bytes(input : Bytes) -> Result[Pose, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -483,6 +491,7 @@ pub fn Pose::from_cdr_bytes(input : Bytes) -> Result[Pose, String] {
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/Pose`.
 pub const Pose_TYPE_HASH : String = "RIHS01_d501954e9476cea2996984e812054b68026ae0bfae789d9a10b23daf35cc90fa"
 
 ///|
