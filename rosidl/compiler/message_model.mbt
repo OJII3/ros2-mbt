@@ -53,6 +53,42 @@ pub struct ServiceDefinition {
 } derive(Eq, Debug)
 
 ///|
+pub extend MessageFieldCollection with Eq::{not_equal, equal}
+
+///|
+pub extend MessageFieldCollection with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageField with Eq::{not_equal, equal}
+
+///|
+pub extend MessageField with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageTypeReference with Eq::{not_equal, equal}
+
+///|
+pub extend MessageTypeReference with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageConstant with Eq::{not_equal, equal}
+
+///|
+pub extend MessageConstant with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageDefinition with Eq::{not_equal, equal}
+
+///|
+pub extend MessageDefinition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ServiceDefinition with Eq::{not_equal, equal}
+
+///|
+pub extend ServiceDefinition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a message field descriptor.
 pub fn MessageField::new(type_name : String, name : String) -> MessageField {
   {
