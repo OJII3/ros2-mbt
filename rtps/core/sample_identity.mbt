@@ -10,6 +10,12 @@ pub struct SampleIdentity {
 } derive(Eq, Debug)
 
 ///|
+pub extend SampleIdentity with Eq::{not_equal, equal}
+
+///|
+pub extend SampleIdentity with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn SampleIdentity::new(
   writer_guid : Guid,
   sequence_number : Int64,
