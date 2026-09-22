@@ -38,8 +38,8 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
   ).unwrap()
   remote_participant.add_metatraffic_unicast(receiver_locator)
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
-  let service = DiscoveryService::new(
-    DiscoverySession::new(
+  let service = @discovery.DiscoveryService::new(
+    @discovery.DiscoverySession::new(
       sender,
       local_participant,
       spdp_reader,
