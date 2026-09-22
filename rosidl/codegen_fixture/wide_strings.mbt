@@ -7,6 +7,12 @@ pub struct WideStrings {
 } derive(Eq, Debug)
 
 ///|
+pub extend WideStrings with Eq::{not_equal, equal}
+
+///|
+pub extend WideStrings with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn WideStrings::new(
   data : String,
   bounded : String,

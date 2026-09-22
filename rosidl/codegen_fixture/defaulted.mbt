@@ -10,6 +10,12 @@ pub struct Defaulted {
 } derive(Eq, Debug)
 
 ///|
+pub extend Defaulted with Eq::{not_equal, equal}
+
+///|
+pub extend Defaulted with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn Defaulted::new(
   enabled : Bool,
   count : Int,

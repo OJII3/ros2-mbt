@@ -5,6 +5,12 @@ pub struct BoundedString {
 } derive(Eq, Debug)
 
 ///|
+pub extend BoundedString with Eq::{not_equal, equal}
+
+///|
+pub extend BoundedString with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub const BoundedString_TYPE_HASH : String = "RIHS01_8052629c483a2c158d8ae1d74f6e52ec8e9969320cd4fab8b6680a2d8882db92"
 
 ///|
