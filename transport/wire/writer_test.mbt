@@ -64,7 +64,7 @@ async test "best-effort data writer uses all supported endpoint locators" {
   let second_receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let subscription = @rtps.SedpEndpointData::new(
-    @rtps.SedpEndpointKind::Subscription,
+    Subscription,
     @rtps.Guid::new(prefix, reader_id),
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
