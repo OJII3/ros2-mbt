@@ -1,14 +1,14 @@
 ///|
 test "RTPS INFO_TS little-endian round trip" {
-  let timestamp = InfoTimestampSubmessage::new(-2, 0x12345678U)
+  let timestamp = @core.InfoTimestampSubmessage::new(-2, 0x12345678U)
   let encoded = match timestamp.to_submessage().to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(encoded, b"\x09\x01\x08\x00\xFE\xFF\xFF\xFF\x78\x56\x34\x12")
   let decoded = match
-    InfoTimestampSubmessage::from_submessage(
-      match Submessage::from_bytes(encoded) {
+    @core.InfoTimestampSubmessage::from_submessage(
+      match @core.Submessage::from_bytes(encoded) {
         Ok((value, _)) => value
         Err(message) => fail(message)
       },
@@ -21,12 +21,13 @@ test "RTPS INFO_TS little-endian round trip" {
 
 ///|
 test "RTPS INFO_TS supports big-endian timestamps" {
-  let submessage = Submessage::new(
+  let submessage = @core.Submessage::new(
     InfoTimestamp,
     0,
     b"\xFF\xFF\xFF\xFE\x12\x34\x56\x78",
   )
-  let decoded = match InfoTimestampSubmessage::from_submessage(submessage) {
+  let decoded = match
+    @core.InfoTimestampSubmessage::from_submessage(submessage) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -37,15 +38,15 @@ test "RTPS INFO_TS supports big-endian timestamps" {
 
 ///|
 test "RTPS INFO_TS invalidation has no timestamp body" {
-  let timestamp = InfoTimestampSubmessage::invalid()
+  let timestamp = @core.InfoTimestampSubmessage::invalid()
   let encoded = match timestamp.to_submessage().to_bytes() {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(encoded, b"\x09\x03\x00\x00")
   let decoded = match
-    InfoTimestampSubmessage::from_submessage(
-      match Submessage::from_bytes(encoded) {
+    @core.InfoTimestampSubmessage::from_submessage(
+      match @core.Submessage::from_bytes(encoded) {
         Ok((value, _)) => value
         Err(message) => fail(message)
       },
@@ -60,14 +61,14 @@ test "RTPS INFO_TS invalidation has no timestamp body" {
 ///|
 test "RTPS INFO_TS rejects invalid body lengths" {
   assert_true(
-    InfoTimestampSubmessage::from_submessage(
-      Submessage::new(InfoTimestamp, 0x01, b"short"),
+    @core.InfoTimestampSubmessage::from_submessage(
+      @core.Submessage::new(InfoTimestamp, 0x01, b"short"),
     )
     is Err(_),
   )
   assert_true(
-    InfoTimestampSubmessage::from_submessage(
-      Submessage::new(InfoTimestamp, 0x03, b"\x00"),
+    @core.InfoTimestampSubmessage::from_submessage(
+      @core.Submessage::new(InfoTimestamp, 0x03, b"\x00"),
     )
     is Err(_),
   )
