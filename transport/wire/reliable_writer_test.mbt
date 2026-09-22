@@ -14,7 +14,9 @@ async test "reliable writer retransmits ACKNACK-selected samples" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let writer = match
     @wire.ReliableDataWriter::new(
       sender,
@@ -107,7 +109,9 @@ async test "reliable writer directs discovered endpoint traffic" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
     receiver.local_addr().port().reinterpret_as_uint(),
@@ -155,9 +159,12 @@ async test "reliable writer receives ACKNACK from its socket" {
     Err(message) => fail(message)
   }
   let writer_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer writer_socket.close()
   let writer_address = writer_socket.local_addr()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer ack_sender.close()
   let writer = match
     @wire.ReliableDataWriter::new(
       writer_socket,
@@ -234,7 +241,9 @@ async test "reliable writer fragments large samples and handles NACK_FRAG" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let writer = @wire.ReliableDataWriter::new(
     sender,
     prefix,
@@ -355,7 +364,9 @@ async test "reliable writer builds an SEDP builtin endpoint writer" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let sender_address = sender.local_addr()
   let locator = match
     @rtps.Locator::udp_v4(

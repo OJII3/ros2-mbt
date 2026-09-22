@@ -29,7 +29,9 @@ async test "best-effort reader accepts its discovered publication" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let reader = match
     @wire.DataReader::new_for_publication_with_prefix(
       receiver, prefix, reader_id, publication,
@@ -130,7 +132,9 @@ async test "best-effort reader accepts DATA with an unknown reader ID" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let reader = @wire.DataReader::new_for_publication(
     receiver, reader_id, publication,
   ).unwrap()
@@ -167,7 +171,9 @@ async test "best-effort reader reassembles DATA_FRAG over UDP" {
     "std_msgs::msg::dds_::String_",
   ).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let reader = @wire.DataReader::new_for_publication(
     receiver, reader_id, publication,
   ).unwrap()

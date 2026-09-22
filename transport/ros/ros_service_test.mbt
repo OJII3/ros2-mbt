@@ -27,9 +27,12 @@ async test "reliable ROS service client and server correlate a response" {
   }
 
   let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer client_socket.close()
   let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer server_socket.close()
   let client_address = client_socket.local_addr()
   let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer ack_sender.close()
 
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -192,9 +195,12 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
   ).unwrap()
   let service = action.send_goal_service()
   let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer client_socket.close()
   let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer server_socket.close()
   let client_address = client_socket.local_addr()
   let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer ack_sender.close()
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let client_response_id = service_test_entity(b"crs", 0xC7)
   let server_request_id = service_test_entity(b"srq", 0xC7)
@@ -306,7 +312,9 @@ async test "ROS service rejects mismatched related endpoint metadata" {
     )
     .unwrap()
   let request_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer request_socket.close()
   let response_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer response_socket.close()
   assert_true(
     @ros.RosServiceClient::new(
       service,

@@ -14,7 +14,9 @@ async test "best-effort data writer increments sequence numbers" {
     Err(message) => fail(message)
   }
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let writer = match
     @wire.DataWriter::new(
       sender,
@@ -61,8 +63,11 @@ async test "best-effort data writer uses all supported endpoint locators" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let second_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer second_receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let subscription = @rtps.SedpEndpointData::new(
     Subscription,
     @rtps.Guid::new(prefix, reader_id),
@@ -116,7 +121,9 @@ async test "best-effort data writer fragments large samples" {
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
   let writer = @wire.DataWriter::new(
     sender,
     prefix,
