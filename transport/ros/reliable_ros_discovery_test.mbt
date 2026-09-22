@@ -42,7 +42,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
   }
   subscription.add_unicast_locator(receiver_locator)
   let publisher = match
-    ReliableRosDiscoveryPublisher::new_for_subscription(
+    @ros.ReliableRosDiscoveryPublisher::new_for_subscription(
       sender,
       prefix,
       @rtps.VendorId::new(1, 15),
@@ -54,7 +54,7 @@ async test "reliable ROS graph facade exchanges participant entities" {
     Err(message) => fail(message)
   }
   let subscriber = match
-    ReliableRosDiscoverySubscription::new_for_publication(
+    @ros.ReliableRosDiscoverySubscription::new_for_publication(
       receiver,
       prefix,
       @rtps.VendorId::new(1, 15),
