@@ -672,6 +672,7 @@ pub struct CompressedImage {
 } derive(Eq, Debug)
 
 ///|
+/// Create a compressed image message.
 pub fn CompressedImage::new(
   header : @std.Header,
   format : String,
@@ -681,6 +682,7 @@ pub fn CompressedImage::new(
 }
 
 ///|
+/// Create an empty compressed image message.
 pub fn CompressedImage::default() -> CompressedImage {
   let header : @std.Header = @std.Header::default()
   let format : String = ""
@@ -689,21 +691,25 @@ pub fn CompressedImage::default() -> CompressedImage {
 }
 
 ///|
+/// Return the compressed image header.
 pub fn CompressedImage::header(self : CompressedImage) -> @std.Header {
   self.header
 }
 
 ///|
+/// Return the compressed image format.
 pub fn CompressedImage::format(self : CompressedImage) -> String {
   self.format
 }
 
 ///|
+/// Return the compressed image data bytes.
 pub fn CompressedImage::data(self : CompressedImage) -> Array[Byte] {
   self.data
 }
 
 ///|
+/// Serialize the compressed image as ROS 2 CDR.
 pub fn CompressedImage::write_cdr(
   self : CompressedImage,
   writer : @cdr.Writer,
@@ -721,6 +727,7 @@ pub fn CompressedImage::write_cdr(
 }
 
 ///|
+/// Parse a compressed image from ROS 2 CDR.
 pub fn CompressedImage::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[CompressedImage, String] {
@@ -752,6 +759,7 @@ pub fn CompressedImage::read_cdr(
 }
 
 ///|
+/// Serialize the compressed image as CDR bytes.
 pub fn CompressedImage::to_cdr_bytes(
   self : CompressedImage,
 ) -> Result[Bytes, String] {
@@ -764,6 +772,7 @@ pub fn CompressedImage::to_cdr_bytes(
 }
 
 ///|
+/// Parse a compressed image from CDR bytes.
 pub fn CompressedImage::from_cdr_bytes(
   input : Bytes,
 ) -> Result[CompressedImage, String] {
