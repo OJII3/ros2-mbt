@@ -56,7 +56,7 @@ pub fn DiscoveryGraph::ingest(
   event : @wire.DiscoveryEvent,
 ) -> Unit {
   match event {
-    @wire.DiscoveryEvent::Participant(participant) => {
+    Participant(participant) => {
       for index in 0..<self.participants.length() {
         if self.participants[index].participant_guid() ==
           participant.participant_guid() {
@@ -66,7 +66,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.participants.push(participant)
     }
-    @wire.DiscoveryEvent::Publication(publication) => {
+    Publication(publication) => {
       for index in 0..<self.publications.length() {
         if self.publications[index].endpoint_guid() ==
           publication.endpoint_guid() {
@@ -76,7 +76,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.publications.push(publication)
     }
-    @wire.DiscoveryEvent::Subscription(subscription) => {
+    Subscription(subscription) => {
       for index in 0..<self.subscriptions.length() {
         if self.subscriptions[index].endpoint_guid() ==
           subscription.endpoint_guid() {
@@ -86,9 +86,9 @@ pub fn DiscoveryGraph::ingest(
       }
       self.subscriptions.push(subscription)
     }
-    @wire.DiscoveryEvent::EndpointRemoved(kind, endpoint_guid) => {
+    EndpointRemoved(kind, endpoint_guid) => {
       match kind {
-        @rtps.SedpEndpointKind::Publication => {
+        Publication => {
           let remaining : Array[@rtps.SedpEndpointData] = []
           for publication in self.publications {
             if publication.endpoint_guid() != endpoint_guid {
@@ -97,7 +97,7 @@ pub fn DiscoveryGraph::ingest(
           }
           self.publications = remaining
         }
-        @rtps.SedpEndpointKind::Subscription => {
+        Subscription => {
           let remaining : Array[@rtps.SedpEndpointData] = []
           for subscription in self.subscriptions {
             if subscription.endpoint_guid() != endpoint_guid {
@@ -109,7 +109,7 @@ pub fn DiscoveryGraph::ingest(
       }
       self.remove_ros_endpoint(endpoint_guid)
     }
-    @wire.DiscoveryEvent::ParticipantRemoved(participant_guid) => {
+    ParticipantRemoved(participant_guid) => {
       let remaining_participants : Array[@rtps.SpdpParticipantData] = []
       for participant in self.participants {
         if participant.participant_guid() != participant_guid {
