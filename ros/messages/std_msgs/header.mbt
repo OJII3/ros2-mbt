@@ -6,6 +6,12 @@ pub struct Header {
 } derive(Eq, Debug)
 
 ///|
+pub extend Header with Eq::{not_equal, equal}
+
+///|
+pub extend Header with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn Header::new(
   stamp : @builtin_interfaces.Time,
   frame_id : String,
