@@ -602,6 +602,7 @@ pub struct TransformStamped {
 } derive(Eq, Debug)
 
 ///|
+/// Create a stamped transform.
 pub fn TransformStamped::new(
   header : @std_msgs.Header,
   child_frame_id : String,
@@ -611,6 +612,7 @@ pub fn TransformStamped::new(
 }
 
 ///|
+/// Create an empty stamped transform.
 pub fn TransformStamped::default() -> TransformStamped {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let child_frame_id : String = ""
@@ -619,21 +621,25 @@ pub fn TransformStamped::default() -> TransformStamped {
 }
 
 ///|
+/// Return the stamped transform header.
 pub fn TransformStamped::header(self : TransformStamped) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the child frame identifier.
 pub fn TransformStamped::child_frame_id(self : TransformStamped) -> String {
   self.child_frame_id
 }
 
 ///|
+/// Return the stamped transform value.
 pub fn TransformStamped::transform(self : TransformStamped) -> Transform {
   self.transform
 }
 
 ///|
+/// Serialize the stamped transform as ROS 2 CDR.
 pub fn TransformStamped::write_cdr(
   self : TransformStamped,
   writer : @cdr.Writer,
@@ -651,6 +657,7 @@ pub fn TransformStamped::write_cdr(
 }
 
 ///|
+/// Parse a stamped transform from ROS 2 CDR.
 pub fn TransformStamped::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[TransformStamped, String] {
@@ -670,6 +677,7 @@ pub fn TransformStamped::read_cdr(
 }
 
 ///|
+/// Serialize the stamped transform as CDR bytes.
 pub fn TransformStamped::to_cdr_bytes(
   self : TransformStamped,
 ) -> Result[Bytes, String] {
@@ -682,6 +690,7 @@ pub fn TransformStamped::to_cdr_bytes(
 }
 
 ///|
+/// Parse a stamped transform from CDR bytes.
 pub fn TransformStamped::from_cdr_bytes(
   input : Bytes,
 ) -> Result[TransformStamped, String] {
@@ -700,6 +709,7 @@ pub fn TransformStamped::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `geometry_msgs/msg/TransformStamped`.
 pub const TransformStamped_TYPE_HASH : String = "RIHS01_0a241f87d04668d94099cbb5ba11691d5ad32c2f29682e4eb5653424bd275206"
 
 ///|
