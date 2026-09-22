@@ -5,6 +5,7 @@ pub struct Gid {
 } derive(Eq, Debug)
 
 ///|
+/// Create a ROS discovery GID.
 pub fn Gid::new(data : Bytes) -> Result[Gid, String] {
   if data.length() != 16 {
     return Err("a ROS discovery GID must contain exactly 16 bytes")
@@ -19,6 +20,7 @@ pub fn Gid::from_guid(guid : @rtps.Guid) -> Gid {
 }
 
 ///|
+/// Return the GID bytes.
 pub fn Gid::data(self : Gid) -> Bytes {
   self.data
 }
@@ -45,6 +47,7 @@ fn discovery_info_validate_string(
 }
 
 ///|
+/// Create node entity information.
 pub fn NodeEntitiesInfo::new(
   node_namespace : String,
   node_name : String,
@@ -61,26 +64,31 @@ pub fn NodeEntitiesInfo::new(
 }
 
 ///|
+/// Return the node namespace.
 pub fn NodeEntitiesInfo::node_namespace(self : NodeEntitiesInfo) -> String {
   self.node_namespace
 }
 
 ///|
+/// Return the node name.
 pub fn NodeEntitiesInfo::node_name(self : NodeEntitiesInfo) -> String {
   self.node_name
 }
 
 ///|
+/// Return the reader GIDs.
 pub fn NodeEntitiesInfo::reader_gid_seq(self : NodeEntitiesInfo) -> Array[Gid] {
   self.reader_gid_seq
 }
 
 ///|
+/// Return the writer GIDs.
 pub fn NodeEntitiesInfo::writer_gid_seq(self : NodeEntitiesInfo) -> Array[Gid] {
   self.writer_gid_seq
 }
 
 ///|
+/// Add a reader GID.
 pub fn NodeEntitiesInfo::add_reader_gid(
   self : NodeEntitiesInfo,
   gid : Gid,
@@ -89,6 +97,7 @@ pub fn NodeEntitiesInfo::add_reader_gid(
 }
 
 ///|
+/// Add a writer GID.
 pub fn NodeEntitiesInfo::add_writer_gid(
   self : NodeEntitiesInfo,
   gid : Gid,
@@ -122,16 +131,19 @@ pub extend ParticipantEntitiesInfo with Eq::{not_equal, equal}
 pub extend ParticipantEntitiesInfo with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create participant entity information.
 pub fn ParticipantEntitiesInfo::new(gid : Gid) -> ParticipantEntitiesInfo {
   { gid, node_entities_info_seq: [], }
 }
 
 ///|
+/// Return the participant GID.
 pub fn ParticipantEntitiesInfo::gid(self : ParticipantEntitiesInfo) -> Gid {
   self.gid
 }
 
 ///|
+/// Return the participant's node information.
 pub fn ParticipantEntitiesInfo::node_entities_info_seq(
   self : ParticipantEntitiesInfo,
 ) -> Array[NodeEntitiesInfo] {
@@ -139,6 +151,7 @@ pub fn ParticipantEntitiesInfo::node_entities_info_seq(
 }
 
 ///|
+/// Add node information to the participant.
 pub fn ParticipantEntitiesInfo::add_node(
   self : ParticipantEntitiesInfo,
   node : NodeEntitiesInfo,
