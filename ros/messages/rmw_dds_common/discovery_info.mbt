@@ -104,6 +104,24 @@ pub struct ParticipantEntitiesInfo {
 } derive(Eq, Debug)
 
 ///|
+pub extend Gid with Eq::{not_equal, equal}
+
+///|
+pub extend Gid with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend NodeEntitiesInfo with Eq::{not_equal, equal}
+
+///|
+pub extend NodeEntitiesInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParticipantEntitiesInfo with Eq::{not_equal, equal}
+
+///|
+pub extend ParticipantEntitiesInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub fn ParticipantEntitiesInfo::new(gid : Gid) -> ParticipantEntitiesInfo {
   { gid, node_entities_info_seq: [], }
 }
