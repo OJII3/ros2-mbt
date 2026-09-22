@@ -122,6 +122,24 @@ pub struct GapSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend HeartbeatSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend HeartbeatSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AckNackSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend AckNackSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend GapSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend GapSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian GAP with a valid SequenceNumberSet.
 pub fn GapSubmessage::new(
   reader_id : EntityId,
