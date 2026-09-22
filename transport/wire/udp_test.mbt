@@ -61,7 +61,7 @@ async test "UDP sends and receives one RTPS message" {
   }
   let header = @rtps.Header::new(prefix, @rtps.VendorId::new(1, 15))
   let message = @rtps.Message::new(header)
-  message.add(@rtps.Submessage::new(@rtps.SubmessageId::Data, 0x05, b"payload"))
+  message.add(@rtps.Submessage::new(Data, 0x05, b"payload"))
   let receiver = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   let sender = Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   match sender.send_message(message, receiver.local_addr()) {
@@ -231,7 +231,7 @@ async test "UDP sends and receives one SEDP announcement" {
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -264,8 +264,7 @@ async test "UDP sends and receives one SEDP announcement" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, source) = match
-    receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+  let (decoded, source) = match receiver.receive_sedp(Publication) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -289,7 +288,7 @@ async test "UDP classifies discovery samples by builtin writer" {
   }
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Subscription,
+      Subscription,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -339,18 +338,14 @@ async test "UDP classifies discovery samples by builtin writer" {
     Err(message) => fail(message)
   }
   match event {
-    DiscoveryEvent::Subscription(decoded) => {
-      assert_eq(decoded.kind(), @rtps.SedpEndpointKind::Subscription)
+    Subscription(decoded) => {
+      assert_eq(decoded.kind(), Subscription)
       assert_eq(decoded.topic_name(), endpoint.topic_name())
     }
-    DiscoveryEvent::Participant(_) =>
-      fail("expected an SEDP subscription event")
-    DiscoveryEvent::Publication(_) =>
-      fail("expected an SEDP subscription event")
-    DiscoveryEvent::EndpointRemoved(_, _) =>
-      fail("expected an SEDP subscription event")
-    DiscoveryEvent::ParticipantRemoved(_) =>
-      fail("expected an SEDP subscription event")
+    Participant(_) => fail("expected an SEDP subscription event")
+    Publication(_) => fail("expected an SEDP subscription event")
+    EndpointRemoved(_, _) => fail("expected an SEDP subscription event")
+    ParticipantRemoved(_) => fail("expected an SEDP subscription event")
   }
   assert_eq(source.ip(), 0x7F000001U)
   sender.close()
@@ -371,7 +366,7 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
   let endpoint_guid = @rtps.Guid::new(prefix, endpoint_id)
   let endpoint = match
     @rtps.SedpEndpointData::new(
-      @rtps.SedpEndpointKind::Publication,
+      Publication,
       endpoint_guid,
       "rt/chatter",
       "std_msgs::msg::dds_::String_",
@@ -408,8 +403,7 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  let (decoded, _) = match
-    receiver.receive_sedp(@rtps.SedpEndpointKind::Publication) {
+  let (decoded, _) = match receiver.receive_sedp(Publication) {
     Ok(value) => value
     Err(message) => fail(message)
   }
