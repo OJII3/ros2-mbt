@@ -41,7 +41,7 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
   tasks.push(async fn() {
     match self.receive_message() {
       Ok((message, source, socket_index)) =>
-        Ok(DiscoveryReceiveOutcome::Message(message, source, socket_index))
+        Ok(Message(message, source, socket_index))
       Err(message) => Err(message)
     }
   })
@@ -51,7 +51,7 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
         let participant_guid = remote.participant.participant_guid()
         tasks.push(async fn() {
           timer.wait()
-          Ok(DiscoveryReceiveOutcome::ParticipantLeaseExpired(participant_guid))
+          Ok(ParticipantLeaseExpired(participant_guid))
         })
       }
       None => ()
@@ -127,7 +127,7 @@ fn DiscoverySession::remember_remote_participant(
           } else {
             timer.cancel()
             self.remote_participants[index].lease_timer = Some(
-              @async.Timer::Timer(segment_ms),
+              Timer(segment_ms),
             )
             self.remote_participants[index].lease_segment_ms = segment_ms
           }
@@ -140,9 +140,7 @@ fn DiscoverySession::remember_remote_participant(
         }
         (None, Some(remaining_ms)) => {
           let segment_ms = discovery_lease_timer_segment(remaining_ms)
-          self.remote_participants[index].lease_timer = Some(
-            @async.Timer::Timer(segment_ms),
-          )
+          self.remote_participants[index].lease_timer = Some(Timer(segment_ms))
           self.remote_participants[index].lease_remaining_ms = remaining_ms
           self.remote_participants[index].lease_segment_ms = segment_ms
         }
@@ -215,7 +213,7 @@ fn DiscoverySession::advance_expired_participant_lease(
       remote.lease_segment_ms = discovery_lease_timer_segment(
         remote.lease_remaining_ms,
       )
-      remote.lease_timer = Some(@async.Timer::Timer(remote.lease_segment_ms))
+      remote.lease_timer = Some(Timer(remote.lease_segment_ms))
       return false
     }
     return true
