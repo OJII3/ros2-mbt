@@ -1832,6 +1832,72 @@ pub struct NavSatFix {
 } derive(Eq, Debug)
 
 ///|
+pub extend Imu with Eq::{not_equal, equal}
+
+///|
+pub extend Imu with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LaserScan with Eq::{not_equal, equal}
+
+///|
+pub extend LaserScan with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Image with Eq::{not_equal, equal}
+
+///|
+pub extend Image with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressedImage with Eq::{not_equal, equal}
+
+///|
+pub extend CompressedImage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JointState with Eq::{not_equal, equal}
+
+///|
+pub extend JointState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PointField with Eq::{not_equal, equal}
+
+///|
+pub extend PointField with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend NavSatStatus with Eq::{not_equal, equal}
+
+///|
+pub extend NavSatStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RegionOfInterest with Eq::{not_equal, equal}
+
+///|
+pub extend RegionOfInterest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CameraInfo with Eq::{not_equal, equal}
+
+///|
+pub extend CameraInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PointCloud2 with Eq::{not_equal, equal}
+
+///|
+pub extend PointCloud2 with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend NavSatFix with Eq::{not_equal, equal}
+
+///|
+pub extend NavSatFix with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub const COVARIANCE_TYPE_UNKNOWN : Byte = 0
 
 ///|
