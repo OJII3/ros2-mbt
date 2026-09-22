@@ -8,12 +8,12 @@ async fn discover_service(
   let mut response_publication : @rtps.SedpEndpointData? = None
   while request_subscription is None || response_publication is None {
     match participant.receive_discovery_once() {
-      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
+      Ok((_, Publication(publication))) =>
         if publication.topic_name() == service.dds_response_name() &&
           publication.type_name() == service.dds_response_type_name() {
           response_publication = Some(publication)
         }
-      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
+      Ok((_, Subscription(subscription))) =>
         if subscription.topic_name() == service.dds_request_name() &&
           subscription.type_name() == service.dds_request_type_name() {
           request_subscription = Some(subscription)
@@ -160,7 +160,7 @@ async fn main {
     .participant_vendor_id(response_publication.participant_guid()) {
     Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
       @transport.RosServiceWireFormat::CycloneDdsPayload
-    _ => @transport.RosServiceWireFormat::DdsRpcInline
+    _ => DdsRpcInline
   }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()
