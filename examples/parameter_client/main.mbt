@@ -49,7 +49,7 @@ async fn discover_parameter_services(
         describe_request_subscription is None ||
         describe_response_publication is None {
     match participant.receive_discovery_once() {
-      Ok((_, @transport.DiscoveryEvent::Publication(publication))) =>
+      Ok((_, Publication(publication))) =>
         if publication.topic_name() == get_service.dds_response_name() &&
           publication.type_name() == get_service.dds_response_type_name() {
           get_response_publication = Some(publication)
@@ -74,7 +74,7 @@ async fn discover_parameter_services(
           publication.type_name() == describe_service.dds_response_type_name() {
           describe_response_publication = Some(publication)
         }
-      Ok((_, @transport.DiscoveryEvent::Subscription(subscription))) =>
+      Ok((_, Subscription(subscription))) =>
         if subscription.topic_name() == get_service.dds_request_name() &&
           subscription.type_name() == get_service.dds_request_type_name() {
           get_request_subscription = Some(subscription)
@@ -689,7 +689,7 @@ async fn main {
     .participant_vendor_id(get_response_publication.participant_guid()) {
     Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
       @transport.RosServiceWireFormat::CycloneDdsPayload
-    _ => @transport.RosServiceWireFormat::DdsRpcInline
+    _ => DdsRpcInline
   }
   let (discovery, user_socket) = participant.into_parts()
   discovery.close()
