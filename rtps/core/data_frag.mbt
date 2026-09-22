@@ -24,6 +24,12 @@ pub struct DataFragSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend DataFragSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend DataFragSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian DATA_FRAG carrying one or more sample fragments.
 pub fn DataFragSubmessage::new(
   reader_id : EntityId,
