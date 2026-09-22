@@ -1000,30 +1000,39 @@ pub struct PointField {
 ///|
 
 ///|
+/// Point field datatype for signed 8-bit integers.
 pub const INT8 : Byte = 1
 
 ///|
+/// Point field datatype for unsigned 8-bit integers.
 pub const UINT8 : Byte = 2
 
 ///|
+/// Point field datatype for signed 16-bit integers.
 pub const INT16 : Byte = 3
 
 ///|
+/// Point field datatype for unsigned 16-bit integers.
 pub const UINT16 : Byte = 4
 
 ///|
+/// Point field datatype for signed 32-bit integers.
 pub const INT32 : Byte = 5
 
 ///|
+/// Point field datatype for unsigned 32-bit integers.
 pub const UINT32 : Byte = 6
 
 ///|
+/// Point field datatype for 32-bit floating-point values.
 pub const FLOAT32 : Byte = 7
 
 ///|
+/// Point field datatype for 64-bit floating-point values.
 pub const FLOAT64 : Byte = 8
 
 ///|
+/// Create a point field descriptor.
 pub fn PointField::new(
   name : String,
   offset : UInt,
@@ -1034,6 +1043,7 @@ pub fn PointField::new(
 }
 
 ///|
+/// Create an empty point field descriptor.
 pub fn PointField::default() -> PointField {
   let name : String = ""
   let offset : UInt = 0
@@ -1043,26 +1053,31 @@ pub fn PointField::default() -> PointField {
 }
 
 ///|
+/// Return the point field name.
 pub fn PointField::name(self : PointField) -> String {
   self.name
 }
 
 ///|
+/// Return the point field byte offset.
 pub fn PointField::offset(self : PointField) -> UInt {
   self.offset
 }
 
 ///|
+/// Return the point field datatype.
 pub fn PointField::datatype(self : PointField) -> Byte {
   self.datatype
 }
 
 ///|
+/// Return the number of values in the point field.
 pub fn PointField::count(self : PointField) -> UInt {
   self.count
 }
 
 ///|
+/// Serialize a point field as ROS 2 CDR.
 pub fn PointField::write_cdr(
   self : PointField,
   writer : @cdr.Writer,
@@ -1075,6 +1090,7 @@ pub fn PointField::write_cdr(
 }
 
 ///|
+/// Parse a point field from ROS 2 CDR.
 pub fn PointField::read_cdr(reader : @cdr.Reader) -> Result[PointField, String] {
   let name = match reader.read_string() {
     Ok(value) => value
@@ -1096,6 +1112,7 @@ pub fn PointField::read_cdr(reader : @cdr.Reader) -> Result[PointField, String] 
 }
 
 ///|
+/// Serialize a point field as CDR bytes.
 pub fn PointField::to_cdr_bytes(self : PointField) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match self.write_cdr(writer) {
@@ -1106,6 +1123,7 @@ pub fn PointField::to_cdr_bytes(self : PointField) -> Result[Bytes, String] {
 }
 
 ///|
+/// Parse a point field from CDR bytes.
 pub fn PointField::from_cdr_bytes(input : Bytes) -> Result[PointField, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
