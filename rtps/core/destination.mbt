@@ -44,7 +44,7 @@ pub fn InfoDestinationSubmessage::to_payload(
 pub fn InfoDestinationSubmessage::to_submessage(
   self : InfoDestinationSubmessage,
 ) -> Submessage {
-  Submessage::new(SubmessageId::InfoDestination, self.flags, self.to_payload())
+  Submessage::new(InfoDestination, self.flags, self.to_payload())
 }
 
 ///|
@@ -64,7 +64,7 @@ pub fn InfoDestinationSubmessage::to_message(
 pub fn InfoDestinationSubmessage::from_submessage(
   submessage : Submessage,
 ) -> Result[InfoDestinationSubmessage, String] {
-  if submessage.id() != SubmessageId::InfoDestination {
+  if submessage.id() != InfoDestination {
     return Err("expected an RTPS INFO_DST submessage")
   }
   if submessage.payload.length() != 12 {
