@@ -214,12 +214,12 @@ test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
     b"cd",
   ).unwrap()
   let first_key = @rtps.Submessage::new(
-    @rtps.SubmessageId::DataFrag,
+    DataFrag,
     (first.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
     first.to_payload(),
   )
   let second_key = @rtps.Submessage::new(
-    @rtps.SubmessageId::DataFrag,
+    DataFrag,
     (second.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
     second.to_payload(),
   )
