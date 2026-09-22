@@ -22,6 +22,12 @@ pub struct HeartbeatFragSubmessage {
 } derive(Eq, Debug)
 
 ///|
+pub extend HeartbeatFragSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend HeartbeatFragSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a little-endian HEARTBEAT_FRAG.
 pub fn HeartbeatFragSubmessage::new(
   reader_id : EntityId,
@@ -170,6 +176,12 @@ pub struct NackFragSubmessage {
   bitmap : Array[UInt]
   count : UInt
 } derive(Eq, Debug)
+
+///|
+pub extend NackFragSubmessage with Eq::{not_equal, equal}
+
+///|
+pub extend NackFragSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a little-endian NACK_FRAG with a FragmentNumberSet bitmap.
