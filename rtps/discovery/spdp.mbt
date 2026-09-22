@@ -75,6 +75,7 @@ pub fn SpdpParticipantData::new(
 }
 
 ///|
+/// Add a metatraffic unicast locator.
 pub fn SpdpParticipantData::add_metatraffic_unicast(
   self : SpdpParticipantData,
   locator : @core.Locator,
@@ -83,6 +84,7 @@ pub fn SpdpParticipantData::add_metatraffic_unicast(
 }
 
 ///|
+/// Add a metatraffic multicast locator.
 pub fn SpdpParticipantData::add_metatraffic_multicast(
   self : SpdpParticipantData,
   locator : @core.Locator,
@@ -91,6 +93,7 @@ pub fn SpdpParticipantData::add_metatraffic_multicast(
 }
 
 ///|
+/// Add a default unicast locator.
 pub fn SpdpParticipantData::add_default_unicast(
   self : SpdpParticipantData,
   locator : @core.Locator,
@@ -99,6 +102,7 @@ pub fn SpdpParticipantData::add_default_unicast(
 }
 
 ///|
+/// Add a default multicast locator.
 pub fn SpdpParticipantData::add_default_multicast(
   self : SpdpParticipantData,
   locator : @core.Locator,
@@ -107,6 +111,7 @@ pub fn SpdpParticipantData::add_default_multicast(
 }
 
 ///|
+/// Return the participant GUID.
 pub fn SpdpParticipantData::participant_guid(
   self : SpdpParticipantData,
 ) -> @core.Guid {
@@ -114,6 +119,7 @@ pub fn SpdpParticipantData::participant_guid(
 }
 
 ///|
+/// Return the vendor identifier.
 pub fn SpdpParticipantData::vendor_id(
   self : SpdpParticipantData,
 ) -> @core.VendorId {
@@ -121,16 +127,19 @@ pub fn SpdpParticipantData::vendor_id(
 }
 
 ///|
+/// Return the DDS domain identifier.
 pub fn SpdpParticipantData::domain_id(self : SpdpParticipantData) -> UInt {
   self.domain_id
 }
 
 ///|
+/// Return the participant lease duration in seconds.
 pub fn SpdpParticipantData::lease_seconds(self : SpdpParticipantData) -> Int {
   self.lease_seconds
 }
 
 ///|
+/// Return the participant lease duration in nanoseconds.
 pub fn SpdpParticipantData::lease_nanoseconds(
   self : SpdpParticipantData,
 ) -> UInt {
@@ -138,6 +147,7 @@ pub fn SpdpParticipantData::lease_nanoseconds(
 }
 
 ///|
+/// Return the enabled builtin endpoint set.
 pub fn SpdpParticipantData::builtin_endpoint_set(
   self : SpdpParticipantData,
 ) -> UInt {
@@ -145,6 +155,7 @@ pub fn SpdpParticipantData::builtin_endpoint_set(
 }
 
 ///|
+/// Return the metatraffic unicast locators.
 pub fn SpdpParticipantData::metatraffic_unicast_locators(
   self : SpdpParticipantData,
 ) -> Array[@core.Locator] {
@@ -152,6 +163,7 @@ pub fn SpdpParticipantData::metatraffic_unicast_locators(
 }
 
 ///|
+/// Return the metatraffic multicast locators.
 pub fn SpdpParticipantData::metatraffic_multicast_locators(
   self : SpdpParticipantData,
 ) -> Array[@core.Locator] {
@@ -159,6 +171,7 @@ pub fn SpdpParticipantData::metatraffic_multicast_locators(
 }
 
 ///|
+/// Return the default unicast locators.
 pub fn SpdpParticipantData::default_unicast_locators(
   self : SpdpParticipantData,
 ) -> Array[@core.Locator] {
@@ -166,6 +179,7 @@ pub fn SpdpParticipantData::default_unicast_locators(
 }
 
 ///|
+/// Return the default multicast locators.
 pub fn SpdpParticipantData::default_multicast_locators(
   self : SpdpParticipantData,
 ) -> Array[@core.Locator] {
