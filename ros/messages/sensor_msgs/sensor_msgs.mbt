@@ -2239,34 +2239,45 @@ pub fn NavSatFix::from_cdr_bytes(input : Bytes) -> Result[NavSatFix, String] {
 ///|
 
 ///|
+/// Type hash for `sensor_msgs/msg/Imu`.
 pub const Imu_TYPE_HASH : String = "RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b"
 
 ///|
+/// Type hash for `sensor_msgs/msg/LaserScan`.
 pub const LaserScan_TYPE_HASH : String = "RIHS01_64c191398013af96509d518dac71d5164f9382553fce5c1f8cca5be7924bd828"
 
 ///|
+/// Type hash for `sensor_msgs/msg/Image`.
 pub const Image_TYPE_HASH : String = "RIHS01_d31d41a9a4c4bc8eae9be757b0beed306564f7526c88ea6a4588fb9582527d47"
 
 ///|
+/// Type hash for `sensor_msgs/msg/CompressedImage`.
 pub const CompressedImage_TYPE_HASH : String = "RIHS01_15640771531571185e2efc8a100baf923961a4d15d5569652e6cb6691e8e371a"
 
 ///|
+/// Type hash for `sensor_msgs/msg/CameraInfo`.
 pub const CameraInfo_TYPE_HASH : String = "RIHS01_b3dfd68ff46c9d56c80fd3bd4ed22c7a4ddce8c8348f2f59c299e73118e7e275"
 
 ///|
+/// Type hash for `sensor_msgs/msg/JointState`.
 pub const JointState_TYPE_HASH : String = "RIHS01_a13ee3a330e346c9d87b5aa18d24e11690752bd33a0350f11c5882bc9179260e"
 
 ///|
+/// Type hash for `sensor_msgs/msg/PointCloud2`.
 pub const PointCloud2_TYPE_HASH : String = "RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5"
 
 ///|
+/// Type hash for `sensor_msgs/msg/PointField`.
 pub const PointField_TYPE_HASH : String = "RIHS01_5c6a4750728c2bcfbbf7037225b20b02d4429634732146b742dee1726637ef01"
 
 ///|
+/// Type hash for `sensor_msgs/msg/NavSatFix`.
 pub const NavSatFix_TYPE_HASH : String = "RIHS01_62223ab3fe210a15976021da7afddc9e200dc9ec75231c1b6a557fc598a65404"
 
 ///|
+/// Type hash for `sensor_msgs/msg/NavSatStatus`.
 pub const NavSatStatus_TYPE_HASH : String = "RIHS01_d1ed3befa628e09571bd273b888ba1c1fd187c9a5e0006b385d7e5e9095a3204"
 
 ///|
+/// Type hash for `sensor_msgs/msg/RegionOfInterest`.
 pub const RegionOfInterest_TYPE_HASH : String = "RIHS01_ad16bcba5f9131dcdba6fbded19f726f5440e3c513b4fb586dd3027eeed8abb1"
