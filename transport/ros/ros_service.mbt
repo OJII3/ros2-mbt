@@ -367,16 +367,13 @@ pub async fn RosServiceClient::receive_response(
 }
 
 ///|
-/// Receive request-writer control traffic when request and response use
-/// separate sockets.
+/// Receive one request-writer control message.
+///
+/// Call this when request and response processing are intentionally sequenced.
+/// With shared sockets, do not run it concurrently with `receive_response`.
 pub async fn RosServiceClient::receive_request_control(
   self : RosServiceClient,
 ) -> Result[Unit, String] {
-  if self.shared_socket {
-    return Err(
-      "shared service sockets handle request controls in receive_response",
-    )
-  }
   self.request_writer.receive_control()
 }
 
