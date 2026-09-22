@@ -85,6 +85,12 @@ pub(all) enum RosServiceWireFormat {
 } derive(Eq, Debug)
 
 ///|
+pub extend RosServiceWireFormat with Eq::{not_equal, equal}
+
+///|
+pub extend RosServiceWireFormat with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 fn service_payload_client_id(guid : @rtps.Guid) -> UInt64 {
   let bytes = guid.to_bytes()
   let mut value = 0L.reinterpret_as_uint64()
