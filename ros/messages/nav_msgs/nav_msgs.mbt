@@ -425,6 +425,7 @@ pub extend OccupancyGrid with Eq::{not_equal, equal}
 pub extend OccupancyGrid with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+/// Create an occupancy grid.
 pub fn OccupancyGrid::new(
   header : @std_msgs.Header,
   info : MapMetaData,
@@ -434,6 +435,7 @@ pub fn OccupancyGrid::new(
 }
 
 ///|
+/// Create an empty occupancy grid.
 pub fn OccupancyGrid::default() -> OccupancyGrid {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let info : MapMetaData = MapMetaData::default()
@@ -442,21 +444,25 @@ pub fn OccupancyGrid::default() -> OccupancyGrid {
 }
 
 ///|
+/// Return the occupancy grid header.
 pub fn OccupancyGrid::header(self : OccupancyGrid) -> @std_msgs.Header {
   self.header
 }
 
 ///|
+/// Return the map metadata.
 pub fn OccupancyGrid::info(self : OccupancyGrid) -> MapMetaData {
   self.info
 }
 
 ///|
+/// Return the occupancy values.
 pub fn OccupancyGrid::data(self : OccupancyGrid) -> Array[Int] {
   self.data
 }
 
 ///|
+/// Serialize the occupancy grid as ROS 2 CDR.
 pub fn OccupancyGrid::write_cdr(
   self : OccupancyGrid,
   writer : @cdr.Writer,
@@ -480,6 +486,7 @@ pub fn OccupancyGrid::write_cdr(
 }
 
 ///|
+/// Parse an occupancy grid from ROS 2 CDR.
 pub fn OccupancyGrid::read_cdr(
   reader : @cdr.Reader,
 ) -> Result[OccupancyGrid, String] {
@@ -511,6 +518,7 @@ pub fn OccupancyGrid::read_cdr(
 }
 
 ///|
+/// Serialize the occupancy grid as CDR bytes.
 pub fn OccupancyGrid::to_cdr_bytes(
   self : OccupancyGrid,
 ) -> Result[Bytes, String] {
@@ -523,6 +531,7 @@ pub fn OccupancyGrid::to_cdr_bytes(
 }
 
 ///|
+/// Parse an occupancy grid from CDR bytes.
 pub fn OccupancyGrid::from_cdr_bytes(
   input : Bytes,
 ) -> Result[OccupancyGrid, String] {
@@ -541,4 +550,5 @@ pub fn OccupancyGrid::from_cdr_bytes(
 }
 
 ///|
+/// Type hash for `nav_msgs/msg/OccupancyGrid`.
 pub const OccupancyGrid_TYPE_HASH : String = "RIHS01_8d348150c12913a31ee0ec170fbf25089e4745d17035792a1ba94d6f0bc0cfc7"
