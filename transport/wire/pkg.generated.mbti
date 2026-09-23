@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2-mbt/transport/wire"
+package "OJII3/ros2-mbt/transport/wire"
 
 import {
-  "ojii3/ros2-mbt/ros",
-  "ojii3/ros2-mbt/rtps",
+  "OJII3/ros2-mbt/ros",
+  "OJII3/ros2-mbt/rtps",
   "moonbitlang/async/socket",
 }
 

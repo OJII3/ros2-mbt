@@ -1,7 +1,7 @@
 import {
-  "ojii3/ros2-mbt/transport/discovery",
-  "ojii3/ros2-mbt/transport/ros" @ros_transport,
-  "ojii3/ros2-mbt/transport/wire",
+  "OJII3/ros2-mbt/transport/discovery",
+  "OJII3/ros2-mbt/transport/ros" @ros_transport,
+  "OJII3/ros2-mbt/transport/wire",
 }
 
 options(

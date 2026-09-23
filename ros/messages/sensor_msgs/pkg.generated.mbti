@@ -1,10 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2-mbt/ros/messages/sensor_msgs"
+package "OJII3/ros2-mbt/ros/messages/sensor_msgs"
 
 import {
-  "ojii3/ros2-mbt/cdr",
-  "ojii3/ros2-mbt/ros/messages/geometry_msgs",
-  "ojii3/ros2-mbt/ros/messages/std_msgs",
+  "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/messages/geometry_msgs",
+  "OJII3/ros2-mbt/ros/messages/std_msgs",
   "moonbitlang/core/debug",
 }
 

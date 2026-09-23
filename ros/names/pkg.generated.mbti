@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2-mbt/ros/names"
+package "OJII3/ros2-mbt/ros/names"
 
 import {
   "moonbitlang/core/debug",
