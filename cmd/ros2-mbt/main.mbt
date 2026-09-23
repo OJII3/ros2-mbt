@@ -57,11 +57,27 @@ fn topic_hz_command() -> @argparse.Command {
 }
 
 ///|
+fn topic_echo_command() -> @argparse.Command {
+  @argparse.Command(
+    "echo",
+    about="Echo messages from a ROS topic, detecting its type from discovery.",
+    options=[
+      @argparse.OptionArg(
+        "spin-time-ms",
+        about="Discovery duration in milliseconds.",
+        default_values=[DEFAULT_SPIN_TIME_MS],
+      ),
+    ],
+    positionals=[@argparse.PositionArg("topic", about="ROS topic name.")],
+  )
+}
+
+///|
 fn topic_command() -> @argparse.Command {
   @argparse.Command(
     "topic",
     about="Inspect ROS topics.",
-    subcommands=[topic_list_command(), topic_hz_command()],
+    subcommands=[topic_list_command(), topic_hz_command(), topic_echo_command()],
     subcommand_required=true,
   )
 }
@@ -137,6 +153,18 @@ async fn dispatch_topic(matches : @argparse.Matches) -> Result[Unit, String] {
         Err(message) => return Err(message)
       }
       run_topic_hz(topic, spin_time_ms, duration_ms)
+    }
+    Some(("echo", echo_matches)) => {
+      let topic = match positional_value(echo_matches, "topic") {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let spin_time_ms = match
+        positive_option(echo_matches, "spin-time-ms", DEFAULT_SPIN_TIME_MS) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      run_topic_echo(topic, spin_time_ms)
     }
     Some((name, _)) => Err("unknown topic subcommand: " + name)
   }
