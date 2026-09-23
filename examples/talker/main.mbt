@@ -9,12 +9,7 @@ async fn publish_reliable(
 ) -> Unit {
   let publisher = match
     @transport.ReliableRosPublisher::new(
-      topic,
-      socket,
-      prefix,
-      vendor_id,
-      writer_id,
-      1L,
+      topic, socket, prefix, vendor_id, writer_id, 1L,
     ) {
     Ok(value) => value
     Err(message) => {
