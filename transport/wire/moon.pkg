@@ -1,7 +1,7 @@
 import {
   "moonbitlang/async/socket",
-  "ojii3/ros2-mbt/ros",
-  "ojii3/ros2-mbt/rtps",
+  "OJII3/ros2-mbt/ros",
+  "OJII3/ros2-mbt/rtps",
 }
 
 import {

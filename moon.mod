@@ -1,4 +1,4 @@
-name = "ojii3/ros2-mbt"
+name = "OJII3/ros2-mbt"
 
 version = "0.1.0"
 

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2-mbt/examples/config"
+package "OJII3/ros2-mbt/examples/config"
 
 // Values
 pub fn load() -> Result[Config, String]

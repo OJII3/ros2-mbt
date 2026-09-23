@@ -1,6 +1,6 @@
 import {
-  "ojii3/ros2-mbt/rtps/core",
-  "ojii3/ros2-mbt/rtps/discovery",
+  "OJII3/ros2-mbt/rtps/core",
+  "OJII3/ros2-mbt/rtps/discovery",
 }
 
 options(

@@ -1,5 +1,5 @@
 import {
-  "ojii3/ros2-mbt/rosidl/compiler",
+  "OJII3/ros2-mbt/rosidl/compiler",
 }
 
 options(

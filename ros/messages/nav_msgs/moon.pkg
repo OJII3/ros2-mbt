@@ -1,9 +1,9 @@
 import {
   "moonbitlang/core/debug",
-  "ojii3/ros2-mbt/cdr",
-  "ojii3/ros2-mbt/ros/messages/builtin_interfaces",
-  "ojii3/ros2-mbt/ros/messages/geometry_msgs",
-  "ojii3/ros2-mbt/ros/messages/std_msgs",
+  "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/messages/builtin_interfaces",
+  "OJII3/ros2-mbt/ros/messages/geometry_msgs",
+  "OJII3/ros2-mbt/ros/messages/std_msgs",
 }
 
 options(

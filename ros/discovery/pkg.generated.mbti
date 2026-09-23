@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ojii3/ros2-mbt/ros/discovery"
+package "OJII3/ros2-mbt/ros/discovery"
 
 import {
-  "ojii3/ros2-mbt/rtps/core",
+  "OJII3/ros2-mbt/rtps/core",
 }
 
 // Values
@@ -16,9 +16,9 @@ pub const ROS_GRAPH_PUBLICATION_ENTITY_KIND : Byte = 0x03
 
 pub const ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND : Byte = 0x04
 
-pub fn ros_discovery_info_to_sedp(@ojii3/ros2-mbt/rtps/discovery.SedpEndpointKind, @core.Guid) -> Result[@ojii3/ros2-mbt/rtps/discovery.SedpEndpointData, String]
+pub fn ros_discovery_info_to_sedp(@OJII3/ros2-mbt/rtps/discovery.SedpEndpointKind, @core.Guid) -> Result[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, String]
 
-pub fn validate_ros_discovery_info_endpoint(@ojii3/ros2-mbt/rtps/discovery.SedpEndpointData, @ojii3/ros2-mbt/rtps/discovery.SedpEndpointKind) -> Result[Unit, String]
+pub fn validate_ros_discovery_info_endpoint(@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointKind) -> Result[Unit, String]
 
 // Errors
 

@@ -1,14 +1,14 @@
 import {
-  "ojii3/ros2-mbt/ros/discovery",
-  "ojii3/ros2-mbt/ros/endpoints",
-  "ojii3/ros2-mbt/ros/messages/action_msgs",
-  "ojii3/ros2-mbt/ros/messages/builtin_interfaces",
-  "ojii3/ros2-mbt/ros/messages/geometry_msgs",
-  "ojii3/ros2-mbt/ros/messages/nav_msgs",
-  "ojii3/ros2-mbt/ros/messages/rmw_dds_common",
-  "ojii3/ros2-mbt/ros/messages/sensor_msgs",
-  "ojii3/ros2-mbt/ros/messages/std_msgs",
-  "ojii3/ros2-mbt/ros/names",
+  "OJII3/ros2-mbt/ros/discovery",
+  "OJII3/ros2-mbt/ros/endpoints",
+  "OJII3/ros2-mbt/ros/messages/action_msgs",
+  "OJII3/ros2-mbt/ros/messages/builtin_interfaces",
+  "OJII3/ros2-mbt/ros/messages/geometry_msgs",
+  "OJII3/ros2-mbt/ros/messages/nav_msgs",
+  "OJII3/ros2-mbt/ros/messages/rmw_dds_common",
+  "OJII3/ros2-mbt/ros/messages/sensor_msgs",
+  "OJII3/ros2-mbt/ros/messages/std_msgs",
+  "OJII3/ros2-mbt/ros/names",
 }
 
 options(

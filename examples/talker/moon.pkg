@@ -1,8 +1,8 @@
 import {
-  "ojii3/ros2-mbt/examples/config",
-  "ojii3/ros2-mbt/ros",
-  "ojii3/ros2-mbt/rtps",
-  "ojii3/ros2-mbt/transport",
+  "OJII3/ros2-mbt/examples/config",
+  "OJII3/ros2-mbt/ros",
+  "OJII3/ros2-mbt/rtps",
+  "OJII3/ros2-mbt/transport",
   "moonbitlang/async",
 }
 

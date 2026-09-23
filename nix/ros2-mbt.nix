@@ -11,7 +11,7 @@ moon2nix.buildMoonPackage {
   src = lib.cleanSource ../.;
 
   moonMod = {
-    name = "ojii3/ros2-mbt";
+    name = "OJII3/ros2-mbt";
     version = "0.1.0";
     preferred-target = "native";
     deps."moonbitlang/async" = "0.22.0";
