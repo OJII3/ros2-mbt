@@ -161,6 +161,21 @@ pub fn ReliableRosPublisher::remove_subscription(
 }
 
 ///|
+/// Remove all subscriptions owned by a participant that left the domain.
+pub fn ReliableRosPublisher::remove_subscriptions_from_participant(
+  self : ReliableRosPublisher,
+  participant_prefix : @rtps.GuidPrefix,
+) -> Unit {
+  let retained : Array[ReliableRosTarget] = []
+  for target in self.writers {
+    if target.endpoint_guid.prefix() != participant_prefix {
+      retained.push(target)
+    }
+  }
+  self.writers = retained
+}
+
+///|
 /// Return the ROS topic represented by this publisher.
 pub fn ReliableRosPublisher::topic(
   self : ReliableRosPublisher,

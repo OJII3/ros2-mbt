@@ -132,6 +132,21 @@ pub fn RosPublisher::remove_subscription(
 }
 
 ///|
+/// Remove all subscriptions owned by a participant that left the domain.
+pub fn RosPublisher::remove_subscriptions_from_participant(
+  self : RosPublisher,
+  participant_prefix : @rtps.GuidPrefix,
+) -> Unit {
+  let retained : Array[(@rtps.Guid, @wire.DataWriter)] = []
+  for (guid, writer) in self.writers {
+    if guid.prefix() != participant_prefix {
+      retained.push((guid, writer))
+    }
+  }
+  self.writers = retained
+}
+
+///|
 /// Return the ROS topic represented by this publisher.
 pub fn RosPublisher::topic(self : RosPublisher) -> @ros_types.RosTopic {
   self.topic

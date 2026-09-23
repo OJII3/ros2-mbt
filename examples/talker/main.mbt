@@ -52,6 +52,10 @@ async fn publish_reliable(
                 }
               EndpointRemoved(Subscription, endpoint_guid) =>
                 publisher.remove_subscription(endpoint_guid)
+              ParticipantRemoved(participant_guid) =>
+                publisher.remove_subscriptions_from_participant(
+                  participant_guid.prefix(),
+                )
               _ => ()
             }
           Err(message) => {

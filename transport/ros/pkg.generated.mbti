@@ -59,6 +59,7 @@ pub async fn ReliableRosPublisher::receive_acknack(Self) -> Result[(@rtps.AckNac
 pub async fn ReliableRosPublisher::receive_control(Self) -> Result[Unit, String]
 pub async fn ReliableRosPublisher::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
 pub fn ReliableRosPublisher::remove_subscription(Self, @rtps.Guid) -> Unit
+pub fn ReliableRosPublisher::remove_subscriptions_from_participant(Self, @rtps.GuidPrefix) -> Unit
 pub async fn ReliableRosPublisher::send_heartbeat(Self) -> Result[Unit, String]
 pub fn ReliableRosPublisher::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
 
@@ -191,6 +192,7 @@ pub fn RosPublisher::new(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPref
 pub fn RosPublisher::new_for_subscription(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosPublisher::next_sequence_number(Self) -> Int64
 pub fn RosPublisher::remove_subscription(Self, @rtps.Guid) -> Unit
+pub fn RosPublisher::remove_subscriptions_from_participant(Self, @rtps.GuidPrefix) -> Unit
 pub async fn RosPublisher::publish(Self, Bytes) -> Result[Unit, String]
 pub fn RosPublisher::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
 
