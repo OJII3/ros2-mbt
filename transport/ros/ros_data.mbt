@@ -1,5 +1,5 @@
 ///|
-/// A ROS topic publisher backed by discovered best-effort RTPS subscriptions.
+/// A ROS topic publisher that can add discovered best-effort RTPS subscriptions.
 ///
 /// The payload is already serialized with the message type's CDR codec. This
 /// keeps the transport layer independent from generated ROS message types.
@@ -11,6 +11,30 @@ pub struct RosPublisher {
   writer_id : @rtps.EntityId
   mut writers : Array[(@rtps.Guid, @wire.DataWriter)]
   mut next_sequence_number : Int64
+}
+
+///|
+/// Create a best-effort publisher before any matching subscription is known.
+pub fn RosPublisher::new(
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  first_sequence_number : Int64,
+) -> Result[RosPublisher, String] {
+  if first_sequence_number < 1L {
+    return Err("an RTPS DATA sequence number must be positive")
+  }
+  Ok({
+    topic,
+    socket,
+    guid_prefix,
+    vendor_id,
+    writer_id,
+    writers: [],
+    next_sequence_number: first_sequence_number,
+  })
 }
 
 ///|
@@ -38,22 +62,17 @@ pub fn RosPublisher::new_for_subscription(
   if qos.durability() != @rtps.DURABILITY_VOLATILE {
     return Err("the discovered subscription has incompatible durability")
   }
-  let writer = match
-    @wire.DataWriter::new_for_subscription(
-      socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
+  let publisher = match
+    RosPublisher::new(
+      topic, socket, guid_prefix, vendor_id, writer_id, first_sequence_number,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({
-    topic,
-    socket,
-    guid_prefix,
-    vendor_id,
-    writer_id,
-    writers: [(subscription.endpoint_guid(), writer)],
-    next_sequence_number: first_sequence_number,
-  })
+  match publisher.add_subscription(subscription) {
+    Ok(_) => Ok(publisher)
+    Err(message) => Err(message)
+  }
 }
 
 ///|
@@ -126,6 +145,10 @@ pub fn RosPublisher::next_sequence_number(self : RosPublisher) -> Int64 {
 
 ///|
 /// Publish one CDR-serialized ROS message.
+///
+/// If no matching subscriptions have been added, this advances the writer
+/// sequence number without sending the sample. Later subscriptions receive
+/// only subsequent samples.
 pub async fn RosPublisher::publish(
   self : RosPublisher,
   serialized_payload : Bytes,

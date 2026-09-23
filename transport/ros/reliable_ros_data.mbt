@@ -51,7 +51,7 @@ fn reliable_ros_target_new(
 }
 
 ///|
-/// A reliable ROS topic publisher backed by discovered subscriptions.
+/// A reliable ROS topic publisher that can add discovered subscriptions.
 pub struct ReliableRosPublisher {
   topic : @ros_types.RosTopic
   socket : @wire.Udp
@@ -60,6 +60,30 @@ pub struct ReliableRosPublisher {
   writer_id : @rtps.EntityId
   mut writers : Array[ReliableRosTarget]
   mut next_sequence_number : Int64
+}
+
+///|
+/// Create a reliable publisher before any matching subscription is known.
+pub fn ReliableRosPublisher::new(
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  first_sequence_number : Int64,
+) -> Result[ReliableRosPublisher, String] {
+  if first_sequence_number < 1L {
+    return Err("an RTPS DATA sequence number must be positive")
+  }
+  Ok({
+    topic,
+    socket,
+    guid_prefix,
+    vendor_id,
+    writer_id,
+    writers: [],
+    next_sequence_number: first_sequence_number,
+  })
 }
 
 ///|
@@ -77,22 +101,17 @@ pub fn ReliableRosPublisher::new_for_subscription(
     subscription.type_name() != topic.dds_type_name() {
     return Err("the discovered subscription does not match the ROS topic")
   }
-  let target = match
-    reliable_ros_target_new(
-      socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
+  let publisher = match
+    ReliableRosPublisher::new(
+      topic, socket, guid_prefix, vendor_id, writer_id, first_sequence_number,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({
-    topic,
-    socket,
-    guid_prefix,
-    vendor_id,
-    writer_id,
-    writers: [target],
-    next_sequence_number: first_sequence_number,
-  })
+  match publisher.add_subscription(subscription) {
+    Ok(_) => Ok(publisher)
+    Err(message) => Err(message)
+  }
 }
 
 ///|
@@ -177,6 +196,10 @@ pub fn ReliableRosPublisher::history_length(self : ReliableRosPublisher) -> Int 
 
 ///|
 /// Publish one CDR-serialized ROS message and retain it for retransmission.
+///
+/// If no matching subscriptions have been added, this advances the writer
+/// sequence number without sending the sample. Later subscriptions receive
+/// only subsequent samples.
 pub async fn ReliableRosPublisher::publish(
   self : ReliableRosPublisher,
   serialized_payload : Bytes,
