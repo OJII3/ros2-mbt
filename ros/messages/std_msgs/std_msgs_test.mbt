@@ -16,6 +16,20 @@ test "std_msgs String CDR round trip" {
 }
 
 ///|
+test "std_msgs Header CDR round trip preserves timestamp and frame id" {
+  let header = @std_msgs.Header::new(
+    @builtin_interfaces.Time::new(123, 456789012U),
+    "map",
+  )
+  let decoded = match
+    @std_msgs.Header::from_cdr_bytes(header.to_cdr_bytes().unwrap()) {
+    Ok(value) => value
+    Err(message) => fail(message)
+  }
+  assert_eq(decoded, header)
+}
+
+///|
 test "ROS message parsers reject trailing data" {
   let encoded = @std_msgs.StringMessage::new("x").to_cdr_bytes()
   let bytes : Array[Byte] = []
