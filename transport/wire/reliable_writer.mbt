@@ -705,62 +705,67 @@ pub async fn ReliableDataWriter::receive_control(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
-      Err(_) => continue
-    }
-    for submessage in message.submessages() {
-      match submessage.id() {
-        AckNack => {
-          if !self.acknack_targets(message, submessage) {
-            continue
-          }
-          let acknack = match
-            @rtps.AckNackSubmessage::from_submessage(submessage) {
-            Ok(value) => value
-            Err(message) => return Err(message)
-          }
-          let prefix_matches = match self.reader_prefix {
-            Some(prefix) => message.header().guid_prefix() == prefix
-            None => true
-          }
-          if acknack.writer_id() != self.writer_id ||
-            acknack.reader_id() != self.reader_id ||
-            !prefix_matches {
-            continue
-          }
-          match self.handle_acknack(acknack) {
-            Ok(_) => return Ok(())
-            Err(message) => return Err(message)
-          }
-        }
-        NackFrag => {
-          let nackfrag = match
-            @rtps.NackFragSubmessage::from_submessage(submessage) {
-            Ok(value) => value
-            Err(message) => return Err(message)
-          }
-          let prefix_matches = match self.reader_prefix {
-            Some(prefix) => message.header().guid_prefix() == prefix
-            None => true
-          }
-          if nackfrag.writer_id() != self.writer_id ||
-            nackfrag.reader_id() != self.reader_id ||
-            !prefix_matches {
-            continue
-          }
-          match self.handle_nackfrag(nackfrag) {
-            Ok(_) => return Ok(())
-            Err(message) => return Err(message)
-          }
-        }
-        _ => continue
-      }
+    match self.handle_control_message(message) {
+      Ok(true) => return Ok(())
+      Ok(false) => ()
+      Err(message) => return Err(message)
     }
   }
   Err("reliable writer stopped")
+}
+
+///|
+/// Handle one control datagram when the caller owns socket dispatch.
+pub async fn ReliableDataWriter::handle_control_message(
+  self : ReliableDataWriter,
+  message : @rtps.Message,
+) -> Result[Bool, String] {
+  match message.destination_guid_prefix() {
+    Ok(Some(destination)) if destination != self.guid_prefix &&
+      !transport_guid_prefix_is_unknown(destination) => return Ok(false)
+    Ok(_) => ()
+    Err(_) => return Ok(false)
+  }
+  for submessage in message.submessages() {
+    match submessage.id() {
+      AckNack => {
+        if !self.acknack_targets(message, submessage) {
+          continue
+        }
+        let acknack = match
+          @rtps.AckNackSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        match self.handle_acknack(acknack) {
+          Ok(_) => return Ok(true)
+          Err(message) => return Err(message)
+        }
+      }
+      NackFrag => {
+        let nackfrag = match
+          @rtps.NackFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        let prefix_matches = match self.reader_prefix {
+          Some(prefix) => message.header().guid_prefix() == prefix
+          None => true
+        }
+        if nackfrag.writer_id() != self.writer_id ||
+          nackfrag.reader_id() != self.reader_id ||
+          !prefix_matches {
+          continue
+        }
+        match self.handle_nackfrag(nackfrag) {
+          Ok(_) => return Ok(true)
+          Err(message) => return Err(message)
+        }
+      }
+      _ => ()
+    }
+  }
+  Ok(false)
 }
 
 ///|

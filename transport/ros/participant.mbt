@@ -203,6 +203,12 @@ pub fn RosParticipant::user_locator(self : RosParticipant) -> @rtps.Locator {
 }
 
 ///|
+/// Return the user-data socket for a publisher while retaining discovery ownership.
+pub fn RosParticipant::user_socket(self : RosParticipant) -> @wire.Udp {
+  self.user_socket
+}
+
+///|
 /// Return the current discovery graph.
 pub fn RosParticipant::graph(
   self : RosParticipant,
@@ -1038,10 +1044,16 @@ pub fn RosParticipant::into_parts(
 ///|
 /// Close both discovery and user-data sockets.
 pub fn RosParticipant::close(self : RosParticipant) -> Unit {
+  self.close_discovery()
+  self.user_socket.close()
+}
+
+///|
+/// Close discovery sockets while leaving the user-data socket to its publisher.
+pub fn RosParticipant::close_discovery(self : RosParticipant) -> Unit {
   self.discovery.close()
   match self.spdp_socket {
     Some(socket) => socket.close()
     None => ()
   }
-  self.user_socket.close()
 }

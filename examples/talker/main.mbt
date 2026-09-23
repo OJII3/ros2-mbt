@@ -1,17 +1,17 @@
 ///|
-/// Discover the remote subscription.
+/// Discover the current matching remote subscriptions.
 async fn discover_subscription(
   participant : @transport.RosParticipant,
   topic : @ros.RosTopic,
-) -> Result[@rtps.SedpEndpointData, String] {
-  let mut remote_subscription : @rtps.SedpEndpointData? = None
+) -> Result[Array[@rtps.SedpEndpointData], String] {
+  let remote_subscriptions : Array[@rtps.SedpEndpointData] = []
   let mut quiet_periods = 0
   // Other ROS graph readers can arrive after the first matching endpoints.
-  while remote_subscription is None ||
+  while remote_subscriptions.length() == 0 ||
         participant.ros_discovery_publisher_count() == 0 ||
         quiet_periods < 12 {
     let graph_publisher_count = participant.ros_discovery_publisher_count()
-    let received = if remote_subscription is Some(_) &&
+    let received = if remote_subscriptions.length() > 0 &&
       graph_publisher_count > 0 {
       @async.with_timeout_opt(250, async fn() {
         participant.receive_discovery_once()
@@ -23,11 +23,27 @@ async fn discover_subscription(
       None => quiet_periods += 1
       Some(Ok((_, event))) => {
         match event {
-          Subscription(subscription) =>
-            if subscription.topic_name() == topic.dds_name() &&
-              subscription.type_name() == topic.dds_type_name() {
-              remote_subscription = Some(subscription)
+          Subscription(subscription) => {
+            let compatible = match subscription.qos() {
+              Ok(qos) => qos.durability() == @rtps.DURABILITY_VOLATILE
+              Err(_) => false
             }
+            if compatible &&
+              subscription.topic_name() == topic.dds_name() &&
+              subscription.type_name() == topic.dds_type_name() {
+              let mut found = false
+              for index in 0..<remote_subscriptions.length() {
+                if remote_subscriptions[index].endpoint_guid() ==
+                  subscription.endpoint_guid() {
+                  remote_subscriptions[index] = subscription
+                  found = true
+                }
+              }
+              if !found {
+                remote_subscriptions.push(subscription)
+              }
+            }
+          }
           _ => ()
         }
         if participant.ros_discovery_publisher_count() > graph_publisher_count {
@@ -37,29 +53,50 @@ async fn discover_subscription(
       Some(Err(message)) => return Err(message)
     }
   }
-  match remote_subscription {
-    Some(value) => Ok(value)
-    None => Err("discovery ended without a matching subscription")
+  if remote_subscriptions.length() > 0 {
+    Ok(remote_subscriptions)
+  } else {
+    Err("discovery ended without a matching subscription")
   }
 }
 
 ///|
 async fn publish_reliable(
+  participant : @transport.RosParticipant,
   topic : @ros.RosTopic,
   socket : @transport.Udp,
   prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   writer_id : @rtps.EntityId,
-  subscription : @rtps.SedpEndpointData,
+  subscriptions : Array[@rtps.SedpEndpointData],
 ) -> Unit {
+  if subscriptions.length() == 0 {
+    return
+  }
   let publisher = match
     @transport.ReliableRosPublisher::new_for_subscription(
-      topic, socket, prefix, vendor_id, writer_id, subscription, 1L,
+      topic,
+      socket,
+      prefix,
+      vendor_id,
+      writer_id,
+      subscriptions[0],
+      1L,
     ) {
     Ok(value) => value
     Err(message) => {
       println(message)
       return
+    }
+  }
+  for index in 1..<subscriptions.length() {
+    match publisher.add_subscription(subscriptions[index]) {
+      Ok(_) => ()
+      Err(message) => {
+        println(message)
+        publisher.close()
+        return
+      }
     }
   }
   @async.with_task_group() <| group => {
@@ -68,6 +105,30 @@ async fn publish_reliable(
         match publisher.receive_control() {
           Ok(_) => ()
           Err(_) => return
+        }
+      }
+    }
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        match participant.receive_discovery_once() {
+          Ok((_, event)) =>
+            match event {
+              Subscription(subscription) =>
+                if subscription.topic_name() == topic.dds_name() &&
+                  subscription.type_name() == topic.dds_type_name() {
+                  match publisher.add_subscription(subscription) {
+                    Ok(_) => ()
+                    Err(message) => println(message)
+                  }
+                }
+              EndpointRemoved(Subscription, endpoint_guid) =>
+                publisher.remove_subscription(endpoint_guid)
+              _ => ()
+            }
+          Err(message) => {
+            println(message)
+            return
+          }
         }
       }
     }
@@ -93,42 +154,6 @@ async fn publish_reliable(
       }
       @async.sleep(1000)
     }
-  }
-  publisher.close()
-}
-
-///|
-async fn publish_best_effort(
-  topic : @ros.RosTopic,
-  socket : @transport.Udp,
-  prefix : @rtps.GuidPrefix,
-  vendor_id : @rtps.VendorId,
-  writer_id : @rtps.EntityId,
-  subscription : @rtps.SedpEndpointData,
-) -> Unit {
-  let publisher = match
-    @transport.RosPublisher::new_for_subscription(
-      topic, socket, prefix, vendor_id, writer_id, subscription, 1L,
-    ) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      return
-    }
-  }
-  for index in 0..<5 {
-    let message = @ros.StringMessage::new(
-      "hello from MoonBit #" + index.to_string(),
-    )
-    match publisher.publish(message.to_cdr_bytes()) {
-      Ok(_) => ()
-      Err(error) => {
-        println(error)
-        publisher.close()
-        return
-      }
-    }
-    @async.sleep(1000)
   }
   publisher.close()
 }
@@ -251,7 +276,7 @@ async fn main {
     }
     discover_subscription(participant, topic)
   }
-  let subscription = match discovered_subscription {
+  let subscriptions = match discovered_subscription {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -279,23 +304,14 @@ async fn main {
     }
     @async.sleep(250)
   }
-  let is_reliable = match subscription.qos() {
-    Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE
-    Err(message) => {
-      println(message)
-      participant.close()
-      return
-    }
-  }
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
-  if is_reliable {
-    publish_reliable(
-      topic, user_socket, prefix, vendor_id, writer_id, subscription,
-    )
-  } else {
-    publish_best_effort(
-      topic, user_socket, prefix, vendor_id, writer_id, subscription,
-    )
-  }
+  publish_reliable(
+    participant,
+    topic,
+    participant.user_socket(),
+    prefix,
+    vendor_id,
+    writer_id,
+    subscriptions,
+  )
+  participant.close_discovery()
 }
