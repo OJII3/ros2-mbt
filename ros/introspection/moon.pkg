@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "OJII3/ros2-mbt/rosidl",
+}
+
+options(
+  "is-main": false,
+)

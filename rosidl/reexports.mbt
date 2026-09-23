@@ -1,6 +1,7 @@
 ///|
 pub using @compiler {
   RIHS01_PREFIX,
+  message_referenced_types,
   parse_action,
   parse_action_with_types,
   parse_message,

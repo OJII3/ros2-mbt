@@ -84,15 +84,18 @@ nix develop .#ros2
 moon run examples/talker
 ```
 
-The `ros2-mbt` CLI can also discover a topic's message type automatically and
-echo its samples:
+The `ros2-mbt` CLI can discover a topic's message type and decode its messages
+from the installed ROS `.msg` definitions:
 
 ```sh
 ros2-mbt topic echo /chatter
 ```
 
-`std_msgs/msg/String` samples are decoded and printed as `data:`. For other
-types, the CLI reports the detected ROS type and serialized CDR payload size.
+`topic echo` looks up definitions under `AMENT_PREFIX_PATH` and decodes nested
+messages, primitive fields, arrays, and strings in MoonBit. It does not invoke
+the `ros2` executable. Reliable and best-effort publishers are received using
+subscriptions with compatible reliability and durability. The current reader
+transport attaches to one publisher per invocation.
 
 The publisher sends five samples after discovering the ROS 2 subscriber. To
 test the opposite direction, run a ROS 2 publisher and the MoonBit listener:

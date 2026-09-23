@@ -4,8 +4,9 @@ import {
   "moonbitlang/async",
   "OJII3/ros2-mbt/examples/config",
   "OJII3/ros2-mbt/ros",
-  "OJII3/ros2-mbt/ros/messages/std_msgs",
   "OJII3/ros2-mbt/rtps",
+  "OJII3/ros2-mbt/ros/dynamic",
+  "OJII3/ros2-mbt/ros/introspection",
   "OJII3/ros2-mbt/transport",
 }
 

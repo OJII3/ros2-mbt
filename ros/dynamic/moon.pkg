@@ -1,0 +1,9 @@
+import {
+  "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/introspection",
+  "OJII3/ros2-mbt/rosidl",
+}
+
+options(
+  "is-main": false,
+)
