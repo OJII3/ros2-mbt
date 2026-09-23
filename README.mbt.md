@@ -99,9 +99,11 @@ transport attaches to one publisher per invocation. The talker examples send
 to every discovered matching subscription and continue processing discovery
 while publishing, so subscriptions that join later receive subsequent samples.
 
-The publisher sends five samples after discovering at least one ROS 2
-subscriber. To test the opposite direction, run a ROS 2 publisher and the
-MoonBit listener:
+The publisher publishes five samples without waiting for a ROS 2 subscriber.
+It continues processing discovery while publishing, so a compatible
+subscriber that joins while the example is running receives later samples.
+The examples exit after those five publishes. To test the opposite direction,
+run a ROS 2 publisher and the MoonBit listener:
 
 ```sh
 # Terminal 1
