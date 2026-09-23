@@ -46,6 +46,26 @@ The module is organized into focused packages:
 - `rtps` — RTPS wire and discovery types
 - `transport` — UDP transport, discovery, topics, services, and actions
 
+Add the native diagnostic CLI to a Nix flake:
+
+In the flake inputs:
+
+```nix
+inputs = {
+  ros2-mbt.url = "github:OJII3/ros2-mbt";
+};
+```
+
+Then add the package to a devShell:
+
+```nix
+devShells.${system}.default = pkgs.mkShell {
+  packages = [
+    inputs.ros2-mbt.packages.${system}.ros2-mbt
+  ];
+};
+```
+
 ## Try the examples
 
 The examples require Nix and a ROS 2 Jazzy environment. Start a ROS 2 CLI

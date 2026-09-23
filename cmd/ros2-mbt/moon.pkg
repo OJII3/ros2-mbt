@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+  "moonbitlang/async",
+  "ojii3/ros2-mbt/examples/config",
+  "ojii3/ros2-mbt/ros",
+  "ojii3/ros2-mbt/rtps",
+  "ojii3/ros2-mbt/transport",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
