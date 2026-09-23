@@ -245,7 +245,7 @@ fi
 timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$publisher_first_echo_log" 2>&1 &
 echo_pid=$!
-sleep 4
+sleep 1
 timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String \
   --qos-reliability best_effort --once \
   >"$second_echo_log" 2>&1 &
@@ -254,16 +254,25 @@ wait "$talker_pid"
 talker_pid=""
 wait "$echo_pid"
 echo_pid=""
-wait "$second_echo_pid"
-second_echo_pid=""
 if ! grep -Fq "hello from MoonBit #" "$publisher_first_echo_log"; then
   echo "ROS 2 CLI did not receive a sample from a publisher started first"
   exit 1
 fi
+for _ in {1..20}; do
+  if grep -Fq "hello from MoonBit #" "$second_echo_log"; then
+    break
+  fi
+  sleep 0.1
+done
 if ! grep -Fq "hello from MoonBit #" "$second_echo_log"; then
   echo "A subscriber joining after publication began did not receive a later sample"
   exit 1
 fi
+if kill -0 "$second_echo_pid" 2>/dev/null; then
+  kill -- "-$second_echo_pid" 2>/dev/null || true
+fi
+wait "$second_echo_pid" 2>/dev/null || true
+second_echo_pid=""
 ROS_DOMAIN_ID="$base_ros_domain_id"
 export ROS_DOMAIN_ID
 
