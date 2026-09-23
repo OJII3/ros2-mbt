@@ -1,11 +1,16 @@
 ///|
-/// A ROS topic publisher backed by a discovered best-effort RTPS subscription.
+/// A ROS topic publisher backed by discovered best-effort RTPS subscriptions.
 ///
 /// The payload is already serialized with the message type's CDR codec. This
 /// keeps the transport layer independent from generated ROS message types.
 pub struct RosPublisher {
   topic : @ros_types.RosTopic
-  writer : @wire.DataWriter
+  socket : @wire.Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  writer_id : @rtps.EntityId
+  mut writers : Array[(@rtps.Guid, @wire.DataWriter)]
+  mut next_sequence_number : Int64
 }
 
 ///|
@@ -30,6 +35,9 @@ pub fn RosPublisher::new_for_subscription(
   if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT {
     return Err("the discovered subscription is not best effort")
   }
+  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+    return Err("the discovered subscription has incompatible durability")
+  }
   let writer = match
     @wire.DataWriter::new_for_subscription(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
@@ -37,7 +45,71 @@ pub fn RosPublisher::new_for_subscription(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ topic, writer, })
+  Ok({
+    topic,
+    socket,
+    guid_prefix,
+    vendor_id,
+    writer_id,
+    writers: [(subscription.endpoint_guid(), writer)],
+    next_sequence_number: first_sequence_number,
+  })
+}
+
+///|
+/// Add a matching best-effort subscription to this topic publisher.
+pub fn RosPublisher::add_subscription(
+  self : RosPublisher,
+  subscription : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  if subscription.topic_name() != self.topic.dds_name() ||
+    subscription.type_name() != self.topic.dds_type_name() {
+    return Err("the discovered subscription does not match the ROS topic")
+  }
+  let qos = match subscription.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT {
+    return Err("the discovered subscription is not best effort")
+  }
+  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+    return Err("the discovered subscription has incompatible durability")
+  }
+  for (guid, _) in self.writers {
+    if guid == subscription.endpoint_guid() {
+      return Ok(())
+    }
+  }
+  let writer = match
+    @wire.DataWriter::new_for_subscription(
+      self.socket,
+      self.guid_prefix,
+      self.vendor_id,
+      self.writer_id,
+      subscription,
+      self.next_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.writers.push((subscription.endpoint_guid(), writer))
+  Ok(())
+}
+
+///|
+/// Remove a subscription that left the topic.
+pub fn RosPublisher::remove_subscription(
+  self : RosPublisher,
+  endpoint_guid : @rtps.Guid,
+) -> Unit {
+  let retained : Array[(@rtps.Guid, @wire.DataWriter)] = []
+  for (guid, writer) in self.writers {
+    if guid != endpoint_guid {
+      retained.push((guid, writer))
+    }
+  }
+  self.writers = retained
 }
 
 ///|
@@ -49,7 +121,7 @@ pub fn RosPublisher::topic(self : RosPublisher) -> @ros_types.RosTopic {
 ///|
 /// Return the next RTPS sequence number that will be published.
 pub fn RosPublisher::next_sequence_number(self : RosPublisher) -> Int64 {
-  self.writer.next_sequence_number()
+  self.next_sequence_number
 }
 
 ///|
@@ -58,13 +130,24 @@ pub async fn RosPublisher::publish(
   self : RosPublisher,
   serialized_payload : Bytes,
 ) -> Result[Unit, String] {
-  self.writer.write(serialized_payload)
+  let writers : Array[(@rtps.Guid, @wire.DataWriter)] = []
+  for target in self.writers {
+    writers.push(target)
+  }
+  self.next_sequence_number += 1L
+  for (_, writer) in writers {
+    match writer.write(serialized_payload) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
 }
 
 ///|
 /// Close the publisher's underlying UDP socket.
 pub fn RosPublisher::close(self : RosPublisher) -> Unit {
-  self.writer.close()
+  self.socket.close()
 }
 
 ///|

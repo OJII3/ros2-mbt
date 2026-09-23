@@ -1,8 +1,65 @@
 ///|
-/// A reliable ROS topic publisher backed by a discovered subscription.
+struct ReliableRosTarget {
+  endpoint_guid : @rtps.Guid
+  reliable_writer : @wire.ReliableDataWriter?
+  best_effort_writer : @wire.DataWriter?
+}
+
+///|
+fn reliable_ros_target_new(
+  socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  subscription : @rtps.SedpEndpointData,
+  first_sequence_number : Int64,
+) -> Result[ReliableRosTarget, String] {
+  let qos = match subscription.qos() {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+    return Err("the discovered subscription has incompatible durability")
+  }
+  if qos.reliability() == @rtps.RELIABILITY_RELIABLE {
+    let writer = match
+      @wire.ReliableDataWriter::new_for_subscription(
+        socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    Ok({
+      endpoint_guid: subscription.endpoint_guid(),
+      reliable_writer: Some(writer),
+      best_effort_writer: None,
+    })
+  } else {
+    let writer = match
+      @wire.DataWriter::new_for_subscription(
+        socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    Ok({
+      endpoint_guid: subscription.endpoint_guid(),
+      reliable_writer: None,
+      best_effort_writer: Some(writer),
+    })
+  }
+}
+
+///|
+/// A reliable ROS topic publisher backed by discovered subscriptions.
 pub struct ReliableRosPublisher {
   topic : @ros_types.RosTopic
-  writer : @wire.ReliableDataWriter
+  socket : @wire.Udp
+  guid_prefix : @rtps.GuidPrefix
+  vendor_id : @rtps.VendorId
+  writer_id : @rtps.EntityId
+  mut writers : Array[ReliableRosTarget]
+  mut next_sequence_number : Int64
 }
 
 ///|
@@ -20,21 +77,68 @@ pub fn ReliableRosPublisher::new_for_subscription(
     subscription.type_name() != topic.dds_type_name() {
     return Err("the discovered subscription does not match the ROS topic")
   }
-  let qos = match subscription.qos() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  if qos.reliability() != @rtps.RELIABILITY_RELIABLE {
-    return Err("the discovered subscription is not reliable")
-  }
-  let writer = match
-    @wire.ReliableDataWriter::new_for_subscription(
+  let target = match
+    reliable_ros_target_new(
       socket, guid_prefix, vendor_id, writer_id, subscription, first_sequence_number,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok({ topic, writer, })
+  Ok({
+    topic,
+    socket,
+    guid_prefix,
+    vendor_id,
+    writer_id,
+    writers: [target],
+    next_sequence_number: first_sequence_number,
+  })
+}
+
+///|
+/// Add a matching discovered subscription to this topic publisher.
+pub fn ReliableRosPublisher::add_subscription(
+  self : ReliableRosPublisher,
+  subscription : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  if subscription.topic_name() != self.topic.dds_name() ||
+    subscription.type_name() != self.topic.dds_type_name() {
+    return Err("the discovered subscription does not match the ROS topic")
+  }
+  for target in self.writers {
+    if target.endpoint_guid == subscription.endpoint_guid() {
+      return Ok(())
+    }
+  }
+  let target = match
+    reliable_ros_target_new(
+      self.socket,
+      self.guid_prefix,
+      self.vendor_id,
+      self.writer_id,
+      subscription,
+      self.next_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.writers.push(target)
+  Ok(())
+}
+
+///|
+/// Remove a subscription that left the topic.
+pub fn ReliableRosPublisher::remove_subscription(
+  self : ReliableRosPublisher,
+  endpoint_guid : @rtps.Guid,
+) -> Unit {
+  let retained : Array[ReliableRosTarget] = []
+  for target in self.writers {
+    if target.endpoint_guid != endpoint_guid {
+      retained.push(target)
+    }
+  }
+  self.writers = retained
 }
 
 ///|
@@ -50,13 +154,25 @@ pub fn ReliableRosPublisher::topic(
 pub fn ReliableRosPublisher::next_sequence_number(
   self : ReliableRosPublisher,
 ) -> Int64 {
-  self.writer.next_sequence_number()
+  self.next_sequence_number
 }
 
 ///|
 /// Return the number of samples retained for retransmission.
 pub fn ReliableRosPublisher::history_length(self : ReliableRosPublisher) -> Int {
-  self.writer.history_length()
+  let mut length = 0
+  for target in self.writers {
+    match target.reliable_writer {
+      Some(writer) => {
+        let writer_length = writer.history_length()
+        if writer_length > length {
+          length = writer_length
+        }
+      }
+      None => ()
+    }
+  }
+  length
 }
 
 ///|
@@ -65,7 +181,30 @@ pub async fn ReliableRosPublisher::publish(
   self : ReliableRosPublisher,
   serialized_payload : Bytes,
 ) -> Result[Unit, String] {
-  self.writer.write(serialized_payload)
+  let writers : Array[ReliableRosTarget] = []
+  for target in self.writers {
+    writers.push(target)
+  }
+  self.next_sequence_number += 1L
+  for target in writers {
+    match target.reliable_writer {
+      Some(writer) =>
+        match writer.write(serialized_payload) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      None =>
+        match target.best_effort_writer {
+          Some(writer) =>
+            match writer.write(serialized_payload) {
+              Ok(_) => ()
+              Err(message) => return Err(message)
+            }
+          None => ()
+        }
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -73,7 +212,21 @@ pub async fn ReliableRosPublisher::publish(
 pub async fn ReliableRosPublisher::send_heartbeat(
   self : ReliableRosPublisher,
 ) -> Result[Unit, String] {
-  self.writer.send_heartbeat()
+  let writers : Array[ReliableRosTarget] = []
+  for target in self.writers {
+    writers.push(target)
+  }
+  for target in writers {
+    match target.reliable_writer {
+      Some(writer) =>
+        match writer.send_heartbeat() {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      None => ()
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -81,7 +234,32 @@ pub async fn ReliableRosPublisher::send_heartbeat(
 pub async fn ReliableRosPublisher::receive_acknack(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
-  self.writer.receive_acknack()
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for target in self.writers {
+      match target.reliable_writer {
+        Some(writer) =>
+          match writer.handle_control_message(message) {
+            Ok(true) =>
+              for submessage in message.submessages() {
+                if submessage.id() == @rtps.SubmessageId::AckNack {
+                  match @rtps.AckNackSubmessage::from_submessage(submessage) {
+                    Ok(value) => return Ok((value, source))
+                    Err(message) => return Err(message)
+                  }
+                }
+              }
+            Ok(false) => ()
+            Err(message) => return Err(message)
+          }
+        None => ()
+      }
+    }
+  }
+  Err("reliable publisher stopped")
 }
 
 ///|
@@ -90,7 +268,17 @@ pub async fn ReliableRosPublisher::handle_acknack(
   self : ReliableRosPublisher,
   acknack : @rtps.AckNackSubmessage,
 ) -> Result[Unit, String] {
-  self.writer.handle_acknack(acknack)
+  for target in self.writers {
+    match target.reliable_writer {
+      Some(writer) =>
+        match writer.handle_acknack(acknack) {
+          Ok(_) => return Ok(())
+          Err(_) => ()
+        }
+      None => ()
+    }
+  }
+  Err("the ACKNACK does not match a discovered subscription")
 }
 
 ///|
@@ -98,7 +286,32 @@ pub async fn ReliableRosPublisher::handle_acknack(
 pub async fn ReliableRosPublisher::receive_nackfrag(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
-  self.writer.receive_nackfrag()
+  while true {
+    let (message, source) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for target in self.writers {
+      match target.reliable_writer {
+        Some(writer) =>
+          match writer.handle_control_message(message) {
+            Ok(true) =>
+              for submessage in message.submessages() {
+                if submessage.id() == @rtps.SubmessageId::NackFrag {
+                  match @rtps.NackFragSubmessage::from_submessage(submessage) {
+                    Ok(value) => return Ok((value, source))
+                    Err(message) => return Err(message)
+                  }
+                }
+              }
+            Ok(false) => ()
+            Err(message) => return Err(message)
+          }
+        None => ()
+      }
+    }
+  }
+  Err("reliable publisher stopped")
 }
 
 ///|
@@ -106,7 +319,24 @@ pub async fn ReliableRosPublisher::receive_nackfrag(
 pub async fn ReliableRosPublisher::receive_control(
   self : ReliableRosPublisher,
 ) -> Result[Unit, String] {
-  self.writer.receive_control()
+  while true {
+    let (message, _) = match self.socket.receive_message() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for target in self.writers {
+      match target.reliable_writer {
+        Some(writer) =>
+          match writer.handle_control_message(message) {
+            Ok(true) => break
+            Ok(false) => ()
+            Err(message) => return Err(message)
+          }
+        None => ()
+      }
+    }
+  }
+  Err("reliable publisher stopped")
 }
 
 ///|
@@ -115,13 +345,23 @@ pub async fn ReliableRosPublisher::handle_nackfrag(
   self : ReliableRosPublisher,
   nackfrag : @rtps.NackFragSubmessage,
 ) -> Result[Unit, String] {
-  self.writer.handle_nackfrag(nackfrag)
+  for target in self.writers {
+    match target.reliable_writer {
+      Some(writer) =>
+        match writer.handle_nackfrag(nackfrag) {
+          Ok(_) => return Ok(())
+          Err(_) => ()
+        }
+      None => ()
+    }
+  }
+  Err("the NACK_FRAG does not match a discovered subscription")
 }
 
 ///|
 /// Close the publisher's underlying UDP socket.
 pub fn ReliableRosPublisher::close(self : ReliableRosPublisher) -> Unit {
-  self.writer.close()
+  self.socket.close()
 }
 
 ///|

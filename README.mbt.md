@@ -95,10 +95,13 @@ ros2-mbt topic echo /chatter
 messages, primitive fields, arrays, and strings in MoonBit. It does not invoke
 the `ros2` executable. Reliable and best-effort publishers are received using
 subscriptions with compatible reliability and durability. The current reader
-transport attaches to one publisher per invocation.
+transport attaches to one publisher per invocation. The talker examples send
+to every discovered matching subscription and continue processing discovery
+while publishing, so subscriptions that join later receive subsequent samples.
 
-The publisher sends five samples after discovering the ROS 2 subscriber. To
-test the opposite direction, run a ROS 2 publisher and the MoonBit listener:
+The publisher sends five samples after discovering at least one ROS 2
+subscriber. To test the opposite direction, run a ROS 2 publisher and the
+MoonBit listener:
 
 ```sh
 # Terminal 1

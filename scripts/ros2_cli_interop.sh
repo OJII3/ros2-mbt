@@ -22,6 +22,7 @@ fi
 
 tmp_dir=$(mktemp -d)
 echo_log="$tmp_dir/topic-echo.log"
+second_echo_log="$tmp_dir/topic-echo-second-subscriber.log"
 graph_observer_log="$tmp_dir/ros-graph-observer.log"
 publisher_first_echo_log="$tmp_dir/publisher-first-topic-echo.log"
 publisher_first_talker_log="$tmp_dir/publisher-first-moonbit-talker.log"
@@ -40,6 +41,7 @@ service_call_log="$tmp_dir/ros2-service-call.log"
 ros_service_log="$tmp_dir/ros2-service-server.log"
 moon_client_log="$tmp_dir/moonbit-service-client.log"
 echo_pid=""
+second_echo_pid=""
 graph_observer_pid=""
 talker_pid=""
 listener_pid=""
@@ -54,6 +56,10 @@ cleanup() {
   if [[ -n "$echo_pid" ]]; then
     kill -- "-$echo_pid" 2>/dev/null || true
     wait "$echo_pid" 2>/dev/null || true
+  fi
+  if [[ -n "$second_echo_pid" ]]; then
+    kill -- "-$second_echo_pid" 2>/dev/null || true
+    wait "$second_echo_pid" 2>/dev/null || true
   fi
   if [[ -n "$graph_observer_pid" ]]; then
     kill -- "-$graph_observer_pid" 2>/dev/null || true
@@ -88,7 +94,7 @@ cleanup() {
     wait "$moon_client_pid" 2>/dev/null || true
   fi
   if [[ $exit_status -ne 0 ]]; then
-    cat "$talker_log" "$echo_log" "$graph_observer_log" \
+    cat "$talker_log" "$echo_log" "$second_echo_log" "$graph_observer_log" \
       "$listener_log" "$publisher_log" "$publisher_first_echo_log" \
       "$publisher_first_talker_log" "$publisher_first_listener_log" \
       "$publisher_first_publisher_log" \
@@ -181,8 +187,6 @@ timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$talker_log" 2>&1 &
 talker_pid=$!
 
-wait_for_ros_endpoint "/demo/moon_talker" "$talker_pid" "Publishers" "/chatter"
-
 wait "$talker_pid"
 talker_pid=""
 wait "$echo_pid"
@@ -201,6 +205,31 @@ if [[ -n "$graph_observer_pid" ]]; then
   fi
 fi
 
+# One ROS 2 publisher endpoint must deliver the same topic stream to two
+# independently discovered subscriptions.
+timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
+  >"$echo_log" 2>&1 &
+echo_pid=$!
+timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String \
+  --qos-reliability best_effort --once \
+  >"$second_echo_log" 2>&1 &
+second_echo_pid=$!
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
+  >"$talker_log" 2>&1 &
+talker_pid=$!
+wait "$talker_pid"
+talker_pid=""
+wait "$echo_pid"
+echo_pid=""
+wait "$second_echo_pid"
+second_echo_pid=""
+for subscriber_log in "$echo_log" "$second_echo_log"; do
+  if ! grep -Fq "hello from MoonBit #" "$subscriber_log"; then
+    echo "A ROS 2 subscriber did not receive a sample from the shared publisher"
+    exit 1
+  fi
+done
+
 # A publisher that starts before its subscriber must keep announcing until the
 # later subscriber is discovered, rather than relying on startup order.
 ROS_DOMAIN_ID="$startup_order_ros_domain_id"
@@ -216,13 +245,23 @@ fi
 timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
   >"$publisher_first_echo_log" 2>&1 &
 echo_pid=$!
-wait_for_ros_endpoint "/demo/moon_talker" "$talker_pid" "Publishers" "/chatter"
+sleep 4
+timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String \
+  --qos-reliability best_effort --once \
+  >"$second_echo_log" 2>&1 &
+second_echo_pid=$!
 wait "$talker_pid"
 talker_pid=""
 wait "$echo_pid"
 echo_pid=""
+wait "$second_echo_pid"
+second_echo_pid=""
 if ! grep -Fq "hello from MoonBit #" "$publisher_first_echo_log"; then
   echo "ROS 2 CLI did not receive a sample from a publisher started first"
+  exit 1
+fi
+if ! grep -Fq "hello from MoonBit #" "$second_echo_log"; then
+  echo "A subscriber joining after publication began did not receive a later sample"
   exit 1
 fi
 ROS_DOMAIN_ID="$base_ros_domain_id"
@@ -242,7 +281,6 @@ timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
   >"$listener_log" 2>&1 &
 listener_pid=$!
 
-wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
 wait "$publisher_pid"
 publisher_pid=""
 wait "$listener_pid"
@@ -270,7 +308,6 @@ fi
 timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
   >"$publisher_first_listener_log" 2>&1 &
 listener_pid=$!
-wait_for_ros_endpoint "/demo/moon_listener" "$listener_pid" "Subscribers" "/chatter"
 wait "$publisher_pid"
 publisher_pid=""
 wait "$listener_pid"
@@ -290,8 +327,6 @@ echo_pid=$!
 timeout --kill-after=2s 45s "${moon_command[@]}" \
   examples/wstring_talker >"$wstring_talker_log" 2>&1 &
 talker_pid=$!
-wait_for_ros_endpoint "/demo/moon_wstring_talker" "$talker_pid" \
-  "Publishers" "/wide_chatter"
 wait "$talker_pid"
 talker_pid=""
 wait "$echo_pid"
@@ -304,8 +339,6 @@ fi
 timeout --kill-after=2s 45s "${moon_command[@]}" \
   examples/wstring_listener >"$wstring_listener_log" 2>&1 &
 listener_pid=$!
-wait_for_ros_endpoint "/demo/moon_wstring_listener" "$listener_pid" \
-  "Subscribers" "/wide_chatter"
 timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
   --qos-reliability reliable /wide_chatter example_interfaces/msg/WString \
   "{data: 'wide こんにちは 🙂'}" >"$wstring_publisher_log" 2>&1
