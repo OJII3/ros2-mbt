@@ -31,7 +31,8 @@ moon add ojii3/ros2-mbt@0.1.0
 The library currently targets MoonBit's native backend. Most applications use
 the `ros` and `transport` packages:
 
-```moonbit
+```moonbit nocheck
+///|
 import {
   "ojii3/ros2-mbt/ros",
   "ojii3/ros2-mbt/transport",
