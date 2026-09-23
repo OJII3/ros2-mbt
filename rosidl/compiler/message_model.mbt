@@ -8,6 +8,39 @@ pub(all) enum MessageFieldCollection {
 } derive(Eq, Debug)
 
 ///|
+/// Return the fixed array length, if this collection is a fixed array.
+pub fn MessageFieldCollection::fixed_array_length(
+  self : MessageFieldCollection,
+) -> Int? {
+  match self {
+    FixedArray(length) => Some(length)
+    _ => None
+  }
+}
+
+///|
+/// Return whether this collection is a variable-length sequence.
+pub fn MessageFieldCollection::is_sequence(
+  self : MessageFieldCollection,
+) -> Bool {
+  match self {
+    Sequence | BoundedSequence(_) => true
+    _ => false
+  }
+}
+
+///|
+/// Return the maximum sequence length, if one was declared.
+pub fn MessageFieldCollection::sequence_bound(
+  self : MessageFieldCollection,
+) -> Int? {
+  match self {
+    BoundedSequence(length) => Some(length)
+    _ => None
+  }
+}
+
+///|
 /// A field in a ROS `.msg` definition.
 pub struct MessageField {
   type_name : String

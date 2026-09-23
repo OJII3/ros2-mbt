@@ -921,6 +921,14 @@ fn rosidl_workspace_referenced_types(
 }
 
 ///|
+/// Return the non-primitive message types referenced by a ROS `.msg` source.
+pub fn message_referenced_types(
+  source : String,
+) -> Result[Array[String], String] {
+  rosidl_workspace_referenced_types(source)
+}
+
+///|
 fn rosidl_workspace_reference_parts(
   type_name : String,
 ) -> Result[(String, String, Bool), String] {
