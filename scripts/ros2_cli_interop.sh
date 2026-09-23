@@ -21,17 +21,17 @@ else
 fi
 
 tmp_dir=$(mktemp -d)
-echo_log="$tmp_dir/topic-echo.log"
-second_echo_log="$tmp_dir/topic-echo-second-subscriber.log"
+probe_log="$tmp_dir/topic-probe.log"
+second_probe_log="$tmp_dir/topic-probe-second-subscriber.log"
 graph_observer_log="$tmp_dir/ros-graph-observer.log"
-publisher_first_echo_log="$tmp_dir/publisher-first-topic-echo.log"
+publisher_first_probe_log="$tmp_dir/publisher-first-topic-probe.log"
 publisher_first_talker_log="$tmp_dir/publisher-first-moonbit-talker.log"
 talker_log="$tmp_dir/moonbit-talker.log"
 listener_log="$tmp_dir/moonbit-listener.log"
 publisher_log="$tmp_dir/topic-pub.log"
 publisher_first_listener_log="$tmp_dir/publisher-first-moonbit-listener.log"
 publisher_first_publisher_log="$tmp_dir/publisher-first-topic-pub.log"
-wstring_echo_log="$tmp_dir/wstring-topic-echo.log"
+wstring_probe_log="$tmp_dir/wstring-topic-probe.log"
 wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
 wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
 wstring_publisher_log="$tmp_dir/wstring-topic-pub.log"
@@ -40,8 +40,8 @@ service_graph_observer_log="$tmp_dir/ros-service-graph-observer.log"
 service_call_log="$tmp_dir/ros2-service-call.log"
 ros_service_log="$tmp_dir/ros2-service-server.log"
 moon_client_log="$tmp_dir/moonbit-service-client.log"
-echo_pid=""
-second_echo_pid=""
+probe_pid=""
+second_probe_pid=""
 graph_observer_pid=""
 talker_pid=""
 listener_pid=""
@@ -53,13 +53,13 @@ moon_client_pid=""
 
 cleanup() {
   local exit_status=$?
-  if [[ -n "$echo_pid" ]]; then
-    kill -- "-$echo_pid" 2>/dev/null || true
-    wait "$echo_pid" 2>/dev/null || true
+  if [[ -n "$probe_pid" ]]; then
+    kill -- "-$probe_pid" 2>/dev/null || true
+    wait "$probe_pid" 2>/dev/null || true
   fi
-  if [[ -n "$second_echo_pid" ]]; then
-    kill -- "-$second_echo_pid" 2>/dev/null || true
-    wait "$second_echo_pid" 2>/dev/null || true
+  if [[ -n "$second_probe_pid" ]]; then
+    kill -- "-$second_probe_pid" 2>/dev/null || true
+    wait "$second_probe_pid" 2>/dev/null || true
   fi
   if [[ -n "$graph_observer_pid" ]]; then
     kill -- "-$graph_observer_pid" 2>/dev/null || true
@@ -94,11 +94,11 @@ cleanup() {
     wait "$moon_client_pid" 2>/dev/null || true
   fi
   if [[ $exit_status -ne 0 ]]; then
-    cat "$talker_log" "$echo_log" "$second_echo_log" "$graph_observer_log" \
-      "$listener_log" "$publisher_log" "$publisher_first_echo_log" \
+    cat "$talker_log" "$probe_log" "$second_probe_log" "$graph_observer_log" \
+      "$listener_log" "$publisher_log" "$publisher_first_probe_log" \
       "$publisher_first_talker_log" "$publisher_first_listener_log" \
       "$publisher_first_publisher_log" \
-      "$wstring_talker_log" "$wstring_echo_log" \
+      "$wstring_talker_log" "$wstring_probe_log" \
       "$wstring_listener_log" "$wstring_publisher_log" \
       "$moon_service_log" "$service_graph_observer_log" \
       "$service_call_log" "$ros_service_log" \
@@ -175,9 +175,45 @@ wait_for_ros_endpoint() {
   wait_for_node_endpoint "$node_name" "$endpoint_section" "$endpoint_name"
 }
 
-timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
-  >"$echo_log" 2>&1 &
-echo_pid=$!
+wait_for_probe_ready() {
+  local output_log="$1"
+  local process_pid="$2"
+  local deadline=$((SECONDS + 20))
+  while ((SECONDS < deadline)); do
+    if grep -Fq "PROBE_READY " "$output_log"; then
+      return 0
+    fi
+    if ! kill -0 "$process_pid" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+  echo "ROS 2 topic probe did not become ready"
+  return 1
+}
+
+wait_for_probe_matched() {
+  local output_log="$1"
+  local process_pid="$2"
+  local deadline=$((SECONDS + 20))
+  while ((SECONDS < deadline)); do
+    if grep -Fq "PROBE_MATCHED " "$output_log"; then
+      return 0
+    fi
+    if ! kill -0 "$process_pid" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+  echo "ROS 2 topic probe did not match a publisher"
+  return 1
+}
+
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /chatter --type string --expected-prefix "hello from MoonBit #" \
+  >"$probe_log" 2>&1 &
+probe_pid=$!
+wait_for_probe_ready "$probe_log" "$probe_pid"
 if [[ "$(uname -s)" == "Linux" || "${ROS2_MBT_VERIFY_ROS_GRAPH:-0}" == "1" ]]; then
   timeout --kill-after=2s 45s python3 -u \
     "$script_dir/ros2_graph_interop_observer.py" >"$graph_observer_log" 2>&1 &
@@ -189,10 +225,10 @@ talker_pid=$!
 
 wait "$talker_pid"
 talker_pid=""
-wait "$echo_pid"
-echo_pid=""
-if ! grep -Fq "hello from MoonBit #" "$echo_log"; then
-  echo "ROS 2 CLI did not receive a MoonBit String sample"
+wait "$probe_pid"
+probe_pid=""
+if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$probe_log"; then
+  echo "ROS 2 subscriber probe did not receive a MoonBit String sample"
   exit 1
 fi
 if [[ -n "$graph_observer_pid" ]]; then
@@ -207,25 +243,28 @@ fi
 
 # One ROS 2 publisher endpoint must deliver the same topic stream to two
 # independently discovered subscriptions.
-timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
-  >"$echo_log" 2>&1 &
-echo_pid=$!
-timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String \
-  --qos-reliability best_effort --once \
-  >"$second_echo_log" 2>&1 &
-second_echo_pid=$!
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /chatter --type string --expected-prefix "hello from MoonBit #" \
+  >"$probe_log" 2>&1 &
+probe_pid=$!
+wait_for_probe_ready "$probe_log" "$probe_pid"
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /chatter --type string --reliability best_effort \
+  --expected-prefix "hello from MoonBit #" >"$second_probe_log" 2>&1 &
+second_probe_pid=$!
+wait_for_probe_ready "$second_probe_log" "$second_probe_pid"
 timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$talker_log" 2>&1 &
 talker_pid=$!
 wait "$talker_pid"
 talker_pid=""
-wait "$echo_pid"
-echo_pid=""
-wait "$second_echo_pid"
-second_echo_pid=""
-for subscriber_log in "$echo_log" "$second_echo_log"; do
-  if ! grep -Fq "hello from MoonBit #" "$subscriber_log"; then
-    echo "A ROS 2 subscriber did not receive a sample from the shared publisher"
+wait "$probe_pid"
+probe_pid=""
+wait "$second_probe_pid"
+second_probe_pid=""
+for subscriber_log in "$probe_log" "$second_probe_log"; do
+  if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$subscriber_log"; then
+    echo "A ROS 2 subscriber probe did not receive a sample from the shared publisher"
     exit 1
   fi
 done
@@ -237,42 +276,29 @@ export ROS_DOMAIN_ID
 timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$publisher_first_talker_log" 2>&1 &
 talker_pid=$!
-sleep 1
-if ! kill -0 "$talker_pid" 2>/dev/null; then
-  echo "MoonBit talker exited before the later ROS 2 subscriber started"
-  exit 1
-fi
-timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String --once \
-  >"$publisher_first_echo_log" 2>&1 &
-echo_pid=$!
-sleep 1
-timeout --kill-after=2s 45s ros2 topic echo /chatter std_msgs/msg/String \
-  --qos-reliability best_effort --once \
-  >"$second_echo_log" 2>&1 &
-second_echo_pid=$!
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /chatter --type string --publisher /demo/moon_talker \
+  --expected-prefix "hello from MoonBit #" >"$publisher_first_probe_log" 2>&1 &
+probe_pid=$!
+wait_for_probe_ready "$publisher_first_probe_log" "$probe_pid"
+wait_for_probe_matched "$publisher_first_probe_log" "$probe_pid"
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /chatter --type string --reliability best_effort \
+  --publisher /demo/moon_talker --expected-prefix "hello from MoonBit #" \
+  >"$second_probe_log" 2>&1 &
+second_probe_pid=$!
+wait_for_probe_ready "$second_probe_log" "$second_probe_pid"
+wait_for_probe_matched "$second_probe_log" "$second_probe_pid"
+wait "$probe_pid"
+probe_pid=""
+wait "$second_probe_pid"
+second_probe_pid=""
 wait "$talker_pid"
 talker_pid=""
-wait "$echo_pid"
-echo_pid=""
-if ! grep -Fq "hello from MoonBit #" "$publisher_first_echo_log"; then
-  echo "ROS 2 CLI did not receive a sample from a publisher started first"
+if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$second_probe_log"; then
+  echo "A later ROS 2 subscriber probe did not receive a subsequent sample"
   exit 1
 fi
-for _ in {1..20}; do
-  if grep -Fq "hello from MoonBit #" "$second_echo_log"; then
-    break
-  fi
-  sleep 0.1
-done
-if ! grep -Fq "hello from MoonBit #" "$second_echo_log"; then
-  echo "A subscriber joining after publication began did not receive a later sample"
-  exit 1
-fi
-if kill -0 "$second_echo_pid" 2>/dev/null; then
-  kill -- "-$second_echo_pid" 2>/dev/null || true
-fi
-wait "$second_echo_pid" 2>/dev/null || true
-second_echo_pid=""
 ROS_DOMAIN_ID="$base_ros_domain_id"
 export ROS_DOMAIN_ID
 
@@ -329,19 +355,20 @@ fi
 ROS_DOMAIN_ID="$base_ros_domain_id"
 export ROS_DOMAIN_ID
 
-timeout --kill-after=2s 45s ros2 topic echo /wide_chatter \
-  example_interfaces/msg/WString --qos-reliability reliable --once \
-  >"$wstring_echo_log" 2>&1 &
-echo_pid=$!
+timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
+  --topic /wide_chatter --type wstring --expected-prefix "wide こんにちは 🙂 #" \
+  >"$wstring_probe_log" 2>&1 &
+probe_pid=$!
+wait_for_probe_ready "$wstring_probe_log" "$probe_pid"
 timeout --kill-after=2s 45s "${moon_command[@]}" \
   examples/wstring_talker >"$wstring_talker_log" 2>&1 &
 talker_pid=$!
 wait "$talker_pid"
 talker_pid=""
-wait "$echo_pid"
-echo_pid=""
-if ! grep -Fq "wide こんにちは 🙂 #" "$wstring_echo_log"; then
-  echo "ROS 2 CLI did not receive a MoonBit WString sample"
+wait "$probe_pid"
+probe_pid=""
+if ! grep -Fq "PROBE_RECEIVED wide こんにちは 🙂 #" "$wstring_probe_log"; then
+  echo "ROS 2 subscriber probe did not receive a MoonBit WString sample"
   exit 1
 fi
 
