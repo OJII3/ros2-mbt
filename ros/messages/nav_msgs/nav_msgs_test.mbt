@@ -12,19 +12,14 @@ test "nav_msgs message types CDR round trip" {
     path,
   )
 
-  let path_with_pose = @nav_msgs.Path::new(
-    @std_msgs.Header::default(),
-    [
-      @geometry_msgs.PoseStamped::new(
-        @std_msgs.Header::default(),
-        @geometry_msgs.Pose::default(),
-      ),
-    ],
-  )
+  let path_with_pose = @nav_msgs.Path::new(@std_msgs.Header::default(), [
+    @geometry_msgs.PoseStamped::new(
+      @std_msgs.Header::default(),
+      @geometry_msgs.Pose::default(),
+    ),
+  ])
   assert_eq(
-    @nav_msgs.Path::from_cdr_bytes(
-      path_with_pose.to_cdr_bytes().unwrap(),
-    ).unwrap(),
+    @nav_msgs.Path::from_cdr_bytes(path_with_pose.to_cdr_bytes().unwrap()).unwrap(),
     path_with_pose,
   )
 

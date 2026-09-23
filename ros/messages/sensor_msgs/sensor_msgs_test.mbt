@@ -28,23 +28,21 @@ test "sensor_msgs message types CDR round trip" {
 
   let joint_state = @sensor_msgs.JointState::default()
   assert_eq(
-    @sensor_msgs.JointState::from_cdr_bytes(
-      joint_state.to_cdr_bytes().unwrap(),
-    ).unwrap(),
+    @sensor_msgs.JointState::from_cdr_bytes(joint_state.to_cdr_bytes().unwrap()).unwrap(),
     joint_state,
   )
 
   let point_field = @sensor_msgs.PointField::default()
   assert_eq(
-    @sensor_msgs.PointField::from_cdr_bytes(
-      point_field.to_cdr_bytes().unwrap(),
-    ).unwrap(),
+    @sensor_msgs.PointField::from_cdr_bytes(point_field.to_cdr_bytes().unwrap()).unwrap(),
     point_field,
   )
 
   let nav_status = @sensor_msgs.NavSatStatus::default()
   assert_eq(
-    @sensor_msgs.NavSatStatus::from_cdr_bytes(nav_status.to_cdr_bytes().unwrap()).unwrap(),
+    @sensor_msgs.NavSatStatus::from_cdr_bytes(
+      nav_status.to_cdr_bytes().unwrap(),
+    ).unwrap(),
     nav_status,
   )
 
@@ -90,9 +88,7 @@ test "sensor_msgs sequence fields CDR round trip" {
     [3.0F, 4.0F],
   )
   assert_eq(
-    @sensor_msgs.LaserScan::from_cdr_bytes(
-      laser_scan.to_cdr_bytes().unwrap(),
-    ).unwrap(),
+    @sensor_msgs.LaserScan::from_cdr_bytes(laser_scan.to_cdr_bytes().unwrap()).unwrap(),
     laser_scan,
   )
 
@@ -104,9 +100,7 @@ test "sensor_msgs sequence fields CDR round trip" {
     [0.0, 2.0],
   )
   assert_eq(
-    @sensor_msgs.JointState::from_cdr_bytes(
-      joint_state.to_cdr_bytes().unwrap(),
-    ).unwrap(),
+    @sensor_msgs.JointState::from_cdr_bytes(joint_state.to_cdr_bytes().unwrap()).unwrap(),
     joint_state,
   )
 
