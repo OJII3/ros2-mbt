@@ -50,6 +50,9 @@ jobs:
     needs: build-image
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
+    env:
+      ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
+      ROS2_MBT_PODMAN_BUILD: "0"
     permissions:
       contents: read
       packages: read
@@ -69,15 +72,40 @@ jobs:
           podman pull "$image:$GITHUB_SHA"
           podman tag "$image:$GITHUB_SHA" "$local_image"
 
-      - name: Run CI in Podman
-        env:
-          ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
-          ROS2_MBT_PODMAN_BUILD: "0"
-        run: bash scripts/ros2_podman_interop.sh
+      - name: Prepare Podman environment
+        run: bash scripts/ros2_podman_interop.sh start
+
+      - name: Update MoonBit dependencies
+        run: bash scripts/ros2_podman_interop.sh update
+
+      - name: Check formatting
+        run: bash scripts/ros2_podman_interop.sh fmt
+
+      - name: Check types
+        run: bash scripts/ros2_podman_interop.sh check
+
+      - name: Run MoonBit tests
+        run: bash scripts/ros2_podman_interop.sh test
+
+      - name: Test ROS 2 CLI interoperability
+        run: bash scripts/ros2_podman_interop.sh cli
+
+      - name: Test ROS 2 action interoperability
+        run: bash scripts/ros2_podman_interop.sh action
+
+      - name: Test ROS 2 parameter interoperability
+        run: bash scripts/ros2_podman_interop.sh parameter
+
+      - name: Stop Podman environment
+        if: always()
+        run: bash scripts/ros2_podman_interop.sh stop
 
   test-pull-request:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-24.04
+    env:
+      ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
+      ROS2_MBT_PODMAN_BUILD: "0"
     permissions:
       contents: read
       packages: read
@@ -102,11 +130,33 @@ jobs:
             --tag "$local_image" \
             podman/ros2-jazzy
 
-      - name: Run CI in Podman
-        env:
-          ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
-          ROS2_MBT_PODMAN_BUILD: "0"
-        run: bash scripts/ros2_podman_interop.sh
+      - name: Prepare Podman environment
+        run: bash scripts/ros2_podman_interop.sh start
+
+      - name: Update MoonBit dependencies
+        run: bash scripts/ros2_podman_interop.sh update
+
+      - name: Check formatting
+        run: bash scripts/ros2_podman_interop.sh fmt
+
+      - name: Check types
+        run: bash scripts/ros2_podman_interop.sh check
+
+      - name: Run MoonBit tests
+        run: bash scripts/ros2_podman_interop.sh test
+
+      - name: Test ROS 2 CLI interoperability
+        run: bash scripts/ros2_podman_interop.sh cli
+
+      - name: Test ROS 2 action interoperability
+        run: bash scripts/ros2_podman_interop.sh action
+
+      - name: Test ROS 2 parameter interoperability
+        run: bash scripts/ros2_podman_interop.sh parameter
+
+      - name: Stop Podman environment
+        if: always()
+        run: bash scripts/ros2_podman_interop.sh stop
 
   promote-main-image:
     needs: test-published-image
