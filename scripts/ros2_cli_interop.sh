@@ -192,7 +192,7 @@ timeout --kill-after=2s 45s ros2 run demo_nodes_cpp talker \
 topic_list_talker_pid=$!
 wait_for_node "/talker" "$topic_list_talker_pid"
 for topic_list_log in "$first_topic_list_log" "$second_topic_list_log"; do
-  timeout --kill-after=2s 45s "${moon_command[@]}" cmd/ros2-mbt topic list \
+  timeout --kill-after=2s 45s "${moon_command[@]}" cmd/ros2-mbt topic list -t \
     >"$topic_list_log" 2>&1
   if ! grep -Fq "/chatter [std_msgs/msg/String]" "$topic_list_log"; then
     echo "ros2-mbt topic list did not discover /chatter from the ROS 2 talker"
