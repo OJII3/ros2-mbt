@@ -165,12 +165,17 @@ fn discovery_info_write_gid(writer : @cdr.Writer, gid : Gid) -> Unit {
 }
 
 ///|
-fn discovery_info_read_gid(reader : @cdr.Reader) -> Result[Gid, String] {
-  let data = match reader.read_byte_array(16) {
+fn discovery_info_read_gid(
+  reader : @cdr.Reader,
+  gid_size : Int,
+) -> Result[Gid, String] {
+  let data = match reader.read_byte_array(gid_size) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Gid::new(data)
+  // Humble serialized rmw_dds_common/Gid as 24 bytes. Its DDS GUID is the
+  // first 16 bytes; the remaining bytes are reserved by that version.
+  Gid::new(data[0:16].to_owned())
 }
 
 ///|
@@ -187,18 +192,19 @@ fn discovery_info_write_gid_sequence(
 ///|
 fn discovery_info_read_gid_sequence(
   reader : @cdr.Reader,
+  gid_size : Int,
 ) -> Result[Array[Gid], String] {
   let length = match reader.read_u32() {
     Ok(value) => value.reinterpret_as_int()
     Err(message) => return Err(message)
   }
-  if length < 0 || length > reader.remaining() / 16 {
+  if length < 0 || length > reader.remaining() / gid_size {
     return Err("a ROS discovery GID sequence is truncated")
   }
   let result : Array[Gid] = []
   for _ in 0..<length {
     result.push(
-      match discovery_info_read_gid(reader) {
+      match discovery_info_read_gid(reader, gid_size) {
         Ok(value) => value
         Err(message) => return Err(message)
       },
@@ -221,6 +227,7 @@ fn discovery_info_write_node(
 ///|
 fn discovery_info_read_node(
   reader : @cdr.Reader,
+  gid_size : Int,
 ) -> Result[NodeEntitiesInfo, String] {
   let node_namespace = match reader.read_string() {
     Ok(value) => value
@@ -230,11 +237,13 @@ fn discovery_info_read_node(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let reader_gid_seq = match discovery_info_read_gid_sequence(reader) {
+  let reader_gid_seq = match
+    discovery_info_read_gid_sequence(reader, gid_size) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let writer_gid_seq = match discovery_info_read_gid_sequence(reader) {
+  let writer_gid_seq = match
+    discovery_info_read_gid_sequence(reader, gid_size) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -264,11 +273,26 @@ pub fn NodeEntitiesInfo::to_cdr_bytes(self : NodeEntitiesInfo) -> Bytes {
 pub fn NodeEntitiesInfo::from_cdr_bytes(
   input : Bytes,
 ) -> Result[NodeEntitiesInfo, String] {
+  match discovery_info_read_node_from_cdr_bytes(input, 16) {
+    Ok(node) => Ok(node)
+    Err(message) =>
+      match discovery_info_read_node_from_cdr_bytes(input, 24) {
+        Ok(node) => Ok(node)
+        Err(_) => Err(message)
+      }
+  }
+}
+
+///|
+fn discovery_info_read_node_from_cdr_bytes(
+  input : Bytes,
+  gid_size : Int,
+) -> Result[NodeEntitiesInfo, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let node = match discovery_info_read_node(reader) {
+  let node = match discovery_info_read_node(reader, gid_size) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -297,11 +321,26 @@ pub fn ParticipantEntitiesInfo::to_cdr_bytes(
 pub fn ParticipantEntitiesInfo::from_cdr_bytes(
   input : Bytes,
 ) -> Result[ParticipantEntitiesInfo, String] {
+  match discovery_info_read_participant_from_cdr_bytes(input, 16) {
+    Ok(info) => Ok(info)
+    Err(message) =>
+      match discovery_info_read_participant_from_cdr_bytes(input, 24) {
+        Ok(info) => Ok(info)
+        Err(_) => Err(message)
+      }
+  }
+}
+
+///|
+fn discovery_info_read_participant_from_cdr_bytes(
+  input : Bytes,
+  gid_size : Int,
+) -> Result[ParticipantEntitiesInfo, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let gid = match discovery_info_read_gid(reader) {
+  let gid = match discovery_info_read_gid(reader, gid_size) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -315,7 +354,7 @@ pub fn ParticipantEntitiesInfo::from_cdr_bytes(
   let result = ParticipantEntitiesInfo::new(gid)
   for _ in 0..<length {
     result.node_entities_info_seq.push(
-      match discovery_info_read_node(reader) {
+      match discovery_info_read_node(reader, gid_size) {
         Ok(value) => value
         Err(message) => return Err(message)
       },
