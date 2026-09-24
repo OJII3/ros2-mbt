@@ -26,13 +26,38 @@ fn positive_option(
 
 ///|
 fn topic_list_command() -> @argparse.Command {
-  @argparse.Command("list", about="List discovered ROS topics.", options=[
-    @argparse.OptionArg(
-      "spin-time-ms",
-      about="Discovery duration in milliseconds.",
-      default_values=[DEFAULT_SPIN_TIME_MS],
-    ),
-  ])
+  @argparse.Command(
+    "list",
+    about="List discovered ROS topics.",
+    options=[
+      @argparse.OptionArg(
+        "spin-time-ms",
+        about="Discovery duration in milliseconds.",
+        default_values=[DEFAULT_SPIN_TIME_MS],
+      ),
+    ],
+    flags=[
+      @argparse.FlagArg(
+        "show-types",
+        short='t',
+        about="Additionally show each topic's type.",
+      ),
+      @argparse.FlagArg(
+        "verbose",
+        short='v',
+        about="List publisher and subscriber counts by topic.",
+      ),
+      @argparse.FlagArg(
+        "count-topics",
+        short='c',
+        about="Only display the number of discovered topics.",
+      ),
+      @argparse.FlagArg(
+        "include-hidden-topics",
+        about="Include hidden topics in the list.",
+      ),
+    ],
+  )
 }
 
 ///|
@@ -126,6 +151,14 @@ fn positional_value(
 }
 
 ///|
+fn flag_enabled(matches : @argparse.Matches, name : String) -> Bool {
+  match matches.flags.get(name) {
+    Some(value) => value
+    None => false
+  }
+}
+
+///|
 async fn dispatch_topic(matches : @argparse.Matches) -> Result[Unit, String] {
   match matches.subcommand {
     None => Err("a topic subcommand is required")
@@ -135,7 +168,13 @@ async fn dispatch_topic(matches : @argparse.Matches) -> Result[Unit, String] {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      run_topic_list(spin_time_ms)
+      run_topic_list(
+        spin_time_ms,
+        flag_enabled(list_matches, "show-types"),
+        flag_enabled(list_matches, "verbose"),
+        flag_enabled(list_matches, "count-topics"),
+        flag_enabled(list_matches, "include-hidden-topics"),
+      )
     }
     Some(("hz", hz_matches)) => {
       let topic = match positional_value(hz_matches, "topic") {
