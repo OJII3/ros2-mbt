@@ -92,9 +92,7 @@ fn topic_summaries(
     left.ros_name.lexical_compare(right.ros_name)
   })
   for topic in topics {
-    topic.type_names.sort_by(fn(left, right) {
-      left.lexical_compare(right)
-    })
+    topic.type_names.sort_by(fn(left, right) { left.lexical_compare(right) })
   }
   topics
 }
