@@ -22,10 +22,11 @@ async fn new_cli_participant(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let prefix = match
-    @rtps.GuidPrefix::from_array([
-      0x4D, 0x42, 0x54, 0x52, 0x50, 0x53, 0, 0, 0, 0, 0, 90,
-    ]) {
+  let prefix_bytes = match @env.rand(12) {
+    Some(value) => value.to_array()
+    None => return Err("secure randomness is unavailable for a DDS GUID prefix")
+  }
+  let prefix = match @rtps.GuidPrefix::from_array(prefix_bytes) {
     Ok(value) => value
     Err(message) => return Err(message)
   }

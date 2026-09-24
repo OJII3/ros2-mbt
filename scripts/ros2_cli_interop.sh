@@ -35,6 +35,9 @@ wstring_probe_log="$tmp_dir/wstring-topic-probe.log"
 wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
 wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
 wstring_publisher_log="$tmp_dir/wstring-topic-pub.log"
+topic_list_talker_log="$tmp_dir/ros2-topic-list-talker.log"
+first_topic_list_log="$tmp_dir/ros2-mbt-topic-list-first.log"
+second_topic_list_log="$tmp_dir/ros2-mbt-topic-list-second.log"
 moon_service_log="$tmp_dir/moonbit-service-server.log"
 service_graph_observer_log="$tmp_dir/ros-service-graph-observer.log"
 service_call_log="$tmp_dir/ros2-service-call.log"
@@ -50,6 +53,7 @@ moon_service_pid=""
 service_graph_observer_pid=""
 ros_service_pid=""
 moon_client_pid=""
+topic_list_talker_pid=""
 
 cleanup() {
   local exit_status=$?
@@ -93,6 +97,10 @@ cleanup() {
     kill -- "-$moon_client_pid" 2>/dev/null || true
     wait "$moon_client_pid" 2>/dev/null || true
   fi
+  if [[ -n "$topic_list_talker_pid" ]]; then
+    kill -- "-$topic_list_talker_pid" 2>/dev/null || true
+    wait "$topic_list_talker_pid" 2>/dev/null || true
+  fi
   if [[ $exit_status -ne 0 ]]; then
     cat "$talker_log" "$probe_log" "$second_probe_log" "$graph_observer_log" \
       "$listener_log" "$publisher_log" "$publisher_first_probe_log" \
@@ -100,6 +108,8 @@ cleanup() {
       "$publisher_first_publisher_log" \
       "$wstring_talker_log" "$wstring_probe_log" \
       "$wstring_listener_log" "$wstring_publisher_log" \
+      "$topic_list_talker_log" "$first_topic_list_log" \
+      "$second_topic_list_log" \
       "$moon_service_log" "$service_graph_observer_log" \
       "$service_call_log" "$ros_service_log" \
       "$moon_client_log" 2>/dev/null || true
@@ -174,6 +184,24 @@ wait_for_ros_endpoint() {
   wait_for_node "$node_name" "$process_pid"
   wait_for_node_endpoint "$node_name" "$endpoint_section" "$endpoint_name"
 }
+
+# Each CLI invocation must rediscover endpoints from a participant that remains
+# alive after the previous ros2-mbt process exits.
+timeout --kill-after=2s 45s ros2 run demo_nodes_cpp talker \
+  >"$topic_list_talker_log" 2>&1 &
+topic_list_talker_pid=$!
+wait_for_node "/talker" "$topic_list_talker_pid"
+for topic_list_log in "$first_topic_list_log" "$second_topic_list_log"; do
+  timeout --kill-after=2s 45s "${moon_command[@]}" cmd/ros2-mbt topic list \
+    >"$topic_list_log" 2>&1
+  if ! grep -Fq "/chatter [std_msgs/msg/String]" "$topic_list_log"; then
+    echo "ros2-mbt topic list did not discover /chatter from the ROS 2 talker"
+    exit 1
+  fi
+done
+kill -- "-$topic_list_talker_pid" 2>/dev/null || true
+wait "$topic_list_talker_pid" 2>/dev/null || true
+topic_list_talker_pid=""
 
 wait_for_probe_ready() {
   local output_log="$1"
