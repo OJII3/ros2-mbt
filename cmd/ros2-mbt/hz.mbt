@@ -167,8 +167,34 @@ async fn run_topic_hz(
           return Err(message)
         }
       }
-      let is_reliable = match publication.qos() {
-        Ok(qos) => qos.reliability() == @rtps.RELIABILITY_RELIABLE
+      let publisher_qos = match publication.qos() {
+        Ok(qos) => qos
+        Err(message) => {
+          cli.participant.close()
+          return Err(message)
+        }
+      }
+      let reader_id = match @rtps.EntityId::new(b"hz1", 0x04) {
+        Ok(value) => value
+        Err(message) => {
+          cli.participant.close()
+          return Err(message)
+        }
+      }
+      let requested_qos = @rtps.SedpQos::new(
+        publisher_qos.reliability(),
+        publisher_qos.durability(),
+        publisher_qos.history(),
+        publisher_qos.depth(),
+      )
+      match
+        cli.participant.register_topic_endpoint(
+          topic,
+          Subscription,
+          reader_id,
+          requested_qos,
+        ) {
+        Ok(_) => ()
         Err(message) => {
           cli.participant.close()
           return Err(message)
@@ -176,13 +202,8 @@ async fn run_topic_hz(
       }
       let (discovery, user_socket) = cli.participant.into_parts()
       discovery.close()
-      let reader_id = match @rtps.EntityId::new(b"hz1", 0x04) {
-        Ok(value) => value
-        Err(message) => {
-          user_socket.close()
-          return Err(message)
-        }
-      }
+      let is_reliable = publisher_qos.reliability() ==
+        @rtps.RELIABILITY_RELIABLE
       if is_reliable {
         let subscription = match
           @transport.ReliableRosSubscription::new_for_publication(
