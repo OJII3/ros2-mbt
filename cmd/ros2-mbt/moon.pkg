@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/argparse",
+  "moonbitlang/core/env",
   "moonbitlang/core/string",
   "moonbitlang/async",
   "OJII3/ros2-mbt/examples/config",
