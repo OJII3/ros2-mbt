@@ -202,8 +202,8 @@ async fn run_topic_hz(
       }
       let (discovery, user_socket) = cli.participant.into_parts()
       discovery.close()
-      let is_reliable =
-        publisher_qos.reliability() == @rtps.RELIABILITY_RELIABLE
+      let is_reliable = publisher_qos.reliability() ==
+        @rtps.RELIABILITY_RELIABLE
       if is_reliable {
         let subscription = match
           @transport.ReliableRosSubscription::new_for_publication(
