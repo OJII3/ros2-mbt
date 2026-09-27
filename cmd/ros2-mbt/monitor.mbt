@@ -8,6 +8,28 @@ const CLI_DISCOVERY_INTERVAL_MS : Int = 1000
 const CLI_DISCOVERY_POLL_MS : Int = 100
 
 ///|
+const DEFAULT_ROUTE_PROBE_IP : UInt = 0xC0000201U
+
+///|
+async fn default_multicast_interface(fallback_ip : UInt) -> UInt? {
+  // Connecting a UDP socket only asks the kernel to resolve the default
+  // route; it does not send a packet. The selected local address is a better
+  // multicast-interface default on systems with several interfaces.
+  let probe = @socket.UdpClient::UdpClient(
+    @socket.Addr::new(DEFAULT_ROUTE_PROBE_IP, 9),
+  ) catch {
+    _ => return Some(fallback_ip)
+  }
+  let local_ip = probe.addr.ip()
+  probe.close()
+  if local_ip == 0U || local_ip >> 24 == 127U {
+    Some(fallback_ip)
+  } else {
+    Some(local_ip)
+  }
+}
+
+///|
 struct CliParticipant {
   participant : @transport.RosParticipant
   prefix : @rtps.GuidPrefix
@@ -31,6 +53,10 @@ async fn new_cli_participant(
     Err(message) => return Err(message)
   }
   let vendor_id = @rtps.VendorId::new(1, 15)
+  let multicast_interface = match config.multicast_interface {
+    Some(ip) => Some(ip)
+    None => default_multicast_interface(config.ip)
+  }
   let participant = match
     @transport.RosParticipant::new_ddsi(
       prefix,
@@ -40,7 +66,7 @@ async fn new_cli_participant(
       config.ip,
       60,
       1L,
-      multicast_interface?=config.multicast_interface,
+      multicast_interface?,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)

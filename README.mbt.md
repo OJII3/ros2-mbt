@@ -162,8 +162,10 @@ time.
 - ROS graph interoperability is partial; common topic and service discovery
   paths are covered, but full graph parity is not.
 - DDS discovery requires a network that permits the required UDP
-  multicast/unicast traffic. Use `ROS2_MBT_MULTICAST_IP` when the multicast
-  interface must be selected explicitly.
+  multicast/unicast traffic. The `ros2-mbt` CLI selects the local IPv4
+  interface used by the operating system's default route. Set
+  `ROS2_MBT_MULTICAST_IP` to that interface's IPv4 address to override the
+  selection, for example when ROS 2 traffic uses a different network interface.
 - On macOS, running multiple participants on the same host can be unreliable
   because of UDP multicast port sharing.
 - Not every ROS 2 message type or QoS combination has been tested.

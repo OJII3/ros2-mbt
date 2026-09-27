@@ -3,6 +3,7 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/string",
   "moonbitlang/async",
+  "moonbitlang/async/socket",
   "OJII3/ros2-mbt/examples/config",
   "OJII3/ros2-mbt/ros",
   "OJII3/ros2-mbt/rtps",
