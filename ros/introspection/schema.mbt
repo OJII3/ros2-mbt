@@ -64,13 +64,10 @@ fn parse_nested_type_path(
 async fn find_message_source(
   package_name : String,
   type_name : String,
-) -> Result[(String, String), String] {
+) -> Result[(String, String)?, String] {
   let prefixes = match @env.get_env_var("AMENT_PREFIX_PATH") {
     Some(value) => value.split(":").collect()
-    None =>
-      return Err(
-        "AMENT_PREFIX_PATH is not set; source a ROS interface environment",
-      )
+    None => []
   }
   for prefix in prefixes {
     let path = prefix.to_owned() +
@@ -83,16 +80,10 @@ async fn find_message_source(
       let source = @fs.read_file(path).text() catch {
         _ => return Err("could not read ROS message definition: " + path)
       }
-      return Ok((path, source))
+      return Ok(Some((path, source)))
     }
   }
-  Err(
-    "ROS message definition not found for " +
-    package_name +
-    "/msg/" +
-    type_name +
-    " in AMENT_PREFIX_PATH",
-  )
+  Ok(None)
 }
 
 ///|
@@ -100,15 +91,28 @@ async fn load_message_source(
   package_name : String,
   type_name : String,
 ) -> Result[@rosidl.MessageSource, String] {
-  let (_, source_text) = match find_message_source(package_name, type_name) {
-    Ok(value) => value
+  let source_text = match find_message_source(package_name, type_name) {
+    Ok(Some((_, source))) => source
+    Ok(None) =>
+      match builtin_message_source(package_name, type_name) {
+        Some(source) => source
+        None =>
+          return Err(
+            "ROS message definition not found for " +
+            package_name +
+            "/msg/" +
+            type_name +
+            "; set AMENT_PREFIX_PATH to load its .msg definition",
+          )
+      }
     Err(message) => return Err(message)
   }
   @rosidl.MessageSource::new(package_name, "msg", type_name, source_text)
 }
 
 ///|
-/// Load a ROS message type and its nested `.msg` definitions from AMENT prefixes.
+/// Load a ROS message type and its nested definitions from AMENT prefixes or
+/// the built-in schemas for common ROS messages.
 pub async fn load_message_schema(
   type_path : String,
 ) -> Result[MessageSchema, String] {
