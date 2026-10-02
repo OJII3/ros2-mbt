@@ -1,6 +1,6 @@
 name = "OJII3/ros2-mbt"
 
-version = "0.6.0"
+version = "0.7.0"
 
 readme = "README.md"
 
