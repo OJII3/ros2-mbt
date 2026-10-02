@@ -31,6 +31,11 @@ async fn new_cli_participant(
     Err(message) => return Err(message)
   }
   let vendor_id = @rtps.VendorId::new(1, 15)
+  // Keep discovery multicast on the same interface as the advertised locators.
+  let multicast_interface = match config.multicast_interface {
+    Some(ip) => Some(ip)
+    None => Some(config.ip)
+  }
   let participant = match
     @transport.RosParticipant::new_ddsi(
       prefix,
@@ -40,7 +45,7 @@ async fn new_cli_participant(
       config.ip,
       60,
       1L,
-      multicast_interface?=config.multicast_interface,
+      multicast_interface?,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
