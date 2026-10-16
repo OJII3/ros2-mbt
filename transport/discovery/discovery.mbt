@@ -23,7 +23,7 @@ struct DiscoveryRemoteParticipant {
 
 ///|
 priv enum DiscoveryReceiveOutcome {
-  Message(@rtps.Message, @socket.Addr, Int)
+  Message(@rtps.Message, @socket.Addr)
   ParticipantLeaseExpired(@rtps.Guid)
 }
 
@@ -336,8 +336,8 @@ pub async fn DiscoverySession::receive_once(
       return Ok(event)
     }
     match self.receive_message_or_lease_expiry() {
-      Ok(Message(message, source, socket_index)) => {
-        let events = match self.decode_message(message, source, socket_index) {
+      Ok(Message(message, source)) => {
+        let events = match self.decode_message(message, source) {
           Ok(value) => value
           Err(message) => return Err(message)
         }

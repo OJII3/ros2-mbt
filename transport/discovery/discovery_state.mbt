@@ -2,33 +2,28 @@
 /// Return the receive result from one of the session's discovery sockets.
 async fn DiscoverySession::receive_message(
   self : DiscoverySession,
-) -> Result[(@rtps.Message, @socket.Addr, Int), String] {
+) -> Result[(@rtps.Message, @socket.Addr), String] {
   if self.receive_sockets.length() == 0 {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    return Ok((message, source, 0))
+    return Ok((message, source))
   }
-  let tasks : Array[
-    async () -> Result[(@rtps.Message, @socket.Addr, Int), String],
-  ] = []
+  let tasks : Array[async () -> Result[(@rtps.Message, @socket.Addr), String]] = []
   tasks.push(async fn() {
     match self.socket.receive_message() {
-      Ok((message, source)) => Ok((message, source, 0))
+      Ok((message, source)) => Ok((message, source))
       Err(message) => Err(message)
     }
   })
-  let mut receive_index = 1
   for receive_socket in self.receive_sockets {
-    let index = receive_index
     tasks.push(async fn() {
       match receive_socket.receive_message() {
-        Ok((message, source)) => Ok((message, source, index))
+        Ok((message, source)) => Ok((message, source))
         Err(message) => Err(message)
       }
     })
-    receive_index += 1
   }
   @async.any(tasks, allow_failure=true)
 }
@@ -40,8 +35,7 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
   let tasks : Array[async () -> Result[DiscoveryReceiveOutcome, String]] = []
   tasks.push(async fn() {
     match self.receive_message() {
-      Ok((message, source, socket_index)) =>
-        Ok(Message(message, source, socket_index))
+      Ok((message, source)) => Ok(Message(message, source))
       Err(message) => Err(message)
     }
   })

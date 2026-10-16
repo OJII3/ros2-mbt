@@ -1,8 +1,7 @@
 ///|
-/// Acknowledge a reliable SEDP HEARTBEAT on the socket that received it.
+/// Acknowledge a reliable SEDP HEARTBEAT on the session's send socket.
 async fn DiscoverySession::acknowledge_sedp_heartbeat(
   self : DiscoverySession,
-  socket_index : Int,
   writer_prefix : @rtps.GuidPrefix,
   heartbeat : @rtps.HeartbeatSubmessage,
   source : @socket.Addr,
@@ -17,11 +16,6 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let socket = if socket_index == 0 {
-    self.socket
-  } else {
-    self.receive_sockets[socket_index - 1]
-  }
   let destination = self.acknowledgement_destination(writer_prefix, source)
   for index in 0..<acknacks.length() {
     let acknack = if index + 1 == acknacks.length() &&
@@ -31,7 +25,7 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
       acknacks[index]
     }
     match
-      socket.send_message(
+      self.socket.send_message(
         acknack
         .to_message(
           self.participant.participant_guid().prefix(),
@@ -51,7 +45,6 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat(
 /// Send NACK_FRAG requests for missing fragments in a reliable SEDP sample.
 async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
   self : DiscoverySession,
-  socket_index : Int,
   writer_prefix : @rtps.GuidPrefix,
   heartbeat : @rtps.HeartbeatFragSubmessage,
   source : @socket.Addr,
@@ -75,15 +68,10 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let socket = if socket_index == 0 {
-    self.socket
-  } else {
-    self.receive_sockets[socket_index - 1]
-  }
   let destination = self.acknowledgement_destination(writer_prefix, source)
   for nackfrag in nackfrags {
     match
-      socket.send_message(
+      self.socket.send_message(
         nackfrag
         .to_message(
           self.participant.participant_guid().prefix(),
@@ -124,7 +112,6 @@ fn discovery_acknack_has_requests(acknack : @rtps.AckNackSubmessage) -> Bool {
 /// Retransmit local SEDP samples requested by one remote ACKNACK.
 async fn DiscoverySession::retransmit_sedp_acknack(
   self : DiscoverySession,
-  socket_index : Int,
   reader_prefix : @rtps.GuidPrefix,
   acknack : @rtps.AckNackSubmessage,
   source : @socket.Addr,
@@ -139,11 +126,6 @@ async fn DiscoverySession::retransmit_sedp_acknack(
     return Ok(())
   }
   let writer_index = self.sedp_writer_index(kind)
-  let socket = if socket_index == 0 {
-    self.socket
-  } else {
-    self.receive_sockets[socket_index - 1]
-  }
   let bitmap = acknack.bitmap()
   let num_bits = acknack.num_bits().reinterpret_as_int()
   for offset in 0..<num_bits {
@@ -156,7 +138,7 @@ async fn DiscoverySession::retransmit_sedp_acknack(
         continue
       }
       match
-        socket.send_message(
+        self.socket.send_message(
           sample
           .to_message(
             self.participant.participant_guid().prefix(),
