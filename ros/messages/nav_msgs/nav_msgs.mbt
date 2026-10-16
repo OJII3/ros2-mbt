@@ -250,8 +250,8 @@ pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227
 pub struct MapMetaData {
   map_load_time : @builtin_interfaces.Time
   resolution : Float
-  width : UInt
-  height : UInt
+  width : UInt32
+  height : UInt32
   origin : @geometry_msgs.Pose
 } derive(Eq, Debug)
 
@@ -260,8 +260,8 @@ pub struct MapMetaData {
 pub fn MapMetaData::new(
   map_load_time : @builtin_interfaces.Time,
   resolution : Float,
-  width : UInt,
-  height : UInt,
+  width : UInt32,
+  height : UInt32,
   origin : @geometry_msgs.Pose,
 ) -> MapMetaData {
   { map_load_time, resolution, width, height, origin, }
@@ -272,8 +272,8 @@ pub fn MapMetaData::new(
 pub fn MapMetaData::default() -> MapMetaData {
   let map_load_time : @builtin_interfaces.Time = @builtin_interfaces.Time::default()
   let resolution : Float = 0.0F
-  let width : UInt = 0
-  let height : UInt = 0
+  let width : UInt32 = 0
+  let height : UInt32 = 0
   let origin : @geometry_msgs.Pose = @geometry_msgs.Pose::default()
   MapMetaData::new(map_load_time, resolution, width, height, origin)
 }
@@ -294,13 +294,13 @@ pub fn MapMetaData::resolution(self : MapMetaData) -> Float {
 
 ///|
 /// Return the map width.
-pub fn MapMetaData::width(self : MapMetaData) -> UInt {
+pub fn MapMetaData::width(self : MapMetaData) -> UInt32 {
   self.width
 }
 
 ///|
 /// Return the map height.
-pub fn MapMetaData::height(self : MapMetaData) -> UInt {
+pub fn MapMetaData::height(self : MapMetaData) -> UInt32 {
   self.height
 }
 
@@ -397,7 +397,7 @@ pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd394
 pub struct OccupancyGrid {
   header : @std_msgs.Header
   info : MapMetaData
-  data : Array[Int]
+  data : Array[Int32]
 } derive(Eq, Debug)
 
 ///|
@@ -429,7 +429,7 @@ pub extend OccupancyGrid with @moonbitlang/core/debug.Debug::{to_repr}
 pub fn OccupancyGrid::new(
   header : @std_msgs.Header,
   info : MapMetaData,
-  data : Array[Int],
+  data : Array[Int32],
 ) -> OccupancyGrid {
   { header, info, data, }
 }
@@ -439,7 +439,7 @@ pub fn OccupancyGrid::new(
 pub fn OccupancyGrid::default() -> OccupancyGrid {
   let header : @std_msgs.Header = @std_msgs.Header::default()
   let info : MapMetaData = MapMetaData::default()
-  let data : Array[Int] = []
+  let data : Array[Int32] = []
   OccupancyGrid::new(header, info, data)
 }
 
@@ -457,7 +457,7 @@ pub fn OccupancyGrid::info(self : OccupancyGrid) -> MapMetaData {
 
 ///|
 /// Return the occupancy values.
-pub fn OccupancyGrid::data(self : OccupancyGrid) -> Array[Int] {
+pub fn OccupancyGrid::data(self : OccupancyGrid) -> Array[Int32] {
   self.data
 }
 
@@ -505,7 +505,7 @@ pub fn OccupancyGrid::read_cdr(
   if data_length < 0 || data_length > reader.remaining() {
     return Err("generated ROS sequence is truncated")
   }
-  let data : Array[Int] = []
+  let data : Array[Int32] = []
   for _ in 0..<data_length {
     data.push(
       match reader.read_i8() {

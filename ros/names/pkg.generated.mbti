@@ -26,6 +26,9 @@ pub(all) enum DdsTopicKind {
   ServiceRequest
   ServiceResponse
 } derive(Eq, @debug.Debug)
+pub fn DdsTopicKind::equal(Self, Self) -> Bool
+pub fn DdsTopicKind::not_equal(Self, Self) -> Bool
+pub fn DdsTopicKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

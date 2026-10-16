@@ -286,7 +286,7 @@ pub async fn RosActionClient::receive_goal_terminal_status(
 pub async fn RosActionClient::receive_goal_status(
   self : RosActionClient,
   goal_id : Bytes,
-  expected_status : Int,
+  expected_status : Int32,
 ) -> Result[@ros_types.RosActionGoalStatus, String] {
   while true {
     let status = match self.receive_next_goal_status(goal_id) {

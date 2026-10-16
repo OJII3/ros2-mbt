@@ -2,8 +2,8 @@
 struct TopicSummary {
   ros_name : String
   type_names : Array[String]
-  mut publishers : Int
-  mut subscriptions : Int
+  mut publishers : Int32
+  mut subscriptions : Int32
 }
 
 ///|
@@ -165,7 +165,7 @@ fn print_topic_summaries(
 
 ///|
 async fn run_topic_list(
-  spin_time_ms : Int,
+  spin_time_ms : Int32,
   show_types : Bool,
   verbose : Bool,
   count_topics : Bool,

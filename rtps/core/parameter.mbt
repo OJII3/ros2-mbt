@@ -211,7 +211,7 @@ fn append_u16_le(bytes : Array[Byte], value : UInt16) -> Unit {
 ///|
 fn read_u16_with_endianness(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
 ) -> UInt16 {
   let value = if little_endian {
@@ -225,9 +225,9 @@ fn read_u16_with_endianness(
 ///|
 fn read_u32_with_endianness(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
-) -> UInt {
+) -> UInt32 {
   if little_endian {
     input[offset].to_int().reinterpret_as_uint() |
     (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
@@ -244,8 +244,8 @@ fn read_u32_with_endianness(
 ///|
 fn parameter_normalize_u32_words(
   value : Bytes,
-  offset : Int,
-  word_count : Int,
+  offset : Int32,
+  word_count : Int32,
 ) -> Bytes {
   let byte_count = word_count * 4
   if word_count == 0 || offset < 0 || value.length() < offset + byte_count {
@@ -370,7 +370,7 @@ pub fn ParameterList::to_cdr_bytes(self : ParameterList) -> Bytes {
 /// Parse a parameter list body and return the consumed byte count.
 pub fn ParameterList::from_bytes(
   input : Bytes,
-) -> Result[(ParameterList, Int), String] {
+) -> Result[(ParameterList, Int32), String] {
   ParameterList::from_bytes_with_endianness(input, true)
 }
 
@@ -379,7 +379,7 @@ pub fn ParameterList::from_bytes(
 fn ParameterList::from_bytes_with_endianness(
   input : Bytes,
   little_endian : Bool,
-) -> Result[(ParameterList, Int), String] {
+) -> Result[(ParameterList, Int32), String] {
   let result = ParameterList::new()
   let mut offset = 0
   while offset + 4 <= input.length() {

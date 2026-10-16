@@ -9,7 +9,7 @@ fn positive_option(
   matches : @argparse.Matches,
   name : String,
   default_value : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let value = match matches.values.get(name) {
     Some([value]) => value
     Some(_) => return Err("option --" + name + " must have one value")

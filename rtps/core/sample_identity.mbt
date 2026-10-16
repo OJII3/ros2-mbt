@@ -103,9 +103,9 @@ fn SampleIdentity::from_bytes_with_endianness(
 ///|
 fn sample_identity_read_u32(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
-) -> UInt {
+) -> UInt32 {
   if little_endian {
     input[offset].to_int().reinterpret_as_uint() |
     (input[offset + 1].to_int().reinterpret_as_uint() << 8) |

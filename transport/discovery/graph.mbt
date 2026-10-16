@@ -146,19 +146,19 @@ pub fn DiscoveryGraph::ingest(
 
 ///|
 /// Return the number of discovered participants.
-pub fn DiscoveryGraph::participant_count(self : DiscoveryGraph) -> Int {
+pub fn DiscoveryGraph::participant_count(self : DiscoveryGraph) -> Int32 {
   self.participants.length()
 }
 
 ///|
 /// Return the number of discovered publications.
-pub fn DiscoveryGraph::publication_count(self : DiscoveryGraph) -> Int {
+pub fn DiscoveryGraph::publication_count(self : DiscoveryGraph) -> Int32 {
   self.publications.length()
 }
 
 ///|
 /// Return the number of discovered subscriptions.
-pub fn DiscoveryGraph::subscription_count(self : DiscoveryGraph) -> Int {
+pub fn DiscoveryGraph::subscription_count(self : DiscoveryGraph) -> Int32 {
   self.subscriptions.length()
 }
 
@@ -179,7 +179,7 @@ pub fn DiscoveryGraph::ingest_ros_discovery_info(
 
 ///|
 /// Return the number of ROS graph participants.
-pub fn DiscoveryGraph::ros_participant_count(self : DiscoveryGraph) -> Int {
+pub fn DiscoveryGraph::ros_participant_count(self : DiscoveryGraph) -> Int32 {
   self.ros_participants.length()
 }
 

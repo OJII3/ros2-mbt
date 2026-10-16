@@ -1,10 +1,10 @@
 ///|
 /// The fixed DATA_FRAG submessage body before inline QoS or fragment data.
-pub const DATA_FRAG_FIXED_BODY_LENGTH : Int = 32
+pub const DATA_FRAG_FIXED_BODY_LENGTH : Int32 = 32
 
 ///|
 /// The DATA_FRAG offset from the octetsToInlineQos field to the next body element.
-pub const DATA_FRAG_INLINE_QOS_OFFSET : Int = DATA_FRAG_FIXED_BODY_LENGTH - 4
+pub const DATA_FRAG_INLINE_QOS_OFFSET : Int32 = DATA_FRAG_FIXED_BODY_LENGTH - 4
 
 ///|
 /// A decoded RTPS DATA_FRAG submessage.
@@ -15,10 +15,10 @@ pub struct DataFragSubmessage {
   reader_id : EntityId
   writer_id : EntityId
   writer_sequence_number : Int64
-  fragment_starting_number : UInt
+  fragment_starting_number : UInt32
   fragments_in_submessage : UInt16
   fragment_size : UInt16
-  sample_size : UInt
+  sample_size : UInt32
   inline_qos : Bytes
   serialized_payload : Bytes
 } derive(Eq, Debug)
@@ -35,10 +35,10 @@ pub fn DataFragSubmessage::new(
   reader_id : EntityId,
   writer_id : EntityId,
   writer_sequence_number : Int64,
-  fragment_starting_number : UInt,
+  fragment_starting_number : UInt32,
   fragments_in_submessage : UInt16,
   fragment_size : UInt16,
-  sample_size : UInt,
+  sample_size : UInt32,
   serialized_payload : Bytes,
 ) -> Result[DataFragSubmessage, String] {
   if writer_sequence_number < 1L || fragment_starting_number < 1U {
@@ -134,7 +134,7 @@ pub fn DataFragSubmessage::writer_sequence_number(
 /// Return the first fragment number in this submessage.
 pub fn DataFragSubmessage::fragment_starting_number(
   self : DataFragSubmessage,
-) -> UInt {
+) -> UInt32 {
   self.fragment_starting_number
 }
 
@@ -154,7 +154,7 @@ pub fn DataFragSubmessage::fragment_size(self : DataFragSubmessage) -> UInt16 {
 
 ///|
 /// Return the complete sample size in bytes.
-pub fn DataFragSubmessage::sample_size(self : DataFragSubmessage) -> UInt {
+pub fn DataFragSubmessage::sample_size(self : DataFragSubmessage) -> UInt32 {
   self.sample_size
 }
 

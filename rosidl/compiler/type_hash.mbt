@@ -12,7 +12,7 @@ fn rosidl_hash_type_name(definition : MessageDefinition) -> String {
 }
 
 ///|
-fn rosidl_hash_primitive_type_id(type_name : String) -> Result[Int, String] {
+fn rosidl_hash_primitive_type_id(type_name : String) -> Result[Int32, String] {
   match type_name {
     "int8" => Ok(2)
     "uint8" => Ok(3)
@@ -196,7 +196,7 @@ fn rosidl_hash_json(
 }
 
 ///|
-fn rosidl_sha256_rotr(value : UInt, shift : Int) -> UInt {
+fn rosidl_sha256_rotr(value : UInt32, shift : Int32) -> UInt32 {
   (value >> shift) | (value << (32 - shift))
 }
 
@@ -215,7 +215,7 @@ fn rosidl_sha256(input : Bytes) -> Bytes {
     padding.push((bit_length >> shift).to_byte())
   }
 
-  let constants : Array[UInt] = [
+  let constants : Array[UInt32] = [
     0x428A2F98U, 0x71374491U, 0xB5C0FBCFU, 0xE9B5DBA5U, 0x3956C25BU, 0x59F111F1U,
     0x923F82A4U, 0xAB1C5ED5U, 0xD807AA98U, 0x12835B01U, 0x243185BEU, 0x550C7DC3U,
     0x72BE5D74U, 0x80DEB1FEU, 0x9BDC06A7U, 0xC19BF174U, 0xE49B69C1U, 0xEFBE4786U,
@@ -228,13 +228,13 @@ fn rosidl_sha256(input : Bytes) -> Bytes {
     0x5B9CCA4FU, 0x682E6FF3U, 0x748F82EEU, 0x78A5636FU, 0x84C87814U, 0x8CC70208U,
     0x90BEFFFAU, 0xA4506CEBU, 0xBEF9A3F7U, 0xC67178F2U,
   ]
-  let hash : Array[UInt] = [
+  let hash : Array[UInt32] = [
     0x6A09E667U, 0xBB67AE85U, 0x3C6EF372U, 0xA54FF53AU, 0x510E527FU, 0x9B05688CU,
     0x1F83D9ABU, 0x5BE0CD19U,
   ]
   let mut block = 0
   while block < padding.length() {
-    let words : Array[UInt] = []
+    let words : Array[UInt32] = []
     for index in 0..<16 {
       let offset = block + index * 4
       words.push(

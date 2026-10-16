@@ -2,16 +2,16 @@
 /// The collection shape of a ROS message field.
 pub(all) enum MessageFieldCollection {
   Scalar
-  FixedArray(Int)
+  FixedArray(Int32)
   Sequence
-  BoundedSequence(Int)
+  BoundedSequence(Int32)
 } derive(Eq, Debug)
 
 ///|
 /// Return the fixed array length, if this collection is a fixed array.
 pub fn MessageFieldCollection::fixed_array_length(
   self : MessageFieldCollection,
-) -> Int? {
+) -> Int32? {
   match self {
     FixedArray(length) => Some(length)
     _ => None
@@ -33,7 +33,7 @@ pub fn MessageFieldCollection::is_sequence(
 /// Return the maximum sequence length, if one was declared.
 pub fn MessageFieldCollection::sequence_bound(
   self : MessageFieldCollection,
-) -> Int? {
+) -> Int32? {
   match self {
     BoundedSequence(length) => Some(length)
     _ => None
@@ -46,7 +46,7 @@ pub struct MessageField {
   type_name : String
   name : String
   collection : MessageFieldCollection
-  string_upper_bound : Int?
+  string_upper_bound : Int32?
   default_value : String?
 } derive(Eq, Debug)
 
@@ -146,7 +146,7 @@ pub fn MessageField::with_collection(
 /// Return a copy of the field with a bounded ROS string type.
 pub fn MessageField::with_string_upper_bound(
   self : MessageField,
-  string_upper_bound : Int,
+  string_upper_bound : Int32,
 ) -> MessageField {
   { ..self, string_upper_bound: Some(string_upper_bound), }
 }
@@ -185,7 +185,7 @@ pub fn MessageField::collection(self : MessageField) -> MessageFieldCollection {
 
 ///|
 /// Return the maximum length for a bounded ROS string or wide-string field.
-pub fn MessageField::string_upper_bound(self : MessageField) -> Int? {
+pub fn MessageField::string_upper_bound(self : MessageField) -> Int32? {
   self.string_upper_bound
 }
 

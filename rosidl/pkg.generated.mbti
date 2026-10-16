@@ -8,6 +8,8 @@ import {
 // Values
 pub const RIHS01_PREFIX : String = "RIHS01_"
 
+pub fn message_referenced_types(String) -> Result[Array[String], String]
+
 pub fn parse_action(String, String, String) -> Result[@compiler.ActionDefinition, String]
 
 pub fn parse_action_with_types(String, String, String, Array[@compiler.MessageTypeReference]) -> Result[@compiler.ActionDefinition, String]

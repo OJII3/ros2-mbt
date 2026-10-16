@@ -20,7 +20,7 @@ pub const GAP_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 ///|
 /// The RTPS HEARTBEAT body has two EntityIds, two SequenceNumbers, and Count.
-pub const HEARTBEAT_BODY_LENGTH : Int = 28
+pub const HEARTBEAT_BODY_LENGTH : Int32 = 28
 
 ///|
 /// A decoded RTPS HEARTBEAT submessage.
@@ -30,7 +30,7 @@ pub struct HeartbeatSubmessage {
   writer_id : EntityId
   first_sequence_number : Int64
   last_sequence_number : Int64
-  count : UInt
+  count : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -40,7 +40,7 @@ pub fn HeartbeatSubmessage::new(
   writer_id : EntityId,
   first_sequence_number : Int64,
   last_sequence_number : Int64,
-  count : UInt,
+  count : UInt32,
 ) -> Result[HeartbeatSubmessage, String] {
   if first_sequence_number < 1L || last_sequence_number < first_sequence_number {
     return Err("an RTPS HEARTBEAT sequence range is invalid")
@@ -99,7 +99,7 @@ pub fn HeartbeatSubmessage::last_sequence_number(
 
 ///|
 /// Return the HEARTBEAT count.
-pub fn HeartbeatSubmessage::count(self : HeartbeatSubmessage) -> UInt {
+pub fn HeartbeatSubmessage::count(self : HeartbeatSubmessage) -> UInt32 {
   self.count
 }
 
@@ -110,9 +110,9 @@ pub struct AckNackSubmessage {
   reader_id : EntityId
   writer_id : EntityId
   bitmap_base : Int64
-  num_bits : UInt
-  bitmap : Array[UInt]
-  count : UInt
+  num_bits : UInt32
+  bitmap : Array[UInt32]
+  count : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -123,8 +123,8 @@ pub struct GapSubmessage {
   writer_id : EntityId
   gap_start : Int64
   gap_list_base : Int64
-  gap_list_num_bits : UInt
-  gap_list_bitmap : Array[UInt]
+  gap_list_num_bits : UInt32
+  gap_list_bitmap : Array[UInt32]
 } derive(Eq, Debug)
 
 ///|
@@ -152,8 +152,8 @@ pub fn GapSubmessage::new(
   writer_id : EntityId,
   gap_start : Int64,
   gap_list_base : Int64,
-  gap_list_num_bits : UInt,
-  gap_list_bitmap : Array[UInt],
+  gap_list_num_bits : UInt32,
+  gap_list_bitmap : Array[UInt32],
 ) -> Result[GapSubmessage, String] {
   if gap_start < 1L || gap_list_base < 1L {
     return Err("an RTPS GAP sequence number must be positive")
@@ -211,13 +211,13 @@ pub fn GapSubmessage::gap_list_base(self : GapSubmessage) -> Int64 {
 
 ///|
 /// Return the number of valid bits in the GAP bitmap.
-pub fn GapSubmessage::gap_list_num_bits(self : GapSubmessage) -> UInt {
+pub fn GapSubmessage::gap_list_num_bits(self : GapSubmessage) -> UInt32 {
   self.gap_list_num_bits
 }
 
 ///|
 /// Return the words of the GAP bitmap.
-pub fn GapSubmessage::gap_list_bitmap(self : GapSubmessage) -> Array[UInt] {
+pub fn GapSubmessage::gap_list_bitmap(self : GapSubmessage) -> Array[UInt32] {
   self.gap_list_bitmap
 }
 
@@ -249,9 +249,9 @@ pub fn AckNackSubmessage::new(
   reader_id : EntityId,
   writer_id : EntityId,
   bitmap_base : Int64,
-  num_bits : UInt,
-  bitmap : Array[UInt],
-  count : UInt,
+  num_bits : UInt32,
+  bitmap : Array[UInt32],
+  count : UInt32,
 ) -> Result[AckNackSubmessage, String] {
   if bitmap_base < 0L || (bitmap_base == 0L && num_bits != 0U) {
     return Err("an RTPS ACKNACK bitmap base must be positive unless preemptive")
@@ -308,24 +308,24 @@ pub fn AckNackSubmessage::bitmap_base(self : AckNackSubmessage) -> Int64 {
 
 ///|
 /// Return the number of valid bits in the ACKNACK bitmap.
-pub fn AckNackSubmessage::num_bits(self : AckNackSubmessage) -> UInt {
+pub fn AckNackSubmessage::num_bits(self : AckNackSubmessage) -> UInt32 {
   self.num_bits
 }
 
 ///|
 /// Return the words of the ACKNACK bitmap.
-pub fn AckNackSubmessage::bitmap(self : AckNackSubmessage) -> Array[UInt] {
+pub fn AckNackSubmessage::bitmap(self : AckNackSubmessage) -> Array[UInt32] {
   self.bitmap
 }
 
 ///|
 /// Return the ACKNACK count.
-pub fn AckNackSubmessage::count(self : AckNackSubmessage) -> UInt {
+pub fn AckNackSubmessage::count(self : AckNackSubmessage) -> UInt32 {
   self.count
 }
 
 ///|
-fn reliability_append_u32(bytes : Array[Byte], value : UInt) -> Unit {
+fn reliability_append_u32(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push(value.to_byte())
   bytes.push((value >> 8).to_byte())
   bytes.push((value >> 16).to_byte())
@@ -340,9 +340,9 @@ fn reliability_append_i64(bytes : Array[Byte], value : Int64) -> Unit {
 ///|
 fn reliability_read_u32(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
-) -> UInt {
+) -> UInt32 {
   if little_endian {
     input[offset].to_int().reinterpret_as_uint() |
     (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
@@ -359,7 +359,7 @@ fn reliability_read_u32(
 ///|
 fn reliability_read_i64(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
 ) -> Int64 {
   let high = reliability_read_u32(input, offset, little_endian).to_uint64()
@@ -519,7 +519,7 @@ pub fn AckNackSubmessage::from_submessage(
   if submessage.payload.length() != expected_length {
     return Err("an RTPS ACKNACK body has an invalid bitmap length")
   }
-  let bitmap : Array[UInt] = []
+  let bitmap : Array[UInt32] = []
   for i in 0..<word_count {
     bitmap.push(
       reliability_read_u32(submessage.payload, 20 + i * 4, little_endian),
@@ -620,7 +620,7 @@ pub fn GapSubmessage::from_submessage(
   if submessage.payload.length() != expected_length {
     return Err("an RTPS GAP body has an invalid bitmap length")
   }
-  let gap_list_bitmap : Array[UInt] = []
+  let gap_list_bitmap : Array[UInt32] = []
   for i in 0..<word_count {
     gap_list_bitmap.push(
       reliability_read_u32(submessage.payload, 28 + i * 4, little_endian),

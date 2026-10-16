@@ -5,7 +5,7 @@
 /// `handle_acknack`. This keeps scheduling and socket receive ownership in the
 /// application while providing the wire-level retransmission primitive.
 /// Keep each fragment below common UDP payload limits, including RTPS headers.
-const RELIABLE_WRITER_FRAGMENT_SIZE : Int = 1200
+const RELIABLE_WRITER_FRAGMENT_SIZE : Int32 = 1200
 
 ///|
 struct ReliableFragmentedWrite {
@@ -16,8 +16,8 @@ struct ReliableFragmentedWrite {
 ///|
 fn reliable_writer_bytes_from(
   input : Bytes,
-  start : Int,
-  length : Int,
+  start : Int32,
+  length : Int32,
 ) -> Bytes {
   let bytes : Array[Byte] = []
   for i in 0..<length {
@@ -55,7 +55,7 @@ fn reliable_writer_fragment_data(
         data.writer_id(),
         data.writer_sequence_number(),
         (index + 1).reinterpret_as_uint(),
-        (1 : Int).to_uint16(),
+        (1 : Int32).to_uint16(),
         RELIABLE_WRITER_FRAGMENT_SIZE.to_uint16(),
         payload.length().reinterpret_as_uint(),
         reliable_writer_bytes_from(payload, offset, length),
@@ -85,7 +85,7 @@ pub struct ReliableDataWriter {
   destinations : Array[@socket.Addr]
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
-  mut next_heartbeat_count : UInt
+  mut next_heartbeat_count : UInt32
   mut history : Array[@rtps.DataSubmessage]
   mut fragmented_history : Array[ReliableFragmentedWrite]
 }
@@ -256,13 +256,13 @@ pub fn ReliableDataWriter::vendor_id(
 /// Return the next HEARTBEAT count value.
 pub fn ReliableDataWriter::next_heartbeat_count(
   self : ReliableDataWriter,
-) -> UInt {
+) -> UInt32 {
   self.next_heartbeat_count
 }
 
 ///|
 /// Return the number of samples retained for retransmission.
-pub fn ReliableDataWriter::history_length(self : ReliableDataWriter) -> Int {
+pub fn ReliableDataWriter::history_length(self : ReliableDataWriter) -> Int32 {
   self.history.length()
 }
 
@@ -490,10 +490,10 @@ pub async fn ReliableDataWriter::send_heartbeat(
 }
 
 ///|
-fn reliable_bitmap_contains(bitmap : Array[UInt], offset : Int) -> Bool {
+fn reliable_bitmap_contains(bitmap : Array[UInt32], offset : Int32) -> Bool {
   let word_index = offset / 32
   let bit_index = offset % 32
-  let mask : UInt = 0x80000000U >> bit_index
+  let mask : UInt32 = 0x80000000U >> bit_index
   (bitmap[word_index] & mask) != 0U
 }
 

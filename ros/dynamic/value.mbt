@@ -35,7 +35,7 @@ fn decode_definition(
   schema : @introspection.MessageSchema,
   definition : @rosidl.MessageDefinition,
   reader : @cdr.Reader,
-  depth : Int,
+  depth : Int32,
 ) -> Result[Value, String] {
   if depth > 128 {
     return Err("ROS message nesting exceeds 128 levels")
@@ -57,7 +57,7 @@ fn decode_field(
   owner : @rosidl.MessageDefinition,
   field : @rosidl.MessageField,
   reader : @cdr.Reader,
-  depth : Int,
+  depth : Int32,
 ) -> Result[Value, String] {
   let collection = field.collection()
   match collection.fixed_array_length() {
@@ -103,7 +103,7 @@ fn decode_scalar(
   owner : @rosidl.MessageDefinition,
   field : @rosidl.MessageField,
   reader : @cdr.Reader,
-  depth : Int,
+  depth : Int32,
 ) -> Result[Value, String] {
   match field.type_name() {
     "bool" => reader.read_bool().map(fn(value) { BoolValue(value) })
@@ -196,7 +196,7 @@ fn append_yaml_field(
   lines : Array[String],
   name : String,
   value : Value,
-  indent : Int,
+  indent : Int32,
 ) -> Unit {
   let prefix = dynamic_indent(indent) + name + ":"
   match value {
@@ -257,7 +257,7 @@ fn append_yaml_sequence_object_first(
   lines : Array[String],
   name : String,
   value : Value,
-  indent : Int,
+  indent : Int32,
 ) -> Unit {
   match value {
     ObjectValue(fields) => {
@@ -320,7 +320,7 @@ fn dynamic_yaml_scalar(value : Value) -> String {
 }
 
 ///|
-fn dynamic_indent(length : Int) -> String {
+fn dynamic_indent(length : Int32) -> String {
   let mut output = ""
   for _ in 0..<length {
     output += " "

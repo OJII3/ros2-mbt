@@ -4,7 +4,7 @@ pub const CDR_LE : UInt16 = 0x0001
 
 ///|
 /// The four-byte CDR encapsulation header.
-pub const ENCAPSULATION_LENGTH : Int = 4
+pub const ENCAPSULATION_LENGTH : Int32 = 4
 
 ///| A CDR little-endian writer.
 
@@ -30,7 +30,7 @@ pub fn Writer::new() -> Writer {
 
 ///|
 /// Create a writer with a buffer capacity hint.
-pub fn Writer::with_capacity(size_hint : Int) -> Writer {
+pub fn Writer::with_capacity(size_hint : Int32) -> Writer {
   let buffer = @buffer.Buffer(size_hint~)
   buffer.write_byte(0)
   buffer.write_byte(1)
@@ -40,7 +40,7 @@ pub fn Writer::with_capacity(size_hint : Int) -> Writer {
 }
 
 ///|
-fn Writer::align(self : Writer, alignment : Int) -> Unit {
+fn Writer::align(self : Writer, alignment : Int32) -> Unit {
   // The encapsulation header is not part of the CDR stream used for
   // alignment. XCDR1 therefore aligns from the first byte after the header.
   let remainder = (self.buffer.length() - ENCAPSULATION_LENGTH) % alignment
@@ -60,7 +60,7 @@ pub fn Writer::to_bytes(self : Writer) -> Bytes {
 
 ///|
 /// Return the current serialized length in bytes.
-pub fn Writer::length(self : Writer) -> Int {
+pub fn Writer::length(self : Writer) -> Int32 {
   self.buffer.length()
 }
 
@@ -78,7 +78,7 @@ pub fn Writer::write_u8(self : Writer, value : Byte) -> Unit {
 
 ///|
 /// Write a signed CDR int8 without alignment.
-pub fn Writer::write_i8(self : Writer, value : Int) -> Unit {
+pub fn Writer::write_i8(self : Writer, value : Int32) -> Unit {
   self.buffer.write_byte(value.reinterpret_as_uint().to_byte())
 }
 
@@ -91,7 +91,7 @@ pub fn Writer::write_i16(self : Writer, value : Int16) -> Unit {
 
 ///|
 /// Write a signed CDR int16 from a MoonBit Int.
-pub fn Writer::write_i16_int(self : Writer, value : Int) -> Unit {
+pub fn Writer::write_i16_int(self : Writer, value : Int32) -> Unit {
   self.align(2)
   let encoded = value.reinterpret_as_uint()
   self.buffer.write_byte(encoded.to_byte())
@@ -107,7 +107,7 @@ pub fn Writer::write_u16(self : Writer, value : UInt16) -> Unit {
 
 ///|
 /// Write a CDR uint16 from a MoonBit UInt.
-pub fn Writer::write_u16_uint(self : Writer, value : UInt) -> Unit {
+pub fn Writer::write_u16_uint(self : Writer, value : UInt32) -> Unit {
   self.align(2)
   self.buffer.write_byte(value.to_byte())
   self.buffer.write_byte((value >> 8).to_byte())
@@ -115,14 +115,14 @@ pub fn Writer::write_u16_uint(self : Writer, value : UInt) -> Unit {
 
 ///|
 /// Write a signed 32-bit integer with CDR alignment.
-pub fn Writer::write_i32(self : Writer, value : Int) -> Unit {
+pub fn Writer::write_i32(self : Writer, value : Int32) -> Unit {
   self.align(4)
   self.buffer.write_int_le(value)
 }
 
 ///|
 /// Write an unsigned 32-bit integer with CDR alignment.
-pub fn Writer::write_u32(self : Writer, value : UInt) -> Unit {
+pub fn Writer::write_u32(self : Writer, value : UInt32) -> Unit {
   self.align(4)
   self.buffer.write_uint_le(value)
 }
@@ -182,7 +182,7 @@ pub fn Writer::write_string(self : Writer, value : String) -> Unit {
 pub fn Writer::write_bounded_string(
   self : Writer,
   value : String,
-  maximum_length : Int,
+  maximum_length : Int32,
 ) -> Result[Unit, String] {
   if maximum_length < 0 {
     return Err("a CDR string bound must not be negative")
@@ -216,7 +216,7 @@ pub fn Writer::write_wstring(
 pub fn Writer::write_bounded_wstring(
   self : Writer,
   value : String,
-  maximum_length : Int,
+  maximum_length : Int32,
 ) -> Result[Unit, String] {
   if maximum_length < 0 {
     return Err("a CDR wide-string bound must not be negative")
@@ -236,9 +236,9 @@ pub fn Writer::write_bounded_wstring(
 }
 
 ///|
-fn cdr_utf16_code_units(value : String) -> Result[Array[UInt], String] {
+fn cdr_utf16_code_units(value : String) -> Result[Array[UInt32], String] {
   let bytes = @utf8.encode(value)
-  let units : Array[UInt] = []
+  let units : Array[UInt32] = []
   let mut index = 0
   while index < bytes.length() {
     let first = bytes[index].to_int()
@@ -302,7 +302,7 @@ fn cdr_utf16_code_units(value : String) -> Result[Array[UInt], String] {
 }
 
 ///|
-fn cdr_utf8_character_count(value : String) -> Int {
+fn cdr_utf8_character_count(value : String) -> Int32 {
   let encoded = @utf8.encode(value)
   let mut count = 0
   for byte in encoded {

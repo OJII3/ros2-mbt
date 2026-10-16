@@ -60,7 +60,7 @@ fn DiscoverySession::sedp_reader_index(
   self : DiscoverySession,
   writer_prefix : @rtps.GuidPrefix,
   writer_id : @rtps.EntityId,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   for index in 0..<self.sedp_readers.length() {
     let reader = self.sedp_readers[index]
     if reader.writer_prefix == writer_prefix && reader.writer_id == writer_id {
@@ -84,7 +84,7 @@ fn DiscoverySession::sedp_reader_index(
 fn DiscoverySession::spdp_fragment_reader_index(
   self : DiscoverySession,
   writer_prefix : @rtps.GuidPrefix,
-) -> Int {
+) -> Int32 {
   for index in 0..<self.spdp_fragment_readers.length() {
     if self.spdp_fragment_readers[index].writer_prefix == writer_prefix {
       return index
@@ -182,7 +182,7 @@ fn discovery_spdp_lease_milliseconds(
 }
 
 ///|
-fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int {
+fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
   if remaining_ms > DISCOVERY_MAX_TIMER_MILLISECONDS.to_int64() {
     DISCOVERY_MAX_TIMER_MILLISECONDS
   } else {
@@ -297,7 +297,7 @@ fn discovery_udp_locator_to_addrs(
 fn DiscoverySession::sedp_writer_index(
   self : DiscoverySession,
   kind : @rtps.SedpEndpointKind,
-) -> Int {
+) -> Int32 {
   for index in 0..<self.sedp_writers.length() {
     if self.sedp_writers[index].kind == kind {
       return index

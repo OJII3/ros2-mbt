@@ -89,8 +89,8 @@ async fn DiscoverySession::acknowledge_sedp_heartbeat_frag(
 
 ///|
 fn discovery_acknack_bitmap_contains(
-  bitmap : Array[UInt],
-  offset : Int,
+  bitmap : Array[UInt32],
+  offset : Int32,
 ) -> Bool {
   let word_index = offset / 32
   let bit_index = offset % 32

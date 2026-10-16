@@ -150,8 +150,8 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
     writer_id,
     9L,
     3U,
-    (1 : Int).to_uint16(),
-    (4 : Int).to_uint16(),
+    (1 : Int32).to_uint16(),
+    (4 : Int32).to_uint16(),
     10U,
     b"ij",
   ).unwrap()
@@ -160,8 +160,8 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
     writer_id,
     9L,
     1U,
-    (1 : Int).to_uint16(),
-    (4 : Int).to_uint16(),
+    (1 : Int32).to_uint16(),
+    (4 : Int32).to_uint16(),
     10U,
     b"abcd",
   ).unwrap()
@@ -170,8 +170,8 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
     writer_id,
     9L,
     2U,
-    (1 : Int).to_uint16(),
-    (4 : Int).to_uint16(),
+    (1 : Int32).to_uint16(),
+    (4 : Int32).to_uint16(),
     10U,
     b"efgh",
   ).unwrap()
@@ -245,8 +245,8 @@ test "reliable reader requests missing DATA_FRAGs" {
     writer_id,
     10L,
     1U,
-    (1 : Int).to_uint16(),
-    (4 : Int).to_uint16(),
+    (1 : Int32).to_uint16(),
+    (4 : Int32).to_uint16(),
     10U,
     b"abcd",
   ).unwrap()

@@ -167,7 +167,7 @@ fn discovery_info_write_gid(writer : @cdr.Writer, gid : Gid) -> Unit {
 ///|
 fn discovery_info_read_gid(
   reader : @cdr.Reader,
-  gid_size : Int,
+  gid_size : Int32,
 ) -> Result[Gid, String] {
   let data = match reader.read_byte_array(gid_size) {
     Ok(value) => value
@@ -192,7 +192,7 @@ fn discovery_info_write_gid_sequence(
 ///|
 fn discovery_info_read_gid_sequence(
   reader : @cdr.Reader,
-  gid_size : Int,
+  gid_size : Int32,
 ) -> Result[Array[Gid], String] {
   let length = match reader.read_u32() {
     Ok(value) => value.reinterpret_as_int()
@@ -227,7 +227,7 @@ fn discovery_info_write_node(
 ///|
 fn discovery_info_read_node(
   reader : @cdr.Reader,
-  gid_size : Int,
+  gid_size : Int32,
 ) -> Result[NodeEntitiesInfo, String] {
   let node_namespace = match reader.read_string() {
     Ok(value) => value
@@ -286,7 +286,7 @@ pub fn NodeEntitiesInfo::from_cdr_bytes(
 ///|
 fn discovery_info_read_node_from_cdr_bytes(
   input : Bytes,
-  gid_size : Int,
+  gid_size : Int32,
 ) -> Result[NodeEntitiesInfo, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value
@@ -334,7 +334,7 @@ pub fn ParticipantEntitiesInfo::from_cdr_bytes(
 ///|
 fn discovery_info_read_participant_from_cdr_bytes(
   input : Bytes,
-  gid_size : Int,
+  gid_size : Int32,
 ) -> Result[ParticipantEntitiesInfo, String] {
   let reader = match @cdr.Reader::from_bytes(input) {
     Ok(value) => value

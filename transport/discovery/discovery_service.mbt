@@ -5,8 +5,8 @@ pub struct DiscoveryService {
   graph : DiscoveryGraph
   mut next_publication_sequence_number : Int64
   mut next_subscription_sequence_number : Int64
-  mut next_publication_heartbeat_count : UInt
-  mut next_subscription_heartbeat_count : UInt
+  mut next_publication_heartbeat_count : UInt32
+  mut next_subscription_heartbeat_count : UInt32
 }
 
 ///|
@@ -73,7 +73,7 @@ async fn DiscoveryService::send_sedp_to_participant(
   endpoint : @rtps.SedpEndpointData,
   remote_participant : @rtps.SpdpParticipantData,
   sequence_number : Int64,
-  heartbeat_count : UInt,
+  heartbeat_count : UInt32,
 ) -> Result[Unit, String] {
   match
     self.session.remember_sedp_sample(
@@ -100,7 +100,7 @@ async fn DiscoveryService::send_sedp_dispose_to_participant(
   endpoint : @rtps.SedpEndpointData,
   remote_participant : @rtps.SpdpParticipantData,
   sequence_number : Int64,
-  heartbeat_count : UInt,
+  heartbeat_count : UInt32,
 ) -> Result[Unit, String] {
   match self.session.remember_sedp_dispose_sample(endpoint, sequence_number) {
     Ok(_) => ()
@@ -247,8 +247,8 @@ pub async fn DiscoveryService::dispose_sedp_to_all(
 pub async fn DiscoveryService::announce_sedp_n(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
-  interval_ms : Int,
-  count : Int,
+  interval_ms : Int32,
+  count : Int32,
 ) -> Result[Unit, String] {
   if interval_ms <= 0 {
     return Err("the SEDP announcement interval must be positive")
@@ -273,7 +273,7 @@ pub async fn DiscoveryService::announce_sedp_n(
 pub async fn DiscoveryService::announce_sedp_forever(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
-  interval_ms : Int,
+  interval_ms : Int32,
 ) -> Result[Unit, String] {
   if interval_ms <= 0 {
     return Err("the SEDP announcement interval must be positive")

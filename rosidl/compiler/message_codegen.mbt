@@ -576,7 +576,7 @@ fn rosidl_generate_nested_reader(
 fn rosidl_generate_nested_sequence_reader(
   field : MessageField,
   nested_type : String,
-  bound : Int?,
+  bound : Int32?,
 ) -> String {
   let mut output = "  let " +
     field.name +

@@ -29,14 +29,17 @@ pub struct MapMetaData {
   origin : @geometry_msgs.Pose
 } derive(Eq, @debug.Debug)
 pub fn MapMetaData::default() -> Self
+pub fn MapMetaData::equal(Self, Self) -> Bool
 pub fn MapMetaData::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn MapMetaData::height(Self) -> UInt
 pub fn MapMetaData::map_load_time(Self) -> @builtin_interfaces.Time
 pub fn MapMetaData::new(@builtin_interfaces.Time, Float, UInt, UInt, @geometry_msgs.Pose) -> Self
+pub fn MapMetaData::not_equal(Self, Self) -> Bool
 pub fn MapMetaData::origin(Self) -> @geometry_msgs.Pose
 pub fn MapMetaData::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn MapMetaData::resolution(Self) -> Float
 pub fn MapMetaData::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn MapMetaData::to_repr(Self) -> @debug.Repr
 pub fn MapMetaData::width(Self) -> UInt
 pub fn MapMetaData::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -47,12 +50,15 @@ pub struct OccupancyGrid {
 } derive(Eq, @debug.Debug)
 pub fn OccupancyGrid::data(Self) -> Array[Int]
 pub fn OccupancyGrid::default() -> Self
+pub fn OccupancyGrid::equal(Self, Self) -> Bool
 pub fn OccupancyGrid::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn OccupancyGrid::header(Self) -> @std_msgs.Header
 pub fn OccupancyGrid::info(Self) -> MapMetaData
 pub fn OccupancyGrid::new(@std_msgs.Header, MapMetaData, Array[Int]) -> Self
+pub fn OccupancyGrid::not_equal(Self, Self) -> Bool
 pub fn OccupancyGrid::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn OccupancyGrid::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn OccupancyGrid::to_repr(Self) -> @debug.Repr
 pub fn OccupancyGrid::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Odometry {
@@ -63,12 +69,15 @@ pub struct Odometry {
 } derive(Eq, @debug.Debug)
 pub fn Odometry::child_frame_id(Self) -> String
 pub fn Odometry::default() -> Self
+pub fn Odometry::equal(Self, Self) -> Bool
 pub fn Odometry::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Odometry::header(Self) -> @std_msgs.Header
 pub fn Odometry::new(@std_msgs.Header, String, @geometry_msgs.PoseWithCovariance, @geometry_msgs.TwistWithCovariance) -> Self
+pub fn Odometry::not_equal(Self, Self) -> Bool
 pub fn Odometry::pose(Self) -> @geometry_msgs.PoseWithCovariance
 pub fn Odometry::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Odometry::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Odometry::to_repr(Self) -> @debug.Repr
 pub fn Odometry::twist(Self) -> @geometry_msgs.TwistWithCovariance
 pub fn Odometry::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -77,12 +86,15 @@ pub struct Path {
   poses : Array[@geometry_msgs.PoseStamped]
 } derive(Eq, @debug.Debug)
 pub fn Path::default() -> Self
+pub fn Path::equal(Self, Self) -> Bool
 pub fn Path::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Path::header(Self) -> @std_msgs.Header
 pub fn Path::new(@std_msgs.Header, Array[@geometry_msgs.PoseStamped]) -> Self
+pub fn Path::not_equal(Self, Self) -> Bool
 pub fn Path::poses(Self) -> Array[@geometry_msgs.PoseStamped]
 pub fn Path::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Path::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Path::to_repr(Self) -> @debug.Repr
 pub fn Path::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 // Type aliases

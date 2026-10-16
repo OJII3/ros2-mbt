@@ -488,11 +488,11 @@ pub fn LaserScan::from_cdr_bytes(input : Bytes) -> Result[LaserScan, String] {
 /// Generated from sensor_msgs/msg/Image.msg
 pub struct Image {
   header : @std.Header
-  height : UInt
-  width : UInt
+  height : UInt32
+  width : UInt32
   encoding : String
   is_bigendian : Byte
-  step : UInt
+  step : UInt32
   data : Array[Byte]
 } derive(Eq, Debug)
 
@@ -500,11 +500,11 @@ pub struct Image {
 /// Create an image message.
 pub fn Image::new(
   header : @std.Header,
-  height : UInt,
-  width : UInt,
+  height : UInt32,
+  width : UInt32,
   encoding : String,
   is_bigendian : Byte,
-  step : UInt,
+  step : UInt32,
   data : Array[Byte],
 ) -> Image {
   { header, height, width, encoding, is_bigendian, step, data, }
@@ -514,11 +514,11 @@ pub fn Image::new(
 /// Create an empty image message.
 pub fn Image::default() -> Image {
   let header : @std.Header = @std.Header::default()
-  let height : UInt = 0
-  let width : UInt = 0
+  let height : UInt32 = 0
+  let width : UInt32 = 0
   let encoding : String = ""
   let is_bigendian : Byte = 0
-  let step : UInt = 0
+  let step : UInt32 = 0
   let data : Array[Byte] = []
   Image::new(header, height, width, encoding, is_bigendian, step, data)
 }
@@ -531,13 +531,13 @@ pub fn Image::header(self : Image) -> @std.Header {
 
 ///|
 /// Return the image height in pixels.
-pub fn Image::height(self : Image) -> UInt {
+pub fn Image::height(self : Image) -> UInt32 {
   self.height
 }
 
 ///|
 /// Return the image width in pixels.
-pub fn Image::width(self : Image) -> UInt {
+pub fn Image::width(self : Image) -> UInt32 {
   self.width
 }
 
@@ -555,7 +555,7 @@ pub fn Image::is_bigendian(self : Image) -> Byte {
 
 ///|
 /// Return the image row step in bytes.
-pub fn Image::step(self : Image) -> UInt {
+pub fn Image::step(self : Image) -> UInt32 {
   self.step
 }
 
@@ -992,9 +992,9 @@ pub fn JointState::from_cdr_bytes(input : Bytes) -> Result[JointState, String] {
 /// Generated from sensor_msgs/msg/PointField.msg
 pub struct PointField {
   name : String
-  offset : UInt
+  offset : UInt32
   datatype : Byte
-  count : UInt
+  count : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -1035,9 +1035,9 @@ pub const FLOAT64 : Byte = 8
 /// Create a point field descriptor.
 pub fn PointField::new(
   name : String,
-  offset : UInt,
+  offset : UInt32,
   datatype : Byte,
-  count : UInt,
+  count : UInt32,
 ) -> PointField {
   { name, offset, datatype, count, }
 }
@@ -1046,9 +1046,9 @@ pub fn PointField::new(
 /// Create an empty point field descriptor.
 pub fn PointField::default() -> PointField {
   let name : String = ""
-  let offset : UInt = 0
+  let offset : UInt32 = 0
   let datatype : Byte = 0
-  let count : UInt = 0
+  let count : UInt32 = 0
   PointField::new(name, offset, datatype, count)
 }
 
@@ -1060,7 +1060,7 @@ pub fn PointField::name(self : PointField) -> String {
 
 ///|
 /// Return the point field byte offset.
-pub fn PointField::offset(self : PointField) -> UInt {
+pub fn PointField::offset(self : PointField) -> UInt32 {
   self.offset
 }
 
@@ -1072,7 +1072,7 @@ pub fn PointField::datatype(self : PointField) -> Byte {
 
 ///|
 /// Return the number of values in the point field.
-pub fn PointField::count(self : PointField) -> UInt {
+pub fn PointField::count(self : PointField) -> UInt32 {
   self.count
 }
 
@@ -1142,75 +1142,75 @@ pub fn PointField::from_cdr_bytes(input : Bytes) -> Result[PointField, String] {
 ///|
 /// Generated from sensor_msgs/msg/NavSatStatus.msg
 pub struct NavSatStatus {
-  status : Int
-  service : UInt
+  status : Int32
+  service : UInt32
 } derive(Eq, Debug)
 
 ///|
 
 ///|
 /// Status value for an unknown satellite fix state.
-pub const STATUS_UNKNOWN : Int = -2
+pub const STATUS_UNKNOWN : Int32 = -2
 
 ///|
 /// Status value indicating no fix.
-pub const STATUS_NO_FIX : Int = -1
+pub const STATUS_NO_FIX : Int32 = -1
 
 ///|
 /// Status value indicating a standard fix.
-pub const STATUS_FIX : Int = 0
+pub const STATUS_FIX : Int32 = 0
 
 ///|
 /// Status value indicating an SBAS fix.
-pub const STATUS_SBAS_FIX : Int = 1
+pub const STATUS_SBAS_FIX : Int32 = 1
 
 ///|
 /// Status value indicating a GBAS fix.
-pub const STATUS_GBAS_FIX : Int = 2
+pub const STATUS_GBAS_FIX : Int32 = 2
 
 ///|
 /// Service mask value for an unknown service.
-pub const SERVICE_UNKNOWN : UInt = 0
+pub const SERVICE_UNKNOWN : UInt32 = 0
 
 ///|
 /// Service mask bit for GPS.
-pub const SERVICE_GPS : UInt = 1
+pub const SERVICE_GPS : UInt32 = 1
 
 ///|
 /// Service mask bit for GLONASS.
-pub const SERVICE_GLONASS : UInt = 2
+pub const SERVICE_GLONASS : UInt32 = 2
 
 ///|
 /// Service mask bit for compass-based positioning.
-pub const SERVICE_COMPASS : UInt = 4
+pub const SERVICE_COMPASS : UInt32 = 4
 
 ///|
 /// Service mask bit for Galileo.
-pub const SERVICE_GALILEO : UInt = 8
+pub const SERVICE_GALILEO : UInt32 = 8
 
 ///|
 /// Create a satellite navigation status message.
-pub fn NavSatStatus::new(status : Int, service : UInt) -> NavSatStatus {
+pub fn NavSatStatus::new(status : Int32, service : UInt32) -> NavSatStatus {
   { status, service, }
 }
 
 ///|
 /// Create a satellite navigation status with no fix.
 pub fn NavSatStatus::default() -> NavSatStatus {
-  let status : Int = -2
-  let service : UInt = 0
+  let status : Int32 = -2
+  let service : UInt32 = 0
   NavSatStatus::new(status, service)
 }
 
 ///|
 /// Return the satellite fix status.
-pub fn NavSatStatus::status(self : NavSatStatus) -> Int {
+pub fn NavSatStatus::status(self : NavSatStatus) -> Int32 {
   self.status
 }
 
 ///|
 /// Return the satellite service mask.
-pub fn NavSatStatus::service(self : NavSatStatus) -> UInt {
+pub fn NavSatStatus::service(self : NavSatStatus) -> UInt32 {
   self.service
 }
 
@@ -1280,10 +1280,10 @@ pub fn NavSatStatus::from_cdr_bytes(
 ///|
 /// Generated from sensor_msgs/msg/RegionOfInterest.msg
 pub struct RegionOfInterest {
-  x_offset : UInt
-  y_offset : UInt
-  height : UInt
-  width : UInt
+  x_offset : UInt32
+  y_offset : UInt32
+  height : UInt32
+  width : UInt32
   do_rectify : Bool
 } derive(Eq, Debug)
 
@@ -1292,10 +1292,10 @@ pub struct RegionOfInterest {
 ///|
 /// Create a region-of-interest message.
 pub fn RegionOfInterest::new(
-  x_offset : UInt,
-  y_offset : UInt,
-  height : UInt,
-  width : UInt,
+  x_offset : UInt32,
+  y_offset : UInt32,
+  height : UInt32,
+  width : UInt32,
   do_rectify : Bool,
 ) -> RegionOfInterest {
   { x_offset, y_offset, height, width, do_rectify, }
@@ -1304,35 +1304,35 @@ pub fn RegionOfInterest::new(
 ///|
 /// Create an empty region-of-interest message.
 pub fn RegionOfInterest::default() -> RegionOfInterest {
-  let x_offset : UInt = 0
-  let y_offset : UInt = 0
-  let height : UInt = 0
-  let width : UInt = 0
+  let x_offset : UInt32 = 0
+  let y_offset : UInt32 = 0
+  let height : UInt32 = 0
+  let width : UInt32 = 0
   let do_rectify : Bool = false
   RegionOfInterest::new(x_offset, y_offset, height, width, do_rectify)
 }
 
 ///|
 /// Return the horizontal offset.
-pub fn RegionOfInterest::x_offset(self : RegionOfInterest) -> UInt {
+pub fn RegionOfInterest::x_offset(self : RegionOfInterest) -> UInt32 {
   self.x_offset
 }
 
 ///|
 /// Return the vertical offset.
-pub fn RegionOfInterest::y_offset(self : RegionOfInterest) -> UInt {
+pub fn RegionOfInterest::y_offset(self : RegionOfInterest) -> UInt32 {
   self.y_offset
 }
 
 ///|
 /// Return the region height.
-pub fn RegionOfInterest::height(self : RegionOfInterest) -> UInt {
+pub fn RegionOfInterest::height(self : RegionOfInterest) -> UInt32 {
   self.height
 }
 
 ///|
 /// Return the region width.
-pub fn RegionOfInterest::width(self : RegionOfInterest) -> UInt {
+pub fn RegionOfInterest::width(self : RegionOfInterest) -> UInt32 {
   self.width
 }
 
@@ -1420,15 +1420,15 @@ pub fn RegionOfInterest::from_cdr_bytes(
 /// Generated from sensor_msgs/msg/CameraInfo.msg
 pub struct CameraInfo {
   header : @std.Header
-  height : UInt
-  width : UInt
+  height : UInt32
+  width : UInt32
   distortion_model : String
   d : Array[Double]
   k : Array[Double]
   r : Array[Double]
   p : Array[Double]
-  binning_x : UInt
-  binning_y : UInt
+  binning_x : UInt32
+  binning_y : UInt32
   roi : RegionOfInterest
 } derive(Eq, Debug)
 
@@ -1436,15 +1436,15 @@ pub struct CameraInfo {
 /// Create a camera information message.
 pub fn CameraInfo::new(
   header : @std.Header,
-  height : UInt,
-  width : UInt,
+  height : UInt32,
+  width : UInt32,
   distortion_model : String,
   d : Array[Double],
   k : Array[Double],
   r : Array[Double],
   p : Array[Double],
-  binning_x : UInt,
-  binning_y : UInt,
+  binning_x : UInt32,
+  binning_y : UInt32,
   roi : RegionOfInterest,
 ) -> CameraInfo {
   {
@@ -1466,8 +1466,8 @@ pub fn CameraInfo::new(
 /// Create an empty camera information message.
 pub fn CameraInfo::default() -> CameraInfo {
   let header : @std.Header = @std.Header::default()
-  let height : UInt = 0
-  let width : UInt = 0
+  let height : UInt32 = 0
+  let width : UInt32 = 0
   let distortion_model : String = ""
   let d : Array[Double] = []
   let k : Array[Double] = []
@@ -1482,8 +1482,8 @@ pub fn CameraInfo::default() -> CameraInfo {
   for _ in 0..<12 {
     p.push(0.0)
   }
-  let binning_x : UInt = 0
-  let binning_y : UInt = 0
+  let binning_x : UInt32 = 0
+  let binning_y : UInt32 = 0
   let roi : RegionOfInterest = RegionOfInterest::default()
   CameraInfo::new(
     header, height, width, distortion_model, d, k, r, p, binning_x, binning_y, roi,
@@ -1498,13 +1498,13 @@ pub fn CameraInfo::header(self : CameraInfo) -> @std.Header {
 
 ///|
 /// Return the camera image height.
-pub fn CameraInfo::height(self : CameraInfo) -> UInt {
+pub fn CameraInfo::height(self : CameraInfo) -> UInt32 {
   self.height
 }
 
 ///|
 /// Return the camera image width.
-pub fn CameraInfo::width(self : CameraInfo) -> UInt {
+pub fn CameraInfo::width(self : CameraInfo) -> UInt32 {
   self.width
 }
 
@@ -1540,13 +1540,13 @@ pub fn CameraInfo::p(self : CameraInfo) -> Array[Double] {
 
 ///|
 /// Return the horizontal binning factor.
-pub fn CameraInfo::binning_x(self : CameraInfo) -> UInt {
+pub fn CameraInfo::binning_x(self : CameraInfo) -> UInt32 {
   self.binning_x
 }
 
 ///|
 /// Return the vertical binning factor.
-pub fn CameraInfo::binning_y(self : CameraInfo) -> UInt {
+pub fn CameraInfo::binning_y(self : CameraInfo) -> UInt32 {
   self.binning_y
 }
 
@@ -1716,12 +1716,12 @@ pub fn CameraInfo::from_cdr_bytes(input : Bytes) -> Result[CameraInfo, String] {
 /// Generated from sensor_msgs/msg/PointCloud2.msg
 pub struct PointCloud2 {
   header : @std.Header
-  height : UInt
-  width : UInt
+  height : UInt32
+  width : UInt32
   fields : Array[PointField]
   is_bigendian : Bool
-  point_step : UInt
-  row_step : UInt
+  point_step : UInt32
+  row_step : UInt32
   data : Array[Byte]
   is_dense : Bool
 } derive(Eq, Debug)
@@ -1730,12 +1730,12 @@ pub struct PointCloud2 {
 /// Create a point cloud message.
 pub fn PointCloud2::new(
   header : @std.Header,
-  height : UInt,
-  width : UInt,
+  height : UInt32,
+  width : UInt32,
   fields : Array[PointField],
   is_bigendian : Bool,
-  point_step : UInt,
-  row_step : UInt,
+  point_step : UInt32,
+  row_step : UInt32,
   data : Array[Byte],
   is_dense : Bool,
 ) -> PointCloud2 {
@@ -1756,12 +1756,12 @@ pub fn PointCloud2::new(
 /// Create an empty point cloud message.
 pub fn PointCloud2::default() -> PointCloud2 {
   let header : @std.Header = @std.Header::default()
-  let height : UInt = 0
-  let width : UInt = 0
+  let height : UInt32 = 0
+  let width : UInt32 = 0
   let fields : Array[PointField] = []
   let is_bigendian : Bool = false
-  let point_step : UInt = 0
-  let row_step : UInt = 0
+  let point_step : UInt32 = 0
+  let row_step : UInt32 = 0
   let data : Array[Byte] = []
   let is_dense : Bool = false
   PointCloud2::new(
@@ -1777,13 +1777,13 @@ pub fn PointCloud2::header(self : PointCloud2) -> @std.Header {
 
 ///|
 /// Return the point cloud height.
-pub fn PointCloud2::height(self : PointCloud2) -> UInt {
+pub fn PointCloud2::height(self : PointCloud2) -> UInt32 {
   self.height
 }
 
 ///|
 /// Return the point cloud width.
-pub fn PointCloud2::width(self : PointCloud2) -> UInt {
+pub fn PointCloud2::width(self : PointCloud2) -> UInt32 {
   self.width
 }
 
@@ -1801,13 +1801,13 @@ pub fn PointCloud2::is_bigendian(self : PointCloud2) -> Bool {
 
 ///|
 /// Return the size of one point in bytes.
-pub fn PointCloud2::point_step(self : PointCloud2) -> UInt {
+pub fn PointCloud2::point_step(self : PointCloud2) -> UInt32 {
   self.point_step
 }
 
 ///|
 /// Return the size of one row in bytes.
-pub fn PointCloud2::row_step(self : PointCloud2) -> UInt {
+pub fn PointCloud2::row_step(self : PointCloud2) -> UInt32 {
   self.row_step
 }
 

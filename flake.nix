@@ -35,7 +35,7 @@
               inputs.nix-ros-overlay.overlays.default
             ];
           };
-          moonbit = pkgs.moonbit-bin.moonbit.latest;
+          moonbit = pkgs.moonbit-bin.latest;
           moon2nix = inputs.moon2nix.lib.mkMoon2Nix {
             inherit pkgs;
             toolchain = moonbit;

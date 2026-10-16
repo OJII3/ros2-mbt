@@ -6,7 +6,7 @@ pub const CDR_BE : UInt16 = 0x0000
 /// A cursor for reading a ROS 2 CDR payload.
 pub struct Reader {
   bytes : Bytes
-  mut offset : Int
+  mut offset : Int32
   little_endian : Bool
 }
 
@@ -25,7 +25,7 @@ pub fn Reader::from_bytes(bytes : Bytes) -> Result[Reader, String] {
 }
 
 ///|
-fn cdr_reader_read_u16(input : BytesView, little_endian : Bool) -> UInt {
+fn cdr_reader_read_u16(input : BytesView, little_endian : Bool) -> UInt32 {
   if little_endian {
     input[0].to_int().reinterpret_as_uint() |
     (input[1].to_int().reinterpret_as_uint() << 8)
@@ -36,7 +36,7 @@ fn cdr_reader_read_u16(input : BytesView, little_endian : Bool) -> UInt {
 }
 
 ///|
-fn cdr_reader_read_u32(input : BytesView, little_endian : Bool) -> UInt {
+fn cdr_reader_read_u32(input : BytesView, little_endian : Bool) -> UInt32 {
   if little_endian {
     input[0].to_int().reinterpret_as_uint() |
     (input[1].to_int().reinterpret_as_uint() << 8) |
@@ -62,7 +62,7 @@ fn cdr_reader_read_u64(input : BytesView, little_endian : Bool) -> UInt64 {
 
 ///|
 /// Return the number of unread bytes.
-pub fn Reader::remaining(self : Reader) -> Int {
+pub fn Reader::remaining(self : Reader) -> Int32 {
   self.bytes.length() - self.offset
 }
 
@@ -70,7 +70,7 @@ pub fn Reader::remaining(self : Reader) -> Int {
 /// Check for the zero-filled final padding of a CDR aggregate.
 pub fn Reader::remaining_is_zero_padding(
   self : Reader,
-  alignment : Int,
+  alignment : Int32,
 ) -> Bool {
   let remaining = self.remaining()
   if alignment <= 0 || remaining >= alignment {
@@ -85,7 +85,7 @@ pub fn Reader::remaining_is_zero_padding(
 }
 
 ///|
-fn Reader::take(self : Reader, length : Int) -> Result[BytesView, String] {
+fn Reader::take(self : Reader, length : Int32) -> Result[BytesView, String] {
   if length < 0 || length > self.bytes.length() - self.offset {
     return Err("truncated CDR payload")
   }
@@ -95,7 +95,7 @@ fn Reader::take(self : Reader, length : Int) -> Result[BytesView, String] {
 }
 
 ///|
-fn Reader::align(self : Reader, alignment : Int) -> Result[Unit, String] {
+fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
   // The encapsulation header is not part of the CDR stream used for
   // alignment. XCDR1 therefore aligns from the first byte after the header.
   let remainder = (self.offset - ENCAPSULATION_LENGTH) % alignment
@@ -117,7 +117,7 @@ pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
 
 ///|
 /// Read a signed CDR int8 without alignment.
-pub fn Reader::read_i8(self : Reader) -> Result[Int, String] {
+pub fn Reader::read_i8(self : Reader) -> Result[Int32, String] {
   match self.read_u8() {
     Ok(value) => {
       let raw = value.to_int()
@@ -144,7 +144,7 @@ pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
 
 ///|
 /// Read a signed 16-bit integer.
-pub fn Reader::read_i16(self : Reader) -> Result[Int, String] {
+pub fn Reader::read_i16(self : Reader) -> Result[Int32, String] {
   match self.align(2) {
     Err(message) => Err(message)
     Ok(_) =>
@@ -160,7 +160,7 @@ pub fn Reader::read_i16(self : Reader) -> Result[Int, String] {
 
 ///|
 /// Read an unsigned 16-bit integer.
-pub fn Reader::read_u16(self : Reader) -> Result[UInt, String] {
+pub fn Reader::read_u16(self : Reader) -> Result[UInt32, String] {
   match self.align(2) {
     Err(message) => Err(message)
     Ok(_) =>
@@ -173,7 +173,7 @@ pub fn Reader::read_u16(self : Reader) -> Result[UInt, String] {
 
 ///|
 /// Read a signed 32-bit integer.
-pub fn Reader::read_i32(self : Reader) -> Result[Int, String] {
+pub fn Reader::read_i32(self : Reader) -> Result[Int32, String] {
   match self.align(4) {
     Err(message) => Err(message)
     Ok(_) =>
@@ -187,7 +187,7 @@ pub fn Reader::read_i32(self : Reader) -> Result[Int, String] {
 
 ///|
 /// Read an unsigned 32-bit integer.
-pub fn Reader::read_u32(self : Reader) -> Result[UInt, String] {
+pub fn Reader::read_u32(self : Reader) -> Result[UInt32, String] {
   match self.align(4) {
     Err(message) => Err(message)
     Ok(_) =>
@@ -265,7 +265,7 @@ pub fn Reader::read_f64(self : Reader) -> Result[Double, String] {
 /// Read a fixed-size byte array.
 pub fn Reader::read_byte_array(
   self : Reader,
-  length : Int,
+  length : Int32,
 ) -> Result[Bytes, String] {
   match self.take(length) {
     Ok(view) => Ok(view.to_owned())
@@ -309,7 +309,7 @@ pub fn Reader::read_string(self : Reader) -> Result[String, String] {
 /// Read a UTF-8 CDR string and enforce its maximum number of characters.
 pub fn Reader::read_bounded_string(
   self : Reader,
-  maximum_length : Int,
+  maximum_length : Int32,
 ) -> Result[String, String] {
   if maximum_length < 0 {
     return Err("a CDR string bound must not be negative")
@@ -376,7 +376,7 @@ pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
 /// Read a UTF-16 ROS wide string and enforce its code-unit bound.
 pub fn Reader::read_bounded_wstring(
   self : Reader,
-  maximum_length : Int,
+  maximum_length : Int32,
 ) -> Result[String, String] {
   if maximum_length < 0 {
     return Err("a CDR wide-string bound must not be negative")
@@ -396,7 +396,7 @@ pub fn Reader::read_bounded_wstring(
 }
 
 ///|
-fn cdr_append_utf8_codepoint(output : Array[Byte], codepoint : Int) -> Unit {
+fn cdr_append_utf8_codepoint(output : Array[Byte], codepoint : Int32) -> Unit {
   if codepoint <= 0x7F {
     output.push(codepoint.to_byte())
   } else if codepoint <= 0x7FF {

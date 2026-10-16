@@ -193,7 +193,9 @@ pub fn ReliableRosPublisher::next_sequence_number(
 
 ///|
 /// Return the number of samples retained for retransmission.
-pub fn ReliableRosPublisher::history_length(self : ReliableRosPublisher) -> Int {
+pub fn ReliableRosPublisher::history_length(
+  self : ReliableRosPublisher,
+) -> Int32 {
   let mut length = 0
   for target in self.writers {
     match target.reliable_writer {
@@ -472,7 +474,7 @@ pub async fn ReliableRosSubscription::receive_heartbeat(
 /// Return the number of samples accepted by the subscription.
 pub fn ReliableRosSubscription::sample_count(
   self : ReliableRosSubscription,
-) -> Int {
+) -> Int32 {
   self.reader.sample_count()
 }
 
