@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-example-interfaces \
   && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+ARG MOONBIT_VERSION=0.1.20260915
+RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$MOONBIT_VERSION"
 
 ENV PATH="/root/.moon/bin:${PATH}"
