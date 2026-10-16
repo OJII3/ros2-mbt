@@ -1,5 +1,5 @@
 ///|
-async test "discovery session acknowledges reliable SEDP heartbeats" {
+async test "discovery session acknowledges reliable SEDP heartbeats from receive sockets" {
   let local_prefix = @rtps.GuidPrefix::from_array([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
   ]).unwrap()
@@ -21,6 +21,8 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   let sedp_writer = @rtps.EntityId::new(b"\x00\x00\x03", 0xC2).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   defer receiver.close()
+  let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer metatraffic.close()
   let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
   defer sender.close()
   let ack_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
@@ -36,8 +38,9 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
   )
-  let session = @discovery.DiscoverySession::new(
+  let session = @discovery.DiscoverySession::new_with_receive_sockets(
     receiver,
+    [metatraffic],
     participant,
     spdp_reader,
     spdp_writer,
@@ -84,7 +87,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     ).unwrap(),
     remote_prefix,
     @rtps.VendorId::new(1, 15),
-    session.socket.local_addr(),
+    metatraffic.local_addr(),
   )
   .unwrap()
   let endpoint = @rtps.SedpEndpointData::new(
@@ -100,7 +103,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     .unwrap(),
     remote_prefix,
     @rtps.VendorId::new(1, 15),
-    session.socket.local_addr(),
+    metatraffic.local_addr(),
   )
   .unwrap()
   let (event, _) = test_receive(() => session.receive_once()).unwrap()
@@ -112,7 +115,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     EndpointRemoved(_, _) => fail("expected an SEDP publication")
     ParticipantRemoved(_) => fail("expected an SEDP publication")
   }
-  let (acknack, _) = test_receive(() => ack_receiver.receive_acknack()).unwrap()
+  let (acknack, ack_source) = test_receive(() => ack_receiver.receive_acknack()).unwrap()
   assert_eq(
     acknack.reader_id(),
     @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
@@ -121,6 +124,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
   assert_eq(acknack.bitmap_base(), 1L)
   assert_eq(acknack.num_bits(), 1U)
   assert_eq(acknack.bitmap(), [0x80000000U])
+  assert_eq(ack_source.port(), receiver.local_addr().port())
   assert_true((acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) == 0)
   sender
   .send_heartbeat(
@@ -133,7 +137,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     ).unwrap(),
     remote_prefix,
     @rtps.VendorId::new(1, 15),
-    session.socket.local_addr(),
+    metatraffic.local_addr(),
   )
   .unwrap()
   sender
@@ -143,7 +147,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     .unwrap(),
     remote_prefix,
     @rtps.VendorId::new(1, 15),
-    session.socket.local_addr(),
+    metatraffic.local_addr(),
   )
   .unwrap()
   let (complete_event, _) = test_receive(() => session.receive_once()).unwrap()
@@ -166,7 +170,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats" {
     .with_status_info(@rtps.STATUS_INFO_DISPOSED),
     remote_prefix,
     @rtps.VendorId::new(1, 15),
-    session.socket.local_addr(),
+    metatraffic.local_addr(),
   )
   .unwrap()
   let (removed_event, _) = test_receive(() => session.receive_once()).unwrap()

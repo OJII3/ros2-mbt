@@ -197,7 +197,7 @@ fn rosidl_words(line : String) -> Array[String] {
 
 ///|
 /// Return the trimmed suffix after a fixed number of whitespace-delimited words.
-fn rosidl_text_after_words(line : String, word_count : Int) -> String {
+fn rosidl_text_after_words(line : String, word_count : Int32) -> String {
   let bytes = @utf8.encode(line)
   let mut completed_words = 0
   let mut in_word = false
@@ -219,7 +219,7 @@ fn rosidl_text_after_words(line : String, word_count : Int) -> String {
 
 ///|
 /// Find an assignment separator before any field default value.
-fn rosidl_assignment_index(line : String) -> Int {
+fn rosidl_assignment_index(line : String) -> Int32 {
   let bytes = @utf8.encode(line)
   for index in 0..<bytes.length() {
     if bytes[index] == b'=' && (index == 0 || bytes[index - 1] != b'<') {
@@ -235,7 +235,7 @@ fn rosidl_assignment_index(line : String) -> Int {
 ///|
 fn rosidl_parse_field_type(
   type_spec : String,
-) -> Result[(String, Int?, MessageFieldCollection), String] {
+) -> Result[(String, Int32?, MessageFieldCollection), String] {
   let parts = type_spec.split("[").collect()
   if parts.length() == 1 {
     let (base_type, string_upper_bound) = match
@@ -281,7 +281,7 @@ fn rosidl_parse_field_type(
 ///|
 fn rosidl_parse_base_field_type(
   type_spec : String,
-) -> Result[(String, Int?), String] {
+) -> Result[(String, Int32?), String] {
   let parts = type_spec.split("<=").collect()
   if parts.length() == 1 {
     return Ok((type_spec, None))
@@ -297,7 +297,7 @@ fn rosidl_parse_base_field_type(
 }
 
 ///|
-fn rosidl_positive_int(value : String) -> Result[Int, String] {
+fn rosidl_positive_int(value : String) -> Result[Int32, String] {
   let bytes = @utf8.encode(value)
   if bytes.length() == 0 {
     return Err("ROS fixed array length must not be empty")

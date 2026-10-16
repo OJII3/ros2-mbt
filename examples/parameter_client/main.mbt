@@ -275,7 +275,7 @@ async fn get_integer_parameter(
 async fn get_parameter_type(
   client : @transport.RosServiceClient,
   name : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let writer = @cdr.Writer::new()
   writer.write_u32(1U)
   writer.write_string(name)

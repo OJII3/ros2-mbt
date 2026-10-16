@@ -8,11 +8,11 @@ pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
 ///|
 /// The size of an RTPS message header in bytes.
-pub const HEADER_LENGTH : Int = 20
+pub const HEADER_LENGTH : Int32 = 20
 
 ///|
 /// The size of an RTPS submessage header in bytes.
-pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
+pub const SUBMESSAGE_HEADER_LENGTH : Int32 = 4
 
 ///|
 /// RTPS submessage flag indicating little-endian fields.
@@ -300,7 +300,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
 }
 
 ///|
-fn bytes_from(input : Bytes, start : Int, length : Int) -> Bytes {
+fn bytes_from(input : Bytes, start : Int32, length : Int32) -> Bytes {
   let bytes : Array[Byte] = []
   for i in 0..<length {
     bytes.push(input[start + i])
@@ -312,7 +312,7 @@ fn bytes_from(input : Bytes, start : Int, length : Int) -> Bytes {
 /// Parse the first RTPS submessage in an input buffer.
 pub fn Submessage::from_bytes(
   input : Bytes,
-) -> Result[(Submessage, Int), String] {
+) -> Result[(Submessage, Int32), String] {
   if input.length() < SUBMESSAGE_HEADER_LENGTH {
     return Err("an RTPS submessage header is 4 bytes")
   }

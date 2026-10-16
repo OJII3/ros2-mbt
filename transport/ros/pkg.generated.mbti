@@ -2,8 +2,10 @@
 package "OJII3/ros2-mbt/transport/ros"
 
 import {
-  "OJII3/ros2-mbt/rtps",
-  "OJII3/ros2-mbt/transport/discovery",
+  "OJII3/ros2-mbt/ros/endpoints",
+  "OJII3/ros2-mbt/ros/messages/action_msgs",
+  "OJII3/ros2-mbt/ros/messages/rmw_dds_common",
+  "OJII3/ros2-mbt/rtps/core",
   "OJII3/ros2-mbt/transport/wire",
   "moonbitlang/async/socket",
   "moonbitlang/core/debug",
@@ -17,62 +19,62 @@ import {
 pub struct ReliableRosDiscoveryPublisher {
   writer : @wire.ReliableDataWriter
 }
-pub async fn ReliableRosDiscoveryPublisher::announce_once(Self, @OJII3/ros2-mbt/ros.ParticipantEntitiesInfo) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::announce_once(Self, @rmw_dds_common.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub fn ReliableRosDiscoveryPublisher::close(Self) -> Unit
-pub async fn ReliableRosDiscoveryPublisher::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::handle_acknack(Self, @core.AckNackSubmessage) -> Result[Unit, String]
 pub fn ReliableRosDiscoveryPublisher::history_length(Self) -> Int
-pub fn ReliableRosDiscoveryPublisher::new_for_subscription(@wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn ReliableRosDiscoveryPublisher::new_for_subscription(@wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableRosDiscoveryPublisher::next_sequence_number(Self) -> Int64
-pub async fn ReliableRosDiscoveryPublisher::publish(Self, @OJII3/ros2-mbt/ros.ParticipantEntitiesInfo) -> Result[Unit, String]
-pub async fn ReliableRosDiscoveryPublisher::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn ReliableRosDiscoveryPublisher::publish(Self, @rmw_dds_common.ParticipantEntitiesInfo) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn ReliableRosDiscoveryPublisher::receive_control(Self) -> Result[Unit, String]
-pub async fn ReliableRosDiscoveryPublisher::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
+pub async fn ReliableRosDiscoveryPublisher::receive_nackfrag(Self) -> Result[(@core.NackFragSubmessage, @socket.Addr), String]
 
 pub struct ReliableRosDiscoverySubscription {
   reader : @wire.ReliableDataReaderSession
 }
 pub fn ReliableRosDiscoverySubscription::close(Self) -> Unit
-pub fn ReliableRosDiscoverySubscription::new_for_publication(@wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
-pub async fn ReliableRosDiscoverySubscription::receive(Self) -> Result[(@OJII3/ros2-mbt/ros.ParticipantEntitiesInfo, @socket.Addr), String]
-pub async fn ReliableRosDiscoverySubscription::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub fn ReliableRosDiscoverySubscription::new_for_publication(@wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Self, String]
+pub async fn ReliableRosDiscoverySubscription::receive(Self) -> Result[(@rmw_dds_common.ParticipantEntitiesInfo, @socket.Addr), String]
+pub async fn ReliableRosDiscoverySubscription::receive_heartbeat(Self) -> Result[(@core.HeartbeatSubmessage, @socket.Addr), String]
 pub fn ReliableRosDiscoverySubscription::sample_count(Self) -> Int
 
 pub struct ReliableRosPublisher {
-  topic : @OJII3/ros2-mbt/ros.RosTopic
+  topic : @endpoints.RosTopic
   socket : @wire.Udp
-  guid_prefix : @rtps.GuidPrefix
-  vendor_id : @rtps.VendorId
-  writer_id : @rtps.EntityId
+  guid_prefix : @core.GuidPrefix
+  vendor_id : @core.VendorId
+  writer_id : @core.EntityId
   mut writers : Array[ReliableRosTarget]
   mut next_sequence_number : Int64
 }
-pub fn ReliableRosPublisher::add_subscription(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
+pub fn ReliableRosPublisher::add_subscription(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Unit, String]
 pub fn ReliableRosPublisher::close(Self) -> Unit
-pub async fn ReliableRosPublisher::handle_acknack(Self, @rtps.AckNackSubmessage) -> Result[Unit, String]
-pub async fn ReliableRosPublisher::handle_nackfrag(Self, @rtps.NackFragSubmessage) -> Result[Unit, String]
+pub async fn ReliableRosPublisher::handle_acknack(Self, @core.AckNackSubmessage) -> Result[Unit, String]
+pub async fn ReliableRosPublisher::handle_nackfrag(Self, @core.NackFragSubmessage) -> Result[Unit, String]
 pub fn ReliableRosPublisher::history_length(Self) -> Int
-pub fn ReliableRosPublisher::new(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, Int64) -> Result[Self, String]
-pub fn ReliableRosPublisher::new_for_subscription(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn ReliableRosPublisher::new(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, Int64) -> Result[Self, String]
+pub fn ReliableRosPublisher::new_for_subscription(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableRosPublisher::next_sequence_number(Self) -> Int64
 pub async fn ReliableRosPublisher::publish(Self, Bytes) -> Result[Unit, String]
-pub async fn ReliableRosPublisher::receive_acknack(Self) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn ReliableRosPublisher::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn ReliableRosPublisher::receive_control(Self) -> Result[Unit, String]
-pub async fn ReliableRosPublisher::receive_nackfrag(Self) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
-pub fn ReliableRosPublisher::remove_subscription(Self, @rtps.Guid) -> Unit
-pub fn ReliableRosPublisher::remove_subscriptions_from_participant(Self, @rtps.GuidPrefix) -> Unit
+pub async fn ReliableRosPublisher::receive_nackfrag(Self) -> Result[(@core.NackFragSubmessage, @socket.Addr), String]
+pub fn ReliableRosPublisher::remove_subscription(Self, @core.Guid) -> Unit
+pub fn ReliableRosPublisher::remove_subscriptions_from_participant(Self, @core.GuidPrefix) -> Unit
 pub async fn ReliableRosPublisher::send_heartbeat(Self) -> Result[Unit, String]
-pub fn ReliableRosPublisher::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
+pub fn ReliableRosPublisher::topic(Self) -> @endpoints.RosTopic
 
 pub struct ReliableRosSubscription {
-  topic : @OJII3/ros2-mbt/ros.RosTopic
+  topic : @endpoints.RosTopic
   reader : @wire.ReliableDataReaderSession
 }
 pub fn ReliableRosSubscription::close(Self) -> Unit
-pub fn ReliableRosSubscription::new_for_publication(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub fn ReliableRosSubscription::new_for_publication(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableRosSubscription::receive(Self) -> Result[(Bytes, @socket.Addr), String]
-pub async fn ReliableRosSubscription::receive_heartbeat(Self) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn ReliableRosSubscription::receive_heartbeat(Self) -> Result[(@core.HeartbeatSubmessage, @socket.Addr), String]
 pub fn ReliableRosSubscription::sample_count(Self) -> Int
-pub fn ReliableRosSubscription::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
+pub fn ReliableRosSubscription::topic(Self) -> @endpoints.RosTopic
 
 type ReliableRosTarget
 
@@ -83,40 +85,40 @@ pub struct RosActionClient {
   feedback_subscription : ReliableRosSubscription
   status_subscription : ReliableRosSubscription
 }
-pub async fn RosActionClient::cancel_goal(Self, RosActionGoalHandle) -> Result[@OJII3/ros2-mbt/ros.RosCancelGoalResponse, String]
+pub async fn RosActionClient::cancel_goal(Self, RosActionGoalHandle) -> Result[@action_msgs.RosCancelGoalResponse, String]
 pub fn RosActionClient::close(Self) -> Unit
 pub async fn RosActionClient::get_result(Self, RosActionGoalHandle) -> Result[Bytes, String]
-pub fn RosActionClient::new(@OJII3/ros2-mbt/ros.RosAction, RosServiceClient, RosServiceClient, RosServiceClient, ReliableRosSubscription, ReliableRosSubscription) -> Result[Self, String]
+pub fn RosActionClient::new(@endpoints.RosAction, RosServiceClient, RosServiceClient, RosServiceClient, ReliableRosSubscription, ReliableRosSubscription) -> Result[Self, String]
 pub async fn RosActionClient::receive_feedback(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::receive_goal_feedback(Self, RosActionGoalHandle) -> Result[Bytes, String]
-pub async fn RosActionClient::receive_goal_status(Self, Bytes, Int) -> Result[@OJII3/ros2-mbt/ros.RosActionGoalStatus, String]
-pub async fn RosActionClient::receive_goal_terminal_status(Self, RosActionGoalHandle) -> Result[@OJII3/ros2-mbt/ros.RosActionGoalStatus, String]
-pub async fn RosActionClient::receive_next_goal_status(Self, Bytes) -> Result[@OJII3/ros2-mbt/ros.RosActionGoalStatus, String]
-pub async fn RosActionClient::receive_terminal_goal_status(Self, Bytes) -> Result[@OJII3/ros2-mbt/ros.RosActionGoalStatus, String]
-pub async fn RosActionClient::request_cancel_goal(Self, Bytes) -> Result[@OJII3/ros2-mbt/ros.RosCancelGoalResponse, String]
+pub async fn RosActionClient::receive_goal_status(Self, Bytes, Int) -> Result[@action_msgs.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_goal_terminal_status(Self, RosActionGoalHandle) -> Result[@action_msgs.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_next_goal_status(Self, Bytes) -> Result[@action_msgs.RosActionGoalStatus, String]
+pub async fn RosActionClient::receive_terminal_goal_status(Self, Bytes) -> Result[@action_msgs.RosActionGoalStatus, String]
+pub async fn RosActionClient::request_cancel_goal(Self, Bytes) -> Result[@action_msgs.RosCancelGoalResponse, String]
 pub async fn RosActionClient::request_get_result(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::request_send_goal(Self, Bytes) -> Result[Bytes, String]
 pub async fn RosActionClient::send_goal(Self, Bytes, Bytes) -> Result[RosActionGoalHandle, String]
 
 pub struct RosActionEndpoints {
-  send_goal_request_subscription : @rtps.SedpEndpointData
-  send_goal_response_publication : @rtps.SedpEndpointData
-  get_result_request_subscription : @rtps.SedpEndpointData
-  get_result_response_publication : @rtps.SedpEndpointData
-  cancel_goal_request_subscription : @rtps.SedpEndpointData
-  cancel_goal_response_publication : @rtps.SedpEndpointData
-  feedback_publication : @rtps.SedpEndpointData
-  status_publication : @rtps.SedpEndpointData
+  send_goal_request_subscription : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  send_goal_response_publication : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  get_result_request_subscription : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  get_result_response_publication : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  cancel_goal_request_subscription : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  cancel_goal_response_publication : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  feedback_publication : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+  status_publication : @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
 }
-pub fn RosActionEndpoints::cancel_goal_request_subscription(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::cancel_goal_response_publication(Self) -> @rtps.SedpEndpointData
-pub async fn RosActionEndpoints::discover(RosParticipant, @OJII3/ros2-mbt/ros.RosAction) -> Result[Self, String]
-pub fn RosActionEndpoints::feedback_publication(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::get_result_request_subscription(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::get_result_response_publication(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::send_goal_request_subscription(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::send_goal_response_publication(Self) -> @rtps.SedpEndpointData
-pub fn RosActionEndpoints::status_publication(Self) -> @rtps.SedpEndpointData
+pub fn RosActionEndpoints::cancel_goal_request_subscription(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::cancel_goal_response_publication(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub async fn RosActionEndpoints::discover(RosParticipant, @endpoints.RosAction) -> Result[Self, String]
+pub fn RosActionEndpoints::feedback_publication(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::get_result_request_subscription(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::get_result_response_publication(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::send_goal_request_subscription(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::send_goal_response_publication(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
+pub fn RosActionEndpoints::status_publication(Self) -> @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData
 
 pub struct RosActionGoalHandle {
   goal_id : Bytes
@@ -126,127 +128,130 @@ pub fn RosActionGoalHandle::accepted(Self) -> Bool
 pub fn RosActionGoalHandle::goal_id(Self) -> Bytes
 
 pub struct RosParticipant {
-  participant : @rtps.SpdpParticipantData
-  discovery : @discovery.DiscoveryService
+  participant : @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData
+  discovery : @OJII3/ros2-mbt/transport/discovery.DiscoveryService
   user_socket : @wire.Udp
-  user_locator : @rtps.Locator
-  mut local_endpoints : Array[@rtps.SedpEndpointData]
+  user_locator : @core.Locator
+  mut local_endpoints : Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
   mut spdp_socket : @wire.Udp?
-  mut graph_publication_id : @rtps.EntityId?
-  mut graph_subscription_id : @rtps.EntityId?
+  mut graph_publication_id : @core.EntityId?
+  mut graph_subscription_id : @core.EntityId?
   mut ros_node_namespace : String?
   mut ros_node_name : String?
-  mut latest_graph_info : @OJII3/ros2-mbt/ros.ParticipantEntitiesInfo?
+  mut latest_graph_info : @rmw_dds_common.ParticipantEntitiesInfo?
   mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  mut graph_publisher_guids : Array[@rtps.Guid]
+  mut graph_publisher_guids : Array[@core.Guid]
   mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  mut graph_subscription_guids : Array[@rtps.Guid]
+  mut graph_subscription_guids : Array[@core.Guid]
 }
 pub async fn RosParticipant::announce_spdp_forever(Self, Int) -> Result[Unit, String]
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
 pub fn RosParticipant::close(Self) -> Unit
+pub fn RosParticipant::close_discovery(Self) -> Unit
 pub async fn RosParticipant::dispose_and_close(Self) -> Result[Unit, String]
-pub fn RosParticipant::from_discovery_session(@discovery.DiscoverySession, @wire.Udp) -> Result[Self, String]
-pub fn RosParticipant::from_sockets(@wire.Udp, @wire.Udp, @rtps.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
-pub fn RosParticipant::graph(Self) -> @discovery.DiscoveryGraph
-pub fn RosParticipant::into_parts(Self) -> (@discovery.DiscoveryService, @wire.Udp)
-pub fn RosParticipant::local_endpoints(Self) -> Array[@rtps.SedpEndpointData]
-pub async fn RosParticipant::new_ddsi(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int, Int64, multicast_interface? : UInt) -> Result[Self, String]
-pub fn RosParticipant::participant(Self) -> @rtps.SpdpParticipantData
-pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@OJII3/ros2-mbt/ros.ParticipantEntitiesInfo, String]
-pub async fn RosParticipant::publish_ros_discovery_info(Self, @OJII3/ros2-mbt/ros.ParticipantEntitiesInfo) -> Result[Unit, String]
+pub fn RosParticipant::from_discovery_session(@OJII3/ros2-mbt/transport/discovery.DiscoverySession, @wire.Udp) -> Result[Self, String]
+pub fn RosParticipant::from_sockets(@wire.Udp, @wire.Udp, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
+pub fn RosParticipant::graph(Self) -> @OJII3/ros2-mbt/transport/discovery.DiscoveryGraph
+pub fn RosParticipant::into_parts(Self) -> (@OJII3/ros2-mbt/transport/discovery.DiscoveryService, @wire.Udp)
+pub fn RosParticipant::local_endpoints(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
+pub async fn RosParticipant::new_ddsi(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, Int, Int64, multicast_interface? : UInt) -> Result[Self, String]
+pub fn RosParticipant::participant(Self) -> @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData
+pub fn RosParticipant::participant_entities_info(Self, String, String) -> Result[@rmw_dds_common.ParticipantEntitiesInfo, String]
+pub async fn RosParticipant::publish_ros_discovery_info(Self, @rmw_dds_common.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub async fn RosParticipant::receive_discovery_once(Self) -> Result[(@socket.Addr, @wire.DiscoveryEvent), String]
-pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_acknack(Self, Int) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn RosParticipant::receive_ros_discovery_control(Self, Int) -> Result[Unit, String]
-pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String]
-pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@OJII3/ros2-mbt/ros.ParticipantEntitiesInfo, @socket.Addr), String]
-pub async fn RosParticipant::receive_ros_discovery_nackfrag(Self, Int) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String]
-pub async fn RosParticipant::register_endpoint(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
-pub async fn RosParticipant::register_ros_discovery_info(Self, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
-pub async fn RosParticipant::register_service_client(Self, @OJII3/ros2-mbt/ros.RosService, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
-pub async fn RosParticipant::register_service_client_with_type_hashes(Self, @OJII3/ros2-mbt/ros.RosService, @rtps.EntityId, @rtps.EntityId, String, String) -> Result[Unit, String]
-pub async fn RosParticipant::register_service_server(Self, @OJII3/ros2-mbt/ros.RosService, @rtps.EntityId, @rtps.EntityId) -> Result[Unit, String]
-pub async fn RosParticipant::register_service_server_with_type_hashes(Self, @OJII3/ros2-mbt/ros.RosService, @rtps.EntityId, @rtps.EntityId, String, String) -> Result[Unit, String]
-pub async fn RosParticipant::register_topic_endpoint(Self, @OJII3/ros2-mbt/ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos) -> Result[Unit, String]
-pub async fn RosParticipant::register_topic_endpoint_with_type_hash(Self, @OJII3/ros2-mbt/ros.RosTopic, @rtps.SedpEndpointKind, @rtps.EntityId, @rtps.SedpQos, String) -> Result[Unit, String]
+pub async fn RosParticipant::receive_ros_discovery_heartbeat(Self, Int) -> Result[(@core.HeartbeatSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_info(Self, Int) -> Result[(@rmw_dds_common.ParticipantEntitiesInfo, @socket.Addr), String]
+pub async fn RosParticipant::receive_ros_discovery_nackfrag(Self, Int) -> Result[(@core.NackFragSubmessage, @socket.Addr), String]
+pub async fn RosParticipant::register_endpoint(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Unit, String]
+pub async fn RosParticipant::register_ros_discovery_info(Self, @core.EntityId, @core.EntityId) -> Result[Unit, String]
+pub async fn RosParticipant::register_service_client(Self, @endpoints.RosService, @core.EntityId, @core.EntityId) -> Result[Unit, String]
+pub async fn RosParticipant::register_service_client_with_type_hashes(Self, @endpoints.RosService, @core.EntityId, @core.EntityId, String, String) -> Result[Unit, String]
+pub async fn RosParticipant::register_service_server(Self, @endpoints.RosService, @core.EntityId, @core.EntityId) -> Result[Unit, String]
+pub async fn RosParticipant::register_service_server_with_type_hashes(Self, @endpoints.RosService, @core.EntityId, @core.EntityId, String, String) -> Result[Unit, String]
+pub async fn RosParticipant::register_topic_endpoint(Self, @endpoints.RosTopic, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointKind, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpQos) -> Result[Unit, String]
+pub async fn RosParticipant::register_topic_endpoint_with_type_hash(Self, @endpoints.RosTopic, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointKind, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpQos, String) -> Result[Unit, String]
 pub fn RosParticipant::ros_discovery_publisher_count(Self) -> Int
 pub fn RosParticipant::ros_discovery_subscription_count(Self) -> Int
 pub async fn RosParticipant::set_ros_node_identity(Self, String, String) -> Result[Unit, String]
-pub async fn RosParticipant::unregister_endpoint(Self, @rtps.Guid) -> Result[Unit, String]
-pub fn RosParticipant::user_locator(Self) -> @rtps.Locator
+pub async fn RosParticipant::unregister_endpoint(Self, @core.Guid) -> Result[Unit, String]
+pub fn RosParticipant::user_locator(Self) -> @core.Locator
 pub fn RosParticipant::user_socket(Self) -> @wire.Udp
-pub fn RosParticipant::close_discovery(Self) -> Unit
 
 pub struct RosPublisher {
-  topic : @OJII3/ros2-mbt/ros.RosTopic
+  topic : @endpoints.RosTopic
   socket : @wire.Udp
-  guid_prefix : @rtps.GuidPrefix
-  vendor_id : @rtps.VendorId
-  writer_id : @rtps.EntityId
-  mut writers : Array[(@rtps.Guid, @wire.DataWriter)]
+  guid_prefix : @core.GuidPrefix
+  vendor_id : @core.VendorId
+  writer_id : @core.EntityId
+  mut writers : Array[(@core.Guid, @wire.DataWriter)]
   mut next_sequence_number : Int64
 }
-pub fn RosPublisher::add_subscription(Self, @rtps.SedpEndpointData) -> Result[Unit, String]
+pub fn RosPublisher::add_subscription(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Unit, String]
 pub fn RosPublisher::close(Self) -> Unit
-pub fn RosPublisher::new(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, Int64) -> Result[Self, String]
-pub fn RosPublisher::new_for_subscription(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosPublisher::new(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, Int64) -> Result[Self, String]
+pub fn RosPublisher::new_for_subscription(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosPublisher::next_sequence_number(Self) -> Int64
-pub fn RosPublisher::remove_subscription(Self, @rtps.Guid) -> Unit
-pub fn RosPublisher::remove_subscriptions_from_participant(Self, @rtps.GuidPrefix) -> Unit
 pub async fn RosPublisher::publish(Self, Bytes) -> Result[Unit, String]
-pub fn RosPublisher::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
+pub fn RosPublisher::remove_subscription(Self, @core.Guid) -> Unit
+pub fn RosPublisher::remove_subscriptions_from_participant(Self, @core.GuidPrefix) -> Unit
+pub fn RosPublisher::topic(Self) -> @endpoints.RosTopic
 
 pub struct RosServiceClient {
-  service : @OJII3/ros2-mbt/ros.RosService
+  service : @endpoints.RosService
   request_writer : @wire.ReliableDataWriter
   response_reader : @wire.ReliableDataReaderSession
-  response_reader_guid : @rtps.Guid
+  response_reader_guid : @core.Guid
   wire_format : RosServiceWireFormat
   payload_client_id : UInt64
   shared_socket : Bool
 }
 pub fn RosServiceClient::close(Self) -> Unit
-pub fn RosServiceClient::new(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
-pub fn RosServiceClient::new_with_shared_socket(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
-pub fn RosServiceClient::new_with_shared_socket_and_wire_format(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
-pub fn RosServiceClient::new_with_wire_format(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub fn RosServiceClient::new(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceClient::new_with_shared_socket(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceClient::new_with_shared_socket_and_wire_format(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub fn RosServiceClient::new_with_wire_format(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
 pub async fn RosServiceClient::receive_request_control(Self) -> Result[Unit, String]
-pub async fn RosServiceClient::receive_response(Self, @rtps.SampleIdentity) -> Result[(Bytes, @socket.Addr), String]
-pub async fn RosServiceClient::request(Self, Bytes) -> Result[@rtps.SampleIdentity, String]
-pub fn RosServiceClient::service(Self) -> @OJII3/ros2-mbt/ros.RosService
+pub async fn RosServiceClient::receive_response(Self, @core.SampleIdentity) -> Result[(Bytes, @socket.Addr), String]
+pub async fn RosServiceClient::request(Self, Bytes) -> Result[@core.SampleIdentity, String]
+pub fn RosServiceClient::service(Self) -> @endpoints.RosService
 
 pub struct RosServiceServer {
-  service : @OJII3/ros2-mbt/ros.RosService
+  service : @endpoints.RosService
   request_reader : @wire.ReliableDataReaderSession
   response_writer : @wire.ReliableDataWriter
   wire_format : RosServiceWireFormat
-  mut pending_payload_header : @OJII3/ros2-mbt/ros.RosServicePayloadHeader?
+  mut pending_payload_header : @endpoints.RosServicePayloadHeader?
   shared_socket : Bool
 }
 pub fn RosServiceServer::close(Self) -> Unit
-pub fn RosServiceServer::new(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
-pub fn RosServiceServer::new_with_shared_socket(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64) -> Result[Self, String]
-pub fn RosServiceServer::new_with_shared_socket_and_wire_format(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
-pub fn RosServiceServer::new_with_wire_format(@OJII3/ros2-mbt/ros.RosService, @wire.Udp, @wire.Udp, @rtps.GuidPrefix, @rtps.VendorId, @rtps.EntityId, @rtps.SedpEndpointData, @rtps.EntityId, @rtps.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
-pub async fn RosServiceServer::receive_request(Self) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String]
+pub fn RosServiceServer::new(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceServer::new_with_shared_socket(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
+pub fn RosServiceServer::new_with_shared_socket_and_wire_format(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub fn RosServiceServer::new_with_wire_format(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
+pub async fn RosServiceServer::receive_request(Self) -> Result[(Bytes, @core.SampleIdentity, @socket.Addr), String]
 pub async fn RosServiceServer::receive_response_control(Self) -> Result[Unit, String]
-pub async fn RosServiceServer::respond(Self, @rtps.SampleIdentity, Bytes) -> Result[Unit, String]
-pub fn RosServiceServer::service(Self) -> @OJII3/ros2-mbt/ros.RosService
+pub async fn RosServiceServer::respond(Self, @core.SampleIdentity, Bytes) -> Result[Unit, String]
+pub fn RosServiceServer::service(Self) -> @endpoints.RosService
 
 pub(all) enum RosServiceWireFormat {
   DdsRpcInline
   CycloneDdsPayload
 } derive(Eq, @debug.Debug)
+pub fn RosServiceWireFormat::equal(Self, Self) -> Bool
+pub fn RosServiceWireFormat::not_equal(Self, Self) -> Bool
+pub fn RosServiceWireFormat::to_repr(Self) -> @debug.Repr
 
 pub struct RosSubscription {
-  topic : @OJII3/ros2-mbt/ros.RosTopic
+  topic : @endpoints.RosTopic
   reader : @wire.DataReader
 }
 pub fn RosSubscription::close(Self) -> Unit
-pub fn RosSubscription::new_for_publication(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
-pub fn RosSubscription::new_for_publication_with_prefix(@OJII3/ros2-mbt/ros.RosTopic, @wire.Udp, @rtps.GuidPrefix, @rtps.EntityId, @rtps.SedpEndpointData) -> Result[Self, String]
+pub fn RosSubscription::new_for_publication(@endpoints.RosTopic, @wire.Udp, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Self, String]
+pub fn RosSubscription::new_for_publication_with_prefix(@endpoints.RosTopic, @wire.Udp, @core.GuidPrefix, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Self, String]
 pub async fn RosSubscription::receive(Self) -> Result[(Bytes, @socket.Addr), String]
-pub fn RosSubscription::topic(Self) -> @OJII3/ros2-mbt/ros.RosTopic
+pub fn RosSubscription::topic(Self) -> @endpoints.RosTopic
 
 // Type aliases
 

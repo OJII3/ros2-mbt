@@ -33,10 +33,13 @@ pub struct Point {
   z : Double
 } derive(Eq, @debug.Debug)
 pub fn Point::default() -> Self
+pub fn Point::equal(Self, Self) -> Bool
 pub fn Point::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Point::new(Double, Double, Double) -> Self
+pub fn Point::not_equal(Self, Self) -> Bool
 pub fn Point::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Point::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Point::to_repr(Self) -> @debug.Repr
 pub fn Point::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Point::x(Self) -> Double
 pub fn Point::y(Self) -> Double
@@ -47,12 +50,15 @@ pub struct Pose {
   orientation : Quaternion
 } derive(Eq, @debug.Debug)
 pub fn Pose::default() -> Self
+pub fn Pose::equal(Self, Self) -> Bool
 pub fn Pose::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Pose::new(Point, Quaternion) -> Self
+pub fn Pose::not_equal(Self, Self) -> Bool
 pub fn Pose::orientation(Self) -> Quaternion
 pub fn Pose::position(Self) -> Point
 pub fn Pose::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Pose::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Pose::to_repr(Self) -> @debug.Repr
 pub fn Pose::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PoseStamped {
@@ -60,12 +66,15 @@ pub struct PoseStamped {
   pose : Pose
 } derive(Eq, @debug.Debug)
 pub fn PoseStamped::default() -> Self
+pub fn PoseStamped::equal(Self, Self) -> Bool
 pub fn PoseStamped::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn PoseStamped::header(Self) -> @std_msgs.Header
 pub fn PoseStamped::new(@std_msgs.Header, Pose) -> Self
+pub fn PoseStamped::not_equal(Self, Self) -> Bool
 pub fn PoseStamped::pose(Self) -> Pose
 pub fn PoseStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PoseStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PoseStamped::to_repr(Self) -> @debug.Repr
 pub fn PoseStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PoseWithCovariance {
@@ -74,11 +83,14 @@ pub struct PoseWithCovariance {
 } derive(Eq, @debug.Debug)
 pub fn PoseWithCovariance::covariance(Self) -> Array[Double]
 pub fn PoseWithCovariance::default() -> Self
+pub fn PoseWithCovariance::equal(Self, Self) -> Bool
 pub fn PoseWithCovariance::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn PoseWithCovariance::new(Pose, Array[Double]) -> Self
+pub fn PoseWithCovariance::not_equal(Self, Self) -> Bool
 pub fn PoseWithCovariance::pose(Self) -> Pose
 pub fn PoseWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PoseWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PoseWithCovariance::to_repr(Self) -> @debug.Repr
 pub fn PoseWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Quaternion {
@@ -88,10 +100,13 @@ pub struct Quaternion {
   w : Double
 } derive(Eq, @debug.Debug)
 pub fn Quaternion::default() -> Self
+pub fn Quaternion::equal(Self, Self) -> Bool
 pub fn Quaternion::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Quaternion::new(Double, Double, Double, Double) -> Self
+pub fn Quaternion::not_equal(Self, Self) -> Bool
 pub fn Quaternion::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Quaternion::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Quaternion::to_repr(Self) -> @debug.Repr
 pub fn Quaternion::w(Self) -> Double
 pub fn Quaternion::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Quaternion::x(Self) -> Double
@@ -103,11 +118,14 @@ pub struct Transform {
   rotation : Quaternion
 } derive(Eq, @debug.Debug)
 pub fn Transform::default() -> Self
+pub fn Transform::equal(Self, Self) -> Bool
 pub fn Transform::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Transform::new(Vector3, Quaternion) -> Self
+pub fn Transform::not_equal(Self, Self) -> Bool
 pub fn Transform::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Transform::rotation(Self) -> Quaternion
 pub fn Transform::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Transform::to_repr(Self) -> @debug.Repr
 pub fn Transform::translation(Self) -> Vector3
 pub fn Transform::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -118,11 +136,14 @@ pub struct TransformStamped {
 } derive(Eq, @debug.Debug)
 pub fn TransformStamped::child_frame_id(Self) -> String
 pub fn TransformStamped::default() -> Self
+pub fn TransformStamped::equal(Self, Self) -> Bool
 pub fn TransformStamped::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn TransformStamped::header(Self) -> @std_msgs.Header
 pub fn TransformStamped::new(@std_msgs.Header, String, Transform) -> Self
+pub fn TransformStamped::not_equal(Self, Self) -> Bool
 pub fn TransformStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn TransformStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn TransformStamped::to_repr(Self) -> @debug.Repr
 pub fn TransformStamped::transform(Self) -> Transform
 pub fn TransformStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -132,11 +153,14 @@ pub struct Twist {
 } derive(Eq, @debug.Debug)
 pub fn Twist::angular(Self) -> Vector3
 pub fn Twist::default() -> Self
+pub fn Twist::equal(Self, Self) -> Bool
 pub fn Twist::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Twist::linear(Self) -> Vector3
 pub fn Twist::new(Vector3, Vector3) -> Self
+pub fn Twist::not_equal(Self, Self) -> Bool
 pub fn Twist::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Twist::to_cdr_bytes(Self) -> Bytes
+pub fn Twist::to_repr(Self) -> @debug.Repr
 pub fn Twist::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct TwistWithCovariance {
@@ -145,10 +169,13 @@ pub struct TwistWithCovariance {
 } derive(Eq, @debug.Debug)
 pub fn TwistWithCovariance::covariance(Self) -> Array[Double]
 pub fn TwistWithCovariance::default() -> Self
+pub fn TwistWithCovariance::equal(Self, Self) -> Bool
 pub fn TwistWithCovariance::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn TwistWithCovariance::new(Twist, Array[Double]) -> Self
+pub fn TwistWithCovariance::not_equal(Self, Self) -> Bool
 pub fn TwistWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn TwistWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn TwistWithCovariance::to_repr(Self) -> @debug.Repr
 pub fn TwistWithCovariance::twist(Self) -> Twist
 pub fn TwistWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -158,10 +185,13 @@ pub struct Vector3 {
   z : Double
 } derive(Eq, @debug.Debug)
 pub fn Vector3::default() -> Self
+pub fn Vector3::equal(Self, Self) -> Bool
 pub fn Vector3::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Vector3::new(Double, Double, Double) -> Self
+pub fn Vector3::not_equal(Self, Self) -> Bool
 pub fn Vector3::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Vector3::to_cdr_bytes(Self) -> Bytes
+pub fn Vector3::to_repr(Self) -> @debug.Repr
 pub fn Vector3::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Vector3::x(Self) -> Double
 pub fn Vector3::y(Self) -> Double

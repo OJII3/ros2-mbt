@@ -4,7 +4,6 @@ async fn DiscoverySession::decode_message(
   self : DiscoverySession,
   message : @rtps.Message,
   source : @socket.Addr,
-  socket_index : Int,
 ) -> Result[Array[@wire.DiscoveryEvent], String] {
   match message.destination_guid_prefix() {
     Ok(Some(destination)) if destination !=
@@ -133,7 +132,6 @@ async fn DiscoverySession::decode_message(
           }
           match
             self.acknowledge_sedp_heartbeat(
-              socket_index,
               message.header().guid_prefix(),
               heartbeat,
               source,
@@ -151,7 +149,6 @@ async fn DiscoverySession::decode_message(
         }
         match
           self.acknowledge_sedp_heartbeat_frag(
-            socket_index,
             message.header().guid_prefix(),
             heartbeat,
             source,
@@ -187,7 +184,6 @@ async fn DiscoverySession::decode_message(
         }
         match
           self.retransmit_sedp_acknack(
-            socket_index,
             message.header().guid_prefix(),
             acknack,
             source,

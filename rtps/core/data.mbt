@@ -16,23 +16,23 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 
 ///|
 /// RTPS STATUS_INFO value for a live instance.
-pub const STATUS_INFO_ALIVE : UInt = 0x00000000U
+pub const STATUS_INFO_ALIVE : UInt32 = 0x00000000U
 
 ///|
 /// RTPS STATUS_INFO bit for a disposed instance.
-pub const STATUS_INFO_DISPOSED : UInt = 0x00000001U
+pub const STATUS_INFO_DISPOSED : UInt32 = 0x00000001U
 
 ///|
 /// RTPS STATUS_INFO bit for an unregistered instance.
-pub const STATUS_INFO_UNREGISTERED : UInt = 0x00000002U
+pub const STATUS_INFO_UNREGISTERED : UInt32 = 0x00000002U
 
 ///|
 /// The fixed DATA submessage body before inline QoS or serialized data.
-pub const DATA_FIXED_BODY_LENGTH : Int = 20
+pub const DATA_FIXED_BODY_LENGTH : Int32 = 20
 
 ///|
 /// The DATA offset from the octetsToInlineQos field to the next body element.
-pub const DATA_INLINE_QOS_OFFSET : Int = DATA_FIXED_BODY_LENGTH - 4
+pub const DATA_INLINE_QOS_OFFSET : Int32 = DATA_FIXED_BODY_LENGTH - 4
 
 ///|
 /// The RTPS DATA submessage body used by discovery and user data.
@@ -134,7 +134,7 @@ pub fn DataSubmessage::with_related_sample_identity(
 /// Return a copy carrying an RTPS instance lifecycle state.
 pub fn DataSubmessage::with_status_info(
   self : DataSubmessage,
-  status : UInt,
+  status : UInt32,
 ) -> DataSubmessage {
   self.with_inline_parameter(
     Parameter::new(PID_STATUS_INFO, data_u32_le(status)),
@@ -206,7 +206,7 @@ pub fn DataSubmessage::related_sample_identity(
 /// Decode the optional RTPS instance lifecycle state from inline QoS.
 pub fn DataSubmessage::status_info(
   self : DataSubmessage,
-) -> Result[UInt?, String] {
+) -> Result[UInt32?, String] {
   if self.inline_qos.length() == 0 {
     return Ok(None)
   }
@@ -247,7 +247,7 @@ fn data_append_u16_le(bytes : Array[Byte], value : UInt16) -> Unit {
 }
 
 ///|
-fn data_append_u32_le(bytes : Array[Byte], value : UInt) -> Unit {
+fn data_append_u32_le(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push(value.to_byte())
   bytes.push((value >> 8).to_byte())
   bytes.push((value >> 16).to_byte())
@@ -255,14 +255,14 @@ fn data_append_u32_le(bytes : Array[Byte], value : UInt) -> Unit {
 }
 
 ///|
-fn data_u32_le(value : UInt) -> Bytes {
+fn data_u32_le(value : UInt32) -> Bytes {
   let bytes : Array[Byte] = []
   data_append_u32_le(bytes, value)
   Bytes::from_array(bytes)
 }
 
 ///|
-fn data_read_u16(input : Bytes, offset : Int, little_endian : Bool) -> UInt16 {
+fn data_read_u16(input : Bytes, offset : Int32, little_endian : Bool) -> UInt16 {
   let value = if little_endian {
     input[offset].to_int() | (input[offset + 1].to_int() << 8)
   } else {
@@ -272,7 +272,7 @@ fn data_read_u16(input : Bytes, offset : Int, little_endian : Bool) -> UInt16 {
 }
 
 ///|
-fn data_read_u32_le(input : Bytes, offset : Int) -> UInt {
+fn data_read_u32_le(input : Bytes, offset : Int32) -> UInt32 {
   input[offset].to_int().reinterpret_as_uint() |
   (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
   (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
@@ -322,7 +322,7 @@ pub fn DataSubmessage::to_message(
 }
 
 ///|
-fn data_read_u32(input : Bytes, offset : Int, little_endian : Bool) -> UInt {
+fn data_read_u32(input : Bytes, offset : Int32, little_endian : Bool) -> UInt32 {
   if little_endian {
     data_read_u32_le(input, offset)
   } else {
@@ -337,7 +337,7 @@ fn data_read_u32(input : Bytes, offset : Int, little_endian : Bool) -> UInt {
 fn data_inline_qos_from_bytes(
   input : Bytes,
   little_endian : Bool,
-) -> Result[(Bytes, Int), String] {
+) -> Result[(Bytes, Int32), String] {
   let (parameters, consumed) = match
     ParameterList::from_bytes_with_endianness(input, little_endian) {
     Ok(value) => value

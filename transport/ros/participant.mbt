@@ -31,7 +31,7 @@ pub fn RosParticipant::from_sockets(
   discovery_socket : @wire.Udp,
   user_socket : @wire.Udp,
   participant : @rtps.SpdpParticipantData,
-  domain_id : UInt,
+  domain_id : UInt32,
   first_sequence_number : Int64,
 ) -> Result[RosParticipant, String] {
   let session = match
@@ -89,12 +89,12 @@ pub fn RosParticipant::from_discovery_session(
 pub async fn RosParticipant::new_ddsi(
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
-  lease_seconds : Int,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
+  lease_seconds : Int32,
   first_sequence_number : Int64,
-  multicast_interface? : UInt,
+  multicast_interface? : UInt32,
 ) -> Result[RosParticipant, String] {
   let participant = match
     @wire.new_ddsi_participant(
@@ -647,7 +647,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
 /// Return the number of remote ROS graph publishers discovered so far.
 pub fn RosParticipant::ros_discovery_publisher_count(
   self : RosParticipant,
-) -> Int {
+) -> Int32 {
   self.graph_publishers.length()
 }
 
@@ -655,7 +655,7 @@ pub fn RosParticipant::ros_discovery_publisher_count(
 /// Return the number of remote ROS graph subscriptions discovered so far.
 pub fn RosParticipant::ros_discovery_subscription_count(
   self : RosParticipant,
-) -> Int {
+) -> Int32 {
   self.graph_subscriptions.length()
 }
 
@@ -682,7 +682,7 @@ pub async fn RosParticipant::publish_ros_discovery_info(
 /// Receive one graph-discovery sample from a discovered publication.
 pub async fn RosParticipant::receive_ros_discovery_info(
   self : RosParticipant,
-  index : Int,
+  index : Int32,
 ) -> Result[(@ros_types.ParticipantEntitiesInfo, @socket.Addr), String] {
   if index < 0 || index >= self.graph_subscriptions.length() {
     return Err("ROS graph subscription index is out of range")
@@ -699,7 +699,7 @@ pub async fn RosParticipant::receive_ros_discovery_info(
 /// Receive and acknowledge one graph-discovery HEARTBEAT.
 pub async fn RosParticipant::receive_ros_discovery_heartbeat(
   self : RosParticipant,
-  index : Int,
+  index : Int32,
 ) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
   if index < 0 || index >= self.graph_subscriptions.length() {
     return Err("ROS graph subscription index is out of range")
@@ -711,7 +711,7 @@ pub async fn RosParticipant::receive_ros_discovery_heartbeat(
 /// Receive an ACKNACK for one graph publisher and retransmit requested data.
 pub async fn RosParticipant::receive_ros_discovery_acknack(
   self : RosParticipant,
-  index : Int,
+  index : Int32,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
   if index < 0 || index >= self.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
@@ -723,7 +723,7 @@ pub async fn RosParticipant::receive_ros_discovery_acknack(
 /// Receive a NACK_FRAG for one graph publisher and retransmit its fragments.
 pub async fn RosParticipant::receive_ros_discovery_nackfrag(
   self : RosParticipant,
-  index : Int,
+  index : Int32,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
   if index < 0 || index >= self.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
@@ -735,7 +735,7 @@ pub async fn RosParticipant::receive_ros_discovery_nackfrag(
 /// Receive either reliable control message for one graph publisher.
 pub async fn RosParticipant::receive_ros_discovery_control(
   self : RosParticipant,
-  index : Int,
+  index : Int32,
 ) -> Result[Unit, String] {
   if index < 0 || index >= self.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
@@ -758,7 +758,7 @@ pub async fn RosParticipant::announce_spdp_once(
 /// Announce the local participant until the surrounding async task is stopped.
 pub async fn RosParticipant::announce_spdp_forever(
   self : RosParticipant,
-  interval_ms : Int,
+  interval_ms : Int32,
 ) -> Result[Unit, String] {
   if interval_ms <= 0 {
     return Err("the discovery announcement interval must be positive")

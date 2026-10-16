@@ -18,17 +18,17 @@ struct DiscoveryRemoteParticipant {
   mut participant : @rtps.SpdpParticipantData
   mut lease_timer : @async.Timer?
   mut lease_remaining_ms : Int64
-  mut lease_segment_ms : Int
+  mut lease_segment_ms : Int32
 }
 
 ///|
 priv enum DiscoveryReceiveOutcome {
-  Message(@rtps.Message, @socket.Addr, Int)
+  Message(@rtps.Message, @socket.Addr)
   ParticipantLeaseExpired(@rtps.Guid)
 }
 
 ///|
-const DISCOVERY_MAX_TIMER_MILLISECONDS : Int = 0x7FFFFFFF
+const DISCOVERY_MAX_TIMER_MILLISECONDS : Int32 = 0x7FFFFFFF
 
 ///|
 /// Return whether an RTPS destination prefix addresses every participant.
@@ -56,7 +56,7 @@ pub struct DiscoverySession {
   sedp_writers : Array[DiscoverySedpWriter]
   mut remote_participants : Array[DiscoveryRemoteParticipant]
   mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
-  mut pending_event_index : Int
+  mut pending_event_index : Int32
 }
 
 ///|
@@ -130,7 +130,7 @@ pub fn DiscoverySession::new_default_with_receive_sockets(
   socket : @wire.Udp,
   receive_sockets : Array[@wire.Udp],
   participant : @rtps.SpdpParticipantData,
-  domain_id : UInt,
+  domain_id : UInt32,
   first_sequence_number : Int64,
 ) -> Result[DiscoverySession, String] {
   let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
@@ -163,7 +163,7 @@ pub fn DiscoverySession::new_default_with_receive_sockets(
 pub fn DiscoverySession::new_default(
   socket : @wire.Udp,
   participant : @rtps.SpdpParticipantData,
-  domain_id : UInt,
+  domain_id : UInt32,
   first_sequence_number : Int64,
 ) -> Result[DiscoverySession, String] {
   let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
@@ -276,8 +276,8 @@ async fn DiscoverySession::announce_once_on(
 /// Send a finite sequence of SPDP announcements at the given interval.
 pub async fn DiscoverySession::announce_n(
   self : DiscoverySession,
-  interval_ms : Int,
-  count : Int,
+  interval_ms : Int32,
+  count : Int32,
 ) -> Result[Unit, String] {
   if interval_ms <= 0 {
     return Err("the discovery announcement interval must be positive")
@@ -304,7 +304,7 @@ pub async fn DiscoverySession::announce_n(
 /// session can be used in a receive loop owned by the application.
 pub async fn DiscoverySession::announce_forever(
   self : DiscoverySession,
-  interval_ms : Int,
+  interval_ms : Int32,
 ) -> Result[Unit, String] {
   if interval_ms <= 0 {
     return Err("the discovery announcement interval must be positive")
@@ -336,8 +336,8 @@ pub async fn DiscoverySession::receive_once(
       return Ok(event)
     }
     match self.receive_message_or_lease_expiry() {
-      Ok(Message(message, source, socket_index)) => {
-        let events = match self.decode_message(message, source, socket_index) {
+      Ok(Message(message, source)) => {
+        let events = match self.decode_message(message, source) {
           Ok(value) => value
           Err(message) => return Err(message)
         }

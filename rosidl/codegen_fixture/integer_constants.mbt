@@ -1,6 +1,6 @@
 ///|
 /// Generated integer constants using the normalized MoonBit literal forms.
-pub const MIN : Int = -128
+pub const MIN : Int32 = -128
 
 ///|
 /// Byte-valued integer constant.
@@ -8,11 +8,11 @@ pub const BYTE : Byte = 255
 
 ///|
 /// Integer constant originating from an octal literal.
-pub const OCTAL : Int = 32767
+pub const OCTAL : Int32 = 32767
 
 ///|
 /// Unsigned integer constant originating from a binary literal.
-pub const BINARY : UInt = 4294967295
+pub const BINARY : UInt32 = 4294967295
 
 ///|
 /// Wide signed integer constant.

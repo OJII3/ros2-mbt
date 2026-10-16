@@ -158,13 +158,13 @@ pub fn MessageWorkspace::add_import(
 
 ///|
 /// Return the number of message sources in the workspace.
-pub fn MessageWorkspace::source_count(self : MessageWorkspace) -> Int {
+pub fn MessageWorkspace::source_count(self : MessageWorkspace) -> Int32 {
   self.sources.length()
 }
 
 ///|
 /// Return the number of external imports in the workspace.
-pub fn MessageWorkspace::import_count(self : MessageWorkspace) -> Int {
+pub fn MessageWorkspace::import_count(self : MessageWorkspace) -> Int32 {
   self.imports.length()
 }
 
@@ -207,7 +207,7 @@ pub fn MessageWorkspace::dependency_order(
   package_name : String,
   interface_namespace : String,
 ) -> Result[Array[MessageSource], String] {
-  let candidates : Array[Int] = []
+  let candidates : Array[Int32] = []
   for index in 0..<self.sources.length() {
     let source = self.sources[index]
     if source.package_name == package_name &&
@@ -218,7 +218,7 @@ pub fn MessageWorkspace::dependency_order(
   if candidates.length() == 0 {
     return Err("the ROS message package was not found")
   }
-  let resolved_indices : Array[Int] = []
+  let resolved_indices : Array[Int32] = []
   while resolved_indices.length() < candidates.length() {
     let mut progress = false
     for candidate in candidates {
@@ -777,13 +777,13 @@ fn MessageWorkspace::reference_for(
 fn MessageWorkspace::local_dependencies(
   self : MessageWorkspace,
   source : MessageSource,
-) -> Result[Array[Int], String] {
+) -> Result[Array[Int32], String] {
   let referenced_types = match
     rosidl_workspace_referenced_types(source.source) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let dependencies : Array[Int] = []
+  let dependencies : Array[Int32] = []
   for referenced_type in referenced_types {
     let (package_name, type_name, qualified) = match
       rosidl_workspace_reference_parts(referenced_type) {
@@ -877,7 +877,7 @@ fn rosidl_workspace_source_index(
   package_name : String,
   interface_namespace : String,
   type_name : String,
-) -> Int {
+) -> Int32 {
   for index in 0..<sources.length() {
     let source = sources[index]
     if source.package_name == package_name &&
@@ -980,7 +980,10 @@ fn rosidl_workspace_contains_string(
 }
 
 ///|
-fn rosidl_workspace_contains_index(values : Array[Int], value : Int) -> Bool {
+fn rosidl_workspace_contains_index(
+  values : Array[Int32],
+  value : Int32,
+) -> Bool {
   for existing in values {
     if existing == value {
       return true

@@ -8,7 +8,7 @@ pub const NACK_FRAG_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 ///|
 /// The fixed HEARTBEAT_FRAG body length.
-pub const HEARTBEAT_FRAG_BODY_LENGTH : Int = 24
+pub const HEARTBEAT_FRAG_BODY_LENGTH : Int32 = 24
 
 ///|
 /// A decoded RTPS HEARTBEAT_FRAG submessage.
@@ -17,8 +17,8 @@ pub struct HeartbeatFragSubmessage {
   reader_id : EntityId
   writer_id : EntityId
   writer_sequence_number : Int64
-  last_fragment_number : UInt
-  count : UInt
+  last_fragment_number : UInt32
+  count : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -33,8 +33,8 @@ pub fn HeartbeatFragSubmessage::new(
   reader_id : EntityId,
   writer_id : EntityId,
   writer_sequence_number : Int64,
-  last_fragment_number : UInt,
-  count : UInt,
+  last_fragment_number : UInt32,
+  count : UInt32,
 ) -> Result[HeartbeatFragSubmessage, String] {
   if writer_sequence_number < 1L || last_fragment_number < 1U {
     return Err("an RTPS HEARTBEAT_FRAG sequence number must be positive")
@@ -83,13 +83,13 @@ pub fn HeartbeatFragSubmessage::writer_sequence_number(
 /// Return the last fragment number.
 pub fn HeartbeatFragSubmessage::last_fragment_number(
   self : HeartbeatFragSubmessage,
-) -> UInt {
+) -> UInt32 {
   self.last_fragment_number
 }
 
 ///|
 /// Return the heartbeat count.
-pub fn HeartbeatFragSubmessage::count(self : HeartbeatFragSubmessage) -> UInt {
+pub fn HeartbeatFragSubmessage::count(self : HeartbeatFragSubmessage) -> UInt32 {
   self.count
 }
 
@@ -180,10 +180,10 @@ pub struct NackFragSubmessage {
   reader_id : EntityId
   writer_id : EntityId
   writer_sequence_number : Int64
-  bitmap_base : UInt
-  num_bits : UInt
-  bitmap : Array[UInt]
-  count : UInt
+  bitmap_base : UInt32
+  num_bits : UInt32
+  bitmap : Array[UInt32]
+  count : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -198,10 +198,10 @@ pub fn NackFragSubmessage::new(
   reader_id : EntityId,
   writer_id : EntityId,
   writer_sequence_number : Int64,
-  bitmap_base : UInt,
-  num_bits : UInt,
-  bitmap : Array[UInt],
-  count : UInt,
+  bitmap_base : UInt32,
+  num_bits : UInt32,
+  bitmap : Array[UInt32],
+  count : UInt32,
 ) -> Result[NackFragSubmessage, String] {
   if writer_sequence_number < 1L || bitmap_base < 1U {
     return Err("an RTPS NACK_FRAG sequence number must be positive")
@@ -253,25 +253,25 @@ pub fn NackFragSubmessage::writer_sequence_number(
 
 ///|
 /// Return the first fragment number represented by the bitmap.
-pub fn NackFragSubmessage::bitmap_base(self : NackFragSubmessage) -> UInt {
+pub fn NackFragSubmessage::bitmap_base(self : NackFragSubmessage) -> UInt32 {
   self.bitmap_base
 }
 
 ///|
 /// Return the number of bitmap bits.
-pub fn NackFragSubmessage::num_bits(self : NackFragSubmessage) -> UInt {
+pub fn NackFragSubmessage::num_bits(self : NackFragSubmessage) -> UInt32 {
   self.num_bits
 }
 
 ///|
 /// Return the fragment bitmap words.
-pub fn NackFragSubmessage::bitmap(self : NackFragSubmessage) -> Array[UInt] {
+pub fn NackFragSubmessage::bitmap(self : NackFragSubmessage) -> Array[UInt32] {
   self.bitmap
 }
 
 ///|
 /// Return the NACK count.
-pub fn NackFragSubmessage::count(self : NackFragSubmessage) -> UInt {
+pub fn NackFragSubmessage::count(self : NackFragSubmessage) -> UInt32 {
   self.count
 }
 
@@ -354,7 +354,7 @@ pub fn NackFragSubmessage::from_submessage(
   if submessage.payload.length() != expected_length {
     return Err("an RTPS NACK_FRAG body has an invalid bitmap length")
   }
-  let bitmap : Array[UInt] = []
+  let bitmap : Array[UInt32] = []
   for i in 0..<word_count {
     bitmap.push(
       reliability_read_u32(submessage.payload, 24 + i * 4, little_endian),

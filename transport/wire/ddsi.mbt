@@ -1,38 +1,38 @@
 ///|
 /// DDSI-RTPS default port base.
-pub const DDSI_PORT_BASE : Int = 7400
+pub const DDSI_PORT_BASE : Int32 = 7400
 
 ///|
 /// DDSI-RTPS port gain between domain IDs.
-pub const DDSI_DOMAIN_ID_GAIN : Int = 250
+pub const DDSI_DOMAIN_ID_GAIN : Int32 = 250
 
 ///|
 /// DDSI-RTPS port gain between participant IDs.
-pub const DDSI_PARTICIPANT_ID_GAIN : Int = 2
+pub const DDSI_PARTICIPANT_ID_GAIN : Int32 = 2
 
 ///|
 /// DDSI-RTPS SPDP multicast port offset.
-pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
+pub const DDSI_SPDP_MULTICAST_OFFSET : Int32 = 0
 
 ///|
 /// DDSI-RTPS SPDP unicast port offset.
-pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
+pub const DDSI_SPDP_UNICAST_OFFSET : Int32 = 10
 
 ///|
 /// Default DDSI-RTPS IPv4 multicast address, 239.255.0.1.
-pub const DDSI_DEFAULT_MULTICAST_IP : UInt = 0xEFFF0001
+pub const DDSI_DEFAULT_MULTICAST_IP : UInt32 = 0xEFFF0001
 
 ///|
 /// DDSI-RTPS user-data multicast port offset.
-pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
+pub const DDSI_USER_MULTICAST_OFFSET : Int32 = 1
 
 ///|
 /// DDSI-RTPS user-data unicast port offset.
-pub const DDSI_USER_UNICAST_OFFSET : Int = 11
+pub const DDSI_USER_UNICAST_OFFSET : Int32 = 11
 
 ///|
 /// Convert an IPv4 integer and port into an RTPS UDP locator.
-fn ddsi_udp_locator(ip : UInt, port : Int) -> Result[@rtps.Locator, String] {
+fn ddsi_udp_locator(ip : UInt32, port : Int32) -> Result[@rtps.Locator, String] {
   @rtps.Locator::udp_v4(
     Bytes::from_array([
       (ip >> 24).to_byte(),
@@ -45,7 +45,7 @@ fn ddsi_udp_locator(ip : UInt, port : Int) -> Result[@rtps.Locator, String] {
 }
 
 ///|
-fn ddsi_port(domain_id : UInt, offset : Int) -> Result[Int, String] {
+fn ddsi_port(domain_id : UInt32, offset : Int32) -> Result[Int32, String] {
   let domain = domain_id.reinterpret_as_int()
   if domain < 0 || offset < 0 {
     return Err("the DDSI-RTPS domain or participant ID is out of range")
@@ -59,16 +59,16 @@ fn ddsi_port(domain_id : UInt, offset : Int) -> Result[Int, String] {
 
 ///|
 /// Return the default SPDP multicast port for a DDS domain.
-pub fn ddsi_spdp_multicast_port(domain_id : UInt) -> Result[Int, String] {
+pub fn ddsi_spdp_multicast_port(domain_id : UInt32) -> Result[Int32, String] {
   ddsi_port(domain_id, DDSI_SPDP_MULTICAST_OFFSET)
 }
 
 ///|
 /// Return the default SPDP unicast port for a domain and participant ID.
 pub fn ddsi_spdp_unicast_port(
-  domain_id : UInt,
-  participant_id : UInt,
-) -> Result[Int, String] {
+  domain_id : UInt32,
+  participant_id : UInt32,
+) -> Result[Int32, String] {
   let participant = participant_id.reinterpret_as_int()
   if participant < 0 {
     return Err("the DDSI-RTPS participant ID is out of range")
@@ -81,16 +81,16 @@ pub fn ddsi_spdp_unicast_port(
 
 ///|
 /// Return the default user-data multicast port for a DDS domain.
-pub fn ddsi_user_multicast_port(domain_id : UInt) -> Result[Int, String] {
+pub fn ddsi_user_multicast_port(domain_id : UInt32) -> Result[Int32, String] {
   ddsi_port(domain_id, DDSI_USER_MULTICAST_OFFSET)
 }
 
 ///|
 /// Return the default user-data unicast port for a domain and participant ID.
 pub fn ddsi_user_unicast_port(
-  domain_id : UInt,
-  participant_id : UInt,
-) -> Result[Int, String] {
+  domain_id : UInt32,
+  participant_id : UInt32,
+) -> Result[Int32, String] {
   let participant = participant_id.reinterpret_as_int()
   if participant < 0 {
     return Err("the DDSI-RTPS participant ID is out of range")
@@ -104,7 +104,7 @@ pub fn ddsi_user_unicast_port(
 ///|
 /// Return the default SPDP multicast destination for a DDS domain.
 pub fn ddsi_default_spdp_multicast_addr(
-  domain_id : UInt,
+  domain_id : UInt32,
 ) -> Result[@socket.Addr, String] {
   let port = match ddsi_spdp_multicast_port(domain_id) {
     Ok(value) => value
@@ -116,9 +116,9 @@ pub fn ddsi_default_spdp_multicast_addr(
 ///|
 /// Return the default SPDP unicast address for an IPv4 participant.
 pub fn ddsi_default_spdp_unicast_addr(
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
 ) -> Result[@socket.Addr, String] {
   let port = match ddsi_spdp_unicast_port(domain_id, participant_id) {
     Ok(value) => value
@@ -130,7 +130,7 @@ pub fn ddsi_default_spdp_unicast_addr(
 ///|
 /// Return the default user-data multicast address for a DDS domain.
 pub fn ddsi_default_user_multicast_addr(
-  domain_id : UInt,
+  domain_id : UInt32,
 ) -> Result[@socket.Addr, String] {
   let port = match ddsi_user_multicast_port(domain_id) {
     Ok(value) => value
@@ -142,9 +142,9 @@ pub fn ddsi_default_user_multicast_addr(
 ///|
 /// Return the default user-data unicast address for an IPv4 participant.
 pub fn ddsi_default_user_unicast_addr(
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
 ) -> Result[@socket.Addr, String] {
   let port = match ddsi_user_unicast_port(domain_id, participant_id) {
     Ok(value) => value
@@ -161,10 +161,10 @@ pub fn ddsi_default_user_unicast_addr(
 pub fn new_ddsi_participant(
   guid_prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
-  lease_seconds : Int,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
+  lease_seconds : Int32,
 ) -> Result[@rtps.SpdpParticipantData, String] {
   let participant_entity_id = match @rtps.EntityId::new(b"\x00\x00\x01", 0xC1) {
     Ok(value) => value

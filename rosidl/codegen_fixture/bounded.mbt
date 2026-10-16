@@ -1,7 +1,7 @@
 ///|
 /// Generated from demo/msg/Bounded.msg
 pub struct Bounded {
-  values : Array[Int]
+  values : Array[Int32]
 } derive(Eq, Debug)
 
 ///|
@@ -16,13 +16,13 @@ pub const Bounded_TYPE_HASH : String = "RIHS01_69505d1f37dd3187aa9337a7c6103be47
 
 ///|
 /// Create a bounded integer sequence message.
-pub fn Bounded::new(values : Array[Int]) -> Bounded {
+pub fn Bounded::new(values : Array[Int32]) -> Bounded {
   { values, }
 }
 
 ///|
 /// Return the bounded integer sequence.
-pub fn Bounded::values(self : Bounded) -> Array[Int] {
+pub fn Bounded::values(self : Bounded) -> Array[Int32] {
   self.values
 }
 
@@ -55,7 +55,7 @@ pub fn Bounded::read_cdr(reader : @cdr.Reader) -> Result[Bounded, String] {
   if values_length > reader.remaining() {
     return Err("generated ROS sequence is truncated")
   }
-  let values : Array[Int] = []
+  let values : Array[Int32] = []
   for _ in 0..<values_length {
     values.push(
       match reader.read_i32() {

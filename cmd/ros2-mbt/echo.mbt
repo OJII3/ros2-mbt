@@ -103,7 +103,7 @@ async fn echo_reliable(
 ///|
 async fn run_topic_echo(
   topic_name : String,
-  spin_time_ms : Int,
+  spin_time_ms : Int32,
 ) -> Result[Unit, String] {
   let ros_name = match normalize_ros_topic_name(topic_name) {
     Ok(value) => value

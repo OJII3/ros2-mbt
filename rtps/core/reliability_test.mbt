@@ -12,7 +12,7 @@ fn reliability_test_ids() -> Result[(@core.EntityId, @core.EntityId), String] {
 }
 
 ///|
-fn reliability_test_append_u32_be(bytes : Array[Byte], value : UInt) -> Unit {
+fn reliability_test_append_u32_be(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push((value >> 24).to_byte())
   bytes.push((value >> 16).to_byte())
   bytes.push((value >> 8).to_byte())
@@ -22,7 +22,7 @@ fn reliability_test_append_u32_be(bytes : Array[Byte], value : UInt) -> Unit {
 ///|
 fn reliability_test_append_sequence_be(
   bytes : Array[Byte],
-  value : UInt,
+  value : UInt32,
 ) -> Unit {
   reliability_test_append_u32_be(bytes, 0U)
   reliability_test_append_u32_be(bytes, value)

@@ -1,45 +1,45 @@
 ///|
 /// Standard status values from `action_msgs/msg/GoalStatus`.
-pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
+pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int32 = 0
 
 ///|
 /// Goal status for an accepted goal.
-pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
+pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int32 = 1
 
 ///|
 /// Goal status for a goal currently executing.
-pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
+pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int32 = 2
 
 ///|
 /// Goal status for a goal being canceled.
-pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
+pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int32 = 3
 
 ///|
 /// Goal status for a successfully completed goal.
-pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
+pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int32 = 4
 
 ///|
 /// Goal status for a canceled goal.
-pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
+pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int32 = 5
 
 ///|
 /// Goal status for an aborted goal.
-pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
+pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int32 = 6
 
 ///|
 /// The goal identifier and timestamp carried by ROS 2 action control messages.
 pub struct RosActionGoalInfo {
   goal_id : Bytes
-  stamp_sec : Int
-  stamp_nanosec : UInt
+  stamp_sec : Int32
+  stamp_nanosec : UInt32
 } derive(Eq, Debug)
 
 ///|
 /// Create action goal information.
 pub fn RosActionGoalInfo::new(
   goal_id : Bytes,
-  stamp_sec : Int,
-  stamp_nanosec : UInt,
+  stamp_sec : Int32,
+  stamp_nanosec : UInt32,
 ) -> Result[RosActionGoalInfo, String] {
   if goal_id.length() != 16 {
     return Err("an action goal ID must contain exactly 16 bytes")
@@ -55,13 +55,13 @@ pub fn RosActionGoalInfo::goal_id(self : RosActionGoalInfo) -> Bytes {
 
 ///|
 /// Return the goal timestamp seconds.
-pub fn RosActionGoalInfo::stamp_sec(self : RosActionGoalInfo) -> Int {
+pub fn RosActionGoalInfo::stamp_sec(self : RosActionGoalInfo) -> Int32 {
   self.stamp_sec
 }
 
 ///|
 /// Return the goal timestamp nanoseconds.
-pub fn RosActionGoalInfo::stamp_nanosec(self : RosActionGoalInfo) -> UInt {
+pub fn RosActionGoalInfo::stamp_nanosec(self : RosActionGoalInfo) -> UInt32 {
   self.stamp_nanosec
 }
 
@@ -69,14 +69,14 @@ pub fn RosActionGoalInfo::stamp_nanosec(self : RosActionGoalInfo) -> UInt {
 /// A goal and its current status in `action_msgs/msg/GoalStatus`.
 pub struct RosActionGoalStatus {
   goal_info : RosActionGoalInfo
-  status : Int
+  status : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Create a goal status value.
 pub fn RosActionGoalStatus::new(
   goal_info : RosActionGoalInfo,
-  status : Int,
+  status : Int32,
 ) -> Result[RosActionGoalStatus, String] {
   if status < -128 || status > 127 {
     return Err("an action goal status must fit in int8")
@@ -94,7 +94,7 @@ pub fn RosActionGoalStatus::goal_info(
 
 ///|
 /// Return the goal status code.
-pub fn RosActionGoalStatus::status(self : RosActionGoalStatus) -> Int {
+pub fn RosActionGoalStatus::status(self : RosActionGoalStatus) -> Int32 {
   self.status
 }
 
@@ -228,7 +228,7 @@ pub fn RosCancelGoalRequest::from_cdr_bytes(
 ///|
 /// A response from the standard `action_msgs/srv/CancelGoal` service.
 pub struct RosCancelGoalResponse {
-  return_code : Int
+  return_code : Int32
   goals_canceling : Array[RosActionGoalInfo]
 } derive(Eq, Debug)
 
@@ -267,7 +267,7 @@ pub extend RosCancelGoalResponse with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a CancelGoal response.
 pub fn RosCancelGoalResponse::new(
-  return_code : Int,
+  return_code : Int32,
   goals_canceling : Array[RosActionGoalInfo],
 ) -> Result[RosCancelGoalResponse, String] {
   if return_code < -128 || return_code > 127 {
@@ -278,7 +278,9 @@ pub fn RosCancelGoalResponse::new(
 
 ///|
 /// Return the CancelGoal response code.
-pub fn RosCancelGoalResponse::return_code(self : RosCancelGoalResponse) -> Int {
+pub fn RosCancelGoalResponse::return_code(
+  self : RosCancelGoalResponse,
+) -> Int32 {
   self.return_code
 }
 

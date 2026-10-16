@@ -327,8 +327,8 @@ test "RTPS DATA_FRAG round trips a final multi-fragment payload" {
     writer_id,
     7L,
     2U,
-    (2 : Int).to_uint16(),
-    (4 : Int).to_uint16(),
+    (2 : Int32).to_uint16(),
+    (4 : Int32).to_uint16(),
     10U,
     b"efghij",
   ).unwrap()
@@ -338,8 +338,8 @@ test "RTPS DATA_FRAG round trips a final multi-fragment payload" {
   let decoded = @core.DataFragSubmessage::from_submessage(submessage).unwrap()
   assert_eq(decoded.writer_sequence_number(), 7L)
   assert_eq(decoded.fragment_starting_number(), 2U)
-  assert_eq(decoded.fragments_in_submessage(), (2 : Int).to_uint16())
-  assert_eq(decoded.fragment_size(), (4 : Int).to_uint16())
+  assert_eq(decoded.fragments_in_submessage(), (2 : Int32).to_uint16())
+  assert_eq(decoded.fragment_size(), (4 : Int32).to_uint16())
   assert_eq(decoded.sample_size(), 10U)
   assert_eq(decoded.serialized_payload(), b"efghij")
   assert_eq(decoded, data_frag)
@@ -355,8 +355,8 @@ test "RTPS DATA_FRAG rejects a short non-final fragment" {
       writer_id,
       1L,
       1U,
-      (1 : Int).to_uint16(),
-      (4 : Int).to_uint16(),
+      (1 : Int32).to_uint16(),
+      (4 : Int32).to_uint16(),
       10U,
       b"abc",
     )

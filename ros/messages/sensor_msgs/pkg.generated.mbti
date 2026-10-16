@@ -96,16 +96,19 @@ pub fn CameraInfo::binning_y(Self) -> UInt
 pub fn CameraInfo::d(Self) -> Array[Double]
 pub fn CameraInfo::default() -> Self
 pub fn CameraInfo::distortion_model(Self) -> String
+pub fn CameraInfo::equal(Self, Self) -> Bool
 pub fn CameraInfo::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn CameraInfo::header(Self) -> @std_msgs.Header
 pub fn CameraInfo::height(Self) -> UInt
 pub fn CameraInfo::k(Self) -> Array[Double]
 pub fn CameraInfo::new(@std_msgs.Header, UInt, UInt, String, Array[Double], Array[Double], Array[Double], Array[Double], UInt, UInt, RegionOfInterest) -> Self
+pub fn CameraInfo::not_equal(Self, Self) -> Bool
 pub fn CameraInfo::p(Self) -> Array[Double]
 pub fn CameraInfo::r(Self) -> Array[Double]
 pub fn CameraInfo::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn CameraInfo::roi(Self) -> RegionOfInterest
 pub fn CameraInfo::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn CameraInfo::to_repr(Self) -> @debug.Repr
 pub fn CameraInfo::width(Self) -> UInt
 pub fn CameraInfo::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -116,12 +119,15 @@ pub struct CompressedImage {
 } derive(Eq, @debug.Debug)
 pub fn CompressedImage::data(Self) -> Array[Byte]
 pub fn CompressedImage::default() -> Self
+pub fn CompressedImage::equal(Self, Self) -> Bool
 pub fn CompressedImage::format(Self) -> String
 pub fn CompressedImage::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn CompressedImage::header(Self) -> @std_msgs.Header
 pub fn CompressedImage::new(@std_msgs.Header, String, Array[Byte]) -> Self
+pub fn CompressedImage::not_equal(Self, Self) -> Bool
 pub fn CompressedImage::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn CompressedImage::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn CompressedImage::to_repr(Self) -> @debug.Repr
 pub fn CompressedImage::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Image {
@@ -136,14 +142,17 @@ pub struct Image {
 pub fn Image::data(Self) -> Array[Byte]
 pub fn Image::default() -> Self
 pub fn Image::encoding(Self) -> String
+pub fn Image::equal(Self, Self) -> Bool
 pub fn Image::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Image::header(Self) -> @std_msgs.Header
 pub fn Image::height(Self) -> UInt
 pub fn Image::is_bigendian(Self) -> Byte
 pub fn Image::new(@std_msgs.Header, UInt, UInt, String, Byte, UInt, Array[Byte]) -> Self
+pub fn Image::not_equal(Self, Self) -> Bool
 pub fn Image::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Image::step(Self) -> UInt
 pub fn Image::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Image::to_repr(Self) -> @debug.Repr
 pub fn Image::width(Self) -> UInt
 pub fn Image::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -159,15 +168,18 @@ pub struct Imu {
 pub fn Imu::angular_velocity(Self) -> @geometry_msgs.Vector3
 pub fn Imu::angular_velocity_covariance(Self) -> Array[Double]
 pub fn Imu::default() -> Self
+pub fn Imu::equal(Self, Self) -> Bool
 pub fn Imu::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Imu::header(Self) -> @std_msgs.Header
 pub fn Imu::linear_acceleration(Self) -> @geometry_msgs.Vector3
 pub fn Imu::linear_acceleration_covariance(Self) -> Array[Double]
 pub fn Imu::new(@std_msgs.Header, @geometry_msgs.Quaternion, Array[Double], @geometry_msgs.Vector3, Array[Double], @geometry_msgs.Vector3, Array[Double]) -> Self
+pub fn Imu::not_equal(Self, Self) -> Bool
 pub fn Imu::orientation(Self) -> @geometry_msgs.Quaternion
 pub fn Imu::orientation_covariance(Self) -> Array[Double]
 pub fn Imu::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Imu::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Imu::to_repr(Self) -> @debug.Repr
 pub fn Imu::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct JointState {
@@ -179,13 +191,16 @@ pub struct JointState {
 } derive(Eq, @debug.Debug)
 pub fn JointState::default() -> Self
 pub fn JointState::effort(Self) -> Array[Double]
+pub fn JointState::equal(Self, Self) -> Bool
 pub fn JointState::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn JointState::header(Self) -> @std_msgs.Header
 pub fn JointState::name(Self) -> Array[String]
 pub fn JointState::new(@std_msgs.Header, Array[String], Array[Double], Array[Double], Array[Double]) -> Self
+pub fn JointState::not_equal(Self, Self) -> Bool
 pub fn JointState::position(Self) -> Array[Double]
 pub fn JointState::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn JointState::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn JointState::to_repr(Self) -> @debug.Repr
 pub fn JointState::velocity(Self) -> Array[Double]
 pub fn JointState::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -205,10 +220,12 @@ pub fn LaserScan::angle_increment(Self) -> Float
 pub fn LaserScan::angle_max(Self) -> Float
 pub fn LaserScan::angle_min(Self) -> Float
 pub fn LaserScan::default() -> Self
+pub fn LaserScan::equal(Self, Self) -> Bool
 pub fn LaserScan::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn LaserScan::header(Self) -> @std_msgs.Header
 pub fn LaserScan::intensities(Self) -> Array[Float]
 pub fn LaserScan::new(@std_msgs.Header, Float, Float, Float, Float, Float, Float, Float, Array[Float], Array[Float]) -> Self
+pub fn LaserScan::not_equal(Self, Self) -> Bool
 pub fn LaserScan::range_max(Self) -> Float
 pub fn LaserScan::range_min(Self) -> Float
 pub fn LaserScan::ranges(Self) -> Array[Float]
@@ -216,6 +233,7 @@ pub fn LaserScan::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn LaserScan::scan_time(Self) -> Float
 pub fn LaserScan::time_increment(Self) -> Float
 pub fn LaserScan::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn LaserScan::to_repr(Self) -> @debug.Repr
 pub fn LaserScan::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct NavSatFix {
@@ -229,16 +247,19 @@ pub struct NavSatFix {
 } derive(Eq, @debug.Debug)
 pub fn NavSatFix::altitude(Self) -> Double
 pub fn NavSatFix::default() -> Self
+pub fn NavSatFix::equal(Self, Self) -> Bool
 pub fn NavSatFix::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn NavSatFix::header(Self) -> @std_msgs.Header
 pub fn NavSatFix::latitude(Self) -> Double
 pub fn NavSatFix::longitude(Self) -> Double
 pub fn NavSatFix::new(@std_msgs.Header, NavSatStatus, Double, Double, Double, Array[Double], Byte) -> Self
+pub fn NavSatFix::not_equal(Self, Self) -> Bool
 pub fn NavSatFix::position_covariance(Self) -> Array[Double]
 pub fn NavSatFix::position_covariance_type(Self) -> Byte
 pub fn NavSatFix::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn NavSatFix::status(Self) -> NavSatStatus
 pub fn NavSatFix::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn NavSatFix::to_repr(Self) -> @debug.Repr
 pub fn NavSatFix::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct NavSatStatus {
@@ -246,12 +267,15 @@ pub struct NavSatStatus {
   service : UInt
 } derive(Eq, @debug.Debug)
 pub fn NavSatStatus::default() -> Self
+pub fn NavSatStatus::equal(Self, Self) -> Bool
 pub fn NavSatStatus::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn NavSatStatus::new(Int, UInt) -> Self
+pub fn NavSatStatus::not_equal(Self, Self) -> Bool
 pub fn NavSatStatus::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn NavSatStatus::service(Self) -> UInt
 pub fn NavSatStatus::status(Self) -> Int
 pub fn NavSatStatus::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn NavSatStatus::to_repr(Self) -> @debug.Repr
 pub fn NavSatStatus::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PointCloud2 {
@@ -267,6 +291,7 @@ pub struct PointCloud2 {
 } derive(Eq, @debug.Debug)
 pub fn PointCloud2::data(Self) -> Array[Byte]
 pub fn PointCloud2::default() -> Self
+pub fn PointCloud2::equal(Self, Self) -> Bool
 pub fn PointCloud2::fields(Self) -> Array[PointField]
 pub fn PointCloud2::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn PointCloud2::header(Self) -> @std_msgs.Header
@@ -274,10 +299,12 @@ pub fn PointCloud2::height(Self) -> UInt
 pub fn PointCloud2::is_bigendian(Self) -> Bool
 pub fn PointCloud2::is_dense(Self) -> Bool
 pub fn PointCloud2::new(@std_msgs.Header, UInt, UInt, Array[PointField], Bool, UInt, UInt, Array[Byte], Bool) -> Self
+pub fn PointCloud2::not_equal(Self, Self) -> Bool
 pub fn PointCloud2::point_step(Self) -> UInt
 pub fn PointCloud2::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PointCloud2::row_step(Self) -> UInt
 pub fn PointCloud2::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PointCloud2::to_repr(Self) -> @debug.Repr
 pub fn PointCloud2::width(Self) -> UInt
 pub fn PointCloud2::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -290,12 +317,15 @@ pub struct PointField {
 pub fn PointField::count(Self) -> UInt
 pub fn PointField::datatype(Self) -> Byte
 pub fn PointField::default() -> Self
+pub fn PointField::equal(Self, Self) -> Bool
 pub fn PointField::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn PointField::name(Self) -> String
 pub fn PointField::new(String, UInt, Byte, UInt) -> Self
+pub fn PointField::not_equal(Self, Self) -> Bool
 pub fn PointField::offset(Self) -> UInt
 pub fn PointField::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PointField::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn PointField::to_repr(Self) -> @debug.Repr
 pub fn PointField::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct RegionOfInterest {
@@ -307,11 +337,14 @@ pub struct RegionOfInterest {
 } derive(Eq, @debug.Debug)
 pub fn RegionOfInterest::default() -> Self
 pub fn RegionOfInterest::do_rectify(Self) -> Bool
+pub fn RegionOfInterest::equal(Self, Self) -> Bool
 pub fn RegionOfInterest::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn RegionOfInterest::height(Self) -> UInt
 pub fn RegionOfInterest::new(UInt, UInt, UInt, UInt, Bool) -> Self
+pub fn RegionOfInterest::not_equal(Self, Self) -> Bool
 pub fn RegionOfInterest::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn RegionOfInterest::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn RegionOfInterest::to_repr(Self) -> @debug.Repr
 pub fn RegionOfInterest::width(Self) -> UInt
 pub fn RegionOfInterest::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn RegionOfInterest::x_offset(Self) -> UInt

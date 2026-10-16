@@ -45,7 +45,7 @@ pub fn ReliableSedpWriter::next_sequence_number(
 
 ///|
 /// Return the number of announcements retained for retransmission.
-pub fn ReliableSedpWriter::history_length(self : ReliableSedpWriter) -> Int {
+pub fn ReliableSedpWriter::history_length(self : ReliableSedpWriter) -> Int32 {
   self.writer.history_length()
 }
 

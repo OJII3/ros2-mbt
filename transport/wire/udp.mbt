@@ -1,6 +1,6 @@
 ///|
 /// Maximum size of one UDP datagram accepted by the RTPS transport.
-pub const MAX_DATAGRAM_SIZE : Int = 65535
+pub const MAX_DATAGRAM_SIZE : Int32 = 65535
 
 ///|
 fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
@@ -54,7 +54,7 @@ pub fn Udp::set_multicast_interface(
 ///|
 /// Bind to the DDSI-RTPS SPDP multicast port for a domain.
 pub async fn Udp::ddsi_spdp_multicast(
-  domain_id : UInt,
+  domain_id : UInt32,
   interface_addr? : @socket.Addr,
 ) -> Result[Udp, String] {
   let address = match ddsi_default_spdp_multicast_addr(domain_id) {
@@ -67,9 +67,9 @@ pub async fn Udp::ddsi_spdp_multicast(
 ///|
 /// Bind to a DDSI-RTPS SPDP unicast port.
 pub async fn Udp::ddsi_spdp_unicast(
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
 ) -> Result[Udp, String] {
   let address = match
     ddsi_default_spdp_unicast_addr(domain_id, participant_id, ip) {
@@ -82,7 +82,7 @@ pub async fn Udp::ddsi_spdp_unicast(
 ///|
 /// Bind to the DDSI-RTPS user-data multicast port for a domain.
 pub async fn Udp::ddsi_user_multicast(
-  domain_id : UInt,
+  domain_id : UInt32,
   interface_addr? : @socket.Addr,
 ) -> Result[Udp, String] {
   let address = match ddsi_default_user_multicast_addr(domain_id) {
@@ -95,9 +95,9 @@ pub async fn Udp::ddsi_user_multicast(
 ///|
 /// Bind to a DDSI-RTPS user-data unicast port.
 pub async fn Udp::ddsi_user_unicast(
-  domain_id : UInt,
-  participant_id : UInt,
-  ip : UInt,
+  domain_id : UInt32,
+  participant_id : UInt32,
+  ip : UInt32,
 ) -> Result[Udp, String] {
   let address = match
     ddsi_default_user_unicast_addr(domain_id, participant_id, ip) {
@@ -442,7 +442,7 @@ fn udp_locator_to_addr(locator : @rtps.Locator) -> Result[@socket.Addr, String] 
     return Err("only UDP/IPv4 RTPS locators are supported")
   }
   let address = locator.address()
-  let ip : UInt = (address[12].to_int().reinterpret_as_uint() << 24) |
+  let ip : UInt32 = (address[12].to_int().reinterpret_as_uint() << 24) |
     (address[13].to_int().reinterpret_as_uint() << 16) |
     (address[14].to_int().reinterpret_as_uint() << 8) |
     address[15].to_int().reinterpret_as_uint()
@@ -494,7 +494,7 @@ pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(
   vendor_id : @rtps.VendorId,
   remote_participant : @rtps.SpdpParticipantData,
   writer_sequence_number : Int64,
-  heartbeat_count : UInt,
+  heartbeat_count : UInt32,
 ) -> Result[Unit, String] {
   let kind = endpoint.kind()
   let reader_id = kind.builtin_reader_id()
@@ -575,7 +575,7 @@ pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(
   vendor_id : @rtps.VendorId,
   remote_participant : @rtps.SpdpParticipantData,
   writer_sequence_number : Int64,
-  heartbeat_count : UInt,
+  heartbeat_count : UInt32,
 ) -> Result[Unit, String] {
   let kind = endpoint.kind()
   let reader_id = kind.builtin_reader_id()

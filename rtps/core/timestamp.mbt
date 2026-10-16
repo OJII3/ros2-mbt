@@ -10,8 +10,8 @@ pub const INFO_TIMESTAMP_FLAG_INVALIDATE : Byte = 0x02
 /// The RTPS INFO_TS timestamp carried in NTP seconds and fractional seconds.
 pub struct InfoTimestampSubmessage {
   flags : Byte
-  seconds : Int
-  fraction : UInt
+  seconds : Int32
+  fraction : UInt32
   valid : Bool
 } derive(Eq, Debug)
 
@@ -24,8 +24,8 @@ pub extend InfoTimestampSubmessage with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a little-endian INFO_TS with a valid timestamp.
 pub fn InfoTimestampSubmessage::new(
-  seconds : Int,
-  fraction : UInt,
+  seconds : Int32,
+  fraction : UInt32,
 ) -> InfoTimestampSubmessage {
   { flags: INFO_TIMESTAMP_FLAG_LITTLE_ENDIAN, seconds, fraction, valid: true, }
 }
@@ -49,7 +49,9 @@ pub fn InfoTimestampSubmessage::flags(self : InfoTimestampSubmessage) -> Byte {
 
 ///|
 /// Return the timestamp seconds.
-pub fn InfoTimestampSubmessage::seconds(self : InfoTimestampSubmessage) -> Int {
+pub fn InfoTimestampSubmessage::seconds(
+  self : InfoTimestampSubmessage,
+) -> Int32 {
   self.seconds
 }
 
@@ -57,7 +59,7 @@ pub fn InfoTimestampSubmessage::seconds(self : InfoTimestampSubmessage) -> Int {
 /// Return the timestamp fractional seconds.
 pub fn InfoTimestampSubmessage::fraction(
   self : InfoTimestampSubmessage,
-) -> UInt {
+) -> UInt32 {
   self.fraction
 }
 
@@ -72,7 +74,7 @@ pub fn InfoTimestampSubmessage::is_valid(
 ///|
 fn info_timestamp_append_u32(
   bytes : Array[Byte],
-  value : UInt,
+  value : UInt32,
   little_endian : Bool,
 ) -> Unit {
   if little_endian {
@@ -91,9 +93,9 @@ fn info_timestamp_append_u32(
 ///|
 fn info_timestamp_read_u32(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
-) -> UInt {
+) -> UInt32 {
   if little_endian {
     input[offset].to_int().reinterpret_as_uint() |
     (input[offset + 1].to_int().reinterpret_as_uint() << 8) |

@@ -1,0 +1,112 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/rosidl/codegen_fixture"
+
+import {
+  "OJII3/ros2-mbt/cdr",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const BINARY : UInt = 4294967295
+
+pub const BYTE : Byte = 255
+
+pub const BoundedString_TYPE_HASH : String = "RIHS01_8052629c483a2c158d8ae1d74f6e52ec8e9969320cd4fab8b6680a2d8882db92"
+
+pub const Bounded_TYPE_HASH : String = "RIHS01_69505d1f37dd3187aa9337a7c6103be470f44c1341711181175e5e5e6bb951f5"
+
+pub const ESCAPED : String = "say \"hi\""
+
+pub const GROUPED : Double = 1000.5e+2
+
+pub const LARGE : Double = -2.0e+9
+
+pub const LEADING : Double = 0.5
+
+pub const MIN : Int = -128
+
+pub const OCTAL : Int = 32767
+
+pub const RAW : String = "unquoted value"
+
+pub const SINGLE : String = "single quoted"
+
+pub const SMALL : Float = 1.25e-3
+
+pub const TRAILING : Double = 1.0
+
+pub const UNICODE : String = "猫"
+
+pub const UNSIGNED : UInt64 = 18446744073709551615
+
+pub const WHOLE : Float = 1.0
+
+pub const WIDE : Int64 = -9223372036854775808
+
+// Errors
+
+// Types and methods
+pub struct Bounded {
+  values : Array[Int]
+} derive(Eq, @debug.Debug)
+pub fn Bounded::equal(Self, Self) -> Bool
+pub fn Bounded::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn Bounded::new(Array[Int]) -> Self
+pub fn Bounded::not_equal(Self, Self) -> Bool
+pub fn Bounded::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn Bounded::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Bounded::to_repr(Self) -> @debug.Repr
+pub fn Bounded::values(Self) -> Array[Int]
+pub fn Bounded::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct BoundedString {
+  name : String
+} derive(Eq, @debug.Debug)
+pub fn BoundedString::equal(Self, Self) -> Bool
+pub fn BoundedString::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn BoundedString::name(Self) -> String
+pub fn BoundedString::new(String) -> Self
+pub fn BoundedString::not_equal(Self, Self) -> Bool
+pub fn BoundedString::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn BoundedString::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn BoundedString::to_repr(Self) -> @debug.Repr
+pub fn BoundedString::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+pub struct Defaulted {
+  enabled : Bool
+  count : Int
+  label : String
+  samples : Array[Int]
+  history : Array[Int]
+  zeros : Array[Int]
+} derive(Eq, @debug.Debug)
+pub fn Defaulted::count(Self) -> Int
+pub fn Defaulted::default() -> Self
+pub fn Defaulted::enabled(Self) -> Bool
+pub fn Defaulted::equal(Self, Self) -> Bool
+pub fn Defaulted::history(Self) -> Array[Int]
+pub fn Defaulted::label(Self) -> String
+pub fn Defaulted::new(Bool, Int, String, Array[Int], Array[Int], Array[Int]) -> Self
+pub fn Defaulted::not_equal(Self, Self) -> Bool
+pub fn Defaulted::samples(Self) -> Array[Int]
+pub fn Defaulted::to_repr(Self) -> @debug.Repr
+pub fn Defaulted::zeros(Self) -> Array[Int]
+
+pub struct WideStrings {
+  data : String
+  bounded : String
+  values : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn WideStrings::default() -> Self
+pub fn WideStrings::equal(Self, Self) -> Bool
+pub fn WideStrings::from_cdr_bytes(Bytes) -> Result[Self, String]
+pub fn WideStrings::new(String, String, Array[String]) -> Self
+pub fn WideStrings::not_equal(Self, Self) -> Bool
+pub fn WideStrings::read_cdr(@cdr.Reader) -> Result[Self, String]
+pub fn WideStrings::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn WideStrings::to_repr(Self) -> @debug.Repr
+pub fn WideStrings::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
+
+// Type aliases
+
+// Traits

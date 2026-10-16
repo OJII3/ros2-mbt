@@ -40,8 +40,10 @@ pub fn RosService::dds_request_name(Self) -> String
 pub fn RosService::dds_request_type_name(Self) -> String
 pub fn RosService::dds_response_name(Self) -> String
 pub fn RosService::dds_response_type_name(Self) -> String
+pub fn RosService::equal(Self, Self) -> Bool
 pub fn RosService::new(String, String, String) -> Result[Self, String]
 pub fn RosService::new_with_interface_namespace(String, String, String, String) -> Result[Self, String]
+pub fn RosService::not_equal(Self, Self) -> Bool
 pub fn RosService::request_to_sedp(Self, @discovery.SedpEndpointKind, @core.Guid) -> Result[@discovery.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_qos(Self, @discovery.SedpEndpointKind, @core.Guid, @discovery.SedpQos) -> Result[@discovery.SedpEndpointData, String]
 pub fn RosService::request_to_sedp_with_qos_and_type_hash(Self, @discovery.SedpEndpointKind, @core.Guid, @discovery.SedpQos, String) -> Result[@discovery.SedpEndpointData, String]
@@ -51,15 +53,19 @@ pub fn RosService::response_to_sedp_with_qos(Self, @discovery.SedpEndpointKind, 
 pub fn RosService::response_to_sedp_with_qos_and_type_hash(Self, @discovery.SedpEndpointKind, @core.Guid, @discovery.SedpQos, String) -> Result[@discovery.SedpEndpointData, String]
 pub fn RosService::response_to_sedp_with_related_endpoint(Self, @discovery.SedpEndpointKind, @core.Guid, @core.Guid) -> Result[@discovery.SedpEndpointData, String]
 pub fn RosService::ros_name(Self) -> String
+pub fn RosService::to_repr(Self) -> @debug.Repr
 
 pub struct RosServicePayloadHeader {
   client_id : UInt64
   sequence_number : Int64
 } derive(Eq, @debug.Debug)
 pub fn RosServicePayloadHeader::client_id(Self) -> UInt64
+pub fn RosServicePayloadHeader::equal(Self, Self) -> Bool
 pub fn RosServicePayloadHeader::new(UInt64, Int64) -> Self
+pub fn RosServicePayloadHeader::not_equal(Self, Self) -> Bool
 pub fn RosServicePayloadHeader::sequence_number(Self) -> Int64
 pub fn RosServicePayloadHeader::to_cdr_payload(Self, Bytes) -> Result[Bytes, String]
+pub fn RosServicePayloadHeader::to_repr(Self) -> @debug.Repr
 
 pub struct RosTopic {
   ros_name : String
@@ -68,6 +74,7 @@ pub struct RosTopic {
 }
 pub fn RosTopic::dds_name(Self) -> String
 pub fn RosTopic::dds_type_name(Self) -> String
+pub fn RosTopic::from_dds(String, String, String) -> Result[Self, String]
 pub fn RosTopic::new(String, String, String, String) -> Result[Self, String]
 pub fn RosTopic::ros_name(Self) -> String
 pub fn RosTopic::to_sedp(Self, @discovery.SedpEndpointKind, @core.Guid) -> Result[@discovery.SedpEndpointData, String]

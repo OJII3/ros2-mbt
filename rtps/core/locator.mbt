@@ -1,20 +1,20 @@
 ///|
 /// The size of an RTPS Locator_t value in bytes.
-pub const LOCATOR_LENGTH : Int = 24
+pub const LOCATOR_LENGTH : Int32 = 24
 
 ///|
 /// Locator kind for UDP over IPv4.
-pub const LOCATOR_KIND_UDP_V4 : Int = 1
+pub const LOCATOR_KIND_UDP_V4 : Int32 = 1
 
 ///|
 /// Locator kind for UDP over IPv6.
-pub const LOCATOR_KIND_UDP_V6 : Int = 2
+pub const LOCATOR_KIND_UDP_V6 : Int32 = 2
 
 ///|
 /// An RTPS locator containing a transport kind, port, and 16-byte address.
 pub struct Locator {
-  kind : Int
-  port : UInt
+  kind : Int32
+  port : UInt32
   address : Bytes
 } derive(Eq, Debug)
 
@@ -27,8 +27,8 @@ pub extend Locator with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a locator from its wire-format fields.
 pub fn Locator::new(
-  kind : Int,
-  port : UInt,
+  kind : Int32,
+  port : UInt32,
   address : Bytes,
 ) -> Result[Locator, String] {
   if address.length() != 16 {
@@ -40,7 +40,10 @@ pub fn Locator::new(
 
 ///|
 /// Create a UDP/IPv4 locator from a four-byte network address.
-pub fn Locator::udp_v4(address : Bytes, port : UInt) -> Result[Locator, String] {
+pub fn Locator::udp_v4(
+  address : Bytes,
+  port : UInt32,
+) -> Result[Locator, String] {
   if address.length() != 4 {
     return Err("an IPv4 locator address must contain exactly 4 bytes")
   }
@@ -67,13 +70,13 @@ pub fn Locator::udp_v4(address : Bytes, port : UInt) -> Result[Locator, String] 
 
 ///|
 /// Return the locator kind.
-pub fn Locator::kind(self : Locator) -> Int {
+pub fn Locator::kind(self : Locator) -> Int32 {
   self.kind
 }
 
 ///|
 /// Return the locator port.
-pub fn Locator::port(self : Locator) -> UInt {
+pub fn Locator::port(self : Locator) -> UInt32 {
   self.port
 }
 
@@ -110,11 +113,11 @@ pub fn Locator::from_bytes(input : Bytes) -> Result[Locator, String] {
   if input.length() != LOCATOR_LENGTH {
     return Err("an RTPS locator is 24 bytes")
   }
-  let kind_value : UInt = input[0].to_int().reinterpret_as_uint() |
+  let kind_value : UInt32 = input[0].to_int().reinterpret_as_uint() |
     (input[1].to_int().reinterpret_as_uint() << 8) |
     (input[2].to_int().reinterpret_as_uint() << 16) |
     (input[3].to_int().reinterpret_as_uint() << 24)
-  let port : UInt = input[4].to_int().reinterpret_as_uint() |
+  let port : UInt32 = input[4].to_int().reinterpret_as_uint() |
     (input[5].to_int().reinterpret_as_uint() << 8) |
     (input[6].to_int().reinterpret_as_uint() << 16) |
     (input[7].to_int().reinterpret_as_uint() << 24)

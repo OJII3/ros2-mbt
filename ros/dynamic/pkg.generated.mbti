@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/ros/dynamic"
+
+import {
+  "OJII3/ros2-mbt/ros/introspection",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn decode(@introspection.MessageSchema, Bytes) -> Result[Value, String]
+
+pub fn to_yaml(Value) -> Result[String, String]
+
+// Errors
+
+// Types and methods
+pub enum Value {
+  BoolValue(Bool)
+  SignedValue(Int64)
+  UnsignedValue(UInt64)
+  FloatValue(Double)
+  StringValue(String)
+  ArrayValue(Array[Value])
+  ObjectValue(Array[(String, Value)])
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

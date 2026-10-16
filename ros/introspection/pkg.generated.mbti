@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/ros/introspection"
+
+import {
+  "OJII3/ros2-mbt/rosidl/compiler",
+}
+
+// Values
+pub async fn load_message_schema(String) -> Result[MessageSchema, String]
+
+// Errors
+
+// Types and methods
+pub struct MessageSchema {
+  root : @compiler.MessageDefinition
+  definitions : Array[@compiler.MessageDefinition]
+}
+pub fn MessageSchema::find(Self, String, String) -> @compiler.MessageDefinition?
+pub fn MessageSchema::root(Self) -> @compiler.MessageDefinition
+
+// Type aliases
+
+// Traits

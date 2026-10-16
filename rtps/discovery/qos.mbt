@@ -1,62 +1,62 @@
 ///|
 /// DDS reliability kind values used by PID_RELIABILITY.
-pub const RELIABILITY_BEST_EFFORT : UInt = 1
+pub const RELIABILITY_BEST_EFFORT : UInt32 = 1
 
 ///|
 /// Reliable delivery.
-pub const RELIABILITY_RELIABLE : UInt = 2
+pub const RELIABILITY_RELIABLE : UInt32 = 2
 
 ///|
 /// DDS durability kind values used by PID_DURABILITY.
-pub const DURABILITY_VOLATILE : UInt = 0
+pub const DURABILITY_VOLATILE : UInt32 = 0
 
 ///|
 /// Transient-local durability.
-pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
+pub const DURABILITY_TRANSIENT_LOCAL : UInt32 = 1
 
 ///|
 /// Transient durability.
-pub const DURABILITY_TRANSIENT : UInt = 2
+pub const DURABILITY_TRANSIENT : UInt32 = 2
 
 ///|
 /// Persistent durability.
-pub const DURABILITY_PERSISTENT : UInt = 3
+pub const DURABILITY_PERSISTENT : UInt32 = 3
 
 ///|
 /// DDS history kind values used by PID_HISTORY.
-pub const HISTORY_KEEP_LAST : UInt = 0
+pub const HISTORY_KEEP_LAST : UInt32 = 0
 
 ///|
 /// Keep-all history.
-pub const HISTORY_KEEP_ALL : UInt = 1
+pub const HISTORY_KEEP_ALL : UInt32 = 1
 
 ///|
 /// DDS liveliness kind values used by PID_LIVELINESS.
-pub const LIVELINESS_AUTOMATIC : UInt = 0
+pub const LIVELINESS_AUTOMATIC : UInt32 = 0
 
 ///|
 /// Manual liveliness asserted by the participant.
-pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
+pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt32 = 1
 
 ///|
 /// Manual liveliness asserted by the topic.
-pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
+pub const LIVELINESS_MANUAL_BY_TOPIC : UInt32 = 2
 
 ///|
 /// DDS ownership kind values used by PID_OWNERSHIP.
-pub const OWNERSHIP_SHARED : UInt = 0
+pub const OWNERSHIP_SHARED : UInt32 = 0
 
 ///|
 /// Exclusive ownership.
-pub const OWNERSHIP_EXCLUSIVE : UInt = 1
+pub const OWNERSHIP_EXCLUSIVE : UInt32 = 1
 
 ///|
 /// DDS destination-order kind values used by PID_DESTINATION_ORDER.
-pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
+pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt32 = 0
 
 ///|
 /// Order by source timestamp.
-pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
+pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt32 = 1
 
 ///|
 /// DDS XCDR1 data-representation identifier.
@@ -67,7 +67,7 @@ pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
 pub const DATA_REPRESENTATION_XCDR2 : UInt16 = 2
 
 ///|
-fn qos_u32_le(value : UInt) -> Bytes {
+fn qos_u32_le(value : UInt32) -> Bytes {
   Bytes::from_array([
     value.to_byte(),
     (value >> 8).to_byte(),
@@ -77,17 +77,17 @@ fn qos_u32_le(value : UInt) -> Bytes {
 }
 
 ///|
-fn qos_i32_le(value : Int) -> Bytes {
+fn qos_i32_le(value : Int32) -> Bytes {
   qos_u32_le(value.reinterpret_as_uint())
 }
 
 ///|
-fn qos_fraction_to_nanoseconds(fraction : UInt) -> UInt {
+fn qos_fraction_to_nanoseconds(fraction : UInt32) -> UInt32 {
   ((fraction.to_uint64() * 1_000_000_000U.to_uint64()) >> 32).to_uint()
 }
 
 ///|
-fn qos_nanoseconds_to_fraction(nanoseconds : UInt) -> UInt {
+fn qos_nanoseconds_to_fraction(nanoseconds : UInt32) -> UInt32 {
   if nanoseconds >= 1_000_000_000U {
     return 0xFFFFFFFFU
   }
@@ -101,7 +101,7 @@ fn qos_nanoseconds_to_fraction(nanoseconds : UInt) -> UInt {
 }
 
 ///|
-fn qos_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
+fn qos_duration(seconds : Int32, nanoseconds : UInt32) -> Bytes {
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
   let fraction_bytes = qos_u32_le(qos_nanoseconds_to_fraction(nanoseconds))
@@ -115,16 +115,16 @@ fn qos_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
 }
 
 ///|
-fn qos_kind(kind : UInt) -> Bytes {
+fn qos_kind(kind : UInt32) -> Bytes {
   qos_u32_le(kind)
 }
 
 ///|
 /// Construct a PID_RELIABILITY parameter.
 pub fn qos_reliability(
-  kind : UInt,
-  max_blocking_seconds : Int,
-  max_blocking_nanoseconds : UInt,
+  kind : UInt32,
+  max_blocking_seconds : Int32,
+  max_blocking_nanoseconds : UInt32,
 ) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
@@ -142,13 +142,13 @@ pub fn qos_reliability(
 
 ///|
 /// Construct a PID_DURABILITY parameter.
-pub fn qos_durability(kind : UInt) -> @core.Parameter {
+pub fn qos_durability(kind : UInt32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_DURABILITY, qos_kind(kind))
 }
 
 ///|
 /// Construct a PID_HISTORY parameter.
-pub fn qos_history(kind : UInt, depth : Int) -> @core.Parameter {
+pub fn qos_history(kind : UInt32, depth : Int32) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
   let depth_bytes = qos_i32_le(depth)
@@ -163,12 +163,12 @@ pub fn qos_history(kind : UInt, depth : Int) -> @core.Parameter {
 
 ///|
 /// Construct a duration-valued QoS parameter.
-pub fn qos_deadline(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
+pub fn qos_deadline(seconds : Int32, nanoseconds : UInt32) -> @core.Parameter {
   qos_deadline_fraction(seconds, qos_nanoseconds_to_fraction(nanoseconds))
 }
 
 ///|
-fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> @core.Parameter {
+fn qos_deadline_fraction(seconds : Int32, fraction : UInt32) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
   let fraction_bytes = qos_u32_le(fraction)
@@ -183,7 +183,7 @@ fn qos_deadline_fraction(seconds : Int, fraction : UInt) -> @core.Parameter {
 
 ///|
 /// Construct a PID_LIFESPAN parameter.
-pub fn qos_lifespan(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
+pub fn qos_lifespan(seconds : Int32, nanoseconds : UInt32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_LIFESPAN, qos_duration(seconds, nanoseconds))
 }
 
@@ -201,7 +201,10 @@ pub fn qos_user_data_type_hash(type_hash : String) -> @core.Parameter {
 
 ///|
 /// Construct a PID_LATENCY_BUDGET parameter.
-pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> @core.Parameter {
+pub fn qos_latency_budget(
+  seconds : Int32,
+  nanoseconds : UInt32,
+) -> @core.Parameter {
   @core.Parameter::new(
     @core.PID_LATENCY_BUDGET,
     qos_duration(seconds, nanoseconds),
@@ -211,9 +214,9 @@ pub fn qos_latency_budget(seconds : Int, nanoseconds : UInt) -> @core.Parameter 
 ///|
 /// Construct a PID_LIVELINESS parameter.
 pub fn qos_liveliness(
-  kind : UInt,
-  lease_seconds : Int,
-  lease_nanoseconds : UInt,
+  kind : UInt32,
+  lease_seconds : Int32,
+  lease_nanoseconds : UInt32,
 ) -> @core.Parameter {
   qos_liveliness_fraction(
     kind,
@@ -224,9 +227,9 @@ pub fn qos_liveliness(
 
 ///|
 fn qos_liveliness_fraction(
-  kind : UInt,
-  lease_seconds : Int,
-  lease_fraction : UInt,
+  kind : UInt32,
+  lease_seconds : Int32,
+  lease_fraction : UInt32,
 ) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
@@ -246,28 +249,28 @@ fn qos_liveliness_fraction(
 
 ///|
 /// Construct a PID_OWNERSHIP parameter.
-pub fn qos_ownership(kind : UInt) -> @core.Parameter {
+pub fn qos_ownership(kind : UInt32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_OWNERSHIP, qos_kind(kind))
 }
 
 ///|
 /// Construct a PID_OWNERSHIP_STRENGTH parameter.
-pub fn qos_ownership_strength(value : Int) -> @core.Parameter {
+pub fn qos_ownership_strength(value : Int32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_OWNERSHIP_STRENGTH, qos_i32_le(value))
 }
 
 ///|
 /// Construct a PID_DESTINATION_ORDER parameter.
-pub fn qos_destination_order(kind : UInt) -> @core.Parameter {
+pub fn qos_destination_order(kind : UInt32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_DESTINATION_ORDER, qos_kind(kind))
 }
 
 ///|
 /// Construct a PID_RESOURCE_LIMITS parameter.
 pub fn qos_resource_limits(
-  max_samples : Int,
-  max_instances : Int,
-  max_samples_per_instance : Int,
+  max_samples : Int32,
+  max_instances : Int32,
+  max_samples_per_instance : Int32,
 ) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let values = [max_samples, max_instances, max_samples_per_instance]
@@ -313,6 +316,6 @@ pub fn qos_data_representation(
 
 ///|
 /// Construct a PID_TYPE_MAX_SIZE_SERIALIZED parameter.
-pub fn qos_type_max_size_serialized(value : UInt) -> @core.Parameter {
+pub fn qos_type_max_size_serialized(value : UInt32) -> @core.Parameter {
   @core.Parameter::new(@core.PID_TYPE_MAX_SIZE_SERIALIZED, qos_u32_le(value))
 }

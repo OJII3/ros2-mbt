@@ -2,33 +2,28 @@
 /// Return the receive result from one of the session's discovery sockets.
 async fn DiscoverySession::receive_message(
   self : DiscoverySession,
-) -> Result[(@rtps.Message, @socket.Addr, Int), String] {
+) -> Result[(@rtps.Message, @socket.Addr), String] {
   if self.receive_sockets.length() == 0 {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    return Ok((message, source, 0))
+    return Ok((message, source))
   }
-  let tasks : Array[
-    async () -> Result[(@rtps.Message, @socket.Addr, Int), String],
-  ] = []
+  let tasks : Array[async () -> Result[(@rtps.Message, @socket.Addr), String]] = []
   tasks.push(async fn() {
     match self.socket.receive_message() {
-      Ok((message, source)) => Ok((message, source, 0))
+      Ok((message, source)) => Ok((message, source))
       Err(message) => Err(message)
     }
   })
-  let mut receive_index = 1
   for receive_socket in self.receive_sockets {
-    let index = receive_index
     tasks.push(async fn() {
       match receive_socket.receive_message() {
-        Ok((message, source)) => Ok((message, source, index))
+        Ok((message, source)) => Ok((message, source))
         Err(message) => Err(message)
       }
     })
-    receive_index += 1
   }
   @async.any(tasks, allow_failure=true)
 }
@@ -40,8 +35,7 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
   let tasks : Array[async () -> Result[DiscoveryReceiveOutcome, String]] = []
   tasks.push(async fn() {
     match self.receive_message() {
-      Ok((message, source, socket_index)) =>
-        Ok(Message(message, source, socket_index))
+      Ok((message, source)) => Ok(Message(message, source))
       Err(message) => Err(message)
     }
   })
@@ -66,7 +60,7 @@ fn DiscoverySession::sedp_reader_index(
   self : DiscoverySession,
   writer_prefix : @rtps.GuidPrefix,
   writer_id : @rtps.EntityId,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   for index in 0..<self.sedp_readers.length() {
     let reader = self.sedp_readers[index]
     if reader.writer_prefix == writer_prefix && reader.writer_id == writer_id {
@@ -90,7 +84,7 @@ fn DiscoverySession::sedp_reader_index(
 fn DiscoverySession::spdp_fragment_reader_index(
   self : DiscoverySession,
   writer_prefix : @rtps.GuidPrefix,
-) -> Int {
+) -> Int32 {
   for index in 0..<self.spdp_fragment_readers.length() {
     if self.spdp_fragment_readers[index].writer_prefix == writer_prefix {
       return index
@@ -188,7 +182,7 @@ fn discovery_spdp_lease_milliseconds(
 }
 
 ///|
-fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int {
+fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
   if remaining_ms > DISCOVERY_MAX_TIMER_MILLISECONDS.to_int64() {
     DISCOVERY_MAX_TIMER_MILLISECONDS
   } else {
@@ -303,7 +297,7 @@ fn discovery_udp_locator_to_addrs(
 fn DiscoverySession::sedp_writer_index(
   self : DiscoverySession,
   kind : @rtps.SedpEndpointKind,
-) -> Int {
+) -> Int32 {
   for index in 0..<self.sedp_writers.length() {
     if self.sedp_writers[index].kind == kind {
       return index

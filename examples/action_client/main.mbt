@@ -40,7 +40,7 @@ async fn register_action_topic_subscription(
 async fn receive_fibonacci_feedback(
   client : @transport.RosActionClient,
   goal : @transport.RosActionGoalHandle,
-) -> Result[Array[Int], String] {
+) -> Result[Array[Int32], String] {
   let payload = match client.receive_goal_feedback(goal) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -56,7 +56,7 @@ async fn receive_fibonacci_feedback(
   if sequence_length < 0 || sequence_length > reader.remaining() / 4 {
     return Err("invalid Fibonacci feedback sequence length")
   }
-  let sequence : Array[Int] = []
+  let sequence : Array[Int32] = []
   for _ in 0..<sequence_length {
     match reader.read_i32() {
       Ok(value) => sequence.push(value)
@@ -78,7 +78,7 @@ fn close_action_client_io(
 }
 
 ///|
-fn format_int_sequence(sequence : Array[Int]) -> String {
+fn format_int_sequence(sequence : Array[Int32]) -> String {
   let mut sequence_text = ""
   for index in 0..<sequence.length() {
     if index > 0 {
@@ -625,7 +625,7 @@ async fn main {
     )
     return
   }
-  let sequence : Array[Int] = []
+  let sequence : Array[Int32] = []
   for _ in 0..<sequence_length {
     match get_result_reader.read_i32() {
       Ok(value) => sequence.push(value)

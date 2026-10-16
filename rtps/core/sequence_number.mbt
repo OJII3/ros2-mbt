@@ -18,7 +18,7 @@ fn append_sequence_number_le(bytes : Array[Byte], value : Int64) -> Unit {
 /// Parse an RTPS SequenceNumber_t using the submessage byte order.
 fn read_sequence_number(
   input : Bytes,
-  offset : Int,
+  offset : Int32,
   little_endian : Bool,
 ) -> Int64 {
   let high = if little_endian {

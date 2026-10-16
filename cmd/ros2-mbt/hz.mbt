@@ -1,6 +1,6 @@
 ///|
 struct HzStats {
-  mut samples : Int
+  mut samples : Int32
   intervals : Array[Int64]
 }
 
@@ -19,7 +19,7 @@ fn add_sample(
 }
 
 ///|
-fn print_hz_stats(stats : HzStats, duration_ms : Int) -> Unit {
+fn print_hz_stats(stats : HzStats, duration_ms : Int32) -> Unit {
   if stats.samples < 2 || stats.intervals.length() == 0 {
     println("average rate: 0.0")
     println("samples: " + stats.samples.to_string())
@@ -54,7 +54,7 @@ fn print_hz_stats(stats : HzStats, duration_ms : Int) -> Unit {
 ///|
 async fn measure_best_effort(
   subscription : @transport.RosSubscription,
-  duration_ms : Int,
+  duration_ms : Int32,
 ) -> Result[Unit, String] {
   let deadline = @async.now() + duration_ms.to_int64()
   let stats = { samples: 0, intervals: [], }
@@ -90,7 +90,7 @@ async fn measure_best_effort(
 ///|
 async fn measure_reliable(
   subscription : @transport.ReliableRosSubscription,
-  duration_ms : Int,
+  duration_ms : Int32,
 ) -> Result[Unit, String] {
   let deadline = @async.now() + duration_ms.to_int64()
   let stats = { samples: 0, intervals: [], }
@@ -126,8 +126,8 @@ async fn measure_reliable(
 ///|
 async fn run_topic_hz(
   topic_name : String,
-  spin_time_ms : Int,
-  duration_ms : Int,
+  spin_time_ms : Int32,
+  duration_ms : Int32,
 ) -> Result[Unit, String] {
   let ros_name = match normalize_ros_topic_name(topic_name) {
     Ok(value) => value

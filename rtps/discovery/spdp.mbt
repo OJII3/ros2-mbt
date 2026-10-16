@@ -1,26 +1,26 @@
 ///|
 /// Built-in endpoint bit for the SPDP participant announcer.
-pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
+pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt32 = 0x00000001
 
 ///|
 /// Built-in endpoint bit for the SPDP participant detector.
-pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
+pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt32 = 0x00000002
 
 ///|
 /// Built-in endpoint bit for the SEDP publications announcer.
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt = 0x00000004
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt32 = 0x00000004
 
 ///|
 /// Built-in endpoint bit for the SEDP publications detector.
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt = 0x00000008
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt32 = 0x00000008
 
 ///|
 /// Built-in endpoint bit for the SEDP subscriptions announcer.
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt = 0x00000010
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt32 = 0x00000010
 
 ///|
 /// Built-in endpoint bit for the SEDP subscriptions detector.
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt = 0x00000020
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt32 = 0x00000020
 
 ///|
 /// EntityId for the SPDP participant writer.
@@ -36,10 +36,10 @@ pub struct SpdpParticipantData {
   protocol_version : @core.ProtocolVersion
   vendor_id : @core.VendorId
   participant_guid : @core.Guid
-  domain_id : UInt
-  lease_seconds : Int
-  lease_nanoseconds : UInt
-  builtin_endpoint_set : UInt
+  domain_id : UInt32
+  lease_seconds : Int32
+  lease_nanoseconds : UInt32
+  builtin_endpoint_set : UInt32
   metatraffic_unicast_locators : Array[@core.Locator]
   metatraffic_multicast_locators : Array[@core.Locator]
   default_unicast_locators : Array[@core.Locator]
@@ -51,10 +51,10 @@ pub struct SpdpParticipantData {
 pub fn SpdpParticipantData::new(
   participant_guid : @core.Guid,
   vendor_id : @core.VendorId,
-  domain_id : UInt,
-  lease_seconds : Int,
-  lease_nanoseconds : UInt,
-  builtin_endpoint_set : UInt,
+  domain_id : UInt32,
+  lease_seconds : Int32,
+  lease_nanoseconds : UInt32,
+  builtin_endpoint_set : UInt32,
 ) -> SpdpParticipantData {
   {
     protocol_version: @core.ProtocolVersion::new(
@@ -128,13 +128,13 @@ pub fn SpdpParticipantData::vendor_id(
 
 ///|
 /// Return the DDS domain identifier.
-pub fn SpdpParticipantData::domain_id(self : SpdpParticipantData) -> UInt {
+pub fn SpdpParticipantData::domain_id(self : SpdpParticipantData) -> UInt32 {
   self.domain_id
 }
 
 ///|
 /// Return the participant lease duration in seconds.
-pub fn SpdpParticipantData::lease_seconds(self : SpdpParticipantData) -> Int {
+pub fn SpdpParticipantData::lease_seconds(self : SpdpParticipantData) -> Int32 {
   self.lease_seconds
 }
 
@@ -142,7 +142,7 @@ pub fn SpdpParticipantData::lease_seconds(self : SpdpParticipantData) -> Int {
 /// Return the participant lease duration in nanoseconds.
 pub fn SpdpParticipantData::lease_nanoseconds(
   self : SpdpParticipantData,
-) -> UInt {
+) -> UInt32 {
   self.lease_nanoseconds
 }
 
@@ -150,7 +150,7 @@ pub fn SpdpParticipantData::lease_nanoseconds(
 /// Return the enabled builtin endpoint set.
 pub fn SpdpParticipantData::builtin_endpoint_set(
   self : SpdpParticipantData,
-) -> UInt {
+) -> UInt32 {
   self.builtin_endpoint_set
 }
 
@@ -187,7 +187,7 @@ pub fn SpdpParticipantData::default_multicast_locators(
 }
 
 ///|
-fn spdp_u32_le(value : UInt) -> Bytes {
+fn spdp_u32_le(value : UInt32) -> Bytes {
   Bytes::from_array([
     value.to_byte(),
     (value >> 8).to_byte(),
@@ -197,12 +197,12 @@ fn spdp_u32_le(value : UInt) -> Bytes {
 }
 
 ///|
-fn spdp_i32_le(value : Int) -> Bytes {
+fn spdp_i32_le(value : Int32) -> Bytes {
   spdp_u32_le(value.reinterpret_as_uint())
 }
 
 ///|
-fn spdp_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
+fn spdp_duration(seconds : Int32, nanoseconds : UInt32) -> Bytes {
   let bytes : Array[Byte] = []
   let seconds_bytes = spdp_i32_le(seconds)
   let fraction = if nanoseconds == 0xFFFFFFFFU {
@@ -221,7 +221,7 @@ fn spdp_duration(seconds : Int, nanoseconds : UInt) -> Bytes {
 }
 
 ///|
-fn spdp_read_u32(value : Bytes) -> Result[UInt, String] {
+fn spdp_read_u32(value : Bytes) -> Result[UInt32, String] {
   if value.length() != 4 {
     return Err("an SPDP uint32 parameter must contain 4 bytes")
   }
@@ -250,7 +250,7 @@ fn spdp_read_vendor_id(value : Bytes) -> Result[@core.VendorId, String] {
 }
 
 ///|
-fn spdp_read_duration(value : Bytes) -> Result[(Int, UInt), String] {
+fn spdp_read_duration(value : Bytes) -> Result[(Int32, UInt32), String] {
   if value.length() != 8 {
     return Err("an SPDP lease duration must contain 8 bytes")
   }
@@ -365,7 +365,7 @@ pub fn SpdpParticipantData::from_parameter_list(
 /// is omitted by the remote implementation.
 fn SpdpParticipantData::from_parameter_list_with_default_domain(
   parameters : @core.ParameterList,
-  default_domain_id : UInt,
+  default_domain_id : UInt32,
 ) -> Result[SpdpParticipantData, String] {
   let mut protocol_version = @core.ProtocolVersion::new(
     @core.PROTOCOL_VERSION_MAJOR,
@@ -374,9 +374,9 @@ fn SpdpParticipantData::from_parameter_list_with_default_domain(
   let mut vendor_id = @core.VendorId::new(0, 0)
   let mut participant_guid_bytes = b""
   let mut domain_id = default_domain_id
-  let mut lease_seconds : Int = 0
-  let mut lease_nanoseconds : UInt = 0
-  let mut builtin_endpoint_set : UInt = 0
+  let mut lease_seconds : Int32 = 0
+  let mut lease_nanoseconds : UInt32 = 0
+  let mut builtin_endpoint_set : UInt32 = 0
   let mut has_participant_guid = false
   let metatraffic_unicast_locators : Array[@core.Locator] = []
   let metatraffic_multicast_locators : Array[@core.Locator] = []
@@ -504,7 +504,7 @@ pub fn SpdpParticipantData::from_data_submessage(
 /// domain on which the packet was received.
 pub fn SpdpParticipantData::from_data_submessage_with_default_domain(
   data : @core.DataSubmessage,
-  default_domain_id : UInt,
+  default_domain_id : UInt32,
 ) -> Result[SpdpParticipantData, String] {
   let parameters = match
     @core.ParameterList::from_data_bytes(data.serialized_payload()) {

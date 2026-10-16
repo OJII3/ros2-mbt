@@ -1,11 +1,11 @@
 ///|
-const CLI_PARTICIPANT_ID : UInt = 90U
+const CLI_PARTICIPANT_ID : UInt32 = 90U
 
 ///|
-const CLI_DISCOVERY_INTERVAL_MS : Int = 1000
+const CLI_DISCOVERY_INTERVAL_MS : Int32 = 1000
 
 ///|
-const CLI_DISCOVERY_POLL_MS : Int = 100
+const CLI_DISCOVERY_POLL_MS : Int32 = 100
 
 ///|
 struct CliParticipant {
@@ -101,7 +101,7 @@ async fn receive_graph_samples(
 /// Process discovery traffic for a bounded amount of time.
 async fn spin_discovery(
   participant : @transport.RosParticipant,
-  duration_ms : Int,
+  duration_ms : Int32,
   collect_graph : Bool,
 ) -> Result[Unit, String] {
   if duration_ms <= 0 {

@@ -9,12 +9,12 @@ struct ReliableFragmentedSample {
   writer_id : @rtps.EntityId
   sequence_number : Int64
   data_flags : Byte
-  fragment_size : Int
-  sample_size : Int
+  fragment_size : Int32
+  sample_size : Int32
   mut inline_qos : Bytes
   payload : Array[Byte]
   received : Array[Bool]
-  mut received_count : Int
+  mut received_count : Int32
 }
 
 ///|
@@ -123,13 +123,13 @@ fn ReliableFragmentedSample::to_data(
 pub struct ReliableDataReader {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  mut next_acknack_count : UInt
-  mut next_nackfrag_count : UInt
+  mut next_acknack_count : UInt32
+  mut next_nackfrag_count : UInt32
   mut samples : Array[Int64]
   mut gaps : Array[@rtps.GapSubmessage]
   mut fragments : Array[ReliableFragmentedSample]
   mut acknowledged_through : Int64
-  mut accepted_sample_count : Int
+  mut accepted_sample_count : Int32
 }
 
 ///|
@@ -155,7 +155,7 @@ pub fn ReliableDataReader::new(
 /// Return the next ACKNACK count value.
 pub fn ReliableDataReader::next_acknack_count(
   self : ReliableDataReader,
-) -> UInt {
+) -> UInt32 {
   self.next_acknack_count
 }
 
@@ -163,13 +163,13 @@ pub fn ReliableDataReader::next_acknack_count(
 /// Return the next NACKFRAG count value.
 pub fn ReliableDataReader::next_nackfrag_count(
   self : ReliableDataReader,
-) -> UInt {
+) -> UInt32 {
   self.next_nackfrag_count
 }
 
 ///|
 /// Return the number of DATA samples accepted so far.
-pub fn ReliableDataReader::sample_count(self : ReliableDataReader) -> Int {
+pub fn ReliableDataReader::sample_count(self : ReliableDataReader) -> Int32 {
   self.accepted_sample_count
 }
 
@@ -281,7 +281,7 @@ pub fn ReliableDataReader::accept_data_frag(
   if self.has_received_sequence(fragment.writer_sequence_number()) {
     return Ok(None)
   }
-  let mut index : Int? = None
+  let mut index : Int32? = None
   for i in 0..<self.fragments.length() {
     if self.fragments[i].sequence_number == fragment.writer_sequence_number() {
       index = Some(i)
@@ -349,7 +349,7 @@ pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(
     let remaining = (heartbeat.last_fragment_number() - bitmap_base + 1U).reinterpret_as_int()
     let num_bits = if remaining > 256 { 256 } else { remaining }
     let word_count = (num_bits + 31) / 32
-    let bitmap : Array[UInt] = []
+    let bitmap : Array[UInt32] = []
     for _ in 0..<word_count {
       bitmap.push(0U)
     }
@@ -484,7 +484,7 @@ pub fn ReliableDataReader::acknacks_for_heartbeat(
     None => (last_sequence_number + 1L, 0)
   }
   let word_count = (range + 31) / 32
-  let bitmap : Array[UInt] = []
+  let bitmap : Array[UInt32] = []
   for _ in 0..<word_count {
     bitmap.push(0U)
   }

@@ -1,5 +1,5 @@
 ///|
-fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt) -> Unit {
+fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push((value >> 8).to_byte())
   bytes.push(value.to_byte())
 }

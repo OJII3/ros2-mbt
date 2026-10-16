@@ -18,7 +18,7 @@ fn node_names(graph : @transport.DiscoveryGraph) -> Array[String] {
 }
 
 ///|
-async fn run_node_list(spin_time_ms : Int) -> Result[Unit, String] {
+async fn run_node_list(spin_time_ms : Int32) -> Result[Unit, String] {
   let cli = match new_cli_participant(true) {
     Ok(value) => value
     Err(message) => return Err(message)

@@ -159,13 +159,16 @@ pub struct AckNackSubmessage {
 pub fn AckNackSubmessage::bitmap(Self) -> Array[UInt]
 pub fn AckNackSubmessage::bitmap_base(Self) -> Int64
 pub fn AckNackSubmessage::count(Self) -> UInt
+pub fn AckNackSubmessage::equal(Self, Self) -> Bool
 pub fn AckNackSubmessage::flags(Self) -> Byte
 pub fn AckNackSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn AckNackSubmessage::new(EntityId, EntityId, Int64, UInt, Array[UInt], UInt) -> Result[Self, String]
+pub fn AckNackSubmessage::not_equal(Self, Self) -> Bool
 pub fn AckNackSubmessage::num_bits(Self) -> UInt
 pub fn AckNackSubmessage::reader_id(Self) -> EntityId
 pub fn AckNackSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn AckNackSubmessage::to_payload(Self) -> Bytes
+pub fn AckNackSubmessage::to_repr(Self) -> @debug.Repr
 pub fn AckNackSubmessage::to_submessage(Self) -> Submessage
 pub fn AckNackSubmessage::with_final(Self) -> Self
 pub fn AckNackSubmessage::writer_id(Self) -> EntityId
@@ -184,6 +187,7 @@ pub struct DataFragSubmessage {
   inline_qos : Bytes
   serialized_payload : Bytes
 } derive(Eq, @debug.Debug)
+pub fn DataFragSubmessage::equal(Self, Self) -> Bool
 pub fn DataFragSubmessage::flags(Self) -> Byte
 pub fn DataFragSubmessage::fragment_size(Self) -> UInt16
 pub fn DataFragSubmessage::fragment_starting_number(Self) -> UInt
@@ -191,11 +195,13 @@ pub fn DataFragSubmessage::fragments_in_submessage(Self) -> UInt16
 pub fn DataFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn DataFragSubmessage::inline_qos(Self) -> Bytes
 pub fn DataFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt16, UInt16, UInt, Bytes) -> Result[Self, String]
+pub fn DataFragSubmessage::not_equal(Self, Self) -> Bool
 pub fn DataFragSubmessage::reader_id(Self) -> EntityId
 pub fn DataFragSubmessage::sample_size(Self) -> UInt
 pub fn DataFragSubmessage::serialized_payload(Self) -> Bytes
 pub fn DataFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataFragSubmessage::to_payload(Self) -> Bytes
+pub fn DataFragSubmessage::to_repr(Self) -> @debug.Repr
 pub fn DataFragSubmessage::to_submessage(Self) -> Submessage
 pub fn DataFragSubmessage::with_inline_qos(Self, Bytes) -> Self
 pub fn DataFragSubmessage::writer_id(Self) -> EntityId
@@ -211,10 +217,12 @@ pub struct DataSubmessage {
   inline_qos : Bytes
   serialized_payload : Bytes
 } derive(Eq, @debug.Debug)
+pub fn DataSubmessage::equal(Self, Self) -> Bool
 pub fn DataSubmessage::flags(Self) -> Byte
 pub fn DataSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn DataSubmessage::inline_qos(Self) -> Bytes
 pub fn DataSubmessage::new(EntityId, EntityId, Int64, Bytes) -> Self
+pub fn DataSubmessage::not_equal(Self, Self) -> Bool
 pub fn DataSubmessage::reader_id(Self) -> EntityId
 pub fn DataSubmessage::related_sample_identity(Self) -> Result[SampleIdentity?, String]
 pub fn DataSubmessage::sample_identity(Self, GuidPrefix) -> Result[SampleIdentity, String]
@@ -222,6 +230,7 @@ pub fn DataSubmessage::serialized_payload(Self) -> Bytes
 pub fn DataSubmessage::status_info(Self) -> Result[UInt?, String]
 pub fn DataSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn DataSubmessage::to_payload(Self) -> Bytes
+pub fn DataSubmessage::to_repr(Self) -> @debug.Repr
 pub fn DataSubmessage::to_submessage(Self) -> Submessage
 pub fn DataSubmessage::with_inline_qos(Self, Bytes) -> Self
 pub fn DataSubmessage::with_key(Self, Bytes) -> Self
@@ -234,11 +243,14 @@ pub struct EntityId {
   key : Bytes
   kind : Byte
 } derive(Eq, @debug.Debug)
+pub fn EntityId::equal(Self, Self) -> Bool
 pub fn EntityId::from_bytes(Bytes) -> Result[Self, String]
 pub fn EntityId::key(Self) -> Bytes
 pub fn EntityId::kind(Self) -> Byte
 pub fn EntityId::new(Bytes, Byte) -> Result[Self, String]
+pub fn EntityId::not_equal(Self, Self) -> Bool
 pub fn EntityId::to_bytes(Self) -> Bytes
+pub fn EntityId::to_repr(Self) -> @debug.Repr
 pub fn EntityId::unknown() -> Self
 
 pub struct GapSubmessage {
@@ -251,6 +263,7 @@ pub struct GapSubmessage {
   gap_list_bitmap : Array[UInt]
 } derive(Eq, @debug.Debug)
 pub fn GapSubmessage::contains_sequence(Self, Int64) -> Bool
+pub fn GapSubmessage::equal(Self, Self) -> Bool
 pub fn GapSubmessage::flags(Self) -> Byte
 pub fn GapSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn GapSubmessage::gap_list_base(Self) -> Int64
@@ -258,9 +271,11 @@ pub fn GapSubmessage::gap_list_bitmap(Self) -> Array[UInt]
 pub fn GapSubmessage::gap_list_num_bits(Self) -> UInt
 pub fn GapSubmessage::gap_start(Self) -> Int64
 pub fn GapSubmessage::new(EntityId, EntityId, Int64, Int64, UInt, Array[UInt]) -> Result[Self, String]
+pub fn GapSubmessage::not_equal(Self, Self) -> Bool
 pub fn GapSubmessage::reader_id(Self) -> EntityId
 pub fn GapSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn GapSubmessage::to_payload(Self) -> Bytes
+pub fn GapSubmessage::to_repr(Self) -> @debug.Repr
 pub fn GapSubmessage::to_submessage(Self) -> Submessage
 pub fn GapSubmessage::writer_id(Self) -> EntityId
 
@@ -269,27 +284,36 @@ pub struct Guid {
   entity_id : EntityId
 } derive(Eq, @debug.Debug)
 pub fn Guid::entity_id(Self) -> EntityId
+pub fn Guid::equal(Self, Self) -> Bool
 pub fn Guid::from_bytes(Bytes) -> Result[Self, String]
 pub fn Guid::new(GuidPrefix, EntityId) -> Self
+pub fn Guid::not_equal(Self, Self) -> Bool
 pub fn Guid::prefix(Self) -> GuidPrefix
 pub fn Guid::to_bytes(Self) -> Bytes
+pub fn Guid::to_repr(Self) -> @debug.Repr
 
 pub struct GuidPrefix {
   bytes : Bytes
 } derive(Eq, @debug.Debug)
 pub fn GuidPrefix::as_bytes(Self) -> Bytes
+pub fn GuidPrefix::equal(Self, Self) -> Bool
 pub fn GuidPrefix::from_array(Array[Byte]) -> Result[Self, String]
 pub fn GuidPrefix::new(Bytes) -> Result[Self, String]
+pub fn GuidPrefix::not_equal(Self, Self) -> Bool
+pub fn GuidPrefix::to_repr(Self) -> @debug.Repr
 
 pub struct Header {
   protocol_version : ProtocolVersion
   vendor_id : VendorId
   guid_prefix : GuidPrefix
 } derive(Eq, @debug.Debug)
+pub fn Header::equal(Self, Self) -> Bool
 pub fn Header::from_bytes(Bytes) -> Result[Self, String]
 pub fn Header::guid_prefix(Self) -> GuidPrefix
 pub fn Header::new(GuidPrefix, VendorId) -> Self
+pub fn Header::not_equal(Self, Self) -> Bool
 pub fn Header::to_bytes(Self) -> Bytes
+pub fn Header::to_repr(Self) -> @debug.Repr
 
 pub struct HeartbeatFragSubmessage {
   flags : Byte
@@ -300,13 +324,16 @@ pub struct HeartbeatFragSubmessage {
   count : UInt
 } derive(Eq, @debug.Debug)
 pub fn HeartbeatFragSubmessage::count(Self) -> UInt
+pub fn HeartbeatFragSubmessage::equal(Self, Self) -> Bool
 pub fn HeartbeatFragSubmessage::flags(Self) -> Byte
 pub fn HeartbeatFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn HeartbeatFragSubmessage::last_fragment_number(Self) -> UInt
 pub fn HeartbeatFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt) -> Result[Self, String]
+pub fn HeartbeatFragSubmessage::not_equal(Self, Self) -> Bool
 pub fn HeartbeatFragSubmessage::reader_id(Self) -> EntityId
 pub fn HeartbeatFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn HeartbeatFragSubmessage::to_payload(Self) -> Bytes
+pub fn HeartbeatFragSubmessage::to_repr(Self) -> @debug.Repr
 pub fn HeartbeatFragSubmessage::to_submessage(Self) -> Submessage
 pub fn HeartbeatFragSubmessage::writer_id(Self) -> EntityId
 pub fn HeartbeatFragSubmessage::writer_sequence_number(Self) -> Int64
@@ -320,14 +347,17 @@ pub struct HeartbeatSubmessage {
   count : UInt
 } derive(Eq, @debug.Debug)
 pub fn HeartbeatSubmessage::count(Self) -> UInt
+pub fn HeartbeatSubmessage::equal(Self, Self) -> Bool
 pub fn HeartbeatSubmessage::first_sequence_number(Self) -> Int64
 pub fn HeartbeatSubmessage::flags(Self) -> Byte
 pub fn HeartbeatSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn HeartbeatSubmessage::last_sequence_number(Self) -> Int64
 pub fn HeartbeatSubmessage::new(EntityId, EntityId, Int64, Int64, UInt) -> Result[Self, String]
+pub fn HeartbeatSubmessage::not_equal(Self, Self) -> Bool
 pub fn HeartbeatSubmessage::reader_id(Self) -> EntityId
 pub fn HeartbeatSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn HeartbeatSubmessage::to_payload(Self) -> Bytes
+pub fn HeartbeatSubmessage::to_repr(Self) -> @debug.Repr
 pub fn HeartbeatSubmessage::to_submessage(Self) -> Submessage
 pub fn HeartbeatSubmessage::with_final(Self) -> Self
 pub fn HeartbeatSubmessage::writer_id(Self) -> EntityId
@@ -336,12 +366,15 @@ pub struct InfoDestinationSubmessage {
   flags : Byte
   guid_prefix : GuidPrefix
 } derive(Eq, @debug.Debug)
+pub fn InfoDestinationSubmessage::equal(Self, Self) -> Bool
 pub fn InfoDestinationSubmessage::flags(Self) -> Byte
 pub fn InfoDestinationSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn InfoDestinationSubmessage::guid_prefix(Self) -> GuidPrefix
 pub fn InfoDestinationSubmessage::new(GuidPrefix) -> Self
+pub fn InfoDestinationSubmessage::not_equal(Self, Self) -> Bool
 pub fn InfoDestinationSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn InfoDestinationSubmessage::to_payload(Self) -> Bytes
+pub fn InfoDestinationSubmessage::to_repr(Self) -> @debug.Repr
 pub fn InfoDestinationSubmessage::to_submessage(Self) -> Submessage
 
 pub struct InfoTimestampSubmessage {
@@ -350,15 +383,18 @@ pub struct InfoTimestampSubmessage {
   fraction : UInt
   valid : Bool
 } derive(Eq, @debug.Debug)
+pub fn InfoTimestampSubmessage::equal(Self, Self) -> Bool
 pub fn InfoTimestampSubmessage::flags(Self) -> Byte
 pub fn InfoTimestampSubmessage::fraction(Self) -> UInt
 pub fn InfoTimestampSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn InfoTimestampSubmessage::invalid() -> Self
 pub fn InfoTimestampSubmessage::is_valid(Self) -> Bool
 pub fn InfoTimestampSubmessage::new(Int, UInt) -> Self
+pub fn InfoTimestampSubmessage::not_equal(Self, Self) -> Bool
 pub fn InfoTimestampSubmessage::seconds(Self) -> Int
 pub fn InfoTimestampSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn InfoTimestampSubmessage::to_payload(Self) -> Bytes
+pub fn InfoTimestampSubmessage::to_repr(Self) -> @debug.Repr
 pub fn InfoTimestampSubmessage::to_submessage(Self) -> Submessage
 
 pub struct Locator {
@@ -367,11 +403,14 @@ pub struct Locator {
   address : Bytes
 } derive(Eq, @debug.Debug)
 pub fn Locator::address(Self) -> Bytes
+pub fn Locator::equal(Self, Self) -> Bool
 pub fn Locator::from_bytes(Bytes) -> Result[Self, String]
 pub fn Locator::kind(Self) -> Int
 pub fn Locator::new(Int, UInt, Bytes) -> Result[Self, String]
+pub fn Locator::not_equal(Self, Self) -> Bool
 pub fn Locator::port(Self) -> UInt
 pub fn Locator::to_bytes(Self) -> Bytes
+pub fn Locator::to_repr(Self) -> @debug.Repr
 pub fn Locator::udp_v4(Bytes, UInt) -> Result[Self, String]
 
 pub struct Message {
@@ -380,11 +419,14 @@ pub struct Message {
 } derive(Eq, @debug.Debug)
 pub fn Message::add(Self, Submessage) -> Unit
 pub fn Message::destination_guid_prefix(Self) -> Result[GuidPrefix?, String]
+pub fn Message::equal(Self, Self) -> Bool
 pub fn Message::from_bytes(Bytes) -> Result[Self, String]
 pub fn Message::header(Self) -> Header
 pub fn Message::new(Header) -> Self
+pub fn Message::not_equal(Self, Self) -> Bool
 pub fn Message::submessages(Self) -> Array[Submessage]
 pub fn Message::to_bytes(Self) -> Result[Bytes, String]
+pub fn Message::to_repr(Self) -> @debug.Repr
 pub fn Message::with_destination_guid_prefix(Self, GuidPrefix) -> Self
 
 pub struct NackFragSubmessage {
@@ -400,13 +442,16 @@ pub struct NackFragSubmessage {
 pub fn NackFragSubmessage::bitmap(Self) -> Array[UInt]
 pub fn NackFragSubmessage::bitmap_base(Self) -> UInt
 pub fn NackFragSubmessage::count(Self) -> UInt
+pub fn NackFragSubmessage::equal(Self, Self) -> Bool
 pub fn NackFragSubmessage::flags(Self) -> Byte
 pub fn NackFragSubmessage::from_submessage(Submessage) -> Result[Self, String]
 pub fn NackFragSubmessage::new(EntityId, EntityId, Int64, UInt, UInt, Array[UInt], UInt) -> Result[Self, String]
+pub fn NackFragSubmessage::not_equal(Self, Self) -> Bool
 pub fn NackFragSubmessage::num_bits(Self) -> UInt
 pub fn NackFragSubmessage::reader_id(Self) -> EntityId
 pub fn NackFragSubmessage::to_message(Self, GuidPrefix, VendorId) -> Message
 pub fn NackFragSubmessage::to_payload(Self) -> Bytes
+pub fn NackFragSubmessage::to_repr(Self) -> @debug.Repr
 pub fn NackFragSubmessage::to_submessage(Self) -> Submessage
 pub fn NackFragSubmessage::writer_id(Self) -> EntityId
 pub fn NackFragSubmessage::writer_sequence_number(Self) -> Int64
@@ -415,8 +460,11 @@ pub struct Parameter {
   id : UInt16
   value : Bytes
 } derive(Eq, @debug.Debug)
+pub fn Parameter::equal(Self, Self) -> Bool
 pub fn Parameter::id(Self) -> UInt16
 pub fn Parameter::new(UInt16, Bytes) -> Self
+pub fn Parameter::not_equal(Self, Self) -> Bool
+pub fn Parameter::to_repr(Self) -> @debug.Repr
 pub fn Parameter::value(Self) -> Bytes
 
 pub struct ParameterList {
@@ -435,16 +483,22 @@ pub struct ProtocolVersion {
   major : Byte
   minor : Byte
 } derive(Eq, @debug.Debug)
+pub fn ProtocolVersion::equal(Self, Self) -> Bool
 pub fn ProtocolVersion::new(Byte, Byte) -> Self
+pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
+pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
 
 pub struct SampleIdentity {
   writer_guid : Guid
   sequence_number : Int64
 } derive(Eq, @debug.Debug)
+pub fn SampleIdentity::equal(Self, Self) -> Bool
 pub fn SampleIdentity::from_bytes(Bytes) -> Result[Self, String]
 pub fn SampleIdentity::new(Guid, Int64) -> Result[Self, String]
+pub fn SampleIdentity::not_equal(Self, Self) -> Bool
 pub fn SampleIdentity::sequence_number(Self) -> Int64
 pub fn SampleIdentity::to_bytes(Self) -> Bytes
+pub fn SampleIdentity::to_repr(Self) -> @debug.Repr
 pub fn SampleIdentity::unknown_sequence(Guid) -> Self
 pub fn SampleIdentity::writer_guid(Self) -> Guid
 
@@ -453,12 +507,15 @@ pub struct Submessage {
   flags : Byte
   payload : Bytes
 } derive(Eq, @debug.Debug)
+pub fn Submessage::equal(Self, Self) -> Bool
 pub fn Submessage::flags(Self) -> Byte
 pub fn Submessage::from_bytes(Bytes) -> Result[(Self, Int), String]
 pub fn Submessage::id(Self) -> SubmessageId
 pub fn Submessage::little_endian(Self) -> Self
 pub fn Submessage::new(SubmessageId, Byte, Bytes) -> Self
+pub fn Submessage::not_equal(Self, Self) -> Bool
 pub fn Submessage::to_bytes(Self) -> Result[Bytes, String]
+pub fn Submessage::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SubmessageId {
   Pad
@@ -474,14 +531,20 @@ pub(all) enum SubmessageId {
   DataFrag
   Unknown(Byte)
 } derive(Eq, @debug.Debug)
+pub fn SubmessageId::equal(Self, Self) -> Bool
 pub fn SubmessageId::from_byte(Byte) -> Result[Self, String]
+pub fn SubmessageId::not_equal(Self, Self) -> Bool
 pub fn SubmessageId::to_byte(Self) -> Byte
+pub fn SubmessageId::to_repr(Self) -> @debug.Repr
 
 pub struct VendorId {
   major : Byte
   minor : Byte
 } derive(Eq, @debug.Debug)
+pub fn VendorId::equal(Self, Self) -> Bool
 pub fn VendorId::new(Byte, Byte) -> Self
+pub fn VendorId::not_equal(Self, Self) -> Bool
+pub fn VendorId::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

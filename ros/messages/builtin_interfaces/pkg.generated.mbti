@@ -19,12 +19,15 @@ pub struct Duration {
   nanosec : UInt
 } derive(Eq, @debug.Debug)
 pub fn Duration::default() -> Self
+pub fn Duration::equal(Self, Self) -> Bool
 pub fn Duration::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Duration::nanosec(Self) -> UInt
 pub fn Duration::new(Int, UInt) -> Self
+pub fn Duration::not_equal(Self, Self) -> Bool
 pub fn Duration::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Duration::sec(Self) -> Int
 pub fn Duration::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Duration::to_repr(Self) -> @debug.Repr
 pub fn Duration::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Time {
@@ -32,12 +35,15 @@ pub struct Time {
   nanosec : UInt
 } derive(Eq, @debug.Debug)
 pub fn Time::default() -> Self
+pub fn Time::equal(Self, Self) -> Bool
 pub fn Time::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn Time::nanosec(Self) -> UInt
 pub fn Time::new(Int, UInt) -> Self
+pub fn Time::not_equal(Self, Self) -> Bool
 pub fn Time::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Time::sec(Self) -> Int
 pub fn Time::to_cdr_bytes(Self) -> Result[Bytes, String]
+pub fn Time::to_repr(Self) -> @debug.Repr
 pub fn Time::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 // Type aliases

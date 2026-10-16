@@ -2,8 +2,7 @@
 package "OJII3/ros2-mbt/transport"
 
 import {
-  "OJII3/ros2-mbt/rtps",
-  "OJII3/ros2-mbt/transport/discovery",
+  "OJII3/ros2-mbt/rtps/core",
   "OJII3/ros2-mbt/transport/ros",
   "OJII3/ros2-mbt/transport/wire",
   "moonbitlang/async/socket",
@@ -44,7 +43,7 @@ pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
 
 pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
 
-pub fn new_ddsi_participant(@rtps.GuidPrefix, @rtps.VendorId, UInt, UInt, UInt, Int) -> Result[@rtps.SpdpParticipantData, String]
+pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, Int) -> Result[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, String]
 
 // Errors
 
@@ -57,11 +56,11 @@ pub using @wire {type DataWriter}
 
 pub using @wire {type DiscoveryEvent}
 
-pub using @discovery {type DiscoveryGraph}
+pub using @OJII3/ros2-mbt/transport/discovery {type DiscoveryGraph}
 
-pub using @discovery {type DiscoveryService}
+pub using @OJII3/ros2-mbt/transport/discovery {type DiscoveryService}
 
-pub using @discovery {type DiscoverySession}
+pub using @OJII3/ros2-mbt/transport/discovery {type DiscoverySession}
 
 pub using @wire {type ReliableDataReader}
 

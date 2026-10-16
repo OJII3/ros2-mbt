@@ -6,7 +6,8 @@ import {
   "OJII3/ros2-mbt/transport/wire",
 }
 
+max_concurrent_tests = 1
+
 options(
   "is-main": false,
-  "max-concurrent-tests": 1,
 )

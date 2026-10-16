@@ -41,7 +41,7 @@ pub fn ReliableRosDiscoveryPublisher::next_sequence_number(
 /// Return the number of graph samples retained for retransmission.
 pub fn ReliableRosDiscoveryPublisher::history_length(
   self : ReliableRosDiscoveryPublisher,
-) -> Int {
+) -> Int32 {
   self.writer.history_length()
 }
 
@@ -168,7 +168,7 @@ pub async fn ReliableRosDiscoverySubscription::receive_heartbeat(
 /// Return the number of graph samples accepted by the subscription.
 pub fn ReliableRosDiscoverySubscription::sample_count(
   self : ReliableRosDiscoverySubscription,
-) -> Int {
+) -> Int32 {
   self.reader.sample_count()
 }
 

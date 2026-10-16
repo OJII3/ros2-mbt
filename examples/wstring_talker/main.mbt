@@ -1,5 +1,5 @@
 ///|
-fn wide_string_payload(index : Int) -> Result[Bytes, String] {
+fn wide_string_payload(index : Int32) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
   match
     writer.write_wstring("wide こんにちは 🙂 #" + index.to_string()) {

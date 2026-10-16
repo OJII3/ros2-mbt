@@ -115,6 +115,7 @@ pub fn SedpEndpointData::add_parameter(Self, @core.Parameter) -> Unit
 pub fn SedpEndpointData::add_unicast_locator(Self, @core.Locator) -> Unit
 pub fn SedpEndpointData::endpoint_guid(Self) -> @core.Guid
 pub fn SedpEndpointData::endpoint_guid_from_key_data(@core.DataSubmessage) -> Result[@core.Guid, String]
+pub fn SedpEndpointData::equal(Self, Self) -> Bool
 pub fn SedpEndpointData::extra_parameters(Self) -> Array[@core.Parameter]
 pub fn SedpEndpointData::from_cdr_bytes(SedpEndpointKind, Bytes) -> Result[Self, String]
 pub fn SedpEndpointData::from_data_submessage(SedpEndpointKind, @core.DataSubmessage) -> Result[Self, String]
@@ -122,6 +123,7 @@ pub fn SedpEndpointData::from_parameter_list(SedpEndpointKind, @core.ParameterLi
 pub fn SedpEndpointData::kind(Self) -> SedpEndpointKind
 pub fn SedpEndpointData::multicast_locators(Self) -> Array[@core.Locator]
 pub fn SedpEndpointData::new(SedpEndpointKind, @core.Guid, String, String) -> Result[Self, String]
+pub fn SedpEndpointData::not_equal(Self, Self) -> Bool
 pub fn SedpEndpointData::participant_guid(Self) -> @core.Guid
 pub fn SedpEndpointData::qos(Self) -> Result[SedpQos, String]
 pub fn SedpEndpointData::qos_compatible_with(Self, Self) -> Result[Bool, String]
@@ -133,6 +135,7 @@ pub fn SedpEndpointData::to_dispose_data_submessage(Self, @core.EntityId, @core.
 pub fn SedpEndpointData::to_message(Self, @core.VendorId, @core.EntityId, @core.EntityId, Int64) -> Result[@core.Message, String]
 pub fn SedpEndpointData::to_parameter_list(Self) -> Result[@core.ParameterList, String]
 pub fn SedpEndpointData::to_parameter_list_with_vendor(Self, @core.VendorId) -> Result[@core.ParameterList, String]
+pub fn SedpEndpointData::to_repr(Self) -> @debug.Repr
 pub fn SedpEndpointData::topic_name(Self) -> String
 pub fn SedpEndpointData::type_hash(Self) -> Result[String?, String]
 pub fn SedpEndpointData::type_name(Self) -> String
@@ -146,7 +149,10 @@ pub(all) enum SedpEndpointKind {
 } derive(Eq, @debug.Debug)
 pub fn SedpEndpointKind::builtin_reader_id(Self) -> @core.EntityId
 pub fn SedpEndpointKind::builtin_writer_id(Self) -> @core.EntityId
+pub fn SedpEndpointKind::equal(Self, Self) -> Bool
 pub fn SedpEndpointKind::from_builtin_writer_id(@core.EntityId) -> Result[Self, String]
+pub fn SedpEndpointKind::not_equal(Self, Self) -> Bool
+pub fn SedpEndpointKind::to_repr(Self) -> @debug.Repr
 
 pub struct SedpQos {
   reliability : UInt
@@ -167,13 +173,16 @@ pub fn SedpQos::deadline_seconds(Self) -> Int
 pub fn SedpQos::default() -> Self
 pub fn SedpQos::depth(Self) -> Int
 pub fn SedpQos::durability(Self) -> UInt
+pub fn SedpQos::equal(Self, Self) -> Bool
 pub fn SedpQos::history(Self) -> UInt
 pub fn SedpQos::liveliness(Self) -> UInt
 pub fn SedpQos::liveliness_lease_fraction(Self) -> UInt
 pub fn SedpQos::liveliness_lease_seconds(Self) -> Int
 pub fn SedpQos::liveliness_parameter(Self) -> @core.Parameter
 pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
+pub fn SedpQos::not_equal(Self, Self) -> Bool
 pub fn SedpQos::reliability(Self) -> UInt
+pub fn SedpQos::to_repr(Self) -> @debug.Repr
 pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
 pub fn SedpQos::with_deadline(Self, Int, UInt) -> Result[Self, String]
 pub fn SedpQos::with_liveliness(Self, UInt, Int, UInt) -> Result[Self, String]

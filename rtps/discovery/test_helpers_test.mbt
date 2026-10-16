@@ -1,11 +1,11 @@
 ///|
-fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt) -> Unit {
+fn parameter_test_append_u16_be(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push((value >> 8).to_byte())
   bytes.push(value.to_byte())
 }
 
 ///|
-fn parameter_test_append_u32_be(bytes : Array[Byte], value : UInt) -> Unit {
+fn parameter_test_append_u32_be(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push((value >> 24).to_byte())
   bytes.push((value >> 16).to_byte())
   bytes.push((value >> 8).to_byte())
@@ -30,7 +30,7 @@ fn parameter_test_append_be_parameter(
 }
 
 ///|
-fn parameter_test_be_u32(value : UInt) -> Bytes {
+fn parameter_test_be_u32(value : UInt32) -> Bytes {
   let bytes : Array[Byte] = []
   parameter_test_append_u32_be(bytes, value)
   Bytes::from_array(bytes)

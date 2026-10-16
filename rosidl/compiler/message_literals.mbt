@@ -34,7 +34,7 @@ fn rosidl_constant_literal(
 ///|
 fn rosidl_field_default_literal(
   type_name : String,
-  string_upper_bound : Int?,
+  string_upper_bound : Int32?,
   collection : MessageFieldCollection,
   value : String,
 ) -> Result[String, String] {
@@ -122,7 +122,7 @@ fn rosidl_array_default_elements(
 ///|
 fn rosidl_field_scalar_default_literal(
   type_name : String,
-  string_upper_bound : Int?,
+  string_upper_bound : Int32?,
   value : String,
 ) -> Result[String, String] {
   if type_name == "string" || type_name == "wstring" {
@@ -145,7 +145,7 @@ fn rosidl_field_scalar_default_literal(
 }
 
 ///|
-fn rosidl_utf8_character_count(value : String) -> Int {
+fn rosidl_utf8_character_count(value : String) -> Int32 {
   let mut count = 0
   for byte in @utf8.encode(value) {
     if byte < 0x80 || byte > 0xBF {
@@ -156,7 +156,7 @@ fn rosidl_utf8_character_count(value : String) -> Int {
 }
 
 ///|
-fn rosidl_utf16_unit_count(value : String) -> Int {
+fn rosidl_utf16_unit_count(value : String) -> Int32 {
   let mut count = 0
   for byte in @utf8.encode(value) {
     if byte < 0x80 || byte > 0xBF {
@@ -348,7 +348,7 @@ fn rosidl_float_literal(value : String) -> Bool {
 }
 
 ///|
-fn rosidl_float_digits(bytes : Bytes, start : Int) -> (Int, Int) {
+fn rosidl_float_digits(bytes : Bytes, start : Int32) -> (Int32, Int32) {
   let mut index = start
   let mut digits = 0
   while index < bytes.length() {

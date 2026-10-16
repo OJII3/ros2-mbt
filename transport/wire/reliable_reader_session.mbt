@@ -11,7 +11,7 @@ pub struct ReliableDataReaderSession {
   writer_prefix : @rtps.GuidPrefix
   state : ReliableDataReader
   mut pending_samples : Array[(@rtps.DataSubmessage, @socket.Addr)]
-  mut pending_sample_index : Int
+  mut pending_sample_index : Int32
 }
 
 ///|
@@ -475,7 +475,7 @@ async fn ReliableDataReaderSession::acknowledge_heartbeat_frag(
 /// Return the number of samples accepted by the reader session.
 pub fn ReliableDataReaderSession::sample_count(
   self : ReliableDataReaderSession,
-) -> Int {
+) -> Int32 {
   self.state.sample_count()
 }
 

@@ -1,8 +1,8 @@
 ///|
 /// Generated from builtin_interfaces/msg/Time.msg
 pub struct Time {
-  sec : Int
-  nanosec : UInt
+  sec : Int32
+  nanosec : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -17,27 +17,27 @@ pub const Time_TYPE_HASH : String = "RIHS01_b106235e25a4c5ed35098aa0a61a3ee9c9b1
 
 ///|
 /// Create a ROS time value.
-pub fn Time::new(sec : Int, nanosec : UInt) -> Time {
+pub fn Time::new(sec : Int32, nanosec : UInt32) -> Time {
   { sec, nanosec, }
 }
 
 ///|
 /// Return the zero time value.
 pub fn Time::default() -> Time {
-  let sec : Int = 0
-  let nanosec : UInt = 0
+  let sec : Int32 = 0
+  let nanosec : UInt32 = 0
   Time::new(sec, nanosec)
 }
 
 ///|
 /// Return the time seconds.
-pub fn Time::sec(self : Time) -> Int {
+pub fn Time::sec(self : Time) -> Int32 {
   self.sec
 }
 
 ///|
 /// Return the time nanoseconds.
-pub fn Time::nanosec(self : Time) -> UInt {
+pub fn Time::nanosec(self : Time) -> UInt32 {
   self.nanosec
 }
 
@@ -97,8 +97,8 @@ pub fn Time::from_cdr_bytes(input : Bytes) -> Result[Time, String] {
 ///|
 /// Generated from builtin_interfaces/msg/Duration.msg
 pub struct Duration {
-  sec : Int
-  nanosec : UInt
+  sec : Int32
+  nanosec : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -113,27 +113,27 @@ pub const Duration_TYPE_HASH : String = "RIHS01_e8d009f659816f758b75334ee1a9ca5b
 
 ///|
 /// Create a ROS duration value.
-pub fn Duration::new(sec : Int, nanosec : UInt) -> Duration {
+pub fn Duration::new(sec : Int32, nanosec : UInt32) -> Duration {
   { sec, nanosec, }
 }
 
 ///|
 /// Return the zero duration value.
 pub fn Duration::default() -> Duration {
-  let sec : Int = 0
-  let nanosec : UInt = 0
+  let sec : Int32 = 0
+  let nanosec : UInt32 = 0
   Duration::new(sec, nanosec)
 }
 
 ///|
 /// Return the duration seconds.
-pub fn Duration::sec(self : Duration) -> Int {
+pub fn Duration::sec(self : Duration) -> Int32 {
   self.sec
 }
 
 ///|
 /// Return the duration nanoseconds.
-pub fn Duration::nanosec(self : Duration) -> UInt {
+pub fn Duration::nanosec(self : Duration) -> UInt32 {
   self.nanosec
 }
 

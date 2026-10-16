@@ -8,6 +8,8 @@ import {
 // Values
 pub const RIHS01_PREFIX : String = "RIHS01_"
 
+pub fn message_referenced_types(String) -> Result[Array[String], String]
+
 pub fn parse_action(String, String, String) -> Result[ActionDefinition, String]
 
 pub fn parse_action_with_types(String, String, String, Array[MessageTypeReference]) -> Result[ActionDefinition, String]
@@ -31,20 +33,26 @@ pub struct ActionDefinition {
   feedback : MessageDefinition
 } derive(Eq, @debug.Debug)
 pub fn ActionDefinition::action_name(Self) -> String
+pub fn ActionDefinition::equal(Self, Self) -> Bool
 pub fn ActionDefinition::feedback(Self) -> MessageDefinition
 pub fn ActionDefinition::generate_moonbit(Self) -> String
 pub fn ActionDefinition::goal(Self) -> MessageDefinition
 pub fn ActionDefinition::new(String, String, MessageDefinition, MessageDefinition, MessageDefinition) -> Result[Self, String]
+pub fn ActionDefinition::not_equal(Self, Self) -> Bool
 pub fn ActionDefinition::package_name(Self) -> String
 pub fn ActionDefinition::result(Self) -> MessageDefinition
+pub fn ActionDefinition::to_repr(Self) -> @debug.Repr
 
 pub struct MessageConstant {
   type_name : String
   name : String
   value : String
 } derive(Eq, @debug.Debug)
+pub fn MessageConstant::equal(Self, Self) -> Bool
 pub fn MessageConstant::name(Self) -> String
 pub fn MessageConstant::new(String, String, String) -> Self
+pub fn MessageConstant::not_equal(Self, Self) -> Bool
+pub fn MessageConstant::to_repr(Self) -> @debug.Repr
 pub fn MessageConstant::type_name(Self) -> String
 pub fn MessageConstant::value(Self) -> String
 
@@ -57,13 +65,16 @@ pub struct MessageDefinition {
   nested_types : Array[MessageTypeReference]
 } derive(Eq, @debug.Debug)
 pub fn MessageDefinition::constants(Self) -> Array[MessageConstant]
+pub fn MessageDefinition::equal(Self, Self) -> Bool
 pub fn MessageDefinition::fields(Self) -> Array[MessageField]
 pub fn MessageDefinition::generate_moonbit(Self) -> String
 pub fn MessageDefinition::interface_namespace(Self) -> String
 pub fn MessageDefinition::nested_types(Self) -> Array[MessageTypeReference]
 pub fn MessageDefinition::new(String, String, String, Array[MessageField]) -> Result[Self, String]
 pub fn MessageDefinition::new_with_types(String, String, String, Array[MessageField], Array[MessageTypeReference]) -> Result[Self, String]
+pub fn MessageDefinition::not_equal(Self, Self) -> Bool
 pub fn MessageDefinition::package_name(Self) -> String
+pub fn MessageDefinition::to_repr(Self) -> @debug.Repr
 pub fn MessageDefinition::type_hash(Self) -> Result[String, String]
 pub fn MessageDefinition::type_name(Self) -> String
 pub fn MessageDefinition::with_constants(Self, Array[MessageConstant]) -> Result[Self, String]
@@ -77,9 +88,12 @@ pub struct MessageField {
 } derive(Eq, @debug.Debug)
 pub fn MessageField::collection(Self) -> MessageFieldCollection
 pub fn MessageField::default_value(Self) -> String?
+pub fn MessageField::equal(Self, Self) -> Bool
 pub fn MessageField::name(Self) -> String
 pub fn MessageField::new(String, String) -> Self
+pub fn MessageField::not_equal(Self, Self) -> Bool
 pub fn MessageField::string_upper_bound(Self) -> Int?
+pub fn MessageField::to_repr(Self) -> @debug.Repr
 pub fn MessageField::type_name(Self) -> String
 pub fn MessageField::with_collection(Self, MessageFieldCollection) -> Self
 pub fn MessageField::with_string_upper_bound(Self, Int) -> Self
@@ -90,16 +104,25 @@ pub(all) enum MessageFieldCollection {
   Sequence
   BoundedSequence(Int)
 } derive(Eq, @debug.Debug)
+pub fn MessageFieldCollection::equal(Self, Self) -> Bool
+pub fn MessageFieldCollection::fixed_array_length(Self) -> Int?
+pub fn MessageFieldCollection::is_sequence(Self) -> Bool
+pub fn MessageFieldCollection::not_equal(Self, Self) -> Bool
+pub fn MessageFieldCollection::sequence_bound(Self) -> Int?
+pub fn MessageFieldCollection::to_repr(Self) -> @debug.Repr
 
 pub struct MessageImport {
   ros_package_name : String
   moon_package_path : String
   moon_alias : String
 } derive(Eq, @debug.Debug)
+pub fn MessageImport::equal(Self, Self) -> Bool
 pub fn MessageImport::moon_alias(Self) -> String
 pub fn MessageImport::moon_package_path(Self) -> String
 pub fn MessageImport::new(String, String, String) -> Result[Self, String]
+pub fn MessageImport::not_equal(Self, Self) -> Bool
 pub fn MessageImport::ros_package_name(Self) -> String
+pub fn MessageImport::to_repr(Self) -> @debug.Repr
 
 pub struct MessageSource {
   package_name : String
@@ -107,19 +130,25 @@ pub struct MessageSource {
   type_name : String
   source : String
 } derive(Eq, @debug.Debug)
+pub fn MessageSource::equal(Self, Self) -> Bool
 pub fn MessageSource::interface_namespace(Self) -> String
 pub fn MessageSource::new(String, String, String, String) -> Result[Self, String]
+pub fn MessageSource::not_equal(Self, Self) -> Bool
 pub fn MessageSource::package_name(Self) -> String
 pub fn MessageSource::source(Self) -> String
+pub fn MessageSource::to_repr(Self) -> @debug.Repr
 pub fn MessageSource::type_name(Self) -> String
 
 pub struct MessageTypeReference {
   ros_name : String
   moon_name : String
 } derive(Eq, @debug.Debug)
+pub fn MessageTypeReference::equal(Self, Self) -> Bool
 pub fn MessageTypeReference::moon_name(Self) -> String
 pub fn MessageTypeReference::new(String, String) -> Self
+pub fn MessageTypeReference::not_equal(Self, Self) -> Bool
 pub fn MessageTypeReference::ros_name(Self) -> String
+pub fn MessageTypeReference::to_repr(Self) -> @debug.Repr
 
 pub struct MessageWorkspace {
   sources : Array[MessageSource]
@@ -146,12 +175,15 @@ pub struct ServiceDefinition {
   request : MessageDefinition
   response : MessageDefinition
 } derive(Eq, @debug.Debug)
+pub fn ServiceDefinition::equal(Self, Self) -> Bool
 pub fn ServiceDefinition::generate_moonbit(Self) -> String
 pub fn ServiceDefinition::new(String, String, MessageDefinition, MessageDefinition) -> Result[Self, String]
+pub fn ServiceDefinition::not_equal(Self, Self) -> Bool
 pub fn ServiceDefinition::package_name(Self) -> String
 pub fn ServiceDefinition::request(Self) -> MessageDefinition
 pub fn ServiceDefinition::response(Self) -> MessageDefinition
 pub fn ServiceDefinition::service_name(Self) -> String
+pub fn ServiceDefinition::to_repr(Self) -> @debug.Repr
 pub fn ServiceDefinition::type_hash(Self) -> Result[String, String]
 
 // Type aliases

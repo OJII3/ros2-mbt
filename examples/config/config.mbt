@@ -1,13 +1,13 @@
 ///|
 /// Runtime settings shared by the native ROS 2 interoperability examples.
 pub struct Config {
-  ip : UInt
-  domain_id : UInt
-  multicast_interface : UInt?
+  ip : UInt32
+  domain_id : UInt32
+  multicast_interface : UInt32?
 }
 
 ///|
-fn parse_uint(value : String, name : String) -> Result[UInt, String] {
+fn parse_uint(value : String, name : String) -> Result[UInt32, String] {
   let parsed = @string.parse_int(value) catch {
     _ => return Err(name + " must be a decimal unsigned integer")
   }
@@ -18,7 +18,7 @@ fn parse_uint(value : String, name : String) -> Result[UInt, String] {
 }
 
 ///|
-fn parse_ipv4(value : String, name : String) -> Result[UInt, String] {
+fn parse_ipv4(value : String, name : String) -> Result[UInt32, String] {
   let parts = value.split(".").collect()
   if parts.length() != 4 {
     return Err(name + " must be an IPv4 address")
