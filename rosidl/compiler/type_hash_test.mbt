@@ -78,6 +78,11 @@ test "ROS workspace type hash includes sorted nested message descriptions" {
       "pub const Pose_TYPE_HASH : String = \"RIHS01_2dfc887d6b11780ee8fe04e575a313ee259383ad7e4193a3d0bffc6db3d8f328\"",
     ),
   )
+  assert_true(
+    generated.contains(
+      "pub fn Pose::type_support() -> @endpoints.RosMessageType[Pose]",
+    ),
+  )
 }
 
 ///|
@@ -165,6 +170,16 @@ test "ROS workspace generates nested service codecs and type hashes" {
   assert_true(
     generated.contains(
       "pub const Transform_TYPE_HASH : String = \"" + service_hash + "\"",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub fn Transform_Request::type_support() -> @endpoints.RosMessageType[Transform_Request]",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub fn Transform_Response::type_support() -> @endpoints.RosMessageType[Transform_Response]",
     ),
   )
 }
@@ -410,6 +425,37 @@ test "ROS workspace type hash sorts multiple nested descriptions" {
     workspace.type_hash("demo_msgs", "msg", "Root"),
     Ok(
       "RIHS01_19e2cc2e5e8ea923b52c7bc74ad202807d2a37fbadcf69060b2bf958fb2abf0a",
+    ),
+  )
+}
+
+///|
+test "geometry_msgs Vector3 and Twist hashes use their ROS interface definitions" {
+  let workspace = @compiler.MessageWorkspace::new()
+  workspace
+  .add_source(
+    @compiler.MessageSource::new(
+      "geometry_msgs", "msg", "Vector3", "float64 x\nfloat64 y\nfloat64 z\n",
+    ).unwrap(),
+  )
+  .unwrap()
+  workspace
+  .add_source(
+    @compiler.MessageSource::new(
+      "geometry_msgs", "msg", "Twist", "Vector3 linear\nVector3 angular\n",
+    ).unwrap(),
+  )
+  .unwrap()
+  assert_eq(
+    workspace.type_hash("geometry_msgs", "msg", "Vector3"),
+    Ok(
+      "RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd40f75a96696a67a2a1f37f7dbb0765d",
+    ),
+  )
+  assert_eq(
+    workspace.type_hash("geometry_msgs", "msg", "Twist"),
+    Ok(
+      "RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a",
     ),
   )
 }

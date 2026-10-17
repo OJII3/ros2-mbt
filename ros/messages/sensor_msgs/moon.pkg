@@ -1,4 +1,5 @@
 import {
+  "OJII3/ros2-mbt/ros/endpoints",
   "moonbitlang/core/debug",
   "OJII3/ros2-mbt/cdr",
   "OJII3/ros2-mbt/ros/messages/geometry_msgs" @geometry,

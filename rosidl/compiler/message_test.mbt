@@ -26,6 +26,12 @@ test "ROS message parser ignores comments and generates a primitive CDR codec" {
   assert_true(
     generated.contains("pub const Pose_TYPE_HASH : String = \"RIHS01_"),
   )
+  assert_true(
+    generated.contains(
+      "pub fn Pose::type_support() -> @endpoints.RosMessageType[Pose]",
+    ),
+  )
+  assert_true(generated.contains("\"demo_msgs\",\n    \"msg\",\n    \"Pose\","))
 }
 
 ///|
