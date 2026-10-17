@@ -57,6 +57,7 @@ pub struct DataReader {
   state : ReliableDataReader
 }
 pub fn DataReader::close(Self) -> Unit
+pub fn DataReader::handle_message(Self, @core.Message, @socket.Addr) -> Result[(@core.DataSubmessage, @socket.Addr)?, String]
 pub fn DataReader::new(Udp, @core.EntityId, @core.EntityId) -> Self
 pub fn DataReader::new_for_publication(Udp, @core.EntityId, @discovery.SedpEndpointData) -> Result[Self, String]
 pub fn DataReader::new_for_publication_with_prefix(Udp, @core.GuidPrefix, @core.EntityId, @discovery.SedpEndpointData) -> Result[Self, String]

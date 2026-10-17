@@ -8,6 +8,10 @@ import {
   "moonbitlang/async",
 } for "test"
 
+import {
+  "moonbitlang/async",
+} for "wbtest"
+
 max_concurrent_tests = 1
 
 options(
