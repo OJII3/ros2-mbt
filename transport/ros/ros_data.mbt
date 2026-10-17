@@ -270,6 +270,20 @@ pub async fn RosSubscription::receive(
 }
 
 ///|
+/// Process one already-received RTPS message for this subscription.
+fn RosSubscription::handle_message(
+  self : RosSubscription,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Bytes?, String] {
+  match self.reader.handle_message(message, source) {
+    Ok(Some((data, _))) => Ok(Some(data.serialized_payload()))
+    Ok(None) => Ok(None)
+    Err(message) => Err(message)
+  }
+}
+
+///|
 /// Close the subscription's underlying UDP socket.
 pub fn RosSubscription::close(self : RosSubscription) -> Unit {
   self.reader.close()

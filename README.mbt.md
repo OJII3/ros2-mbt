@@ -170,6 +170,48 @@ time.
   because of UDP multicast port sharing.
 - Not every ROS 2 message type or QoS combination has been tested.
 
+## Node and executor API
+
+`transport.RosNode` groups publishers, subscriptions, and timers without
+requiring user-defined node inheritance. It wraps a fresh `RosParticipant`
+created with the existing transport setup. The node API currently creates
+best-effort, volatile topic endpoints; message serialization is supplied by
+the caller using the generated CDR functions.
+
+```moonbit nocheck
+import {
+  "OJII3/ros2-mbt/ros" @ros,
+  "OJII3/ros2-mbt/ros/messages/std_msgs" @std_msgs,
+  "OJII3/ros2-mbt/transport" @transport,
+}
+
+async main {
+  // Assume `participant` is a fresh RosParticipant created as in the examples.
+  let node = @transport.RosNode::new(participant, "/demo", "talker").unwrap()
+  let topic = @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
+  let publisher = node.create_publisher(
+  topic,
+  @std_msgs.STD_MSGS_STRING_TYPE_HASH,
+  fn(message : @std_msgs.StringMessage) { Ok(message.to_cdr_bytes()) },
+  ).unwrap()
+  node.create_timer(1000, async fn() {
+    match publisher.publish(@std_msgs.StringMessage::new("hello")) {
+      Ok(_) => ()
+      Err(message) => println(message)
+    }
+  }).unwrap()
+  let executor = @transport.Executor::new()
+  executor.add_node(node).unwrap()
+  ignore(executor.spin())
+}
+```
+
+`Executor::spin` reads each participant's user-data socket once and routes each
+RTPS message to matching subscriptions. It runs callbacks sequentially and
+waits asynchronously for network input, timers, or `Executor::shutdown()`.
+Reliable QoS control handling and service/action callbacks are not part of this
+first node API.
+
 ## Development
 
 Enter the development environment and update MoonBit dependencies:

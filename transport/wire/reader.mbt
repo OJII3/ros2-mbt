@@ -85,67 +85,82 @@ pub async fn DataReader::receive(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) =>
-        match self.participant_prefix {
-          Some(prefix) if destination != prefix &&
-            !transport_guid_prefix_is_unknown(destination) => continue
-          _ => ()
-        }
-      Ok(None) => ()
-      Err(_) => continue
-    }
-    for submessage in message.submessages() {
-      match submessage.id() {
-        Data => {
-          let data = match @rtps.DataSubmessage::from_submessage(submessage) {
-            Ok(value) => value
-            Err(message) => return Err(message)
-          }
-          let prefix_matches = match self.writer_prefix {
-            Some(prefix) => message.header().guid_prefix() == prefix
-            None => true
-          }
-          if (
-              data.reader_id() != self.reader_id &&
-              data.reader_id() != @rtps.EntityId::unknown()
-            ) ||
-            data.writer_id() != self.writer_id ||
-            !prefix_matches {
-            continue
-          }
-          match self.state.accept_data(data) {
-            Ok(_) => return Ok((data, source))
-            Err(_) => continue
-          }
-        }
-        DataFrag => {
-          let fragment = match
-            @rtps.DataFragSubmessage::from_submessage(submessage) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          let prefix_matches = match self.writer_prefix {
-            Some(prefix) => message.header().guid_prefix() == prefix
-            None => true
-          }
-          if !prefix_matches {
-            continue
-          }
-          let data = match self.state.accept_data_frag(fragment) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          match data {
-            Some(value) => return Ok((value, source))
-            None => continue
-          }
-        }
-        _ => continue
-      }
+    match self.handle_message(message, source) {
+      Ok(Some(data)) => return Ok(data)
+      Ok(None) => continue
+      Err(message) => return Err(message)
     }
   }
   Err("best-effort reader stopped")
+}
+
+///|
+/// Process one already-received RTPS message for this reader.
+pub fn DataReader::handle_message(
+  self : DataReader,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr)?, String] {
+  match message.destination_guid_prefix() {
+    Ok(Some(destination)) =>
+      match self.participant_prefix {
+        Some(prefix) if destination != prefix &&
+          !transport_guid_prefix_is_unknown(destination) => return Ok(None)
+        _ => ()
+      }
+    Ok(None) => ()
+    Err(_) => return Ok(None)
+  }
+  for submessage in message.submessages() {
+    match submessage.id() {
+      Data => {
+        let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        let prefix_matches = match self.writer_prefix {
+          Some(prefix) => message.header().guid_prefix() == prefix
+          None => true
+        }
+        if (
+            data.reader_id() != self.reader_id &&
+            data.reader_id() != @rtps.EntityId::unknown()
+          ) ||
+          data.writer_id() != self.writer_id ||
+          !prefix_matches {
+          continue
+        }
+        match self.state.accept_data(data) {
+          Ok(_) => return Ok(Some((data, source)))
+          Err(_) => continue
+        }
+      }
+      DataFrag => {
+        let fragment = match
+          @rtps.DataFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        let prefix_matches = match self.writer_prefix {
+          Some(prefix) => message.header().guid_prefix() == prefix
+          None => true
+        }
+        if !prefix_matches {
+          continue
+        }
+        let data = match self.state.accept_data_frag(fragment) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        match data {
+          Some(value) => return Ok(Some((value, source)))
+          None => continue
+        }
+      }
+      _ => continue
+    }
+  }
+  Ok(None)
 }
 
 ///|
