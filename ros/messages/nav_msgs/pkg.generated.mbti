@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/ros/messages/nav_msgs"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "OJII3/ros2-mbt/ros/messages/builtin_interfaces",
   "OJII3/ros2-mbt/ros/messages/geometry_msgs",
   "OJII3/ros2-mbt/ros/messages/std_msgs",
@@ -40,6 +41,7 @@ pub fn MapMetaData::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn MapMetaData::resolution(Self) -> Float
 pub fn MapMetaData::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn MapMetaData::to_repr(Self) -> @debug.Repr
+pub fn MapMetaData::type_support() -> @endpoints.RosMessageType[Self]
 pub fn MapMetaData::width(Self) -> UInt
 pub fn MapMetaData::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -59,6 +61,7 @@ pub fn OccupancyGrid::not_equal(Self, Self) -> Bool
 pub fn OccupancyGrid::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn OccupancyGrid::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn OccupancyGrid::to_repr(Self) -> @debug.Repr
+pub fn OccupancyGrid::type_support() -> @endpoints.RosMessageType[Self]
 pub fn OccupancyGrid::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Odometry {
@@ -79,6 +82,7 @@ pub fn Odometry::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Odometry::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Odometry::to_repr(Self) -> @debug.Repr
 pub fn Odometry::twist(Self) -> @geometry_msgs.TwistWithCovariance
+pub fn Odometry::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Odometry::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Path {
@@ -95,6 +99,7 @@ pub fn Path::poses(Self) -> Array[@geometry_msgs.PoseStamped]
 pub fn Path::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Path::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Path::to_repr(Self) -> @debug.Repr
+pub fn Path::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Path::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 // Type aliases

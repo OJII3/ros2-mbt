@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/ros/messages/sensor_msgs"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "OJII3/ros2-mbt/ros/messages/geometry_msgs",
   "OJII3/ros2-mbt/ros/messages/std_msgs",
   "moonbitlang/core/debug",
@@ -109,6 +110,7 @@ pub fn CameraInfo::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn CameraInfo::roi(Self) -> RegionOfInterest
 pub fn CameraInfo::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn CameraInfo::to_repr(Self) -> @debug.Repr
+pub fn CameraInfo::type_support() -> @endpoints.RosMessageType[Self]
 pub fn CameraInfo::width(Self) -> UInt
 pub fn CameraInfo::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -128,6 +130,7 @@ pub fn CompressedImage::not_equal(Self, Self) -> Bool
 pub fn CompressedImage::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn CompressedImage::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn CompressedImage::to_repr(Self) -> @debug.Repr
+pub fn CompressedImage::type_support() -> @endpoints.RosMessageType[Self]
 pub fn CompressedImage::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Image {
@@ -153,6 +156,7 @@ pub fn Image::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Image::step(Self) -> UInt
 pub fn Image::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Image::to_repr(Self) -> @debug.Repr
+pub fn Image::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Image::width(Self) -> UInt
 pub fn Image::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -180,6 +184,7 @@ pub fn Imu::orientation_covariance(Self) -> Array[Double]
 pub fn Imu::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Imu::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Imu::to_repr(Self) -> @debug.Repr
+pub fn Imu::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Imu::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct JointState {
@@ -201,6 +206,7 @@ pub fn JointState::position(Self) -> Array[Double]
 pub fn JointState::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn JointState::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn JointState::to_repr(Self) -> @debug.Repr
+pub fn JointState::type_support() -> @endpoints.RosMessageType[Self]
 pub fn JointState::velocity(Self) -> Array[Double]
 pub fn JointState::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -234,6 +240,7 @@ pub fn LaserScan::scan_time(Self) -> Float
 pub fn LaserScan::time_increment(Self) -> Float
 pub fn LaserScan::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn LaserScan::to_repr(Self) -> @debug.Repr
+pub fn LaserScan::type_support() -> @endpoints.RosMessageType[Self]
 pub fn LaserScan::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct NavSatFix {
@@ -260,6 +267,7 @@ pub fn NavSatFix::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn NavSatFix::status(Self) -> NavSatStatus
 pub fn NavSatFix::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn NavSatFix::to_repr(Self) -> @debug.Repr
+pub fn NavSatFix::type_support() -> @endpoints.RosMessageType[Self]
 pub fn NavSatFix::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct NavSatStatus {
@@ -276,6 +284,7 @@ pub fn NavSatStatus::service(Self) -> UInt
 pub fn NavSatStatus::status(Self) -> Int
 pub fn NavSatStatus::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn NavSatStatus::to_repr(Self) -> @debug.Repr
+pub fn NavSatStatus::type_support() -> @endpoints.RosMessageType[Self]
 pub fn NavSatStatus::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PointCloud2 {
@@ -305,6 +314,7 @@ pub fn PointCloud2::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PointCloud2::row_step(Self) -> UInt
 pub fn PointCloud2::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn PointCloud2::to_repr(Self) -> @debug.Repr
+pub fn PointCloud2::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PointCloud2::width(Self) -> UInt
 pub fn PointCloud2::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
@@ -326,6 +336,7 @@ pub fn PointField::offset(Self) -> UInt
 pub fn PointField::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PointField::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn PointField::to_repr(Self) -> @debug.Repr
+pub fn PointField::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PointField::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct RegionOfInterest {
@@ -345,6 +356,7 @@ pub fn RegionOfInterest::not_equal(Self, Self) -> Bool
 pub fn RegionOfInterest::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn RegionOfInterest::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn RegionOfInterest::to_repr(Self) -> @debug.Repr
+pub fn RegionOfInterest::type_support() -> @endpoints.RosMessageType[Self]
 pub fn RegionOfInterest::width(Self) -> UInt
 pub fn RegionOfInterest::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn RegionOfInterest::x_offset(Self) -> UInt

@@ -29,12 +29,8 @@ async test "typed message endpoints advertise the descriptor identity" {
   let pose_publisher = node
     .create_publisher_for("/poses", pose_support)
     .unwrap()
-  node
-  .create_subscription_for("/strings", string_support, async fn(_) {  })
-  .unwrap()
-  node
-  .create_subscription_for("/poses", pose_support, async fn(_) {  })
-  .unwrap()
+  node.create_subscription_for("/strings", string_support, fn(_) {  }).unwrap()
+  node.create_subscription_for("/poses", pose_support, fn(_) {  }).unwrap()
 
   let string_message = @ros_types.StringMessage::new("hello")
   let string_payload = string_support.encode(string_message).unwrap()

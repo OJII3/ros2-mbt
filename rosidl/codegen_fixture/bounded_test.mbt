@@ -29,23 +29,8 @@ test "generated message type support keeps identity and codecs together" {
   assert_eq(support.decode(encoded).unwrap(), message)
   let topic = support.topic("/bounded").unwrap()
   assert_eq(topic.dds_type_name(), "demo::msg::dds_::Bounded_")
-  let endpoint = topic
-    .to_sedp_with_qos_and_type_hash(
-      @rtps.SedpEndpointKind::Publication,
-      @rtps.Guid::new(
-        @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).unwrap(),
-        @rtps.EntityId::new(b"pub", 0x03).unwrap(),
-      ),
-      @rtps.SedpQos::new(
-        @rtps.RELIABILITY_BEST_EFFORT,
-        @rtps.DURABILITY_VOLATILE,
-        @rtps.HISTORY_KEEP_LAST,
-        10,
-      ),
-      support.type_hash(),
-    )
-    .unwrap()
-  assert_eq(endpoint.type_hash(), Ok(Some(support.type_hash())))
+  assert_eq(topic.dds_name(), "rt/bounded")
+  assert_eq(support.type_hash(), @codegen_fixture.Bounded_TYPE_HASH)
 }
 
 ///|

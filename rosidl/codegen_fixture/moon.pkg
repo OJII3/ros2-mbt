@@ -2,7 +2,6 @@ import {
   "moonbitlang/core/debug",
   "OJII3/ros2-mbt/cdr",
   "OJII3/ros2-mbt/ros/endpoints",
-  "OJII3/ros2-mbt/rtps",
 }
 
 options(

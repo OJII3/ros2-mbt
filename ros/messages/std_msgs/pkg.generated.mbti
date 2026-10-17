@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/ros/messages/std_msgs"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "OJII3/ros2-mbt/ros/messages/builtin_interfaces",
   "moonbitlang/core/debug",
 }
@@ -29,6 +30,7 @@ pub fn Header::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Header::stamp(Self) -> @builtin_interfaces.Time
 pub fn Header::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Header::to_repr(Self) -> @debug.Repr
+pub fn Header::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Header::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct StringMessage {
@@ -38,6 +40,7 @@ pub fn StringMessage::data(Self) -> String
 pub fn StringMessage::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn StringMessage::new(String) -> Self
 pub fn StringMessage::to_cdr_bytes(Self) -> Bytes
+pub fn StringMessage::type_support() -> @endpoints.RosMessageType[Self]
 
 // Type aliases
 
