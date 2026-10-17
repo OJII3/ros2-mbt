@@ -34,6 +34,7 @@ async test "executor skips malformed RTPS and decoder failures before valid data
       }
     },
     async fn(value) {
+      @async.Timer(1).wait()
       assert_eq(value, "valid")
       received += 1
       executor.shutdown()
@@ -231,4 +232,80 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   assert_eq(participant.graph().ros_participant_count(), 1)
   assert_eq(participant.graph_subscriptions[0].sample_count(), 1)
   assert_eq(participant.graph_publishers[0].history_length(), 0)
+}
+
+///|
+async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let local_identity = @wire.new_ddsi_participant(
+    local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
+  ).unwrap()
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer discovery_socket.close()
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer user_socket.close()
+  let participant = RosParticipant::from_sockets(
+    discovery_socket, user_socket, local_identity, 0, 1L,
+  ).unwrap()
+  let node = RosNode::new(participant, "/node_test", "heartbeat_test").unwrap()
+  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer remote_receiver.close()
+  let publication_id = @rtps.EntityId::new(b"gph", 0x03).unwrap()
+  let subscription_id = @rtps.EntityId::new(b"gph", 0x04).unwrap()
+  let local_publication = @ros_types.ros_discovery_info_to_sedp(
+    Publication,
+    @rtps.Guid::new(local_prefix, publication_id),
+  ).unwrap()
+  local_publication.add_unicast_locator(
+    user_socket.local_unicast_locator().unwrap(),
+  )
+  let remote_subscription = @ros_types.ros_discovery_info_to_sedp(
+    Subscription,
+    @rtps.Guid::new(remote_prefix, subscription_id),
+  ).unwrap()
+  remote_subscription.add_unicast_locator(
+    remote_receiver.local_unicast_locator().unwrap(),
+  )
+  let remote_reader = ReliableRosDiscoverySubscription::new_for_publication(
+    remote_receiver, remote_prefix, vendor_id, subscription_id, local_publication,
+  ).unwrap()
+  let local_writer = ReliableRosDiscoveryPublisher::new_for_subscription(
+    user_socket, local_prefix, vendor_id, publication_id, remote_subscription, 1L,
+  ).unwrap()
+  node.participant.graph_publishers.push(local_writer)
+  let gid = @ros_types.Gid::from_guid(
+    @rtps.Guid::new(local_prefix, publication_id),
+  )
+  let info = @ros_types.ParticipantEntitiesInfo::new(gid)
+  let graph_node = @ros_types.NodeEntitiesInfo::new("/demo", "talker").unwrap()
+  graph_node.add_writer_gid(gid)
+  info.add_node(graph_node)
+  node.participant.graph_publishers[0].announce_once(info).unwrap()
+  ignore(remote_receiver.receive_message().unwrap())
+  ignore(remote_receiver.receive_message().unwrap())
+  let executor = Executor::new()
+  executor.add_node(node).unwrap()
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match executor.spin() {
+        Ok(_) => ()
+        Err(message) => fail(message)
+      }
+    }
+    let (heartbeat, _) = @async.with_timeout(3000, () => {
+      remote_reader.receive_heartbeat()
+    }).unwrap()
+    assert_true(heartbeat.last_sequence_number() >= 1L)
+    let (recovered_info, _) = @async.with_timeout(3000, () => {
+      remote_reader.receive()
+    }).unwrap()
+    assert_eq(recovered_info.to_cdr_bytes(), info.to_cdr_bytes())
+    executor.shutdown()
+  }
 }

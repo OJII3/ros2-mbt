@@ -757,6 +757,20 @@ async fn RosParticipant::handle_user_message(
 }
 
 ///|
+/// Send periodic HEARTBEATs for active ROS graph writers.
+async fn RosParticipant::send_ros_discovery_heartbeats(
+  self : RosParticipant,
+) -> Result[Unit, String] {
+  for publisher in self.graph_publishers {
+    match publisher.writer.send_heartbeat() {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Receive either reliable control message for one graph publisher.
 pub async fn RosParticipant::receive_ros_discovery_control(
   self : RosParticipant,

@@ -420,6 +420,17 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
             Err(message) => fail(message)
           }
         }
+        group.spawn_bg(no_wait=true) <| () => {
+          let heartbeat_timer = @async.Timer(1000)
+          while !self.shutdown_requested {
+            heartbeat_timer.wait()
+            heartbeat_timer.refresh()
+            match node.participant.send_ros_discovery_heartbeats() {
+              Ok(_) => ()
+              Err(message) => fail(message)
+            }
+          }
+        }
       }
       self.spin_loop()
     }
