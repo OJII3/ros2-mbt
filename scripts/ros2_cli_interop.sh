@@ -129,7 +129,7 @@ wait_for_node() {
   while ((SECONDS < deadline)); do
     local nodes
     nodes=$(timeout --kill-after=1s 3s ros2 node list "${daemon_args[@]}" \
-      --spin-time 0.25 2>/dev/null || true)
+      --spin-time 1.0 2>/dev/null || true)
     if grep -Fxq "$node_name" <<<"$nodes"; then
       return 0
     fi
