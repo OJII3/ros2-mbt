@@ -212,6 +212,13 @@ waits asynchronously for network input, timers, or `Executor::shutdown()`.
 Reliable QoS control handling and service/action callbacks are not part of this
 first node API.
 
+Each best-effort reader retains duplicate-detection history for the latest 256
+sequence numbers. It can reassemble at most four incomplete samples with a
+combined payload size of 16 MiB (plus fragment metadata). Oversized fragmented
+samples are dropped before allocation. When the budget is exhausted, newer
+samples replace the oldest incomplete samples; samples outside the receive
+window and duplicate samples are discarded.
+
 ## Development
 
 Enter the development environment and update MoonBit dependencies:
