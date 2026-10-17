@@ -23,21 +23,11 @@ async fn main {
       return
     }
   }
-  let topic = match
-    @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String") {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      ignore(node.dispose_and_close())
-      return
-    }
-  }
   let publisher = match
-    node.create_publisher(topic, @std_msgs.STD_MSGS_STRING_TYPE_HASH, fn(
-      message : @std_msgs.StringMessage,
+    node.create_publisher_for(
+      "/chatter",
+      @std_msgs.StringMessage::type_support(),
     ) {
-      Ok(message.to_cdr_bytes())
-    }) {
     Ok(value) => value
     Err(message) => {
       println(message)

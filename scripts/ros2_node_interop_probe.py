@@ -30,15 +30,21 @@ def main() -> int:
     )
     process = subprocess.Popen(command)
     graph_matched = False
+    publishers_seen = set()
     try:
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             rclpy.spin_once(observer, timeout_sec=0.1)
+            publishers = observer.get_publishers_info_by_topic("/chatter")
+            publishers_seen.update(
+                (endpoint.node_namespace, endpoint.node_name, endpoint.topic_type)
+                for endpoint in publishers
+            )
             graph_matched = graph_matched or any(
                 endpoint.node_namespace == "/demo"
                 and endpoint.node_name == "moon_node_talker"
                 and endpoint.topic_type == "std_msgs/msg/String"
-                for endpoint in observer.get_publishers_info_by_topic("/chatter")
+                for endpoint in publishers
             )
             if process.poll() is not None:
                 break
@@ -49,7 +55,8 @@ def main() -> int:
             return process.returncode
         if "hello from RosNode" not in received or not graph_matched:
             print(
-                f"Node interoperability failed: graph={graph_matched}, samples={received}",
+                f"Node interoperability failed: graph={graph_matched}, "
+                f"publishers={sorted(publishers_seen)}, samples={received}",
                 file=sys.stderr,
             )
             return 1

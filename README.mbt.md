@@ -176,13 +176,12 @@ time.
 requiring user-defined node inheritance. `RosNode::new_ddsi` creates and
 configures a fresh DDSI participant; participant IDs must be unique for each
 participant on the same host and domain. The node API currently creates
-best-effort, volatile topic endpoints; message serialization is supplied by
-the caller using the generated CDR functions. For example, read best-effort
+best-effort, volatile topic endpoints. The example uses `type_support()` to
+keep the ROS type name, type hash, and CDR codecs together. Read best-effort
 samples with `ros2 topic echo /chatter --qos-reliability best_effort`.
 
 ```moonbit nocheck
 import {
-  "OJII3/ros2-mbt/ros" @ros,
   "OJII3/ros2-mbt/ros/messages/std_msgs" @std_msgs,
   "OJII3/ros2-mbt/transport" @transport,
 }
@@ -195,11 +194,9 @@ async main {
     participant_id=42U,
     ip=0x7F000001U,
   ).unwrap()
-  let topic = @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
-  let publisher = node.create_publisher(
-  topic,
-  @std_msgs.STD_MSGS_STRING_TYPE_HASH,
-  fn(message : @std_msgs.StringMessage) { Ok(message.to_cdr_bytes()) },
+  let publisher = node.create_publisher_for(
+    "/chatter",
+    @std_msgs.StringMessage::type_support(),
   ).unwrap()
   node.create_timer(1000, async fn() {
     match publisher.publish(@std_msgs.StringMessage::new("hello")) {
@@ -217,10 +214,18 @@ Run the finite publisher with `moon run examples/node_talker`; it reads
 `ROS_DOMAIN_ID`, `ROS2_MBT_IP`, and `ROS2_MBT_MULTICAST_IP` from the environment.
 
 `Executor::spin` reads each participant's user-data socket once and routes each
-RTPS message to matching subscriptions. It runs callbacks sequentially and
-waits asynchronously for network input, timers, or `Executor::shutdown()`.
-Reliable QoS control handling and service/action callbacks are not part of this
-first node API.
+RTPS message to matching subscriptions and the reliable ROS graph endpoints.
+Malformed RTPS datagrams and samples rejected by a subscription's decoder are
+discarded, allowing later samples to be processed. It runs callbacks
+sequentially and waits asynchronously for network input, timers, or
+`Executor::shutdown()`.
+Reliable user-topic QoS and service/action callbacks are not part of this node
+API. A best-effort publisher requires a best-effort subscription on the ROS 2
+side; best-effort subscriptions can receive from reliable publishers.
+
+`RosNode::new` still accepts a participant configured by the caller. The
+existing `create_publisher` and `create_subscription` methods remain available
+for custom codecs and explicit wire metadata.
 
 Each best-effort reader retains duplicate-detection history for the latest 256
 sequence numbers. It can reassemble at most four incomplete samples with a
