@@ -30,6 +30,7 @@ pub struct ReliableRosDiscoveryPublisher {
 pub async fn ReliableRosDiscoveryPublisher::announce_once(Self, @rmw_dds_common.ParticipantEntitiesInfo) -> Result[Unit, String]
 pub fn ReliableRosDiscoveryPublisher::close(Self) -> Unit
 pub async fn ReliableRosDiscoveryPublisher::handle_acknack(Self, @core.AckNackSubmessage) -> Result[Unit, String]
+pub async fn ReliableRosDiscoveryPublisher::handle_message(Self, @core.Message) -> Result[Unit, String]
 pub fn ReliableRosDiscoveryPublisher::history_length(Self) -> Int
 pub fn ReliableRosDiscoveryPublisher::new_for_subscription(@wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableRosDiscoveryPublisher::next_sequence_number(Self) -> Int64
@@ -42,6 +43,7 @@ pub struct ReliableRosDiscoverySubscription {
   reader : @wire.ReliableDataReaderSession
 }
 pub fn ReliableRosDiscoverySubscription::close(Self) -> Unit
+pub async fn ReliableRosDiscoverySubscription::handle_message(Self, @core.Message, @socket.Addr) -> Result[Array[@rmw_dds_common.ParticipantEntitiesInfo], String]
 pub fn ReliableRosDiscoverySubscription::new_for_publication(@wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableRosDiscoverySubscription::receive(Self) -> Result[(@rmw_dds_common.ParticipantEntitiesInfo, @socket.Addr), String]
 pub async fn ReliableRosDiscoverySubscription::receive_heartbeat(Self) -> Result[(@core.HeartbeatSubmessage, @socket.Addr), String]
@@ -140,10 +142,13 @@ pub struct RosNode {
 }
 pub fn RosNode::close(Self) -> Unit
 pub async fn[T] RosNode::create_publisher(Self, @endpoints.RosTopic, String, (T) -> Result[Bytes, String]) -> Result[RosNodePublisher[T], String]
+pub async fn[T] RosNode::create_publisher_for(Self, String, @endpoints.RosMessageType[T]) -> Result[RosNodePublisher[T], String]
 pub async fn[T] RosNode::create_subscription(Self, @endpoints.RosTopic, String, (Bytes) -> Result[T, String], async (T) -> Unit) -> Result[Unit, String]
+pub async fn[T] RosNode::create_subscription_for(Self, String, @endpoints.RosMessageType[T], async (T) -> Unit) -> Result[Unit, String]
 pub fn RosNode::create_timer(Self, Int, async () -> Unit) -> Result[Unit, String]
 pub async fn RosNode::dispose_and_close(Self) -> Result[Unit, String]
 pub async fn RosNode::new(RosParticipant, String, String) -> Result[Self, String]
+pub async fn RosNode::new_ddsi(String, String, domain_id? : UInt, participant_id? : UInt, ip? : UInt, multicast_interface? : UInt) -> Result[Self, String]
 
 pub struct RosNodePublisher[T] {
   // private fields

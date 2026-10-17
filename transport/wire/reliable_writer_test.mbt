@@ -1,4 +1,55 @@
 ///|
+async test "reliable writer skips malformed control submessages and handles later ACKNACK" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
+  let writer = @wire.ReliableDataWriter::new(
+    sender,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    writer_id,
+    receiver.local_addr(),
+    1L,
+  ).unwrap()
+  writer.write(b"retained sample").unwrap()
+  let message = @rtps.Message::new(
+    @rtps.Header::new(prefix, @rtps.VendorId::new(1, 15)),
+  )
+  let reader_id_bytes = reader_id.to_bytes()
+  let writer_id_bytes = writer_id.to_bytes()
+  let target_ids = Bytes::from_array([
+    reader_id_bytes[0],
+    reader_id_bytes[1],
+    reader_id_bytes[2],
+    reader_id_bytes[3],
+    writer_id_bytes[0],
+    writer_id_bytes[1],
+    writer_id_bytes[2],
+    writer_id_bytes[3],
+  ])
+  message.add(@rtps.Submessage::new(AckNack, 0, target_ids))
+  message.add(@rtps.Submessage::new(NackFrag, 0, target_ids))
+  let acknack = @rtps.AckNackSubmessage::new(
+    reader_id,
+    writer_id,
+    2L,
+    0U,
+    [],
+    1U,
+  ).unwrap()
+  message.add(acknack.to_submessage())
+  assert_true(writer.handle_control_message(message).unwrap())
+  assert_eq(writer.history_length(), 0)
+}
+
+///|
 async test "reliable writer retransmits ACKNACK-selected samples" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

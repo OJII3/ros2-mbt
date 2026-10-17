@@ -95,6 +95,9 @@ fn RosNode::next_entity_id(
   if self.next_entity_key > 0xFFFFFFU {
     return Err("the ROS node exhausted its RTPS endpoint identifiers")
   }
+  if self.next_entity_key == 0x677068U {
+    self.next_entity_key += 1U
+  }
   let key = self.next_entity_key
   self.next_entity_key += 1U
   @rtps.EntityId::new(
@@ -158,10 +161,11 @@ pub async fn[T] RosNode::create_publisher(
       subscription.type_name() == topic.dds_type_name() {
       let qos = match subscription.qos() {
         Ok(value) => value
-        Err(message) => return Err(message)
+        Err(_) => continue
       }
       if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT ||
-        qos.durability() != @rtps.DURABILITY_VOLATILE {
+        qos.durability() != @rtps.DURABILITY_VOLATILE ||
+        !ros_endpoint_has_udp_v4_locator(subscription) {
         continue
       }
       match self.publishers[publisher_index].add_subscription(subscription) {
@@ -206,7 +210,7 @@ pub async fn[T] RosNode::create_subscription(
   ) {
     let message = match decoder(payload) {
       Ok(value) => value
-      Err(message) => return Err(message)
+      Err(_) => return Ok(())
     }
     callback(message)
     Ok(())
@@ -255,6 +259,10 @@ fn RosNode::add_publication(
     if subscription.topic.dds_name() != publication.topic_name() ||
       subscription.topic.dds_type_name() != publication.type_name() {
       continue
+    }
+    match publication.qos() {
+      Ok(_) => ()
+      Err(_) => continue
     }
     let endpoint_guid = publication.endpoint_guid()
     let mut already_added = false
@@ -474,7 +482,7 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
               Ok(_) => ()
               Err(message) => return Err(message)
             }
-          Err(message) => return Err(message)
+          Err(_) => ()
         }
       Timer(node_index, timer_index) => {
         let callback = self.nodes[node_index].timers[timer_index].callback
@@ -499,10 +507,11 @@ fn RosNode::handle_discovery_event(
           publisher.topic().dds_type_name() == subscription.type_name() {
           let qos = match subscription.qos() {
             Ok(value) => value
-            Err(message) => return Err(message)
+            Err(_) => continue
           }
           if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT ||
-            qos.durability() != @rtps.DURABILITY_VOLATILE {
+            qos.durability() != @rtps.DURABILITY_VOLATILE ||
+            !ros_endpoint_has_udp_v4_locator(subscription) {
             continue
           }
           match publisher.add_subscription(subscription) {
@@ -553,11 +562,31 @@ fn RosNode::handle_discovery_event(
 }
 
 ///|
+/// Whether a discovered writer can be reached over the UDP/IPv4 transport.
+fn ros_endpoint_has_udp_v4_locator(endpoint : @rtps.SedpEndpointData) -> Bool {
+  let locators = if endpoint.unicast_locators().length() > 0 {
+    endpoint.unicast_locators()
+  } else {
+    endpoint.multicast_locators()
+  }
+  for locator in locators {
+    if locator.kind() == @rtps.LOCATOR_KIND_UDP_V4 {
+      return true
+    }
+  }
+  false
+}
+
+///|
 async fn RosNode::handle_message(
   self : RosNode,
   message : @rtps.Message,
   source : @socket.Addr,
 ) -> Result[Unit, String] {
+  match self.participant.handle_user_message(message, source) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
   for subscription_index in 0..<self.subscriptions.length() {
     let callback = self.subscriptions[subscription_index].callback
     let reader_count = self.subscriptions[subscription_index].readers.length()
@@ -567,7 +596,7 @@ async fn RosNode::handle_message(
           message, source,
         ) {
         Ok(value) => value
-        Err(message) => return Err(message)
+        Err(_) => continue
       }
       match payload {
         Some(value) =>

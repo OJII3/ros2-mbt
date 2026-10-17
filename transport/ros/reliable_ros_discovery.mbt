@@ -100,6 +100,18 @@ pub async fn ReliableRosDiscoveryPublisher::handle_acknack(
 }
 
 ///|
+/// Process a received datagram for this reliable graph writer.
+pub async fn ReliableRosDiscoveryPublisher::handle_message(
+  self : ReliableRosDiscoveryPublisher,
+  message : @rtps.Message,
+) -> Result[Unit, String] {
+  match self.writer.handle_control_message(message) {
+    Ok(_) => Ok(())
+    Err(message) => Err(message)
+  }
+}
+
+///|
 /// Close the publisher's underlying UDP socket.
 pub fn ReliableRosDiscoveryPublisher::close(
   self : ReliableRosDiscoveryPublisher,
@@ -154,6 +166,30 @@ pub async fn ReliableRosDiscoverySubscription::receive(
     Err(message) => return Err(message)
   }
   Ok((info, source))
+}
+
+///|
+/// Process an already-received datagram and decode a graph sample if present.
+pub async fn ReliableRosDiscoverySubscription::handle_message(
+  self : ReliableRosDiscoverySubscription,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Array[@ros_types.ParticipantEntitiesInfo], String] {
+  let samples = match self.reader.handle_message(message, source) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let infos : Array[@ros_types.ParticipantEntitiesInfo] = []
+  for (data, _) in samples {
+    match
+      @ros_types.ParticipantEntitiesInfo::from_cdr_bytes(
+        data.serialized_payload(),
+      ) {
+      Ok(info) => infos.push(info)
+      Err(_) => ()
+    }
+  }
+  Ok(infos)
 }
 
 ///|
