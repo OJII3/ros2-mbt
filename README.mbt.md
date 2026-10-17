@@ -173,10 +173,12 @@ time.
 ## Node and executor API
 
 `transport.RosNode` groups publishers, subscriptions, and timers without
-requiring user-defined node inheritance. It wraps a fresh `RosParticipant`
-created with the existing transport setup. The node API currently creates
+requiring user-defined node inheritance. `RosNode::new_ddsi` creates and
+configures a fresh DDSI participant; participant IDs must be unique for each
+participant on the same host and domain. The node API currently creates
 best-effort, volatile topic endpoints; message serialization is supplied by
-the caller using the generated CDR functions.
+the caller using the generated CDR functions. For example, read best-effort
+samples with `ros2 topic echo /chatter --qos-reliability best_effort`.
 
 ```moonbit nocheck
 import {
@@ -186,8 +188,13 @@ import {
 }
 
 async main {
-  // Assume `participant` is a fresh RosParticipant created as in the examples.
-  let node = @transport.RosNode::new(participant, "/demo", "talker").unwrap()
+  let node = @transport.RosNode::new_ddsi(
+    "/demo",
+    "talker",
+    domain_id=0U,
+    participant_id=42U,
+    ip=0x7F000001U,
+  ).unwrap()
   let topic = @ros.RosTopic::new("/chatter", "std_msgs", "msg", "String").unwrap()
   let publisher = node.create_publisher(
   topic,
@@ -205,6 +212,9 @@ async main {
   ignore(executor.spin())
 }
 ```
+
+Run the finite publisher with `moon run examples/node_talker`; it reads
+`ROS_DOMAIN_ID`, `ROS2_MBT_IP`, and `ROS2_MBT_MULTICAST_IP` from the environment.
 
 `Executor::spin` reads each participant's user-data socket once and routes each
 RTPS message to matching subscriptions. It runs callbacks sequentially and
