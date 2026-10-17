@@ -94,6 +94,10 @@ pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb2
 
 pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"
 
+pub const Twist_TYPE_HASH : String = "RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a"
+
+pub const Vector3_TYPE_HASH : String = "RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd40f75a96696a67a2a1f37f7dbb0765d"
+
 pub fn ros_discovery_info_to_sedp(@discovery.SedpEndpointKind, @core.Guid) -> Result[@discovery.SedpEndpointData, String]
 
 pub fn ros_name_to_dds(String, @names.DdsTopicKind) -> Result[String, String]
@@ -180,6 +184,8 @@ pub using @action_msgs {type RosActionGoalStatusArray}
 pub using @action_msgs {type RosCancelGoalRequest}
 
 pub using @action_msgs {type RosCancelGoalResponse}
+
+pub using @endpoints {type RosMessageType}
 
 pub using @endpoints {type RosService}
 

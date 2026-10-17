@@ -1,4 +1,59 @@
 ///|
+async test "reliable reader handles an already received DATA datagram" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer receiver.close()
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer sender.close()
+  let locator = @rtps.Locator::udp_v4(
+    b"\x7F\x00\x00\x01",
+    sender.local_addr().port().reinterpret_as_uint(),
+  ).unwrap()
+  let publication = @rtps.SedpEndpointData::new(
+    Publication,
+    @rtps.Guid::new(prefix, writer_id),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  publication.add_unicast_locator(locator)
+  let reader = @wire.ReliableDataReaderSession::new_for_publication(
+    receiver,
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    reader_id,
+    publication,
+  ).unwrap()
+  let data = @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"payload")
+  let received = reader
+    .handle_message(
+      {
+        let message = data.to_message(prefix, @rtps.VendorId::new(1, 15))
+        message.add(@rtps.Submessage::new(Data, 0, b"malformed"))
+        message.add(
+          @rtps.DataSubmessage::new(reader_id, writer_id, 2L, b"second").to_submessage(),
+        )
+        message
+      },
+      sender.local_addr(),
+    )
+    .unwrap()
+  assert_eq(received.length(), 2)
+  assert_eq(received[0].0.serialized_payload(), b"payload")
+  assert_eq(received[1].0.serialized_payload(), b"second")
+  let duplicate = reader
+    .handle_message(
+      data.to_message(prefix, @rtps.VendorId::new(1, 15)),
+      sender.local_addr(),
+    )
+    .unwrap()
+  assert_eq(duplicate.length(), 0)
+}
+
+///|
 async test "reliable reader session receives discovered publication data" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {

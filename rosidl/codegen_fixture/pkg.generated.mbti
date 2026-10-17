@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/rosidl/codegen_fixture"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "moonbitlang/core/debug",
 }
 
@@ -56,6 +57,7 @@ pub fn Bounded::not_equal(Self, Self) -> Bool
 pub fn Bounded::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Bounded::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Bounded::to_repr(Self) -> @debug.Repr
+pub fn Bounded::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Bounded::values(Self) -> Array[Int]
 pub fn Bounded::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 

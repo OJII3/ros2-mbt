@@ -116,6 +116,16 @@ test "ROS workspace generates action codecs with nested imports and hashes" {
   assert_true(generated.contains("pub const Move_Feedback_TYPE_HASH"))
   assert_true(generated.contains("pub const Move_SendGoal_Request_TYPE_HASH"))
   assert_true(generated.contains("pub const Move_FeedbackMessage_TYPE_HASH"))
+  assert_true(
+    generated.contains(
+      "pub fn Move_Goal::type_support() -> @endpoints.RosMessageType[Move_Goal]",
+    ),
+  )
+  assert_true(
+    generated.contains(
+      "pub fn Move_SendGoal_Request::type_support() -> @endpoints.RosMessageType[Move_SendGoal_Request]",
+    ),
+  )
 }
 
 ///|

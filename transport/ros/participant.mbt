@@ -732,6 +732,45 @@ pub async fn RosParticipant::receive_ros_discovery_nackfrag(
 }
 
 ///|
+/// Dispatch one user-socket datagram to the reliable ROS graph endpoints.
+async fn RosParticipant::handle_user_message(
+  self : RosParticipant,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  for subscription in self.graph_subscriptions {
+    match subscription.handle_message(message, source) {
+      Ok(infos) =>
+        for info in infos {
+          self.discovery.ingest_ros_discovery_info(info)
+        }
+      Err(message) => return Err(message)
+    }
+  }
+  for publisher in self.graph_publishers {
+    match publisher.handle_message(message) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Send periodic HEARTBEATs for active ROS graph writers.
+async fn RosParticipant::send_ros_discovery_heartbeats(
+  self : RosParticipant,
+) -> Result[Unit, String] {
+  for publisher in self.graph_publishers {
+    match publisher.writer.send_heartbeat() {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Receive either reliable control message for one graph publisher.
 pub async fn RosParticipant::receive_ros_discovery_control(
   self : RosParticipant,
@@ -881,6 +920,19 @@ fn RosParticipant::ensure_ros_discovery_publication(
     publication.type_name() != @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME {
     return Ok(())
   }
+  match
+    @ros_types.validate_ros_discovery_info_endpoint(publication, Publication) {
+    Ok(_) => ()
+    Err(_) => return Ok(())
+  }
+  let qos = match publication.qos() {
+    Ok(value) => value
+    Err(_) => return Ok(())
+  }
+  if qos.durability() != @rtps.DURABILITY_TRANSIENT_LOCAL ||
+    !ros_endpoint_has_udp_v4_locator(publication) {
+    return Ok(())
+  }
   let reader_id = match self.graph_subscription_id {
     Some(value) => value
     None => return Ok(())
@@ -916,6 +968,14 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
 ) -> Result[Unit, String] {
   if subscription.topic_name() != @ros_types.ROS_DISCOVERY_INFO_TOPIC_NAME ||
     subscription.type_name() != @ros_types.ROS_DISCOVERY_INFO_TYPE_NAME {
+    return Ok(())
+  }
+  match
+    @ros_types.validate_ros_discovery_info_endpoint(subscription, Subscription) {
+    Ok(_) => ()
+    Err(_) => return Ok(())
+  }
+  if !ros_endpoint_has_udp_v4_locator(subscription) {
     return Ok(())
   }
   let writer_id = match self.graph_publication_id {

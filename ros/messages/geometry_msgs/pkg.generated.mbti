@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/ros/messages/geometry_msgs"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "OJII3/ros2-mbt/ros/messages/std_msgs",
   "moonbitlang/core/debug",
 }
@@ -24,6 +25,10 @@ pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb2
 
 pub const TwistWithCovariance_TYPE_HASH : String = "RIHS01_49f574f033f095d8b6cd1beaca5ca7925e296e84af1716d16c89d38b059c8c18"
 
+pub const Twist_TYPE_HASH : String = "RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a"
+
+pub const Vector3_TYPE_HASH : String = "RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd40f75a96696a67a2a1f37f7dbb0765d"
+
 // Errors
 
 // Types and methods
@@ -40,6 +45,7 @@ pub fn Point::not_equal(Self, Self) -> Bool
 pub fn Point::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Point::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Point::to_repr(Self) -> @debug.Repr
+pub fn Point::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Point::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Point::x(Self) -> Double
 pub fn Point::y(Self) -> Double
@@ -59,6 +65,7 @@ pub fn Pose::position(Self) -> Point
 pub fn Pose::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Pose::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Pose::to_repr(Self) -> @debug.Repr
+pub fn Pose::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Pose::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PoseStamped {
@@ -75,6 +82,7 @@ pub fn PoseStamped::pose(Self) -> Pose
 pub fn PoseStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PoseStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn PoseStamped::to_repr(Self) -> @debug.Repr
+pub fn PoseStamped::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PoseStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct PoseWithCovariance {
@@ -91,6 +99,7 @@ pub fn PoseWithCovariance::pose(Self) -> Pose
 pub fn PoseWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn PoseWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn PoseWithCovariance::to_repr(Self) -> @debug.Repr
+pub fn PoseWithCovariance::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PoseWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Quaternion {
@@ -107,6 +116,7 @@ pub fn Quaternion::not_equal(Self, Self) -> Bool
 pub fn Quaternion::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Quaternion::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Quaternion::to_repr(Self) -> @debug.Repr
+pub fn Quaternion::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Quaternion::w(Self) -> Double
 pub fn Quaternion::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Quaternion::x(Self) -> Double
@@ -127,6 +137,7 @@ pub fn Transform::rotation(Self) -> Quaternion
 pub fn Transform::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Transform::to_repr(Self) -> @debug.Repr
 pub fn Transform::translation(Self) -> Vector3
+pub fn Transform::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Transform::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct TransformStamped {
@@ -145,6 +156,7 @@ pub fn TransformStamped::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn TransformStamped::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn TransformStamped::to_repr(Self) -> @debug.Repr
 pub fn TransformStamped::transform(Self) -> Transform
+pub fn TransformStamped::type_support() -> @endpoints.RosMessageType[Self]
 pub fn TransformStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Twist {
@@ -161,6 +173,7 @@ pub fn Twist::not_equal(Self, Self) -> Bool
 pub fn Twist::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Twist::to_cdr_bytes(Self) -> Bytes
 pub fn Twist::to_repr(Self) -> @debug.Repr
+pub fn Twist::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Twist::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct TwistWithCovariance {
@@ -177,6 +190,7 @@ pub fn TwistWithCovariance::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn TwistWithCovariance::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn TwistWithCovariance::to_repr(Self) -> @debug.Repr
 pub fn TwistWithCovariance::twist(Self) -> Twist
+pub fn TwistWithCovariance::type_support() -> @endpoints.RosMessageType[Self]
 pub fn TwistWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Vector3 {
@@ -192,6 +206,7 @@ pub fn Vector3::not_equal(Self, Self) -> Bool
 pub fn Vector3::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Vector3::to_cdr_bytes(Self) -> Bytes
 pub fn Vector3::to_repr(Self) -> @debug.Repr
+pub fn Vector3::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Vector3::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 pub fn Vector3::x(Self) -> Double
 pub fn Vector3::y(Self) -> Double

@@ -29,6 +29,20 @@ pub fn RosAction::ros_name(Self) -> String
 pub fn RosAction::send_goal_service(Self) -> RosService
 pub fn RosAction::status_topic(Self) -> RosTopic
 
+pub struct RosMessageType[T] {
+  package_name : String
+  interface_namespace : String
+  type_name : String
+  type_hash : String
+  encoder : (T) -> Result[Bytes, String]
+  decoder : (Bytes) -> Result[T, String]
+}
+pub fn[T] RosMessageType::decode(Self[T], Bytes) -> Result[T, String]
+pub fn[T] RosMessageType::encode(Self[T], T) -> Result[Bytes, String]
+pub fn[T] RosMessageType::new(String, String, String, String, (T) -> Result[Bytes, String], (Bytes) -> Result[T, String]) -> Self[T]
+pub fn[T] RosMessageType::topic(Self[T], String) -> Result[RosTopic, String]
+pub fn[T] RosMessageType::type_hash(Self[T]) -> String
+
 pub struct RosService {
   ros_name : String
   dds_request_name : String

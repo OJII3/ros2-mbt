@@ -3,6 +3,7 @@ package "OJII3/ros2-mbt/ros/messages/builtin_interfaces"
 
 import {
   "OJII3/ros2-mbt/cdr",
+  "OJII3/ros2-mbt/ros/endpoints",
   "moonbitlang/core/debug",
 }
 
@@ -28,6 +29,7 @@ pub fn Duration::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Duration::sec(Self) -> Int
 pub fn Duration::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Duration::to_repr(Self) -> @debug.Repr
+pub fn Duration::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Duration::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 pub struct Time {
@@ -44,6 +46,7 @@ pub fn Time::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn Time::sec(Self) -> Int
 pub fn Time::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Time::to_repr(Self) -> @debug.Repr
+pub fn Time::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Time::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
 // Type aliases

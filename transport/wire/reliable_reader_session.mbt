@@ -53,6 +53,118 @@ pub fn ReliableDataReaderSession::new_for_publication(
 }
 
 ///|
+/// Process one datagram already received by the owner of the shared socket.
+pub async fn ReliableDataReaderSession::handle_message(
+  self : ReliableDataReaderSession,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Array[(@rtps.DataSubmessage, @socket.Addr)], String] {
+  let samples : Array[(@rtps.DataSubmessage, @socket.Addr)] = []
+  match message.destination_guid_prefix() {
+    Ok(Some(destination)) if destination != self.guid_prefix &&
+      !transport_guid_prefix_is_unknown(destination) => return Ok(samples)
+    Ok(_) => ()
+    Err(_) => return Ok(samples)
+  }
+  for submessage in message.submessages() {
+    match submessage.id() {
+      Data => {
+        if message.header().guid_prefix() != self.writer_prefix {
+          continue
+        }
+        let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if data.reader_id() != self.state.reader_id &&
+          data.reader_id() != @rtps.EntityId::unknown() {
+          continue
+        }
+        if data.writer_id() != self.state.writer_id ||
+          self.state.has_received_sequence(data.writer_sequence_number()) {
+          continue
+        }
+        match self.state.accept_data(data) {
+          Ok(_) => samples.push((data, source))
+          Err(_) => continue
+        }
+      }
+      DataFrag => {
+        if message.header().guid_prefix() != self.writer_prefix {
+          continue
+        }
+        let fragment = match
+          @rtps.DataFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if fragment.writer_id() != self.state.writer_id {
+          continue
+        }
+        match self.state.accept_data_frag(fragment) {
+          Ok(Some(data)) => samples.push((data, source))
+          Ok(None) => ()
+          Err(_) => ()
+        }
+      }
+      Gap => {
+        if message.header().guid_prefix() != self.writer_prefix {
+          continue
+        }
+        match @rtps.GapSubmessage::from_submessage(submessage) {
+          Ok(gap) => ignore(self.state.accept_gap(gap))
+          Err(_) => ()
+        }
+      }
+      Heartbeat => {
+        if message.header().guid_prefix() != self.writer_prefix {
+          continue
+        }
+        let heartbeat = match
+          @rtps.HeartbeatSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if (
+            heartbeat.reader_id() != self.state.reader_id &&
+            heartbeat.reader_id() != @rtps.EntityId::unknown()
+          ) ||
+          heartbeat.writer_id() != self.state.writer_id {
+          continue
+        }
+        match self.acknowledge_heartbeat(heartbeat) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      }
+      HeartbeatFrag => {
+        if message.header().guid_prefix() != self.writer_prefix {
+          continue
+        }
+        let heartbeat = match
+          @rtps.HeartbeatFragSubmessage::from_submessage(submessage) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if (
+            heartbeat.reader_id() != self.state.reader_id &&
+            heartbeat.reader_id() != @rtps.EntityId::unknown()
+          ) ||
+          heartbeat.writer_id() != self.state.writer_id {
+          continue
+        }
+        match self.acknowledge_heartbeat_frag(heartbeat) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      }
+      _ => ()
+    }
+  }
+  Ok(samples)
+}
+
+///|
 /// Receive DATA and acknowledge any HEARTBEATs encountered on the socket.
 pub async fn ReliableDataReaderSession::receive_data(
   self : ReliableDataReaderSession,

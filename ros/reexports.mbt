@@ -14,6 +14,7 @@ pub using @names {
 pub using @endpoints {
   ros_service_payload_from_cdr,
   type RosAction,
+  type RosMessageType,
   type RosService,
   type RosServicePayloadHeader,
   type RosTopic,
@@ -47,6 +48,8 @@ pub using @std_msgs {Header_TYPE_HASH, type Header}
 ///|
 pub using @geometry_msgs {
   Point_TYPE_HASH,
+  Twist_TYPE_HASH,
+  Vector3_TYPE_HASH,
   Pose_TYPE_HASH,
   PoseStamped_TYPE_HASH,
   PoseWithCovariance_TYPE_HASH,

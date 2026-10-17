@@ -465,3 +465,7 @@ fi
 kill "$ros_service_pid" 2>/dev/null || true
 wait "$ros_service_pid" 2>/dev/null || true
 ros_service_pid=""
+
+# Exercise the high-level node API, including its reliable ROS graph traffic.
+python3 -u "$script_dir/ros2_node_interop_probe.py" \
+  "${moon_command[@]}" examples/node_talker

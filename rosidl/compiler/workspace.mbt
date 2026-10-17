@@ -326,7 +326,8 @@ pub fn MessageWorkspace::generate_moonbit(
               definition.type_name() +
               "_TYPE_HASH : String = \"" +
               type_hash +
-              "\"\n"
+              "\"\n" +
+              definition.generate_type_support(type_hash)
           }
           Err(_) => ()
         }
@@ -375,7 +376,8 @@ pub fn MessageWorkspace::generate_message_moonbit(
             definition.type_name() +
             "_TYPE_HASH : String = \"" +
             type_hash +
-            "\"\n"
+            "\"\n" +
+            definition.generate_type_support(type_hash)
         }
         Err(_) => ()
       }
@@ -479,7 +481,8 @@ pub fn MessageWorkspace::generate_service_moonbit(
           definition.type_name() +
           "_TYPE_HASH : String = \"" +
           type_hash +
-          "\"\n"
+          "\"\n" +
+          definition.generate_type_support(type_hash)
       }
     }
   }
@@ -675,21 +678,29 @@ pub fn MessageWorkspace::generate_action_moonbit(
           definition.type_name() +
           "_TYPE_HASH : String = \"" +
           type_hash +
-          "\"\n"
+          "\"\n" +
+          definition.generate_type_support(type_hash)
       }
     }
   }
   for definition in protocol_messages {
-    let type_hash = match hash_workspace.type_hash_for_definition(definition) {
-      Ok(value) => value
-      Err(message) => return Err(message)
+    match definition.type_hash() {
+      Ok(_) => ()
+      Err(_) => {
+        let type_hash = match
+          hash_workspace.type_hash_for_definition(definition) {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        output += "\n///|\n"
+        output += "pub const " +
+          definition.type_name() +
+          "_TYPE_HASH : String = \"" +
+          type_hash +
+          "\"\n" +
+          definition.generate_type_support(type_hash)
+      }
     }
-    output += "\n///|\n"
-    output += "pub const " +
-      definition.type_name() +
-      "_TYPE_HASH : String = \"" +
-      type_hash +
-      "\"\n"
   }
   Ok(output)
 }

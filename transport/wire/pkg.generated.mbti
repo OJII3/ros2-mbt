@@ -121,6 +121,7 @@ pub struct ReliableDataReaderSession {
   mut pending_sample_index : Int
 }
 pub fn ReliableDataReaderSession::close(Self) -> Unit
+pub async fn ReliableDataReaderSession::handle_message(Self, @core.Message, @socket.Addr) -> Result[Array[(@core.DataSubmessage, @socket.Addr)], String]
 pub fn ReliableDataReaderSession::new_for_publication(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @discovery.SedpEndpointData) -> Result[Self, String]
 pub async fn ReliableDataReaderSession::receive_data(Self) -> Result[(@core.DataSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_data_with_identity(Self) -> Result[(@core.DataSubmessage, @core.SampleIdentity, @socket.Addr), String]

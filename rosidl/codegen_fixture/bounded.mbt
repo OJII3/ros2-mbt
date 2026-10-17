@@ -15,6 +15,19 @@ pub extend Bounded with @moonbitlang/core/debug.Debug::{to_repr}
 pub const Bounded_TYPE_HASH : String = "RIHS01_69505d1f37dd3187aa9337a7c6103be470f44c1341711181175e5e5e6bb951f5"
 
 ///|
+/// Return the ROS message identity and CDR codecs for this type.
+pub fn Bounded::type_support() -> @endpoints.RosMessageType[Bounded] {
+  @endpoints.RosMessageType::new(
+    "demo",
+    "msg",
+    "Bounded",
+    Bounded_TYPE_HASH,
+    Bounded::to_cdr_bytes,
+    Bounded::from_cdr_bytes,
+  )
+}
+
+///|
 /// Create a bounded integer sequence message.
 pub fn Bounded::new(values : Array[Int32]) -> Bounded {
   { values, }

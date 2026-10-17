@@ -22,6 +22,18 @@ test "generated bounded sequence codec round trips and enforces bounds" {
 }
 
 ///|
+test "generated message type support keeps identity and codecs together" {
+  let message = @codegen_fixture.Bounded::new([1, 2, 3])
+  let support = @codegen_fixture.Bounded::type_support()
+  let encoded = support.encode(message).unwrap()
+  assert_eq(support.decode(encoded).unwrap(), message)
+  let topic = support.topic("/bounded").unwrap()
+  assert_eq(topic.dds_type_name(), "demo::msg::dds_::Bounded_")
+  assert_eq(topic.dds_name(), "rt/bounded")
+  assert_eq(support.type_hash(), @codegen_fixture.Bounded_TYPE_HASH)
+}
+
+///|
 test "generated bounded string codec round trips Unicode and enforces bounds" {
   let message = @codegen_fixture.BoundedString::new("猫犬鳥")
   let encoded = message.to_cdr_bytes().unwrap()

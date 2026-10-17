@@ -47,6 +47,7 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
         "_TYPE_HASH : String = \"" +
         type_hash +
         "\"\n\n"
+      output += self.generate_type_support(type_hash)
     }
     Err(_) => ()
   }
@@ -156,6 +157,43 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
   output += "  }\n"
   output += "  Ok(value)\n}\n"
   output
+}
+
+///|
+/// Generate a typed endpoint descriptor using a resolved RIHS01 hash.
+fn MessageDefinition::generate_type_support(
+  self : MessageDefinition,
+  type_hash : String,
+) -> String {
+  "///|\n" +
+  "/// Return the ROS message identity and CDR codecs for this type.\n" +
+  "/// The generated package must import `OJII3/ros2-mbt/ros/endpoints` as `@endpoints`.\n" +
+  "pub fn " +
+  self.type_name +
+  "::type_support() -> @endpoints.RosMessageType[" +
+  self.type_name +
+  "] {\n" +
+  "  @endpoints.RosMessageType::new(\n" +
+  "    \"" +
+  self.package_name +
+  "\",\n" +
+  "    \"" +
+  self.interface_namespace +
+  "\",\n" +
+  "    \"" +
+  self.type_name +
+  "\",\n" +
+  "    \"" +
+  type_hash +
+  "\",\n" +
+  "    " +
+  self.type_name +
+  "::to_cdr_bytes,\n" +
+  "    " +
+  self.type_name +
+  "::from_cdr_bytes,\n" +
+  "  )\n" +
+  "}\n"
 }
 
 ///|

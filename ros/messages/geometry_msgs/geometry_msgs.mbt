@@ -1,4 +1,12 @@
 ///|
+/// RIHS01 hash for `geometry_msgs/msg/Vector3`.
+pub const Vector3_TYPE_HASH : String = "RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd40f75a96696a67a2a1f37f7dbb0765d"
+
+///|
+/// RIHS01 hash for `geometry_msgs/msg/Twist`.
+pub const Twist_TYPE_HASH : String = "RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a"
+
+///|
 /// A geometry_msgs/msg/Vector3 value.
 pub struct Vector3 {
   x : Double

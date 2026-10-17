@@ -726,6 +726,7 @@ pub async fn ReliableDataWriter::handle_control_message(
     Ok(_) => ()
     Err(_) => return Ok(false)
   }
+  let mut handled = false
   for submessage in message.submessages() {
     match submessage.id() {
       AckNack => {
@@ -735,10 +736,10 @@ pub async fn ReliableDataWriter::handle_control_message(
         let acknack = match
           @rtps.AckNackSubmessage::from_submessage(submessage) {
           Ok(value) => value
-          Err(message) => return Err(message)
+          Err(_) => continue
         }
         match self.handle_acknack(acknack) {
-          Ok(_) => return Ok(true)
+          Ok(_) => handled = true
           Err(message) => return Err(message)
         }
       }
@@ -746,7 +747,7 @@ pub async fn ReliableDataWriter::handle_control_message(
         let nackfrag = match
           @rtps.NackFragSubmessage::from_submessage(submessage) {
           Ok(value) => value
-          Err(message) => return Err(message)
+          Err(_) => continue
         }
         let prefix_matches = match self.reader_prefix {
           Some(prefix) => message.header().guid_prefix() == prefix
@@ -758,14 +759,14 @@ pub async fn ReliableDataWriter::handle_control_message(
           continue
         }
         match self.handle_nackfrag(nackfrag) {
-          Ok(_) => return Ok(true)
+          Ok(_) => handled = true
           Err(message) => return Err(message)
         }
       }
       _ => ()
     }
   }
-  Ok(false)
+  Ok(handled)
 }
 
 ///|
