@@ -3,24 +3,37 @@
 pub struct RosNode {
   priv participant : RosParticipant
   priv subscriptions : Array[RosNodeSubscription]
-  priv publishers : Array[RosPublisher]
+  priv publishers : Array[RosNodePublisherEntry]
   priv timers : Array[RosNodeTimer]
   priv mut next_entity_key : UInt32
   priv mut executor_attached : Bool
 }
 
 ///|
+priv enum RosNodeReaderKind {
+  BestEffort(RosSubscription)
+  Reliable(ReliableRosSubscription)
+}
+
+///|
 priv struct RosNodeReader {
   endpoint_guid : @rtps.Guid
-  subscription : RosSubscription
+  reader : RosNodeReaderKind
 }
 
 ///|
 priv struct RosNodeSubscription {
   topic : @ros_types.RosTopic
   reader_id : @rtps.EntityId
+  qos : @rtps.SedpQos
   callback : async (Bytes) -> Result[Unit, String]
   mut readers : Array[RosNodeReader]
+}
+
+///|
+priv struct RosNodePublisherEntry {
+  publisher : ReliableRosPublisher
+  qos : @rtps.SedpQos
 }
 
 ///|
@@ -32,7 +45,7 @@ priv struct RosNodeTimer {
 ///|
 /// A publisher returned by `RosNode::create_publisher`.
 pub struct RosNodePublisher[T] {
-  priv publisher : RosPublisher
+  priv publisher : ReliableRosPublisher
   priv encoder : (T) -> Result[Bytes, String]
 }
 
@@ -111,7 +124,7 @@ fn RosNode::next_entity_id(
 }
 
 ///|
-/// Create a best-effort ROS topic publisher.
+/// Create a ROS topic publisher.
 ///
 /// The encoder converts a message value to its serialized CDR payload.
 pub async fn[T] RosNode::create_publisher(
@@ -119,19 +132,17 @@ pub async fn[T] RosNode::create_publisher(
   topic : @ros_types.RosTopic,
   type_hash : String,
   encoder : (T) -> Result[Bytes, String],
+  qos~ : @rtps.SedpQos = @rtps.SedpQos::reliable(),
 ) -> Result[RosNodePublisher[T], String] {
+  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+    return Err("only volatile durability is supported for user topics")
+  }
   let writer_id = match self.next_entity_id(0x03) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let qos = @rtps.SedpQos::new(
-    @rtps.RELIABILITY_BEST_EFFORT,
-    @rtps.DURABILITY_VOLATILE,
-    @rtps.HISTORY_KEEP_LAST,
-    10,
-  )
   let publisher = match
-    RosPublisher::new(
+    ReliableRosPublisher::new(
       topic,
       self.participant.user_socket(),
       self.participant.participant().participant_guid().prefix(),
@@ -153,22 +164,25 @@ pub async fn[T] RosNode::create_publisher(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
-  self.publishers.push(publisher)
+  self.publishers.push({ publisher, qos, })
   let publisher_index = self.publishers.length() - 1
   let graph = self.participant.graph()
   for subscription in graph.subscriptions() {
     if subscription.topic_name() == topic.dds_name() &&
       subscription.type_name() == topic.dds_type_name() {
-      let qos = match subscription.qos() {
+      let sub_qos = match subscription.qos() {
         Ok(value) => value
         Err(_) => continue
       }
-      if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT ||
-        qos.durability() != @rtps.DURABILITY_VOLATILE ||
+      if !qos.compatible_with(sub_qos) ||
+        sub_qos.durability() != @rtps.DURABILITY_VOLATILE ||
         !ros_endpoint_has_udp_v4_locator(subscription) {
         continue
       }
-      match self.publishers[publisher_index].add_subscription(subscription) {
+      match
+        self.publishers[publisher_index].publisher.add_subscription(
+          subscription,
+        ) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
@@ -187,11 +201,15 @@ pub async fn[T] RosNodePublisher::publish(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.publisher.publish(payload)
+  match self.publisher.publish(payload) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  self.publisher.send_heartbeat()
 }
 
 ///|
-/// Create a best-effort subscription with a typed message callback.
+/// Create a subscription with a typed message callback.
 ///
 /// The decoder converts the serialized CDR payload to a message value.
 pub async fn[T] RosNode::create_subscription(
@@ -200,7 +218,11 @@ pub async fn[T] RosNode::create_subscription(
   type_hash : String,
   decoder : (Bytes) -> Result[T, String],
   callback : async (T) -> Unit,
+  qos~ : @rtps.SedpQos = @rtps.SedpQos::reliable(),
 ) -> Result[Unit, String] {
+  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+    return Err("only volatile durability is supported for user topics")
+  }
   let reader_id = match self.next_entity_id(0x04) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -215,12 +237,6 @@ pub async fn[T] RosNode::create_subscription(
     callback(message)
     Ok(())
   }
-  let qos = @rtps.SedpQos::new(
-    @rtps.RELIABILITY_BEST_EFFORT,
-    @rtps.DURABILITY_VOLATILE,
-    @rtps.HISTORY_KEEP_LAST,
-    10,
-  )
   match
     self.participant.register_topic_endpoint_with_type_hash(
       topic,
@@ -235,6 +251,7 @@ pub async fn[T] RosNode::create_subscription(
   self.subscriptions.push({
     topic,
     reader_id,
+    qos,
     callback: message_callback,
     readers: [],
   })
@@ -260,9 +277,13 @@ fn RosNode::add_publication(
       subscription.topic.dds_type_name() != publication.type_name() {
       continue
     }
-    match publication.qos() {
-      Ok(_) => ()
+    let pub_qos = match publication.qos() {
+      Ok(value) => value
       Err(_) => continue
+    }
+    if !pub_qos.compatible_with(subscription.qos) ||
+      !ros_endpoint_has_udp_v4_locator(publication) {
+      continue
     }
     let endpoint_guid = publication.endpoint_guid()
     let mut already_added = false
@@ -275,20 +296,38 @@ fn RosNode::add_publication(
     if already_added {
       continue
     }
-    let reader = match
-      RosSubscription::new_for_publication_with_prefix(
-        subscription.topic,
-        self.participant.user_socket(),
-        self.participant.participant().participant_guid().prefix(),
-        subscription.reader_id,
-        publication,
-      ) {
-      Ok(value) => value
-      Err(message) => return Err(message)
+    let reader_kind = if subscription.qos.reliability() ==
+      @rtps.RELIABILITY_RELIABLE {
+      let reader = match
+        ReliableRosSubscription::new_for_publication(
+          subscription.topic,
+          self.participant.user_socket(),
+          self.participant.participant().participant_guid().prefix(),
+          self.participant.participant().vendor_id(),
+          subscription.reader_id,
+          publication,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      Reliable(reader)
+    } else {
+      let reader = match
+        RosSubscription::new_for_publication_with_prefix(
+          subscription.topic,
+          self.participant.user_socket(),
+          self.participant.participant().participant_guid().prefix(),
+          subscription.reader_id,
+          publication,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      BestEffort(reader)
     }
     self.subscriptions[index].readers.push({
       endpoint_guid,
-      subscription: reader,
+      reader: reader_kind,
     })
   }
   Ok(())
@@ -305,6 +344,20 @@ pub fn RosNode::create_timer(
     return Err("a ROS timer period must be positive")
   }
   self.timers.push({ timer: @async.Timer(period_ms), callback, })
+  Ok(())
+}
+
+///|
+/// Send heartbeat announcements from all reliable publishers.
+pub async fn RosNode::send_publisher_heartbeats(
+  self : RosNode,
+) -> Result[Unit, String] {
+  for entry in self.publishers {
+    match entry.publisher.send_heartbeat() {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
   Ok(())
 }
 
@@ -429,6 +482,10 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
               Ok(_) => ()
               Err(message) => fail(message)
             }
+            match node.send_publisher_heartbeats() {
+              Ok(_) => ()
+              Err(message) => fail(message)
+            }
           }
         }
       }
@@ -513,19 +570,19 @@ fn RosNode::handle_discovery_event(
   match event {
     Publication(publication) => self.add_publication(publication)
     Subscription(subscription) => {
-      for publisher in self.publishers {
-        if publisher.topic().dds_name() == subscription.topic_name() &&
-          publisher.topic().dds_type_name() == subscription.type_name() {
-          let qos = match subscription.qos() {
+      for entry in self.publishers {
+        if entry.publisher.topic().dds_name() == subscription.topic_name() &&
+          entry.publisher.topic().dds_type_name() == subscription.type_name() {
+          let sub_qos = match subscription.qos() {
             Ok(value) => value
             Err(_) => continue
           }
-          if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT ||
-            qos.durability() != @rtps.DURABILITY_VOLATILE ||
+          if !entry.qos.compatible_with(sub_qos) ||
+            sub_qos.durability() != @rtps.DURABILITY_VOLATILE ||
             !ros_endpoint_has_udp_v4_locator(subscription) {
             continue
           }
-          match publisher.add_subscription(subscription) {
+          match entry.publisher.add_subscription(subscription) {
             Ok(_) => ()
             Err(message) => return Err(message)
           }
@@ -546,8 +603,8 @@ fn RosNode::handle_discovery_event(
             self.subscriptions[index].readers = retained
           }
         Subscription =>
-          for publisher in self.publishers {
-            publisher.remove_subscription(endpoint_guid)
+          for entry in self.publishers {
+            entry.publisher.remove_subscription(endpoint_guid)
           }
       }
       Ok(())
@@ -563,8 +620,8 @@ fn RosNode::handle_discovery_event(
         }
         self.subscriptions[index].readers = retained
       }
-      for publisher in self.publishers {
-        publisher.remove_subscriptions_from_participant(prefix)
+      for entry in self.publishers {
+        entry.publisher.remove_subscriptions_from_participant(prefix)
       }
       Ok(())
     }
@@ -598,24 +655,44 @@ async fn RosNode::handle_message(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
+  for entry in self.publishers {
+    match entry.publisher.handle_message(message) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+  }
   for subscription_index in 0..<self.subscriptions.length() {
     let callback = self.subscriptions[subscription_index].callback
     let reader_count = self.subscriptions[subscription_index].readers.length()
     for reader_index in 0..<reader_count {
-      let payload = match
-        self.subscriptions[subscription_index].readers[reader_index].subscription.handle_message(
-          message, source,
-        ) {
-        Ok(value) => value
-        Err(_) => continue
-      }
-      match payload {
-        Some(value) =>
-          match callback(value) {
-            Ok(_) => ()
-            Err(message) => return Err(message)
+      let reader = self.subscriptions[subscription_index].readers[reader_index]
+      match reader.reader {
+        BestEffort(sub) => {
+          let payload = match sub.handle_message(message, source) {
+            Ok(value) => value
+            Err(_) => continue
           }
-        None => ()
+          match payload {
+            Some(value) =>
+              match callback(value) {
+                Ok(_) => ()
+                Err(message) => return Err(message)
+              }
+            None => ()
+          }
+        }
+        Reliable(sub) => {
+          let payloads = match sub.handle_message(message, source) {
+            Ok(value) => value
+            Err(_) => continue
+          }
+          for payload in payloads {
+            match callback(payload) {
+              Ok(_) => ()
+              Err(message) => return Err(message)
+            }
+          }
+        }
       }
     }
   }

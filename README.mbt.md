@@ -175,10 +175,11 @@ time.
 `transport.RosNode` groups publishers, subscriptions, and timers without
 requiring user-defined node inheritance. `RosNode::new_ddsi` creates and
 configures a fresh DDSI participant; participant IDs must be unique for each
-participant on the same host and domain. The node API currently creates
-best-effort, volatile topic endpoints. The example uses `type_support()` to
-keep the ROS type name, type hash, and CDR codecs together. Read best-effort
-samples with `ros2 topic echo /chatter --qos-reliability best_effort`.
+participant on the same host and domain. The node API defaults to reliable,
+volatile topic endpoints and supports configurable QoS
+(`@rtps.SedpQos::reliable()` / `@rtps.SedpQos::best_effort()`). The example
+uses `type_support()` to keep the ROS type name, type hash, and CDR codecs
+together. Read published samples with `ros2 topic echo /chatter`.
 
 ```moonbit nocheck
 import {
@@ -219,9 +220,11 @@ Malformed RTPS datagrams and samples rejected by a subscription's decoder are
 discarded, allowing later samples to be processed. It runs callbacks
 sequentially and waits asynchronously for network input, timers, or
 `Executor::shutdown()`.
-Reliable user-topic QoS and service/action callbacks are not part of this node
-API. A best-effort publisher requires a best-effort subscription on the ROS 2
-side; best-effort subscriptions can receive from reliable publishers.
+The node API supports both reliable and best-effort topic QoS, with automatic
+HEARTBEAT/ACKNACK state handling on the shared user socket. A reliable publisher
+can communicate with both reliable and best-effort subscriptions, while a
+best-effort publisher requires a best-effort subscription. Service/action
+callbacks are not part of this node API.
 
 `RosNode::new` still accepts a participant configured by the caller. The
 existing `create_publisher` and `create_subscription` methods remain available

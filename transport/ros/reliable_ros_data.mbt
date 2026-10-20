@@ -399,6 +399,29 @@ pub async fn ReliableRosPublisher::handle_nackfrag(
 }
 
 ///|
+/// Process an RTPS control message for all reliable writers.
+pub async fn ReliableRosPublisher::handle_message(
+  self : ReliableRosPublisher,
+  message : @rtps.Message,
+) -> Result[Unit, String] {
+  let writers : Array[ReliableRosTarget] = []
+  for target in self.writers {
+    writers.push(target)
+  }
+  for target in writers {
+    match target.reliable_writer {
+      Some(writer) =>
+        match writer.handle_control_message(message) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      None => ()
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Close the publisher's underlying UDP socket.
 pub fn ReliableRosPublisher::close(self : ReliableRosPublisher) -> Unit {
   self.socket.close()
@@ -476,6 +499,24 @@ pub fn ReliableRosSubscription::sample_count(
   self : ReliableRosSubscription,
 ) -> Int32 {
   self.reader.sample_count()
+}
+
+///|
+/// Process an RTPS message and return payloads of accepted DATA samples.
+pub async fn ReliableRosSubscription::handle_message(
+  self : ReliableRosSubscription,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Array[Bytes], String] {
+  let samples = match self.reader.handle_message(message, source) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let payloads : Array[Bytes] = []
+  for (data, _) in samples {
+    payloads.push(data.serialized_payload())
+  }
+  Ok(payloads)
 }
 
 ///|

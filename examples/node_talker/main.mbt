@@ -1,5 +1,5 @@
 ///|
-/// Publish five best-effort samples on `/chatter` using the node API.
+/// Publish five reliable samples on `/chatter` using the node API.
 async fn main {
   let config = match @config.load() {
     Ok(value) => value

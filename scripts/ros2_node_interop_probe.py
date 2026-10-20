@@ -24,7 +24,7 @@ def main() -> int:
         lambda message: received.append(message.data),
         QoSProfile(
             depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
         ),
     )
