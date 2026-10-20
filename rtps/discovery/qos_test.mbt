@@ -82,3 +82,48 @@ test "RTPS QoS helper encodes ROS type hash user data" {
   assert_eq(parameter.id(), @core.PID_USER_DATA)
   assert_eq(parameter.value(), @utf8.encode("typehash=" + type_hash + ";"))
 }
+
+///|
+test "SedpQos presets configure standard reliability and volatile durability" {
+  let reliable_qos = @discovery.SedpQos::reliable()
+  assert_eq(reliable_qos.reliability(), @discovery.RELIABILITY_RELIABLE)
+  assert_eq(reliable_qos.durability(), @discovery.DURABILITY_VOLATILE)
+  assert_eq(reliable_qos.history(), @discovery.HISTORY_KEEP_LAST)
+  assert_eq(reliable_qos.depth(), 10)
+
+  let custom_reliable = @discovery.SedpQos::reliable(depth=5)
+  assert_eq(custom_reliable.depth(), 5)
+
+  let best_effort_qos = @discovery.SedpQos::best_effort()
+  assert_eq(best_effort_qos.reliability(), @discovery.RELIABILITY_BEST_EFFORT)
+  assert_eq(best_effort_qos.durability(), @discovery.DURABILITY_VOLATILE)
+  assert_eq(best_effort_qos.history(), @discovery.HISTORY_KEEP_LAST)
+  assert_eq(best_effort_qos.depth(), 10)
+
+  let custom_best_effort = @discovery.SedpQos::best_effort(depth=20)
+  assert_eq(custom_best_effort.depth(), 20)
+}
+
+///|
+test "SedpQos compatible_with checks DDS offered and requested rules" {
+  let reliable = @discovery.SedpQos::reliable()
+  let best_effort = @discovery.SedpQos::best_effort()
+
+  // Reliable writer satisfies both reliable and best-effort readers
+  assert_true(reliable.compatible_with(reliable))
+  assert_true(reliable.compatible_with(best_effort))
+
+  // Best-effort writer satisfies only best-effort readers
+  assert_true(best_effort.compatible_with(best_effort))
+  assert_false(best_effort.compatible_with(reliable))
+
+  // Durability: transient-local writer satisfies volatile reader, but volatile writer cannot satisfy transient-local reader
+  let transient_local = @discovery.SedpQos::new(
+    @discovery.RELIABILITY_RELIABLE,
+    @discovery.DURABILITY_TRANSIENT_LOCAL,
+    @discovery.HISTORY_KEEP_LAST,
+    10,
+  )
+  assert_true(transient_local.compatible_with(reliable))
+  assert_false(reliable.compatible_with(transient_local))
+}

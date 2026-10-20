@@ -24,7 +24,7 @@ def main() -> int:
         lambda message: received.append(message.data),
         QoSProfile(
             depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
         ),
     )
@@ -71,7 +71,8 @@ def main() -> int:
                 process.kill()
                 process.wait()
         observer.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -64,3 +64,58 @@ async test "typed message endpoints advertise the descriptor identity" {
   assert_eq(string_publisher.publish(string_message), Ok(()))
   assert_eq(pose_publisher.publish(pose_message), Ok(()))
 }
+
+///|
+async test "typed message endpoints support explicit best-effort QoS" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12,
+  ]).unwrap()
+  let participant = @wire.new_ddsi_participant(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer discovery_socket.close()
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  defer user_socket.close()
+  let participant = @ros.RosParticipant::from_sockets(
+    discovery_socket, user_socket, participant, 0, 1L,
+  ).unwrap()
+  let node = @ros.RosNode::new(participant, "/be_test", "be_test").unwrap()
+  defer node.close()
+
+  let string_support = @ros_types.StringMessage::type_support()
+  let be_qos = @rtps.SedpQos::best_effort()
+  let string_publisher = node
+    .create_publisher_for("/strings", string_support, qos=be_qos)
+    .unwrap()
+  node
+  .create_subscription_for(
+    "/strings",
+    string_support,
+    async fn(_) { @async.Timer(1).wait() },
+    qos=be_qos,
+  )
+  .unwrap()
+
+  let endpoints = participant.local_endpoints()
+  let mut string_count = 0
+  for endpoint in endpoints {
+    if endpoint.type_name() == "std_msgs::msg::dds_::String_" {
+      assert_eq(
+        endpoint.qos().unwrap().reliability(),
+        @rtps.RELIABILITY_BEST_EFFORT,
+      )
+      string_count += 1
+    }
+  }
+  assert_eq(string_count, 2)
+  let message = @ros_types.StringMessage::new("best effort")
+  assert_eq(string_publisher.publish(message), Ok(()))
+}
+
+///|

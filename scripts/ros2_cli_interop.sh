@@ -449,7 +449,8 @@ if ! grep -Eq "sum[=:][[:space:]]*5" "$service_call_log" || \
   exit 1
 fi
 
-ros2 run demo_nodes_cpp add_two_ints_server >"$ros_service_log" 2>&1 &
+timeout --kill-after=2s 45s ros2 run demo_nodes_cpp add_two_ints_server \
+  >"$ros_service_log" 2>&1 &
 ros_service_pid=$!
 wait_for_ros_endpoint "/add_two_ints_server" "$ros_service_pid" \
   "Service Servers" "/add_two_ints"
@@ -467,5 +468,6 @@ wait "$ros_service_pid" 2>/dev/null || true
 ros_service_pid=""
 
 # Exercise the high-level node API, including its reliable ROS graph traffic.
-python3 -u "$script_dir/ros2_node_interop_probe.py" \
+timeout --kill-after=2s 45s python3 -u \
+  "$script_dir/ros2_node_interop_probe.py" \
   "${moon_command[@]}" examples/node_talker

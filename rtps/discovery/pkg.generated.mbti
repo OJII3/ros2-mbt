@@ -166,6 +166,8 @@ pub struct SedpQos {
   liveliness_lease_seconds : Int
   liveliness_lease_fraction : UInt
 } derive(Eq, @debug.Debug)
+pub fn SedpQos::best_effort(depth? : Int) -> Self
+pub fn SedpQos::compatible_with(Self, Self) -> Bool
 pub fn SedpQos::data_representation(Self) -> Array[UInt16]
 pub fn SedpQos::deadline_fraction(Self) -> UInt
 pub fn SedpQos::deadline_parameter(Self) -> @core.Parameter
@@ -182,6 +184,7 @@ pub fn SedpQos::liveliness_parameter(Self) -> @core.Parameter
 pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
 pub fn SedpQos::not_equal(Self, Self) -> Bool
 pub fn SedpQos::reliability(Self) -> UInt
+pub fn SedpQos::reliable(depth? : Int) -> Self
 pub fn SedpQos::to_repr(Self) -> @debug.Repr
 pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
 pub fn SedpQos::with_deadline(Self, Int, UInt) -> Result[Self, String]

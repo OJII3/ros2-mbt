@@ -278,6 +278,28 @@ pub fn SedpQos::liveliness_parameter(self : SedpQos) -> @core.Parameter {
 }
 
 ///|
+/// Create a reliable, volatile keep-last QoS preset.
+pub fn SedpQos::reliable(depth~ : Int32 = 10) -> SedpQos {
+  SedpQos::new(
+    RELIABILITY_RELIABLE,
+    DURABILITY_VOLATILE,
+    HISTORY_KEEP_LAST,
+    depth,
+  )
+}
+
+///|
+/// Create a best-effort, volatile keep-last QoS preset.
+pub fn SedpQos::best_effort(depth~ : Int32 = 10) -> SedpQos {
+  SedpQos::new(
+    RELIABILITY_BEST_EFFORT,
+    DURABILITY_VOLATILE,
+    HISTORY_KEEP_LAST,
+    depth,
+  )
+}
+
+///|
 /// Best-effort fallback QoS for endpoint parameters omitted from SEDP.
 pub fn SedpQos::default() -> SedpQos {
   SedpQos::new(
@@ -667,6 +689,30 @@ fn sedp_duration_le(
 }
 
 ///|
+/// Check whether an offered QoS is compatible with a requested subscription QoS.
+pub fn SedpQos::compatible_with(self : SedpQos, requested : SedpQos) -> Bool {
+  self.reliability >= requested.reliability &&
+  self.durability >= requested.durability &&
+  sedp_duration_le(
+    self.deadline_seconds,
+    self.deadline_fraction,
+    requested.deadline_seconds,
+    requested.deadline_fraction,
+  ) &&
+  self.liveliness >= requested.liveliness &&
+  sedp_duration_le(
+    self.liveliness_lease_seconds,
+    self.liveliness_lease_fraction,
+    requested.liveliness_lease_seconds,
+    requested.liveliness_lease_fraction,
+  ) &&
+  sedp_data_representation_intersects(
+    self.data_representation,
+    requested.data_representation,
+  )
+}
+
+///|
 /// Check the supported offered/requested QoS compatibility of a writer and reader.
 pub fn SedpEndpointData::qos_compatible_with(
   self : SedpEndpointData,
@@ -686,27 +732,7 @@ pub fn SedpEndpointData::qos_compatible_with(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(
-    offered.reliability >= requested.reliability &&
-    offered.durability >= requested.durability &&
-    sedp_duration_le(
-      offered.deadline_seconds,
-      offered.deadline_fraction,
-      requested.deadline_seconds,
-      requested.deadline_fraction,
-    ) &&
-    offered.liveliness >= requested.liveliness &&
-    sedp_duration_le(
-      offered.liveliness_lease_seconds,
-      offered.liveliness_lease_fraction,
-      requested.liveliness_lease_seconds,
-      requested.liveliness_lease_fraction,
-    ) &&
-    sedp_data_representation_intersects(
-      offered.data_representation,
-      requested.data_representation,
-    ),
-  )
+  Ok(offered.compatible_with(requested))
 }
 
 ///|
