@@ -309,12 +309,12 @@ pub async fn ReliableRosPublisher::handle_acknack(
   acknack : @rtps.AckNackSubmessage,
 ) -> Result[Unit, String] {
   for target in self.writers {
+    if acknack.writer_id() != self.writer_id ||
+      acknack.reader_id() != target.endpoint_guid.entity_id() {
+      continue
+    }
     match target.reliable_writer {
-      Some(writer) =>
-        match writer.handle_acknack(acknack) {
-          Ok(_) => return Ok(())
-          Err(_) => ()
-        }
+      Some(writer) => return writer.handle_acknack(acknack)
       None => ()
     }
   }
@@ -386,12 +386,12 @@ pub async fn ReliableRosPublisher::handle_nackfrag(
   nackfrag : @rtps.NackFragSubmessage,
 ) -> Result[Unit, String] {
   for target in self.writers {
+    if nackfrag.writer_id() != self.writer_id ||
+      nackfrag.reader_id() != target.endpoint_guid.entity_id() {
+      continue
+    }
     match target.reliable_writer {
-      Some(writer) =>
-        match writer.handle_nackfrag(nackfrag) {
-          Ok(_) => return Ok(())
-          Err(_) => ()
-        }
+      Some(writer) => return writer.handle_nackfrag(nackfrag)
       None => ()
     }
   }
