@@ -494,6 +494,11 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
     self.running = false
     result
   }) catch {
+    Failure(message) => {
+      self.running = false
+      self.detach_nodes()
+      return Err(message)
+    }
     _ => {
       self.running = false
       self.detach_nodes()
