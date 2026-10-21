@@ -42,10 +42,10 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let receiver_address = receiver.local_addr()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let sender_address = sender.local_addr()
   let receiver_locator = match
@@ -135,9 +135,9 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer publisher_spdp.close()
-  let subscriber_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer subscriber_spdp.close()
   let publisher_participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(publisher_prefix, participant_id),
@@ -262,9 +262,9 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer publisher_user.close()
-  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer subscriber_user.close()
   let publisher_user_locator = match
     @rtps.Locator::udp_v4(

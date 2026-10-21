@@ -7,9 +7,9 @@ async test "executor skips malformed RTPS and decoder failures before valid data
   let local_participant = @wire.new_ddsi_participant(
     prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_participant, 0, 1L,
@@ -50,7 +50,7 @@ async test "executor skips malformed RTPS and decoder failures before valid data
       qos=@rtps.SedpQos::best_effort(),
     )
     .unwrap()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let writer_id = @rtps.EntityId::new(b"pub", 0x03).unwrap()
   let remote_prefix = @rtps.GuidPrefix::from_array([
@@ -150,14 +150,14 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   let local_identity = @wire.new_ddsi_participant(
     local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_identity, 0, 1L,
   ).unwrap()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let reader_id = @rtps.EntityId::new(b"sub", 0x04).unwrap()
   let writer_id = @rtps.EntityId::new(b"pub", 0x03).unwrap()
@@ -251,15 +251,15 @@ async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
   let local_identity = @wire.new_ddsi_participant(
     local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_identity, 0, 1L,
   ).unwrap()
   let node = RosNode::new(participant, "/node_test", "heartbeat_test").unwrap()
-  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer remote_receiver.close()
   let publication_id = @rtps.EntityId::new(b"gph", 0x03).unwrap()
   let subscription_id = @rtps.EntityId::new(b"gph", 0x04).unwrap()
@@ -324,9 +324,9 @@ async test "RosNode enforces QoS compatibility for publishers and subscriptions"
   let local_participant = @wire.new_ddsi_participant(
     prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_participant, 0, 1L,
@@ -464,9 +464,9 @@ async test "reliable RosNode publisher recovers dropped DATA sample via HEARTBEA
   let local_identity = @wire.new_ddsi_participant(
     local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_identity, 0, 1L,
@@ -485,7 +485,7 @@ async test "reliable RosNode publisher recovers dropped DATA sample via HEARTBEA
     )
     .unwrap()
 
-  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer remote_receiver.close()
 
   let writer_id = @rtps.EntityId::new(b"\x00\x00\x01", 0x03).unwrap()
@@ -581,9 +581,9 @@ async test "two RosNodes exchange typed reliable messages through Executor" {
   let participant_id1 = @wire.new_ddsi_participant(
     prefix1, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let disc_sock1 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let disc_sock1 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer disc_sock1.close()
-  let user_sock1 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_sock1 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_sock1.close()
   let participant1 = RosParticipant::from_sockets(
     disc_sock1, user_sock1, participant_id1, 0, 1L,
@@ -594,9 +594,9 @@ async test "two RosNodes exchange typed reliable messages through Executor" {
   let participant_id2 = @wire.new_ddsi_participant(
     prefix2, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let disc_sock2 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let disc_sock2 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer disc_sock2.close()
-  let user_sock2 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_sock2 = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_sock2.close()
   let participant2 = RosParticipant::from_sockets(
     disc_sock2, user_sock2, participant_id2, 0, 1L,

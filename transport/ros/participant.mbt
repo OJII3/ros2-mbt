@@ -112,8 +112,21 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let discovery_send_socket = @wire.Udp::bind(@socket.Addr::new(0, 0))
-  let spdp_send_socket = @wire.Udp::bind(@socket.Addr::new(0, 0))
+  let discovery_send_socket = match @wire.Udp::bind(@socket.Addr::new(0, 0)) {
+    Ok(value) => value
+    Err(message) => {
+      discovery_receive_socket.close()
+      return Err(message)
+    }
+  }
+  let spdp_send_socket = match @wire.Udp::bind(@socket.Addr::new(0, 0)) {
+    Ok(value) => value
+    Err(message) => {
+      discovery_receive_socket.close()
+      discovery_send_socket.close()
+      return Err(message)
+    }
+  }
   match interface_addr {
     Some(address) => {
       match discovery_send_socket.set_multicast_interface(address) {
