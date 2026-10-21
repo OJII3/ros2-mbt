@@ -30,9 +30,9 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
     @rtps.BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -122,9 +122,9 @@ async test "discovery session repeats SPDP announcements" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = match
     @discovery.DiscoverySession::new(
@@ -238,9 +238,9 @@ async test "discovery session ignores DATA without payload or key" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -314,9 +314,9 @@ async test "discovery session ignores SPDP from another domain" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -407,9 +407,9 @@ async test "discovery session uses its domain when SPDP omits PID_DOMAIN_ID" {
     @rtps.Header::new(remote_prefix, @rtps.VendorId::new(1, 15)),
   )
   message.add(data.to_submessage())
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -469,11 +469,11 @@ async test "discovery session receives from an additional metatraffic socket" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
-  let primary = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let primary = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer primary.close()
-  let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer metatraffic.close()
   let session = match
     @discovery.DiscoverySession::new_with_receive_sockets(

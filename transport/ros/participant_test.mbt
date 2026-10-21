@@ -17,9 +17,9 @@ async test "ROS participant owns discovery and user-data sockets" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let node = match
     @ros.RosParticipant::from_sockets(
@@ -67,13 +67,13 @@ async test "ROS participant disposal removes its SEDP endpoints and SPDP partici
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer remote_receiver.close()
-  let remote_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let remote_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer remote_sender.close()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let remote_participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(remote_prefix, participant_id),
@@ -199,9 +199,9 @@ async test "ROS participant drops graph sessions for removed endpoints" {
     0x7F000001U,
     60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
@@ -222,7 +222,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
     @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"pub", 0xC2).unwrap()),
   ).unwrap()
   remote_publication.add_unicast_locator(node.user_locator())
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let destination = node.discovery.session.socket.local_addr()
   let vendor_id = @rtps.VendorId::new(1, 15)
@@ -314,9 +314,9 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let node = match
     @ros.RosParticipant::from_sockets(
@@ -435,9 +435,9 @@ async test "ROS participant registers a topic endpoint with its type hash" {
     0x7F000001U,
     60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
@@ -481,9 +481,9 @@ async test "ROS participant registers service client endpoints" {
     0x7F000001U,
     60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let node = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
@@ -539,15 +539,15 @@ async test "ROS participants discover service endpoints before request reply" {
   ).unwrap()
   let client_discovery_socket = @wire.Udp::bind(
     @socket.Addr::new(0x7F000001U, 0),
-  )
+  ).unwrap()
   defer client_discovery_socket.close()
   let server_discovery_socket = @wire.Udp::bind(
     @socket.Addr::new(0x7F000001U, 0),
-  )
+  ).unwrap()
   defer server_discovery_socket.close()
-  let client_user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let client_user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer client_user_socket.close()
-  let server_user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let server_user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer server_user_socket.close()
   let client_discovery_locator = client_discovery_socket
     .local_unicast_locator()
@@ -700,13 +700,13 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_discovery = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_discovery = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer publisher_discovery.close()
-  let subscriber_discovery = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_discovery = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer subscriber_discovery.close()
-  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer publisher_user.close()
-  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer subscriber_user.close()
   let publisher_data = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(publisher_prefix, participant_id),

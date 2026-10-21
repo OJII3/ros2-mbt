@@ -11,9 +11,9 @@ async test "typed message endpoints advertise the descriptor identity" {
     0x7F000001U,
     60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,
@@ -78,9 +78,9 @@ async test "typed message endpoints support explicit best-effort QoS" {
     0x7F000001U,
     60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = @ros.RosParticipant::from_sockets(
     discovery_socket, user_socket, participant, 0, 1L,

@@ -24,17 +24,23 @@ pub struct Udp {
 
 ///|
 /// Bind a UDP socket to an address.
-pub async fn Udp::bind(addr : @socket.Addr) -> Udp {
-  { server: UdpServer(addr), }
+/// Return bind failures as `Err`.
+pub async fn Udp::bind(addr : @socket.Addr) -> Result[Udp, String] {
+  Ok({ server: UdpServer(addr), }) catch {
+    _ => Err("could not bind UDP socket")
+  }
 }
 
 ///|
 /// Bind a socket that receives only the specified multicast group.
+/// Return bind failures as `Err`.
 pub async fn Udp::multicast(
   group : @socket.Addr,
   interface_addr? : @socket.Addr,
-) -> Udp {
-  { server: @socket.UdpServer::multicast(group, interface_addr?), }
+) -> Result[Udp, String] {
+  Ok({ server: @socket.UdpServer::multicast(group, interface_addr?), }) catch {
+    _ => Err("could not bind UDP multicast socket")
+  }
 }
 
 ///|
@@ -61,7 +67,7 @@ pub async fn Udp::ddsi_spdp_multicast(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::multicast(address, interface_addr?))
+  Udp::multicast(address, interface_addr?)
 }
 
 ///|
@@ -76,7 +82,7 @@ pub async fn Udp::ddsi_spdp_unicast(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::bind(address))
+  Udp::bind(address)
 }
 
 ///|
@@ -89,7 +95,7 @@ pub async fn Udp::ddsi_user_multicast(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::multicast(address, interface_addr?))
+  Udp::multicast(address, interface_addr?)
 }
 
 ///|
@@ -104,7 +110,7 @@ pub async fn Udp::ddsi_user_unicast(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(Udp::bind(address))
+  Udp::bind(address)
 }
 
 ///|

@@ -184,7 +184,7 @@ pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@core.AckNackS
 pub struct Udp {
   server : @socket.UdpServer
 }
-pub async fn Udp::bind(@socket.Addr) -> Self
+pub async fn Udp::bind(@socket.Addr) -> Result[Self, String]
 pub fn Udp::close(Self) -> Unit
 pub async fn Udp::ddsi_spdp_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
 pub async fn Udp::ddsi_spdp_unicast(UInt, UInt, UInt) -> Result[Self, String]
@@ -193,7 +193,7 @@ pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub fn Udp::local_unicast_locator(Self) -> Result[@core.Locator, String]
-pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.Addr) -> Self
+pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.Addr) -> Result[Self, String]
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
 pub async fn Udp::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_data(Self) -> Result[(@core.DataSubmessage, @socket.Addr), String]

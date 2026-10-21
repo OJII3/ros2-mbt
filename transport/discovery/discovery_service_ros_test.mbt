@@ -25,10 +25,10 @@ async test "discovery service ingests ros_discovery_info samples" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let receiver_address = receiver.local_addr()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = match
     @discovery.DiscoverySession::new(
@@ -93,9 +93,9 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let publisher_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer publisher_socket.close()
-  let subscriber_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let subscriber_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer subscriber_socket.close()
   let publisher_locator = match
     @rtps.Locator::udp_v4(
@@ -131,7 +131,7 @@ async test "reliable ros_discovery_info reaches a discovered reader" {
   }
   publication.add_unicast_locator(publisher_locator)
   subscription.add_unicast_locator(subscriber_locator)
-  let service_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let service_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer service_socket.close()
   let service_address = service_socket.local_addr()
   let service_participant_id = match @rtps.EntityId::new(b"gph", 0xC1) {

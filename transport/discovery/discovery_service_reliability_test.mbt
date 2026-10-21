@@ -31,14 +31,14 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
     0,
     @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let receiver_locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
     receiver.local_addr().port().reinterpret_as_uint(),
   ).unwrap()
   remote_participant.add_metatraffic_unicast(receiver_locator)
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let service = @discovery.DiscoveryService::new(
     @discovery.DiscoverySession::new(

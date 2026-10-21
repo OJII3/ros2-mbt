@@ -35,10 +35,10 @@ async test "discovery service ingests received participant events" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let receiver_address = receiver.local_addr()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = match
     @discovery.DiscoverySession::new(
@@ -103,14 +103,14 @@ async test "discovery service resolves unspecified SEDP endpoint locators" {
     b"\x00\x01\x00",
     @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
   ).unwrap()
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let receiver_address = socket.local_addr()
   let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, participant_id, receiver_address, 1L,
   ).unwrap()
   let service = @discovery.DiscoveryService::new(session)
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   sender
   .send_spdp(
@@ -187,14 +187,14 @@ async test "discovery service expires participants after the SPDP lease" {
     @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
   ).unwrap()
   let writer_id = participant_entity
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let receiver_address = socket.local_addr()
   let session = @discovery.DiscoverySession::new(
     socket, local_participant, reader_id, writer_id, receiver_address, 1L,
   ).unwrap()
   let service = @discovery.DiscoveryService::new(session)
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   sender
   .send_spdp(remote_participant, reader_id, writer_id, 1L, receiver_address)

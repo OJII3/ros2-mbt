@@ -24,9 +24,9 @@ async test "discovery session reassembles fragmented SPDP participant data" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -201,9 +201,9 @@ async test "discovery session filters SEDP data for another builtin reader" {
     0,
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0))
+  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,

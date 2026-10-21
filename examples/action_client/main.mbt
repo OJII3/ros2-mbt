@@ -223,8 +223,25 @@ async fn main {
   }
   let feedback_reader_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x04).unwrap()
   let status_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
-  let feedback_socket = @transport.Udp::bind(@socket.Addr::new(config.ip, 0))
-  let status_socket = @transport.Udp::bind(@socket.Addr::new(config.ip, 0))
+  let feedback_socket = match
+    @transport.Udp::bind(@socket.Addr::new(config.ip, 0)) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      participant.close()
+      return
+    }
+  }
+  let status_socket = match
+    @transport.Udp::bind(@socket.Addr::new(config.ip, 0)) {
+    Ok(value) => value
+    Err(message) => {
+      println(message)
+      feedback_socket.close()
+      participant.close()
+      return
+    }
+  }
   let feedback_locator = match feedback_socket.local_unicast_locator() {
     Ok(value) => value
     Err(message) => {
