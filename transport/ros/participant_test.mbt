@@ -250,8 +250,8 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   .send_data(subscription_data, remote_prefix, vendor_id, destination)
   .unwrap()
   ignore(test_receive(() => node.receive_discovery_once()).unwrap())
-  assert_eq(node.graph_publishers.length(), 1)
-  assert_eq(node.graph_subscriptions.length(), 1)
+  assert_eq(node.ros_graph.graph_publishers.length(), 1)
+  assert_eq(node.ros_graph.graph_subscriptions.length(), 1)
   let publication_dispose = @rtps.DataSubmessage::new(
       @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
       @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
@@ -276,8 +276,8 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   .send_data(subscription_dispose, remote_prefix, vendor_id, destination)
   .unwrap()
   ignore(test_receive(() => node.receive_discovery_once()).unwrap())
-  assert_eq(node.graph_publishers.length(), 0)
-  assert_eq(node.graph_subscriptions.length(), 0)
+  assert_eq(node.ros_graph.graph_publishers.length(), 0)
+  assert_eq(node.ros_graph.graph_subscriptions.length(), 0)
   let reappeared_publication = remote_publication
     .to_data_submessage_with_vendor(
       vendor_id,
@@ -290,7 +290,7 @@ async test "ROS participant drops graph sessions for removed endpoints" {
   .send_data(reappeared_publication, remote_prefix, vendor_id, destination)
   .unwrap()
   ignore(test_receive(() => node.receive_discovery_once()).unwrap())
-  assert_eq(node.graph_subscriptions.length(), 1)
+  assert_eq(node.ros_graph.graph_subscriptions.length(), 1)
   node.close()
   sender.close()
 }
@@ -329,7 +329,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  assert_true(node.latest_graph_info is Some(_))
+  assert_true(node.ros_graph.latest_graph_info is Some(_))
   let writer_id = match @rtps.EntityId::new(b"pub", 0xC2) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -350,7 +350,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
     Err(message) => fail(message)
   }
   assert_eq(node.local_endpoints().length(), 1)
-  let automatic_info = match node.latest_graph_info {
+  let automatic_info = match node.ros_graph.latest_graph_info {
     Some(value) => value
     None => fail("automatic ROS graph information was not cached")
   }
@@ -411,7 +411,7 @@ async test "ROS participant registers and retains local SEDP endpoints" {
   assert_true(
     node.unregister_endpoint(@rtps.Guid::new(prefix, writer_id)) is Err(_),
   )
-  let cleared_info = match node.latest_graph_info {
+  let cleared_info = match node.ros_graph.latest_graph_info {
     Some(value) => value
     None => fail("automatic ROS graph information was not refreshed")
   }
@@ -820,7 +820,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_true(publisher.latest_graph_info is Some(_))
+  assert_true(publisher.ros_graph.latest_graph_info is Some(_))
   match publisher.announce_spdp_once() {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -905,7 +905,7 @@ async test "ROS participant automatically announces endpoints after SPDP" {
     Ok(_) => fail("expected the late SEDP publication")
     Err(message) => fail(message)
   }
-  let refreshed_info = match publisher.latest_graph_info {
+  let refreshed_info = match publisher.ros_graph.latest_graph_info {
     Some(value) => value
     None => fail("automatic ROS graph information was not refreshed")
   }

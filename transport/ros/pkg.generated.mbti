@@ -140,7 +140,15 @@ pub fn RosActionGoalHandle::accepted(Self) -> Bool
 pub fn RosActionGoalHandle::goal_id(Self) -> Bytes
 
 pub struct RosGraph {
-  // private fields
+  mut graph_publication_id : @core.EntityId?
+  mut graph_subscription_id : @core.EntityId?
+  mut ros_node_namespace : String?
+  mut ros_node_name : String?
+  mut latest_graph_info : @rmw_dds_common.ParticipantEntitiesInfo?
+  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  mut graph_publisher_guids : Array[@core.Guid]
+  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  mut graph_subscription_guids : Array[@core.Guid]
 }
 
 pub struct RosNode {

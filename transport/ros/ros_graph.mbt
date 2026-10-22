@@ -4,15 +4,15 @@
 /// Kept separate from `RosParticipant` so graph discovery can evolve without
 /// expanding the participant's socket and DDSI lifecycle state.
 pub struct RosGraph {
-  priv mut graph_publication_id : @rtps.EntityId?
-  priv mut graph_subscription_id : @rtps.EntityId?
-  priv mut ros_node_namespace : String?
-  priv mut ros_node_name : String?
-  priv mut latest_graph_info : @ros_types.ParticipantEntitiesInfo?
-  priv mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  priv mut graph_publisher_guids : Array[@rtps.Guid]
-  priv mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  priv mut graph_subscription_guids : Array[@rtps.Guid]
+  mut graph_publication_id : @rtps.EntityId?
+  mut graph_subscription_id : @rtps.EntityId?
+  mut ros_node_namespace : String?
+  mut ros_node_name : String?
+  mut latest_graph_info : @ros_types.ParticipantEntitiesInfo?
+  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  mut graph_publisher_guids : Array[@rtps.Guid]
+  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  mut graph_subscription_guids : Array[@rtps.Guid]
 }
 
 ///|

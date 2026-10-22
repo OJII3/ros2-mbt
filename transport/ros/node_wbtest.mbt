@@ -161,8 +161,8 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   defer sender.close()
   let reader_id = @rtps.EntityId::new(b"sub", 0x04).unwrap()
   let writer_id = @rtps.EntityId::new(b"pub", 0x03).unwrap()
-  participant.graph_subscription_id = Some(reader_id)
-  participant.graph_publication_id = Some(writer_id)
+  participant.ros_graph.graph_subscription_id = Some(reader_id)
+  participant.ros_graph.graph_publication_id = Some(writer_id)
   let incompatible_publication = @rtps.SedpEndpointData::new(
     Publication,
     @rtps.Guid::new(remote_prefix, writer_id),
@@ -196,8 +196,8 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   participant
   .ensure_ros_discovery_subscription(incompatible_subscription, false)
   .unwrap()
-  assert_eq(participant.graph_subscriptions.length(), 0)
-  assert_eq(participant.graph_publishers.length(), 0)
+  assert_eq(participant.ros_graph.graph_subscriptions.length(), 0)
+  assert_eq(participant.ros_graph.graph_publishers.length(), 0)
   let publication = @ros_types.ros_discovery_info_to_sedp(
     Publication,
     @rtps.Guid::new(remote_prefix, writer_id),
@@ -214,14 +214,14 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   let graph_writer = ReliableRosDiscoveryPublisher::new_for_subscription(
     sender, remote_prefix, vendor_id, writer_id, subscription, 1L,
   ).unwrap()
-  participant.graph_subscriptions.push(graph_reader)
-  participant.graph_publishers.push(graph_writer)
+  participant.ros_graph.graph_subscriptions.push(graph_reader)
+  participant.ros_graph.graph_publishers.push(graph_writer)
   let gid = @ros_types.Gid::from_guid(@rtps.Guid::new(remote_prefix, writer_id))
   let info = @ros_types.ParticipantEntitiesInfo::new(gid)
   let graph_node = @ros_types.NodeEntitiesInfo::new("/demo", "talker").unwrap()
   graph_node.add_writer_gid(gid)
   info.add_node(graph_node)
-  participant.graph_publishers[0].announce_once(info).unwrap()
+  participant.ros_graph.graph_publishers[0].announce_once(info).unwrap()
   let (data_message, data_source) = @async.with_timeout(2000, () => {
     user_socket.receive_message()
   }).unwrap()
@@ -235,8 +235,8 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   }).unwrap()
   participant.handle_user_message(acknack_message, acknack_source).unwrap()
   assert_eq(participant.graph().ros_participant_count(), 1)
-  assert_eq(participant.graph_subscriptions[0].sample_count(), 1)
-  assert_eq(participant.graph_publishers[0].history_length(), 0)
+  assert_eq(participant.ros_graph.graph_subscriptions[0].sample_count(), 1)
+  assert_eq(participant.ros_graph.graph_publishers[0].history_length(), 0)
 }
 
 ///|
@@ -283,7 +283,7 @@ async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
   let local_writer = ReliableRosDiscoveryPublisher::new_for_subscription(
     user_socket, local_prefix, vendor_id, publication_id, remote_subscription, 1L,
   ).unwrap()
-  node.participant.graph_publishers.push(local_writer)
+  node.participant.ros_graph.graph_publishers.push(local_writer)
   let gid = @ros_types.Gid::from_guid(
     @rtps.Guid::new(local_prefix, publication_id),
   )
@@ -291,7 +291,7 @@ async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
   let graph_node = @ros_types.NodeEntitiesInfo::new("/demo", "talker").unwrap()
   graph_node.add_writer_gid(gid)
   info.add_node(graph_node)
-  node.participant.graph_publishers[0].announce_once(info).unwrap()
+  node.participant.ros_graph.graph_publishers[0].announce_once(info).unwrap()
   ignore(remote_receiver.receive_message().unwrap())
   ignore(remote_receiver.receive_message().unwrap())
   let executor = Executor::new()
