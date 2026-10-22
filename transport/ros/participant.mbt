@@ -10,15 +10,7 @@ pub struct RosParticipant {
   user_locator : @rtps.Locator
   mut local_endpoints : Array[@rtps.SedpEndpointData]
   mut spdp_socket : @wire.Udp?
-  mut graph_publication_id : @rtps.EntityId?
-  mut graph_subscription_id : @rtps.EntityId?
-  mut ros_node_namespace : String?
-  mut ros_node_name : String?
-  mut latest_graph_info : @ros_types.ParticipantEntitiesInfo?
-  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  mut graph_publisher_guids : Array[@rtps.Guid]
-  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  mut graph_subscription_guids : Array[@rtps.Guid]
+  ros_graph : RosGraph
 }
 
 ///|
@@ -72,15 +64,7 @@ pub fn RosParticipant::from_discovery_session(
     user_locator,
     local_endpoints: [],
     spdp_socket: None,
-    graph_publication_id: None,
-    graph_subscription_id: None,
-    ros_node_namespace: None,
-    ros_node_name: None,
-    latest_graph_info: None,
-    graph_publishers: [],
-    graph_publisher_guids: [],
-    graph_subscriptions: [],
-    graph_subscription_guids: [],
+    ros_graph: RosGraph::new(),
   })
 }
 
@@ -270,7 +254,7 @@ pub fn RosParticipant::participant_entities_info(
 fn RosParticipant::configured_ros_discovery_info(
   self : RosParticipant,
 ) -> Result[@ros_types.ParticipantEntitiesInfo, String] {
-  match (self.ros_node_namespace, self.ros_node_name) {
+  match (self.ros_graph.ros_node_namespace, self.ros_graph.ros_node_name) {
     (Some(node_namespace), Some(node_name)) =>
       self.participant_entities_info(node_namespace, node_name)
     _ => Err("the ROS node identity has not been configured")
@@ -285,16 +269,16 @@ async fn RosParticipant::refresh_ros_discovery_info(
   let info = match self.configured_ros_discovery_info() {
     Ok(value) => value
     Err(message) if message == "the ROS node identity has not been configured" => {
-      self.latest_graph_info = None
+      self.ros_graph.latest_graph_info = None
       return Ok(())
     }
     Err(message) => return Err(message)
   }
-  self.latest_graph_info = Some(info)
-  if self.graph_publication_id is None {
+  self.ros_graph.latest_graph_info = Some(info)
+  if self.ros_graph.graph_publication_id is None {
     return Ok(())
   }
-  for publisher in self.graph_publishers {
+  for publisher in self.ros_graph.graph_publishers {
     match publisher.announce_once(info) {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -317,8 +301,8 @@ pub async fn RosParticipant::set_ros_node_identity(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
-  self.ros_node_namespace = Some(node_namespace)
-  self.ros_node_name = Some(node_name)
+  self.ros_graph.ros_node_namespace = Some(node_namespace)
+  self.ros_graph.ros_node_name = Some(node_name)
   self.refresh_ros_discovery_info()
 }
 
@@ -377,20 +361,20 @@ pub async fn RosParticipant::unregister_endpoint(
   }
   self.local_endpoints = remaining
   let prefix = self.participant.participant_guid().prefix()
-  match self.graph_publication_id {
+  match self.ros_graph.graph_publication_id {
     Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) => {
-      self.graph_publication_id = None
-      self.graph_publishers = []
-      self.graph_publisher_guids = []
-      self.latest_graph_info = None
+      self.ros_graph.graph_publication_id = None
+      self.ros_graph.graph_publishers = []
+      self.ros_graph.graph_publisher_guids = []
+      self.ros_graph.latest_graph_info = None
     }
     _ => ()
   }
-  match self.graph_subscription_id {
+  match self.ros_graph.graph_subscription_id {
     Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) => {
-      self.graph_subscription_id = None
-      self.graph_subscriptions = []
-      self.graph_subscription_guids = []
+      self.ros_graph.graph_subscription_id = None
+      self.ros_graph.graph_subscriptions = []
+      self.ros_graph.graph_subscription_guids = []
     }
     _ => ()
   }
@@ -648,8 +632,8 @@ pub async fn RosParticipant::register_ros_discovery_info(
   subscription.add_unicast_locator(self.user_locator)
   match self.register_endpoint(subscription) {
     Ok(_) => {
-      self.graph_publication_id = Some(publication_id)
-      self.graph_subscription_id = Some(subscription_id)
+      self.ros_graph.graph_publication_id = Some(publication_id)
+      self.ros_graph.graph_subscription_id = Some(subscription_id)
       self.reconcile_ros_discovery_endpoints()
     }
     Err(message) => Err(message)
@@ -661,7 +645,7 @@ pub async fn RosParticipant::register_ros_discovery_info(
 pub fn RosParticipant::ros_discovery_publisher_count(
   self : RosParticipant,
 ) -> Int32 {
-  self.graph_publishers.length()
+  self.ros_graph.graph_publishers.length()
 }
 
 ///|
@@ -669,7 +653,7 @@ pub fn RosParticipant::ros_discovery_publisher_count(
 pub fn RosParticipant::ros_discovery_subscription_count(
   self : RosParticipant,
 ) -> Int32 {
-  self.graph_subscriptions.length()
+  self.ros_graph.graph_subscriptions.length()
 }
 
 ///|
@@ -678,11 +662,11 @@ pub async fn RosParticipant::publish_ros_discovery_info(
   self : RosParticipant,
   info : @ros_types.ParticipantEntitiesInfo,
 ) -> Result[Unit, String] {
-  self.latest_graph_info = Some(info)
-  if self.graph_publishers.length() == 0 {
+  self.ros_graph.latest_graph_info = Some(info)
+  if self.ros_graph.graph_publishers.length() == 0 {
     return Err("no remote ROS graph subscriptions have been discovered")
   }
-  for publisher in self.graph_publishers {
+  for publisher in self.ros_graph.graph_publishers {
     match publisher.announce_once(info) {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -697,10 +681,11 @@ pub async fn RosParticipant::receive_ros_discovery_info(
   self : RosParticipant,
   index : Int32,
 ) -> Result[(@ros_types.ParticipantEntitiesInfo, @socket.Addr), String] {
-  if index < 0 || index >= self.graph_subscriptions.length() {
+  if index < 0 || index >= self.ros_graph.graph_subscriptions.length() {
     return Err("ROS graph subscription index is out of range")
   }
-  let (info, source) = match self.graph_subscriptions[index].receive() {
+  let (info, source) = match
+    self.ros_graph.graph_subscriptions[index].receive() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -714,10 +699,10 @@ pub async fn RosParticipant::receive_ros_discovery_heartbeat(
   self : RosParticipant,
   index : Int32,
 ) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
-  if index < 0 || index >= self.graph_subscriptions.length() {
+  if index < 0 || index >= self.ros_graph.graph_subscriptions.length() {
     return Err("ROS graph subscription index is out of range")
   }
-  self.graph_subscriptions[index].receive_heartbeat()
+  self.ros_graph.graph_subscriptions[index].receive_heartbeat()
 }
 
 ///|
@@ -726,10 +711,10 @@ pub async fn RosParticipant::receive_ros_discovery_acknack(
   self : RosParticipant,
   index : Int32,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
-  if index < 0 || index >= self.graph_publishers.length() {
+  if index < 0 || index >= self.ros_graph.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
   }
-  self.graph_publishers[index].receive_acknack()
+  self.ros_graph.graph_publishers[index].receive_acknack()
 }
 
 ///|
@@ -738,10 +723,10 @@ pub async fn RosParticipant::receive_ros_discovery_nackfrag(
   self : RosParticipant,
   index : Int32,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
-  if index < 0 || index >= self.graph_publishers.length() {
+  if index < 0 || index >= self.ros_graph.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
   }
-  self.graph_publishers[index].receive_nackfrag()
+  self.ros_graph.graph_publishers[index].receive_nackfrag()
 }
 
 ///|
@@ -751,7 +736,7 @@ async fn RosParticipant::handle_user_message(
   message : @rtps.Message,
   source : @socket.Addr,
 ) -> Result[Unit, String] {
-  for subscription in self.graph_subscriptions {
+  for subscription in self.ros_graph.graph_subscriptions {
     match subscription.handle_message(message, source) {
       Ok(infos) =>
         for info in infos {
@@ -760,7 +745,7 @@ async fn RosParticipant::handle_user_message(
       Err(message) => return Err(message)
     }
   }
-  for publisher in self.graph_publishers {
+  for publisher in self.ros_graph.graph_publishers {
     match publisher.handle_message(message) {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -774,7 +759,7 @@ async fn RosParticipant::handle_user_message(
 async fn RosParticipant::send_ros_discovery_heartbeats(
   self : RosParticipant,
 ) -> Result[Unit, String] {
-  for publisher in self.graph_publishers {
+  for publisher in self.ros_graph.graph_publishers {
     match publisher.writer.send_heartbeat() {
       Ok(_) => ()
       Err(message) => return Err(message)
@@ -789,10 +774,10 @@ pub async fn RosParticipant::receive_ros_discovery_control(
   self : RosParticipant,
   index : Int32,
 ) -> Result[Unit, String] {
-  if index < 0 || index >= self.graph_publishers.length() {
+  if index < 0 || index >= self.ros_graph.graph_publishers.length() {
     return Err("ROS graph publisher index is out of range")
   }
-  self.graph_publishers[index].receive_control()
+  self.ros_graph.graph_publishers[index].receive_control()
 }
 
 ///|
@@ -863,15 +848,15 @@ fn RosParticipant::forget_graph_publication(
 ) -> Unit {
   let guids : Array[@rtps.Guid] = []
   let subscriptions : Array[ReliableRosDiscoverySubscription] = []
-  for index in 0..<self.graph_subscription_guids.length() {
-    if self.graph_subscription_guids[index] == endpoint_guid {
+  for index in 0..<self.ros_graph.graph_subscription_guids.length() {
+    if self.ros_graph.graph_subscription_guids[index] == endpoint_guid {
       continue
     }
-    guids.push(self.graph_subscription_guids[index])
-    subscriptions.push(self.graph_subscriptions[index])
+    guids.push(self.ros_graph.graph_subscription_guids[index])
+    subscriptions.push(self.ros_graph.graph_subscriptions[index])
   }
-  self.graph_subscription_guids = guids
-  self.graph_subscriptions = subscriptions
+  self.ros_graph.graph_subscription_guids = guids
+  self.ros_graph.graph_subscriptions = subscriptions
 }
 
 ///|
@@ -882,15 +867,15 @@ fn RosParticipant::forget_graph_subscription(
 ) -> Unit {
   let guids : Array[@rtps.Guid] = []
   let publishers : Array[ReliableRosDiscoveryPublisher] = []
-  for index in 0..<self.graph_publisher_guids.length() {
-    if self.graph_publisher_guids[index] == endpoint_guid {
+  for index in 0..<self.ros_graph.graph_publisher_guids.length() {
+    if self.ros_graph.graph_publisher_guids[index] == endpoint_guid {
       continue
     }
-    guids.push(self.graph_publisher_guids[index])
-    publishers.push(self.graph_publishers[index])
+    guids.push(self.ros_graph.graph_publisher_guids[index])
+    publishers.push(self.ros_graph.graph_publishers[index])
   }
-  self.graph_publisher_guids = guids
-  self.graph_publishers = publishers
+  self.ros_graph.graph_publisher_guids = guids
+  self.ros_graph.graph_publishers = publishers
 }
 
 ///|
@@ -901,26 +886,28 @@ fn RosParticipant::forget_graph_participant(
 ) -> Unit {
   let subscription_guids : Array[@rtps.Guid] = []
   let subscriptions : Array[ReliableRosDiscoverySubscription] = []
-  for index in 0..<self.graph_subscription_guids.length() {
-    if self.graph_subscription_guids[index].prefix() == participant_prefix {
+  for index in 0..<self.ros_graph.graph_subscription_guids.length() {
+    if self.ros_graph.graph_subscription_guids[index].prefix() ==
+      participant_prefix {
       continue
     }
-    subscription_guids.push(self.graph_subscription_guids[index])
-    subscriptions.push(self.graph_subscriptions[index])
+    subscription_guids.push(self.ros_graph.graph_subscription_guids[index])
+    subscriptions.push(self.ros_graph.graph_subscriptions[index])
   }
-  self.graph_subscription_guids = subscription_guids
-  self.graph_subscriptions = subscriptions
+  self.ros_graph.graph_subscription_guids = subscription_guids
+  self.ros_graph.graph_subscriptions = subscriptions
   let publisher_guids : Array[@rtps.Guid] = []
   let publishers : Array[ReliableRosDiscoveryPublisher] = []
-  for index in 0..<self.graph_publisher_guids.length() {
-    if self.graph_publisher_guids[index].prefix() == participant_prefix {
+  for index in 0..<self.ros_graph.graph_publisher_guids.length() {
+    if self.ros_graph.graph_publisher_guids[index].prefix() ==
+      participant_prefix {
       continue
     }
-    publisher_guids.push(self.graph_publisher_guids[index])
-    publishers.push(self.graph_publishers[index])
+    publisher_guids.push(self.ros_graph.graph_publisher_guids[index])
+    publishers.push(self.ros_graph.graph_publishers[index])
   }
-  self.graph_publisher_guids = publisher_guids
-  self.graph_publishers = publishers
+  self.ros_graph.graph_publisher_guids = publisher_guids
+  self.ros_graph.graph_publishers = publishers
 }
 
 ///|
@@ -946,12 +933,12 @@ fn RosParticipant::ensure_ros_discovery_publication(
     !ros_endpoint_has_udp_v4_locator(publication) {
     return Ok(())
   }
-  let reader_id = match self.graph_subscription_id {
+  let reader_id = match self.ros_graph.graph_subscription_id {
     Some(value) => value
     None => return Ok(())
   }
   let endpoint_guid = publication.endpoint_guid()
-  for guid in self.graph_subscription_guids {
+  for guid in self.ros_graph.graph_subscription_guids {
     if guid == endpoint_guid {
       return Ok(())
     }
@@ -967,8 +954,8 @@ fn RosParticipant::ensure_ros_discovery_publication(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  self.graph_subscriptions.push(reader)
-  self.graph_subscription_guids.push(endpoint_guid)
+  self.ros_graph.graph_subscriptions.push(reader)
+  self.ros_graph.graph_subscription_guids.push(endpoint_guid)
   Ok(())
 }
 
@@ -991,12 +978,12 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
   if !ros_endpoint_has_udp_v4_locator(subscription) {
     return Ok(())
   }
-  let writer_id = match self.graph_publication_id {
+  let writer_id = match self.ros_graph.graph_publication_id {
     Some(value) => value
     None => return Ok(())
   }
   let endpoint_guid = subscription.endpoint_guid()
-  for guid in self.graph_publisher_guids {
+  for guid in self.ros_graph.graph_publisher_guids {
     if guid == endpoint_guid {
       return Ok(())
     }
@@ -1014,12 +1001,12 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
     Err(message) => return Err(message)
   }
   if announce_initial {
-    let info = match self.latest_graph_info {
+    let info = match self.ros_graph.latest_graph_info {
       Some(info) => Some(info)
       None =>
         match self.configured_ros_discovery_info() {
           Ok(info) => {
-            self.latest_graph_info = Some(info)
+            self.ros_graph.latest_graph_info = Some(info)
             Some(info)
           }
           Err(_) => None
@@ -1034,8 +1021,8 @@ async fn RosParticipant::ensure_ros_discovery_subscription(
       None => ()
     }
   }
-  self.graph_publishers.push(publisher)
-  self.graph_publisher_guids.push(endpoint_guid)
+  self.ros_graph.graph_publishers.push(publisher)
+  self.ros_graph.graph_publisher_guids.push(endpoint_guid)
   Ok(())
 }
 
