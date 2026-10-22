@@ -25,7 +25,11 @@ async fn run_node_list(spin_time_ms : Int32) -> Result[Unit, String] {
   }
   let result = @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
-      ignore(cli.participant.announce_spdp_forever(CLI_DISCOVERY_INTERVAL_MS))
+      match cli.participant.announce_spdp_forever(CLI_DISCOVERY_INTERVAL_MS) {
+        Ok(_) => ()
+        Err(message) =>
+          println("error: discovery announcement failed: " + message)
+      }
     }
     match spin_discovery(cli.participant, spin_time_ms, true) {
       Ok(_) => {
