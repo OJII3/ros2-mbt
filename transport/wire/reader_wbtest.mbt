@@ -25,8 +25,8 @@ fn best_effort_test_data(
   sequence : Int64,
 ) -> @rtps.Submessage {
   @rtps.DataSubmessage::new(
-    reader.reader_id,
-    reader.writer_id,
+    reader.state.reader_id,
+    reader.state.writer_id,
     sequence,
     b"payload",
   ).to_submessage()
@@ -41,7 +41,7 @@ fn best_effort_test_fragment(
 ) -> @rtps.Submessage {
   @rtps.DataFragSubmessage::new(
     @rtps.EntityId::unknown(),
-    reader.writer_id,
+    reader.state.writer_id,
     sequence,
     starting,
     (1 : Int32).to_uint16(),
@@ -176,8 +176,8 @@ async test "best-effort enforces its reassembly payload budget before allocating
   let payload = Bytes::from_array(Array::make(1024, 0))
   for sequence in 1..<4 {
     let fragment = @rtps.DataFragSubmessage::new(
-      reader.reader_id,
-      reader.writer_id,
+      reader.state.reader_id,
+      reader.state.writer_id,
       sequence.to_int64(),
       1U,
       (1 : Int32).to_uint16(),
