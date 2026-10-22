@@ -6,6 +6,12 @@
 /// Older samples are discarded in favor of newer ones when these limits apply.
 pub struct DataReader {
   socket : Udp
+  state : DataReaderState
+}
+
+///|
+/// Sans-I/O best-effort RTPS reader state for one remote writer.
+pub struct DataReaderState {
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
   writer_prefix : @rtps.GuidPrefix?
@@ -20,8 +26,16 @@ pub fn DataReader::new(
   reader_id : @rtps.EntityId,
   writer_id : @rtps.EntityId,
 ) -> DataReader {
+  { socket, state: DataReaderState::new(reader_id, writer_id), }
+}
+
+///|
+/// Create a Sans-I/O reader for one local reader entity and one remote writer.
+pub fn DataReaderState::new(
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+) -> DataReaderState {
   {
-    socket,
     reader_id,
     writer_id,
     writer_prefix: None,
@@ -63,19 +77,29 @@ fn data_reader_for_publication(
   reader_id : @rtps.EntityId,
   publication : @rtps.SedpEndpointData,
 ) -> Result[DataReader, String] {
+  match
+    DataReaderState::new_for_publication(
+      reader_id, publication, participant_prefix,
+    ) {
+    Ok(state) => Ok({ socket, state, })
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Create a Sans-I/O reader targeting a discovered SEDP publication endpoint.
+pub fn DataReaderState::new_for_publication(
+  reader_id : @rtps.EntityId,
+  publication : @rtps.SedpEndpointData,
+  participant_prefix : @rtps.GuidPrefix?,
+) -> Result[DataReaderState, String] {
   if publication.kind() != Publication {
     return Err("a DataReader target must be an SEDP publication")
   }
   Ok({
-    socket,
-    reader_id,
-    writer_id: publication.endpoint_guid().entity_id(),
+    ..DataReaderState::new(reader_id, publication.endpoint_guid().entity_id()),
     writer_prefix: Some(publication.endpoint_guid().prefix()),
     participant_prefix,
-    state: ReliableDataReader::new(
-      reader_id,
-      publication.endpoint_guid().entity_id(),
-    ),
   })
 }
 
@@ -89,8 +113,8 @@ pub async fn DataReader::receive(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match self.handle_message(message, source) {
-      Ok(Some(data)) => return Ok(data)
+    match self.state.handle_message(message) {
+      Ok(Some(data)) => return Ok((data, source))
       Ok(None) => continue
       Err(message) => return Err(message)
     }
@@ -105,6 +129,19 @@ pub fn DataReader::handle_message(
   message : @rtps.Message,
   source : @socket.Addr,
 ) -> Result[(@rtps.DataSubmessage, @socket.Addr)?, String] {
+  match self.state.handle_message(message) {
+    Ok(Some(data)) => Ok(Some((data, source)))
+    Ok(None) => Ok(None)
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Process one already-received RTPS message without performing I/O.
+pub fn DataReaderState::handle_message(
+  self : DataReaderState,
+  message : @rtps.Message,
+) -> Result[@rtps.DataSubmessage?, String] {
   match message.destination_guid_prefix() {
     Ok(Some(destination)) =>
       match self.participant_prefix {
@@ -140,7 +177,7 @@ pub fn DataReader::handle_message(
         match self.state.accept_data(data) {
           Ok(_) => {
             self.prune_receive_state(data.writer_sequence_number())
-            return Ok(Some((data, source)))
+            return Ok(Some(data))
           }
           Err(_) => continue
         }
@@ -163,7 +200,7 @@ pub fn DataReader::handle_message(
           Err(_) => continue
         }
         match data {
-          Some(value) => return Ok(Some((value, source)))
+          Some(value) => return Ok(Some(value))
           None => continue
         }
       }
@@ -176,7 +213,10 @@ pub fn DataReader::handle_message(
 ///|
 /// Best-effort sends no ACKNACK, so advance the shared reader state's cumulative
 /// cutoff locally. Release an incomplete sample once DATA completes it as well.
-fn DataReader::prune_receive_state(self : DataReader, sequence : Int64) -> Unit {
+fn DataReaderState::prune_receive_state(
+  self : DataReaderState,
+  sequence : Int64,
+) -> Unit {
   self.state.advance_acknowledged_through(sequence - 256L)
   let retained : Array[ReliableFragmentedSample] = []
   for sample in self.state.fragments {
@@ -190,8 +230,8 @@ fn DataReader::prune_receive_state(self : DataReader, sequence : Int64) -> Unit 
 ///|
 /// Reject oversized samples before allocating and evict the oldest incomplete
 /// samples when the count or payload budget is exhausted.
-fn DataReader::accept_fragment(
-  self : DataReader,
+fn DataReaderState::accept_fragment(
+  self : DataReaderState,
   fragment : @rtps.DataFragSubmessage,
 ) -> Result[@rtps.DataSubmessage?, String] {
   let sequence = fragment.writer_sequence_number()

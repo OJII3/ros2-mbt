@@ -70,9 +70,9 @@ async test "best-effort history stays bounded and rejects duplicate and expired 
       )
       is Some(_),
     )
-    assert_true(reader.state.samples.length() <= 256)
+    assert_true(reader.state.state.samples.length() <= 256)
   }
-  assert_eq(reader.state.samples.length(), 256)
+  assert_eq(reader.state.state.samples.length(), 256)
   assert_true(
     best_effort_test_handle(reader, best_effort_test_data(reader, 10000L))
     is None,
@@ -96,7 +96,7 @@ async test "best-effort history stays bounded and rejects duplicate and expired 
     best_effort_test_handle(reader, best_effort_test_data(reader, 10000L))
     is None,
   )
-  assert_eq(reader.state.samples.length(), 2)
+  assert_eq(reader.state.state.samples.length(), 2)
 }
 
 ///|
@@ -116,10 +116,10 @@ async test "best-effort caps incomplete samples and preserves out-of-order fragm
       )
       is None,
     )
-    assert_true(reader.state.fragments.length() <= 4)
+    assert_true(reader.state.state.fragments.length() <= 4)
   }
-  assert_eq(reader.state.fragments.length(), 4)
-  assert_eq(reader.state.fragments[0].sequence_number, 997L)
+  assert_eq(reader.state.state.fragments.length(), 4)
+  assert_eq(reader.state.state.fragments[0].sequence_number, 997L)
   // An older sample cannot evict any of the four newer pending samples.
   assert_true(
     best_effort_test_handle(
@@ -128,13 +128,13 @@ async test "best-effort caps incomplete samples and preserves out-of-order fragm
     )
     is None,
   )
-  assert_eq(reader.state.fragments[0].sequence_number, 997L)
+  assert_eq(reader.state.state.fragments[0].sequence_number, 997L)
   let data = best_effort_test_handle(
     reader,
     best_effort_test_fragment(reader, 1000L, 1U, 8U),
   ).unwrap()
   assert_eq(data.serialized_payload(), b"abcdabcd")
-  assert_eq(reader.state.fragments.length(), 3)
+  assert_eq(reader.state.state.fragments.length(), 3)
   assert_true(
     best_effort_test_handle(
       reader,
@@ -147,13 +147,13 @@ async test "best-effort caps incomplete samples and preserves out-of-order fragm
     best_effort_test_handle(reader, best_effort_test_data(reader, 999L))
     is Some(_),
   )
-  assert_eq(reader.state.fragments.length(), 2)
+  assert_eq(reader.state.state.fragments.length(), 2)
   // A large sequence jump expires the remaining partial samples.
   assert_true(
     best_effort_test_handle(reader, best_effort_test_data(reader, 1255L))
     is Some(_),
   )
-  assert_eq(reader.state.fragments.length(), 0)
+  assert_eq(reader.state.state.fragments.length(), 0)
 }
 
 ///|
@@ -172,7 +172,7 @@ async test "best-effort enforces its reassembly payload budget before allocating
     )
     is None,
   )
-  assert_eq(reader.state.fragments.length(), 0)
+  assert_eq(reader.state.state.fragments.length(), 0)
   let payload = Bytes::from_array(Array::make(1024, 0))
   for sequence in 1..<4 {
     let fragment = @rtps.DataFragSubmessage::new(
@@ -189,10 +189,10 @@ async test "best-effort enforces its reassembly payload budget before allocating
       best_effort_test_handle(reader, fragment.to_submessage()) is None,
     )
   }
-  assert_eq(reader.state.fragments.length(), 2)
-  assert_eq(reader.state.fragments[0].sequence_number, 2L)
+  assert_eq(reader.state.state.fragments.length(), 2)
+  assert_eq(reader.state.state.fragments[0].sequence_number, 2L)
   let mut payload_bytes = 0
-  for sample in reader.state.fragments {
+  for sample in reader.state.state.fragments {
     payload_bytes += sample.sample_size
   }
   assert_eq(payload_bytes, 16 * 1024 * 1024)
