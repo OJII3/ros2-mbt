@@ -139,6 +139,18 @@ pub struct RosActionGoalHandle {
 pub fn RosActionGoalHandle::accepted(Self) -> Bool
 pub fn RosActionGoalHandle::goal_id(Self) -> Bytes
 
+pub struct RosGraph {
+  mut graph_publication_id : @core.EntityId?
+  mut graph_subscription_id : @core.EntityId?
+  mut ros_node_namespace : String?
+  mut ros_node_name : String?
+  mut latest_graph_info : @rmw_dds_common.ParticipantEntitiesInfo?
+  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
+  mut graph_publisher_guids : Array[@core.Guid]
+  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
+  mut graph_subscription_guids : Array[@core.Guid]
+}
+
 pub struct RosNode {
   // private fields
 }
@@ -165,15 +177,7 @@ pub struct RosParticipant {
   user_locator : @core.Locator
   mut local_endpoints : Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
   mut spdp_socket : @wire.Udp?
-  mut graph_publication_id : @core.EntityId?
-  mut graph_subscription_id : @core.EntityId?
-  mut ros_node_namespace : String?
-  mut ros_node_name : String?
-  mut latest_graph_info : @rmw_dds_common.ParticipantEntitiesInfo?
-  mut graph_publishers : Array[ReliableRosDiscoveryPublisher]
-  mut graph_publisher_guids : Array[@core.Guid]
-  mut graph_subscriptions : Array[ReliableRosDiscoverySubscription]
-  mut graph_subscription_guids : Array[@core.Guid]
+  ros_graph : RosGraph
 }
 pub async fn RosParticipant::announce_spdp_forever(Self, Int) -> Result[Unit, String]
 pub async fn RosParticipant::announce_spdp_once(Self) -> Result[Unit, String]
