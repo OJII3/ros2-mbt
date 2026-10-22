@@ -383,9 +383,118 @@ priv enum RosExecutorEvent {
 }
 
 ///|
+/// Executor-facing view of a node's event sources and event handlers.
+priv struct RosNodeExecutorInterface {
+  node : RosNode
+}
+
+///|
+fn RosNode::executor_interface(self : RosNode) -> RosNodeExecutorInterface {
+  { node: self, }
+}
+
+///|
+fn RosNodeExecutorInterface::participant_guid(
+  self : RosNodeExecutorInterface,
+) -> @rtps.Guid {
+  self.node.participant.participant().participant_guid()
+}
+
+///|
+fn RosNodeExecutorInterface::is_attached(
+  self : RosNodeExecutorInterface,
+) -> Bool {
+  self.node.executor_attached
+}
+
+///|
+fn RosNodeExecutorInterface::attach(self : RosNodeExecutorInterface) -> Unit {
+  self.node.executor_attached = true
+}
+
+///|
+fn RosNodeExecutorInterface::detach(self : RosNodeExecutorInterface) -> Unit {
+  self.node.executor_attached = false
+}
+
+///|
+async fn RosNodeExecutorInterface::announce_spdp_forever(
+  self : RosNodeExecutorInterface,
+  period_ms : Int32,
+) -> Result[Unit, String] {
+  self.node.participant.announce_spdp_forever(period_ms)
+}
+
+///|
+async fn RosNodeExecutorInterface::send_heartbeats(
+  self : RosNodeExecutorInterface,
+) -> Result[Unit, String] {
+  match self.node.participant.send_ros_discovery_heartbeats() {
+    Ok(_) => self.node.send_publisher_heartbeats()
+    Err(message) => Err(message)
+  }
+}
+
+///|
+async fn RosNodeExecutorInterface::receive_discovery(
+  self : RosNodeExecutorInterface,
+) -> Result[(@socket.Addr, @wire.DiscoveryEvent), String] {
+  self.node.participant.receive_discovery_once()
+}
+
+///|
+async fn RosNodeExecutorInterface::receive_datagram(
+  self : RosNodeExecutorInterface,
+) -> Result[(@rtps.Message, @socket.Addr), String] {
+  self.node.participant.user_socket().receive_message()
+}
+
+///|
+fn RosNodeExecutorInterface::timer_count(
+  self : RosNodeExecutorInterface,
+) -> Int32 {
+  self.node.timers.length()
+}
+
+///|
+async fn RosNodeExecutorInterface::wait_timer(
+  self : RosNodeExecutorInterface,
+  timer_index : Int32,
+) -> Unit {
+  self.node.timers[timer_index].timer.wait()
+}
+
+///|
+async fn RosNodeExecutorInterface::run_timer(
+  self : RosNodeExecutorInterface,
+  timer_index : Int32,
+) -> Unit {
+  let callback = self.node.timers[timer_index].callback
+  callback()
+  self.node.timers[timer_index].timer.refresh()
+}
+
+///|
+fn RosNodeExecutorInterface::handle_discovery_event(
+  self : RosNodeExecutorInterface,
+  event : @wire.DiscoveryEvent,
+) -> Result[Unit, String] {
+  self.node.handle_discovery_event(event)
+}
+
+///|
+async fn RosNodeExecutorInterface::handle_message(
+  self : RosNodeExecutorInterface,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  self.node.handle_message(message, source)
+}
+
+///|
 /// Drive ROS node discovery, best-effort topic traffic, timers, and callbacks.
 pub struct Executor {
-  priv nodes : Array[RosNode]
+  priv nodes : Array[RosNodeExecutorInterface]
   priv shutdown_queue : @aqueue.Queue[Unit]
   priv mut running : Bool
   priv mut shutdown_requested : Bool
@@ -414,17 +523,17 @@ pub fn Executor::add_node(
   if self.shutdown_requested {
     return Err("cannot add a ROS node after the executor was shut down")
   }
-  if node.executor_attached {
+  let node_interface = node.executor_interface()
+  if node_interface.is_attached() {
     return Err("a ROS node can only belong to one executor")
   }
-  let participant_guid = node.participant.participant().participant_guid()
   for existing in self.nodes {
-    if existing.participant.participant().participant_guid() == participant_guid {
+    if existing.participant_guid() == node_interface.participant_guid() {
       return Err("the ROS node is already attached to this executor")
     }
   }
-  node.executor_attached = true
-  self.nodes.push(node)
+  node_interface.attach()
+  self.nodes.push(node_interface)
   Ok(())
 }
 
@@ -447,7 +556,7 @@ pub fn Executor::shutdown(self : Executor) -> Unit {
 /// Release nodes after the executor has stopped.
 fn Executor::detach_nodes(self : Executor) -> Unit {
   for node in self.nodes {
-    node.executor_attached = false
+    node.detach()
   }
 }
 
@@ -468,7 +577,7 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
     let result = @async.with_task_group() <| group => {
       for node in self.nodes {
         group.spawn_bg(no_wait=true) <| () => {
-          match node.participant.announce_spdp_forever(1000) {
+          match node.announce_spdp_forever(1000) {
             Ok(_) => ()
             Err(message) => fail(message)
           }
@@ -478,11 +587,7 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
           while !self.shutdown_requested {
             heartbeat_timer.wait()
             heartbeat_timer.refresh()
-            match node.participant.send_ros_discovery_heartbeats() {
-              Ok(_) => ()
-              Err(message) => fail(message)
-            }
-            match node.send_publisher_heartbeats() {
+            match node.send_heartbeats() {
               Ok(_) => ()
               Err(message) => fail(message)
             }
@@ -523,16 +628,11 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
     })
     for node_index in 0..<self.nodes.length() {
       let node = self.nodes[node_index]
-      tasks.push(async fn() {
-        Discovery(node_index, node.participant.receive_discovery_once())
-      })
-      tasks.push(async fn() {
-        Datagram(node_index, node.participant.user_socket().receive_message())
-      })
-      for timer_index in 0..<node.timers.length() {
-        let timer = node.timers[timer_index].timer
+      tasks.push(async fn() { Discovery(node_index, node.receive_discovery()) })
+      tasks.push(async fn() { Datagram(node_index, node.receive_datagram()) })
+      for timer_index in 0..<node.timer_count() {
         tasks.push(async fn() {
-          timer.wait()
+          node.wait_timer(timer_index)
           Timer(node_index, timer_index)
         })
       }
@@ -557,11 +657,8 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
             }
           Err(_) => ()
         }
-      Timer(node_index, timer_index) => {
-        let callback = self.nodes[node_index].timers[timer_index].callback
-        callback()
-        self.nodes[node_index].timers[timer_index].timer.refresh()
-      }
+      Timer(node_index, timer_index) =>
+        self.nodes[node_index].run_timer(timer_index)
     }
   }
   Ok(())
