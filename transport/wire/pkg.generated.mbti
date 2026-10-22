@@ -50,11 +50,7 @@ pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, 
 // Types and methods
 pub struct DataReader {
   socket : Udp
-  reader_id : @core.EntityId
-  writer_id : @core.EntityId
-  writer_prefix : @core.GuidPrefix?
-  participant_prefix : @core.GuidPrefix?
-  state : ReliableDataReader
+  state : DataReaderState
 }
 pub fn DataReader::close(Self) -> Unit
 pub fn DataReader::handle_message(Self, @core.Message, @socket.Addr) -> Result[(@core.DataSubmessage, @socket.Addr)?, String]
@@ -63,21 +59,41 @@ pub fn DataReader::new_for_publication(Udp, @core.EntityId, @discovery.SedpEndpo
 pub fn DataReader::new_for_publication_with_prefix(Udp, @core.GuidPrefix, @core.EntityId, @discovery.SedpEndpointData) -> Result[Self, String]
 pub async fn DataReader::receive(Self) -> Result[(@core.DataSubmessage, @socket.Addr), String]
 
-pub struct DataWriter {
-  socket : Udp
-  guid_prefix : @core.GuidPrefix
-  vendor_id : @core.VendorId
+pub struct DataReaderState {
   reader_id : @core.EntityId
   writer_id : @core.EntityId
+  writer_prefix : @core.GuidPrefix?
+  participant_prefix : @core.GuidPrefix?
+  state : ReliableDataReader
+}
+pub fn DataReaderState::handle_message(Self, @core.Message) -> Result[@core.DataSubmessage?, String]
+pub fn DataReaderState::new(@core.EntityId, @core.EntityId) -> Self
+pub fn DataReaderState::new_for_publication(@core.EntityId, @discovery.SedpEndpointData, @core.GuidPrefix?) -> Result[Self, String]
+
+pub struct DataWriter {
+  socket : Udp
   destinations : Array[@socket.Addr]
-  reader_prefix : @core.GuidPrefix?
-  mut next_sequence_number : Int64
+  state : DataWriterState
 }
 pub fn DataWriter::close(Self) -> Unit
 pub fn DataWriter::new(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @core.EntityId, @socket.Addr, Int64) -> Result[Self, String]
 pub fn DataWriter::new_for_subscription(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn DataWriter::next_sequence_number(Self) -> Int64
 pub async fn DataWriter::write(Self, Bytes) -> Result[Unit, String]
+
+pub struct DataWriterState {
+  guid_prefix : @core.GuidPrefix
+  vendor_id : @core.VendorId
+  reader_id : @core.EntityId
+  writer_id : @core.EntityId
+  reader_prefix : @core.GuidPrefix?
+  mut next_sequence_number : Int64
+}
+pub fn DataWriterState::commit_write(Self) -> Unit
+pub fn DataWriterState::messages_for_write(Self, Bytes) -> Result[Array[@core.Message], String]
+pub fn DataWriterState::new(@core.GuidPrefix, @core.VendorId, @core.EntityId, @core.EntityId, Int64) -> Result[Self, String]
+pub fn DataWriterState::next_sequence_number(Self) -> Int64
+pub fn DataWriterState::with_reader_prefix(Self, @core.GuidPrefix) -> Self
 
 pub(all) enum DiscoveryEvent {
   Participant(@discovery.SpdpParticipantData)

@@ -5,11 +5,17 @@
 /// outside this helper. The writer only owns RTPS DATA sequence numbering.
 pub struct DataWriter {
   socket : Udp
+  destinations : Array[@socket.Addr]
+  state : DataWriterState
+}
+
+///|
+/// Sans-I/O best-effort RTPS writer state.
+pub struct DataWriterState {
   guid_prefix : @rtps.GuidPrefix
   vendor_id : @rtps.VendorId
   reader_id : @rtps.EntityId
   writer_id : @rtps.EntityId
-  destinations : Array[@socket.Addr]
   reader_prefix : @rtps.GuidPrefix?
   mut next_sequence_number : Int64
 }
@@ -25,16 +31,33 @@ pub fn DataWriter::new(
   destination : @socket.Addr,
   first_sequence_number : Int64,
 ) -> Result[DataWriter, String] {
+  let state = match
+    DataWriterState::new(
+      guid_prefix, vendor_id, reader_id, writer_id, first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ socket, destinations: [destination], state, })
+}
+
+///|
+/// Create a Sans-I/O best-effort writer state.
+pub fn DataWriterState::new(
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  reader_id : @rtps.EntityId,
+  writer_id : @rtps.EntityId,
+  first_sequence_number : Int64,
+) -> Result[DataWriterState, String] {
   if first_sequence_number < 1L {
     return Err("an RTPS DATA sequence number must be positive")
   }
   Ok({
-    socket,
     guid_prefix,
     vendor_id,
     reader_id,
     writer_id,
-    destinations: [destination],
     reader_prefix: None,
     next_sequence_number: first_sequence_number,
   })
@@ -82,14 +105,25 @@ pub fn DataWriter::new_for_subscription(
   Ok({
     ..writer,
     destinations,
-    reader_prefix: Some(subscription.endpoint_guid().prefix()),
+    state: writer.state.with_reader_prefix(
+      subscription.endpoint_guid().prefix(),
+    ),
   })
 }
 
 ///|
+/// Configure the remote participant prefix used in INFO_DST.
+pub fn DataWriterState::with_reader_prefix(
+  self : DataWriterState,
+  prefix : @rtps.GuidPrefix,
+) -> DataWriterState {
+  { ..self, reader_prefix: Some(prefix), }
+}
+
+///|
 /// Add the remote participant destination when this writer targets a discovered endpoint.
-fn DataWriter::message_for_reader(
-  self : DataWriter,
+fn DataWriterState::message_for_reader(
+  self : DataWriterState,
   message : @rtps.Message,
 ) -> @rtps.Message {
   match self.reader_prefix {
@@ -101,7 +135,52 @@ fn DataWriter::message_for_reader(
 ///|
 /// Return the sequence number that will be used by the next write.
 pub fn DataWriter::next_sequence_number(self : DataWriter) -> Int64 {
+  self.state.next_sequence_number()
+}
+
+///|
+/// Return the sequence number that will be used by the next write.
+pub fn DataWriterState::next_sequence_number(self : DataWriterState) -> Int64 {
   self.next_sequence_number
+}
+
+///|
+/// Encode one best-effort payload as one or more RTPS messages without I/O.
+pub fn DataWriterState::messages_for_write(
+  self : DataWriterState,
+  serialized_payload : Bytes,
+) -> Result[Array[@rtps.Message], String] {
+  let data = @rtps.DataSubmessage::new(
+    self.reader_id,
+    self.writer_id,
+    self.next_sequence_number,
+    serialized_payload,
+  )
+  let messages : Array[@rtps.Message] = []
+  if reliable_writer_data_fits_datagram(data) {
+    messages.push(
+      self.message_for_reader(data.to_message(self.guid_prefix, self.vendor_id)),
+    )
+  } else {
+    let fragments = match reliable_writer_fragment_data(data) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    for fragment in fragments {
+      messages.push(
+        self.message_for_reader(
+          fragment.to_message(self.guid_prefix, self.vendor_id),
+        ),
+      )
+    }
+  }
+  Ok(messages)
+}
+
+///|
+/// Mark the current sample sent and advance to the next sequence number.
+pub fn DataWriterState::commit_write(self : DataWriterState) -> Unit {
+  self.next_sequence_number += 1L
 }
 
 ///|
@@ -110,55 +189,20 @@ pub async fn DataWriter::write(
   self : DataWriter,
   serialized_payload : Bytes,
 ) -> Result[Unit, String] {
-  let sequence_number = self.next_sequence_number
-  let data = @rtps.DataSubmessage::new(
-    self.reader_id,
-    self.writer_id,
-    sequence_number,
-    serialized_payload,
-  )
-  let result = if reliable_writer_data_fits_datagram(data) {
+  let messages = match self.state.messages_for_write(serialized_payload) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  for message in messages {
     for destination in self.destinations {
-      match
-        self.socket.send_message(
-          self.message_for_reader(
-            data.to_message(self.guid_prefix, self.vendor_id),
-          ),
-          destination,
-        ) {
+      match self.socket.send_message(message, destination) {
         Ok(_) => ()
         Err(message) => return Err(message)
       }
     }
-    Ok(())
-  } else {
-    let fragments = match reliable_writer_fragment_data(data) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    for fragment in fragments {
-      for destination in self.destinations {
-        match
-          self.socket.send_message(
-            self.message_for_reader(
-              fragment.to_message(self.guid_prefix, self.vendor_id),
-            ),
-            destination,
-          ) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
-        }
-      }
-    }
-    Ok(())
   }
-  match result {
-    Ok(_) => {
-      self.next_sequence_number = sequence_number + 1L
-      Ok(())
-    }
-    Err(message) => Err(message)
-  }
+  self.state.commit_write()
+  Ok(())
 }
 
 ///|
