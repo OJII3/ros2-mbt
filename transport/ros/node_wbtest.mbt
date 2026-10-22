@@ -178,8 +178,13 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   incompatible_publication.add_unicast_locator(
     @rtps.Locator::new(123, 0U, Bytes::make(16, 0)).unwrap(),
   )
-  participant
-  .ensure_ros_discovery_publication(incompatible_publication)
+  participant.ros_graph
+  .match_publication(
+    incompatible_publication,
+    user_socket,
+    local_identity.participant_guid(),
+    vendor_id,
+  )
   .unwrap()
   let incompatible_subscription = @rtps.SedpEndpointData::new(
     Subscription,
@@ -193,8 +198,15 @@ async test "shared user socket dispatches reliable ROS graph DATA and ACKNACK" {
   incompatible_subscription.add_unicast_locator(
     @rtps.Locator::new(123, 0U, Bytes::make(16, 0)).unwrap(),
   )
-  participant
-  .ensure_ros_discovery_subscription(incompatible_subscription, false)
+  participant.ros_graph
+  .match_subscription(
+    incompatible_subscription,
+    user_socket,
+    local_identity.participant_guid(),
+    vendor_id,
+    false,
+    None,
+  )
   .unwrap()
   assert_eq(participant.ros_graph.graph_subscriptions.length(), 0)
   assert_eq(participant.ros_graph.graph_publishers.length(), 0)
