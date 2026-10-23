@@ -1,6 +1,8 @@
 ///|
 /// A lightweight ROS node that groups topic entities and callbacks.
 pub struct RosNode {
+  priv middleware : RosMiddleware
+  // Kept for existing whitebox diagnostics; production access goes through middleware.
   priv participant : RosParticipant
   priv subscriptions : Array[RosNodeSubscription]
   priv publishers : Array[RosNodePublisherEntry]
@@ -10,30 +12,17 @@ pub struct RosNode {
 }
 
 ///|
-priv enum RosNodeReaderKind {
-  BestEffort(RosSubscription)
-  Reliable(ReliableRosSubscription)
-}
-
-///|
-priv struct RosNodeReader {
-  endpoint_guid : @rtps.Guid
-  reader : RosNodeReaderKind
-}
-
-///|
 priv struct RosNodeSubscription {
   topic : @ros_types.RosTopic
   reader_id : @rtps.EntityId
-  qos : @rtps.SedpQos
+  qos : MiddlewareQos
   callback : async (Bytes) -> Result[Unit, String]
-  mut readers : Array[RosNodeReader]
+  mut readers : Array[MiddlewareReader]
 }
 
 ///|
 priv struct RosNodePublisherEntry {
-  publisher : ReliableRosPublisher
-  qos : @rtps.SedpQos
+  publisher : MiddlewarePublisher
 }
 
 ///|
@@ -45,7 +34,7 @@ priv struct RosNodeTimer {
 ///|
 /// A publisher returned by `RosNode::create_publisher`.
 pub struct RosNodePublisher[T] {
-  priv publisher : ReliableRosPublisher
+  priv publisher : MiddlewarePublisher
   priv encoder : (T) -> Result[Bytes, String]
 }
 
@@ -58,10 +47,11 @@ pub async fn RosNode::new(
   node_namespace : String,
   node_name : String,
 ) -> Result[RosNode, String] {
-  match participant.set_ros_node_identity(node_namespace, node_name) {
+  let middleware = RosMiddleware::new(participant)
+  match middleware.set_node_identity(node_namespace, node_name) {
     Ok(_) => ()
     Err(message) => {
-      participant.close()
+      middleware.close()
       return Err(message)
     }
   }
@@ -69,7 +59,7 @@ pub async fn RosNode::new(
     @rtps.EntityId::new(b"gph", @ros_types.ROS_GRAPH_PUBLICATION_ENTITY_KIND) {
     Ok(value) => value
     Err(message) => {
-      participant.close()
+      middleware.close()
       return Err(message)
     }
   }
@@ -77,19 +67,20 @@ pub async fn RosNode::new(
     @rtps.EntityId::new(b"gph", @ros_types.ROS_GRAPH_SUBSCRIPTION_ENTITY_KIND) {
     Ok(value) => value
     Err(message) => {
-      participant.close()
+      middleware.close()
       return Err(message)
     }
   }
   match
-    participant.register_ros_discovery_info(publication_id, subscription_id) {
+    middleware.register_ros_discovery_info(publication_id, subscription_id) {
     Ok(_) => ()
     Err(message) => {
-      participant.close()
+      middleware.close()
       return Err(message)
     }
   }
   Ok({
+    middleware,
     participant,
     subscriptions: [],
     publishers: [],
@@ -134,51 +125,23 @@ pub async fn[T] RosNode::create_publisher(
   encoder : (T) -> Result[Bytes, String],
   qos~ : @rtps.SedpQos = @rtps.SedpQos::reliable(),
 ) -> Result[RosNodePublisher[T], String] {
-  if qos.durability() != @rtps.DURABILITY_VOLATILE {
-    return Err("only volatile durability is supported for user topics")
-  }
+  let middleware_qos = MiddlewareQos::from_backend(qos)
   let writer_id = match self.next_entity_id(0x03) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let publisher = match
-    ReliableRosPublisher::new(
-      topic,
-      self.participant.user_socket(),
-      self.participant.participant().participant_guid().prefix(),
-      self.participant.participant().vendor_id(),
-      writer_id,
-      1L,
+  let middleware_publisher = match
+    self.middleware.create_publisher(
+      topic, type_hash, middleware_qos, writer_id,
     ) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match
-    self.participant.register_topic_endpoint_with_type_hash(
-      topic,
-      Publication,
-      writer_id,
-      qos,
-      type_hash,
-    ) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
-  }
-  self.publishers.push({ publisher, qos, })
+  self.publishers.push({ publisher: middleware_publisher, })
   let publisher_index = self.publishers.length() - 1
-  let graph = self.participant.graph()
+  let graph = self.middleware.graph()
   for subscription in graph.subscriptions() {
-    if subscription.topic_name() == topic.dds_name() &&
-      subscription.type_name() == topic.dds_type_name() {
-      let sub_qos = match subscription.qos() {
-        Ok(value) => value
-        Err(_) => continue
-      }
-      if !qos.compatible_with(sub_qos) ||
-        sub_qos.durability() != @rtps.DURABILITY_VOLATILE ||
-        !ros_endpoint_has_udp_v4_locator(subscription) {
-        continue
-      }
+    if middleware_publisher.matches(subscription) {
       match
         self.publishers[publisher_index].publisher.add_subscription(
           subscription,
@@ -188,7 +151,7 @@ pub async fn[T] RosNode::create_publisher(
       }
     }
   }
-  Ok({ publisher, encoder, })
+  Ok({ publisher: middleware_publisher, encoder, })
 }
 
 ///|
@@ -220,7 +183,8 @@ pub async fn[T] RosNode::create_subscription(
   callback : async (T) -> Unit,
   qos~ : @rtps.SedpQos = @rtps.SedpQos::reliable(),
 ) -> Result[Unit, String] {
-  if qos.durability() != @rtps.DURABILITY_VOLATILE {
+  let middleware_qos = MiddlewareQos::from_backend(qos)
+  if middleware_qos.transient_local {
     return Err("only volatile durability is supported for user topics")
   }
   let reader_id = match self.next_entity_id(0x04) {
@@ -238,12 +202,8 @@ pub async fn[T] RosNode::create_subscription(
     Ok(())
   }
   match
-    self.participant.register_topic_endpoint_with_type_hash(
-      topic,
-      Subscription,
-      reader_id,
-      qos,
-      type_hash,
+    self.middleware.register_subscription(
+      topic, type_hash, middleware_qos, reader_id,
     ) {
     Ok(_) => ()
     Err(message) => return Err(message)
@@ -251,11 +211,11 @@ pub async fn[T] RosNode::create_subscription(
   self.subscriptions.push({
     topic,
     reader_id,
-    qos,
+    qos: middleware_qos,
     callback: message_callback,
     readers: [],
   })
-  let graph = self.participant.graph()
+  let graph = self.middleware.graph()
   for publication in graph.publications() {
     match self.add_publication(publication) {
       Ok(_) => ()
@@ -273,16 +233,11 @@ fn RosNode::add_publication(
 ) -> Result[Unit, String] {
   for index in 0..<self.subscriptions.length() {
     let subscription = self.subscriptions[index]
-    if subscription.topic.dds_name() != publication.topic_name() ||
-      subscription.topic.dds_type_name() != publication.type_name() {
-      continue
-    }
-    let pub_qos = match publication.qos() {
-      Ok(value) => value
-      Err(_) => continue
-    }
-    if !pub_qos.compatible_with(subscription.qos) ||
-      !ros_endpoint_has_udp_v4_locator(publication) {
+    if !middleware_matches_reader(
+        subscription.topic,
+        subscription.qos,
+        publication,
+      ) {
       continue
     }
     let endpoint_guid = publication.endpoint_guid()
@@ -296,39 +251,17 @@ fn RosNode::add_publication(
     if already_added {
       continue
     }
-    let reader_kind = if subscription.qos.reliability() ==
-      @rtps.RELIABILITY_RELIABLE {
-      let reader = match
-        ReliableRosSubscription::new_for_publication(
-          subscription.topic,
-          self.participant.user_socket(),
-          self.participant.participant().participant_guid().prefix(),
-          self.participant.participant().vendor_id(),
-          subscription.reader_id,
-          publication,
-        ) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      Reliable(reader)
-    } else {
-      let reader = match
-        RosSubscription::new_for_publication_with_prefix(
-          subscription.topic,
-          self.participant.user_socket(),
-          self.participant.participant().participant_guid().prefix(),
-          subscription.reader_id,
-          publication,
-        ) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      BestEffort(reader)
+    let reader = match
+      self.middleware.create_reader(
+        subscription.topic,
+        subscription.reader_id,
+        subscription.qos,
+        publication,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
     }
-    self.subscriptions[index].readers.push({
-      endpoint_guid,
-      reader: reader_kind,
-    })
+    self.subscriptions[index].readers.push(reader)
   }
   Ok(())
 }
@@ -364,20 +297,20 @@ pub async fn RosNode::send_publisher_heartbeats(
 ///|
 /// Close the participant owned by this node.
 pub fn RosNode::close(self : RosNode) -> Unit {
-  self.participant.close()
+  self.middleware.close()
 }
 
 ///|
 /// Dispose the node's endpoints and close its participant.
 pub async fn RosNode::dispose_and_close(self : RosNode) -> Result[Unit, String] {
-  self.participant.dispose_and_close()
+  self.middleware.dispose_and_close()
 }
 
 ///|
 /// One event selected by the executor's asynchronous wait loop.
 priv enum RosExecutorEvent {
-  Discovery(Int32, Result[(@socket.Addr, @wire.DiscoveryEvent), String])
-  Datagram(Int32, Result[(@rtps.Message, @socket.Addr), String])
+  Discovery(Int32, Result[MiddlewareDiscovery, String])
+  Datagram(Int32, Result[MiddlewareIncoming, String])
   Timer(Int32, Int32)
   Shutdown
 }
@@ -397,7 +330,7 @@ fn RosNode::executor_interface(self : RosNode) -> RosNodeExecutorInterface {
 fn RosNodeExecutorInterface::participant_guid(
   self : RosNodeExecutorInterface,
 ) -> @rtps.Guid {
-  self.node.participant.participant().participant_guid()
+  self.node.middleware.participant_guid()
 }
 
 ///|
@@ -422,14 +355,14 @@ async fn RosNodeExecutorInterface::announce_spdp_forever(
   self : RosNodeExecutorInterface,
   period_ms : Int32,
 ) -> Result[Unit, String] {
-  self.node.participant.announce_spdp_forever(period_ms)
+  self.node.middleware.announce_spdp_forever(period_ms)
 }
 
 ///|
 async fn RosNodeExecutorInterface::send_heartbeats(
   self : RosNodeExecutorInterface,
 ) -> Result[Unit, String] {
-  match self.node.participant.send_ros_discovery_heartbeats() {
+  match self.node.middleware.send_discovery_heartbeats() {
     Ok(_) => self.node.send_publisher_heartbeats()
     Err(message) => Err(message)
   }
@@ -438,15 +371,15 @@ async fn RosNodeExecutorInterface::send_heartbeats(
 ///|
 async fn RosNodeExecutorInterface::receive_discovery(
   self : RosNodeExecutorInterface,
-) -> Result[(@socket.Addr, @wire.DiscoveryEvent), String] {
-  self.node.participant.receive_discovery_once()
+) -> Result[MiddlewareDiscovery, String] {
+  self.node.middleware.receive_discovery_once()
 }
 
 ///|
 async fn RosNodeExecutorInterface::receive_datagram(
   self : RosNodeExecutorInterface,
-) -> Result[(@rtps.Message, @socket.Addr), String] {
-  self.node.participant.user_socket().receive_message()
+) -> Result[MiddlewareIncoming, String] {
+  self.node.middleware.wait_datagram()
 }
 
 ///|
@@ -477,18 +410,17 @@ async fn RosNodeExecutorInterface::run_timer(
 ///|
 fn RosNodeExecutorInterface::handle_discovery_event(
   self : RosNodeExecutorInterface,
-  event : @wire.DiscoveryEvent,
+  event : MiddlewareDiscovery,
 ) -> Result[Unit, String] {
-  self.node.handle_discovery_event(event)
+  self.node.handle_discovery_event(event.event)
 }
 
 ///|
 async fn RosNodeExecutorInterface::handle_message(
   self : RosNodeExecutorInterface,
-  message : @rtps.Message,
-  source : @socket.Addr,
+  incoming : MiddlewareIncoming,
 ) -> Result[Unit, String] {
-  self.node.handle_message(message, source)
+  self.node.handle_message(incoming)
 }
 
 ///|
@@ -641,7 +573,7 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
       Shutdown => return Ok(())
       Discovery(node_index, result) =>
         match result {
-          Ok((_, event)) =>
+          Ok(event) =>
             match self.nodes[node_index].handle_discovery_event(event) {
               Ok(_) => ()
               Err(message) => return Err(message)
@@ -650,8 +582,8 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
         }
       Datagram(node_index, result) =>
         match result {
-          Ok((message, source)) =>
-            match self.nodes[node_index].handle_message(message, source) {
+          Ok(incoming) =>
+            match self.nodes[node_index].handle_message(incoming) {
               Ok(_) => ()
               Err(message) => return Err(message)
             }
@@ -673,17 +605,7 @@ fn RosNode::handle_discovery_event(
     Publication(publication) => self.add_publication(publication)
     Subscription(subscription) => {
       for entry in self.publishers {
-        if entry.publisher.topic().dds_name() == subscription.topic_name() &&
-          entry.publisher.topic().dds_type_name() == subscription.type_name() {
-          let sub_qos = match subscription.qos() {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          if !entry.qos.compatible_with(sub_qos) ||
-            sub_qos.durability() != @rtps.DURABILITY_VOLATILE ||
-            !ros_endpoint_has_udp_v4_locator(subscription) {
-            continue
-          }
+        if entry.publisher.matches(subscription) {
           match entry.publisher.add_subscription(subscription) {
             Ok(_) => ()
             Err(message) => return Err(message)
@@ -696,7 +618,7 @@ fn RosNode::handle_discovery_event(
       match kind {
         Publication =>
           for index in 0..<self.subscriptions.length() {
-            let retained : Array[RosNodeReader] = []
+            let retained : Array[MiddlewareReader] = []
             for reader in self.subscriptions[index].readers {
               if reader.endpoint_guid != endpoint_guid {
                 retained.push(reader)
@@ -714,7 +636,7 @@ fn RosNode::handle_discovery_event(
     ParticipantRemoved(participant_guid) => {
       let prefix = participant_guid.prefix()
       for index in 0..<self.subscriptions.length() {
-        let retained : Array[RosNodeReader] = []
+        let retained : Array[MiddlewareReader] = []
         for reader in self.subscriptions[index].readers {
           if reader.endpoint_guid.prefix() != prefix {
             retained.push(reader)
@@ -734,15 +656,14 @@ fn RosNode::handle_discovery_event(
 ///|
 async fn RosNode::handle_message(
   self : RosNode,
-  message : @rtps.Message,
-  source : @socket.Addr,
+  incoming : MiddlewareIncoming,
 ) -> Result[Unit, String] {
-  match self.participant.handle_user_message(message, source) {
+  match self.middleware.handle_datagram(incoming) {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
   for entry in self.publishers {
-    match entry.publisher.handle_message(message) {
+    match entry.publisher.handle_incoming(incoming) {
       Ok(_) => ()
       Err(message) => return Err(message)
     }
@@ -752,32 +673,14 @@ async fn RosNode::handle_message(
     let reader_count = self.subscriptions[subscription_index].readers.length()
     for reader_index in 0..<reader_count {
       let reader = self.subscriptions[subscription_index].readers[reader_index]
-      match reader.reader {
-        BestEffort(sub) => {
-          let payload = match sub.handle_message(message, source) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          match payload {
-            Some(value) =>
-              match callback(value) {
-                Ok(_) => ()
-                Err(message) => return Err(message)
-              }
-            None => ()
-          }
-        }
-        Reliable(sub) => {
-          let payloads = match sub.handle_message(message, source) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          for payload in payloads {
-            match callback(payload) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
-            }
-          }
+      let payloads = match reader.take_incoming(incoming) {
+        Ok(value) => value
+        Err(_) => continue
+      }
+      for payload in payloads {
+        match callback(payload) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       }
     }
