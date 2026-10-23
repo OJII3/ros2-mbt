@@ -6,15 +6,13 @@ priv struct MiddlewareEndpointInfo {
   topic_name : String
   type_name : String
   type_hash : String
-  reliability : Bool
-  transient_local : Bool
+  qos : MiddlewareQos
 }
 
 ///|
 /// QoS policies understood by the ROS-facing middleware boundary.
 priv struct MiddlewareQos {
-  reliable : Bool
-  transient_local : Bool
+  backend : @rtps.SedpQos
 }
 
 ///|
@@ -60,22 +58,12 @@ async fn RosMiddleware::register_topic(
   qos : MiddlewareQos,
   type_hash : String,
 ) -> Result[Unit, String] {
-  let backend_qos = @rtps.SedpQos::new(
-    if qos.reliable {
-      @rtps.RELIABILITY_RELIABLE
-    } else {
-      @rtps.RELIABILITY_BEST_EFFORT
-    },
-    if qos.transient_local {
-      @rtps.DURABILITY_TRANSIENT_LOCAL
-    } else {
-      @rtps.DURABILITY_VOLATILE
-    },
-    @rtps.HISTORY_KEEP_LAST,
-    10,
-  )
   self.backend.register_topic_endpoint_with_type_hash(
-    topic, kind, id, backend_qos, type_hash,
+    topic,
+    kind,
+    id,
+    qos.backend,
+    type_hash,
   )
 }
 
@@ -96,7 +84,7 @@ async fn RosMiddleware::create_publisher(
   qos : MiddlewareQos,
   writer_id : @rtps.EntityId,
 ) -> Result[MiddlewarePublisher, String] {
-  if qos.transient_local {
+  if qos.is_transient_local() {
     return Err("only volatile durability is supported for user topics")
   }
   let writer = match
@@ -146,14 +134,9 @@ fn MiddlewarePublisher::matches(
     _ => ()
   }
   match endpoint.qos() {
-    Ok(requested) => {
-      let offered = {
-        reliable: self.info.reliability,
-        transient_local: self.info.transient_local,
-      }
-      MiddlewareQos::from_backend(requested).compatible_with(offered) &&
+    Ok(requested) =>
+      MiddlewareQos::from_backend(requested).compatible_with(self.info.qos) &&
       ros_endpoint_has_udp_v4_locator(endpoint)
-    }
     Err(_) => false
   }
 }
@@ -184,7 +167,7 @@ fn RosMiddleware::create_reader(
     self.backend.participant().vendor_id(),
     reader_id,
     publication,
-    qos.reliable,
+    qos.is_reliable(),
   )
 }
 
@@ -276,10 +259,17 @@ async fn RosMiddleware::announce_spdp_forever(
 
 ///|
 fn MiddlewareQos::from_backend(qos : @rtps.SedpQos) -> MiddlewareQos {
-  {
-    reliable: qos.reliability() == @rtps.RELIABILITY_RELIABLE,
-    transient_local: qos.durability() != @rtps.DURABILITY_VOLATILE,
-  }
+  { backend: qos, }
+}
+
+///|
+fn MiddlewareQos::is_reliable(self : MiddlewareQos) -> Bool {
+  self.backend.reliability() == @rtps.RELIABILITY_RELIABLE
+}
+
+///|
+fn MiddlewareQos::is_transient_local(self : MiddlewareQos) -> Bool {
+  self.backend.durability() != @rtps.DURABILITY_VOLATILE
 }
 
 ///|
@@ -287,8 +277,7 @@ fn MiddlewareQos::compatible_with(
   self : MiddlewareQos,
   offered : MiddlewareQos,
 ) -> Bool {
-  (!self.reliable || offered.reliable) &&
-  (!self.transient_local || offered.transient_local)
+  offered.backend.compatible_with(self.backend)
 }
 
 ///|
@@ -390,8 +379,7 @@ fn MiddlewarePublisher::new(
       topic_name: topic.dds_name(),
       type_name: topic.dds_type_name(),
       type_hash,
-      reliability: qos.reliable,
-      transient_local: qos.transient_local,
+      qos,
     },
   }
 }
@@ -426,10 +414,7 @@ fn MiddlewarePublisher::add_subscription(
     Ok(value) => MiddlewareQos::from_backend(value)
     Err(message) => return Err(message)
   }
-  if !requested.compatible_with({
-      reliable: self.info.reliability,
-      transient_local: self.info.transient_local,
-    }) {
+  if !requested.compatible_with(self.info.qos) {
     return Err("the discovered subscription has incompatible QoS")
   }
   self.writer.add_subscription(subscription)
