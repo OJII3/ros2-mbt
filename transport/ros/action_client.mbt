@@ -54,8 +54,10 @@ pub fn RosActionClient::new(
     status_topic.dds_type_name() != action.status_topic().dds_type_name() {
     return Err("the action status subscription does not match the action")
   }
-  if send_goal_client.shared_socket != get_result_client.shared_socket ||
-    send_goal_client.shared_socket != cancel_goal_client.shared_socket {
+  if send_goal_client.uses_shared_socket() !=
+    get_result_client.uses_shared_socket() ||
+    send_goal_client.uses_shared_socket() !=
+    cancel_goal_client.uses_shared_socket() {
     return Err("the action service clients must use the same socket mode")
   }
   Ok({
@@ -303,7 +305,7 @@ pub async fn RosActionClient::receive_goal_status(
 ///|
 /// Close the action clients and their reliable topic subscriptions.
 pub fn RosActionClient::close(self : RosActionClient) -> Unit {
-  if self.send_goal_client.shared_socket {
+  if self.send_goal_client.uses_shared_socket() {
     // All shared-socket service clients own the same user socket.
     self.send_goal_client.close()
   } else {
