@@ -10,29 +10,17 @@ pub struct RosNode {
 }
 
 ///|
-priv enum RosNodeReaderKind {
-  BestEffort(RosSubscription)
-  Reliable(ReliableRosSubscription)
-}
-
-///|
-priv struct RosNodeReader {
-  endpoint_guid : @rtps.Guid
-  reader : RosNodeReaderKind
-}
-
-///|
 priv struct RosNodeSubscription {
   topic : @ros_types.RosTopic
   reader_id : @rtps.EntityId
   qos : @rtps.SedpQos
   callback : async (Bytes) -> Result[Unit, String]
-  mut readers : Array[RosNodeReader]
+  mut readers : Array[MiddlewareReader]
 }
 
 ///|
 priv struct RosNodePublisherEntry {
-  publisher : ReliableRosPublisher
+  publisher : MiddlewarePublisher
   qos : @rtps.SedpQos
 }
 
@@ -45,7 +33,7 @@ priv struct RosNodeTimer {
 ///|
 /// A publisher returned by `RosNode::create_publisher`.
 pub struct RosNodePublisher[T] {
-  priv publisher : ReliableRosPublisher
+  priv publisher : MiddlewarePublisher
   priv encoder : (T) -> Result[Bytes, String]
 }
 
@@ -164,7 +152,10 @@ pub async fn[T] RosNode::create_publisher(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
-  self.publishers.push({ publisher, qos, })
+  let middleware_publisher = MiddlewarePublisher::new(
+    publisher, topic, type_hash, qos,
+  )
+  self.publishers.push({ publisher: middleware_publisher, qos, })
   let publisher_index = self.publishers.length() - 1
   let graph = self.participant.graph()
   for subscription in graph.subscriptions() {
@@ -188,7 +179,7 @@ pub async fn[T] RosNode::create_publisher(
       }
     }
   }
-  Ok({ publisher, encoder, })
+  Ok({ publisher: middleware_publisher, encoder, })
 }
 
 ///|
@@ -296,39 +287,20 @@ fn RosNode::add_publication(
     if already_added {
       continue
     }
-    let reader_kind = if subscription.qos.reliability() ==
-      @rtps.RELIABILITY_RELIABLE {
-      let reader = match
-        ReliableRosSubscription::new_for_publication(
-          subscription.topic,
-          self.participant.user_socket(),
-          self.participant.participant().participant_guid().prefix(),
-          self.participant.participant().vendor_id(),
-          subscription.reader_id,
-          publication,
-        ) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      Reliable(reader)
-    } else {
-      let reader = match
-        RosSubscription::new_for_publication_with_prefix(
-          subscription.topic,
-          self.participant.user_socket(),
-          self.participant.participant().participant_guid().prefix(),
-          subscription.reader_id,
-          publication,
-        ) {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      }
-      BestEffort(reader)
+    let reader = match
+      MiddlewareReader::new(
+        subscription.topic,
+        self.participant.user_socket(),
+        self.participant.participant().participant_guid().prefix(),
+        self.participant.participant().vendor_id(),
+        subscription.reader_id,
+        publication,
+        subscription.qos.reliability() == @rtps.RELIABILITY_RELIABLE,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
     }
-    self.subscriptions[index].readers.push({
-      endpoint_guid,
-      reader: reader_kind,
-    })
+    self.subscriptions[index].readers.push(reader)
   }
   Ok(())
 }
@@ -673,8 +645,8 @@ fn RosNode::handle_discovery_event(
     Publication(publication) => self.add_publication(publication)
     Subscription(subscription) => {
       for entry in self.publishers {
-        if entry.publisher.topic().dds_name() == subscription.topic_name() &&
-          entry.publisher.topic().dds_type_name() == subscription.type_name() {
+        if entry.publisher.topic_name() == subscription.topic_name() &&
+          entry.publisher.dds_type_name() == subscription.type_name() {
           let sub_qos = match subscription.qos() {
             Ok(value) => value
             Err(_) => continue
@@ -696,7 +668,7 @@ fn RosNode::handle_discovery_event(
       match kind {
         Publication =>
           for index in 0..<self.subscriptions.length() {
-            let retained : Array[RosNodeReader] = []
+            let retained : Array[MiddlewareReader] = []
             for reader in self.subscriptions[index].readers {
               if reader.endpoint_guid != endpoint_guid {
                 retained.push(reader)
@@ -714,7 +686,7 @@ fn RosNode::handle_discovery_event(
     ParticipantRemoved(participant_guid) => {
       let prefix = participant_guid.prefix()
       for index in 0..<self.subscriptions.length() {
-        let retained : Array[RosNodeReader] = []
+        let retained : Array[MiddlewareReader] = []
         for reader in self.subscriptions[index].readers {
           if reader.endpoint_guid.prefix() != prefix {
             retained.push(reader)
@@ -752,32 +724,14 @@ async fn RosNode::handle_message(
     let reader_count = self.subscriptions[subscription_index].readers.length()
     for reader_index in 0..<reader_count {
       let reader = self.subscriptions[subscription_index].readers[reader_index]
-      match reader.reader {
-        BestEffort(sub) => {
-          let payload = match sub.handle_message(message, source) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          match payload {
-            Some(value) =>
-              match callback(value) {
-                Ok(_) => ()
-                Err(message) => return Err(message)
-              }
-            None => ()
-          }
-        }
-        Reliable(sub) => {
-          let payloads = match sub.handle_message(message, source) {
-            Ok(value) => value
-            Err(_) => continue
-          }
-          for payload in payloads {
-            match callback(payload) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
-            }
-          }
+      let payloads = match reader.take(message, source) {
+        Ok(value) => value
+        Err(_) => continue
+      }
+      for payload in payloads {
+        match callback(payload) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       }
     }
