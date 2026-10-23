@@ -28,6 +28,6 @@ interop-action:
 interop-parameter:
     nix develop .#ros2 --command bash scripts/ros2_parameter_interop.sh
 
-# Run all checks and interoperability tests in Podman.
-interop-podman:
-    bash scripts/ros2_podman_interop.sh
+# Run ROS 2 interoperability tests in Podman.
+interop-podman stage="all":
+    bash scripts/ros2_podman_interop.sh "{{stage}}"

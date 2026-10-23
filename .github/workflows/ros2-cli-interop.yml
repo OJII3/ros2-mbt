@@ -14,7 +14,27 @@ env:
   ROS_AUTOMATIC_DISCOVERY_RANGE: SUBNET
 
 jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@31.11.3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update MoonBit dependencies
+        run: nix develop --command moon update
+
+      - name: Verify project
+        run: nix develop --command just verify
+
   build-image:
+    needs: verify
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     permissions:
@@ -22,7 +42,7 @@ jobs:
       packages: write
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
 
       - name: Log in to GitHub Container Registry
         env:
@@ -58,7 +78,12 @@ jobs:
       packages: read
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@31.11.3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
         env:
@@ -73,34 +98,26 @@ jobs:
           podman tag "$image:$GITHUB_SHA" "$local_image"
 
       - name: Prepare Podman environment
-        run: bash scripts/ros2_podman_interop.sh start
+        run: nix develop --command just interop-podman start
 
       - name: Update MoonBit dependencies
-        run: bash scripts/ros2_podman_interop.sh update
-
-      - name: Check formatting
-        run: bash scripts/ros2_podman_interop.sh fmt
-
-      - name: Check types
-        run: bash scripts/ros2_podman_interop.sh check
-
-      - name: Run MoonBit tests
-        run: bash scripts/ros2_podman_interop.sh test
+        run: nix develop --command just interop-podman update
 
       - name: Test ROS 2 CLI interoperability
-        run: bash scripts/ros2_podman_interop.sh cli
+        run: nix develop --command just interop-podman cli
 
       - name: Test ROS 2 action interoperability
-        run: bash scripts/ros2_podman_interop.sh action
+        run: nix develop --command just interop-podman action
 
       - name: Test ROS 2 parameter interoperability
-        run: bash scripts/ros2_podman_interop.sh parameter
+        run: nix develop --command just interop-podman parameter
 
       - name: Stop Podman environment
         if: always()
-        run: bash scripts/ros2_podman_interop.sh stop
+        run: nix develop --command just interop-podman stop
 
   test-pull-request:
+    needs: verify
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-24.04
     env:
@@ -111,7 +128,12 @@ jobs:
       packages: read
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@31.11.3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
         env:
@@ -131,32 +153,23 @@ jobs:
             podman/ros2-jazzy
 
       - name: Prepare Podman environment
-        run: bash scripts/ros2_podman_interop.sh start
+        run: nix develop --command just interop-podman start
 
       - name: Update MoonBit dependencies
-        run: bash scripts/ros2_podman_interop.sh update
-
-      - name: Check formatting
-        run: bash scripts/ros2_podman_interop.sh fmt
-
-      - name: Check types
-        run: bash scripts/ros2_podman_interop.sh check
-
-      - name: Run MoonBit tests
-        run: bash scripts/ros2_podman_interop.sh test
+        run: nix develop --command just interop-podman update
 
       - name: Test ROS 2 CLI interoperability
-        run: bash scripts/ros2_podman_interop.sh cli
+        run: nix develop --command just interop-podman cli
 
       - name: Test ROS 2 action interoperability
-        run: bash scripts/ros2_podman_interop.sh action
+        run: nix develop --command just interop-podman action
 
       - name: Test ROS 2 parameter interoperability
-        run: bash scripts/ros2_podman_interop.sh parameter
+        run: nix develop --command just interop-podman parameter
 
       - name: Stop Podman environment
         if: always()
-        run: bash scripts/ros2_podman_interop.sh stop
+        run: nix develop --command just interop-podman stop
 
   promote-main-image:
     needs: test-published-image
