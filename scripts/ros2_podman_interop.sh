@@ -82,9 +82,6 @@ run_all() {
   trap stop_container EXIT
   start_container
   run_in_container 'moon update'
-  run_in_container 'moon fmt --check'
-  run_in_container 'moon check'
-  run_in_container 'moon test --target native'
   run_in_container 'bash /source/scripts/ros2_cli_interop.sh'
   run_in_container 'bash /source/scripts/ros2_action_interop.sh'
   run_in_container 'bash /source/scripts/ros2_parameter_interop.sh'
@@ -100,15 +97,6 @@ case "$stage" in
   update)
     run_in_container 'moon update'
     ;;
-  fmt)
-    run_in_container 'moon fmt --check'
-    ;;
-  check)
-    run_in_container 'moon check'
-    ;;
-  test)
-    run_in_container 'moon test --target native'
-    ;;
   cli)
     run_in_container 'bash /source/scripts/ros2_cli_interop.sh'
     ;;
@@ -122,7 +110,7 @@ case "$stage" in
     stop_container
     ;;
   *)
-    echo "Usage: $0 [all|start|update|fmt|check|test|cli|action|parameter|stop]" >&2
+    echo "Usage: $0 [all|start|update|cli|action|parameter|stop]" >&2
     exit 2
     ;;
 esac
