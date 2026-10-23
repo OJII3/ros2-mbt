@@ -184,7 +184,7 @@ pub async fn[T] RosNode::create_subscription(
   qos~ : @rtps.SedpQos = @rtps.SedpQos::reliable(),
 ) -> Result[Unit, String] {
   let middleware_qos = MiddlewareQos::from_backend(qos)
-  if middleware_qos.transient_local {
+  if middleware_qos.is_transient_local() {
     return Err("only volatile durability is supported for user topics")
   }
   let reader_id = match self.next_entity_id(0x04) {
