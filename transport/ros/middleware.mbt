@@ -36,8 +36,235 @@ priv struct MiddlewareDiscovery {
 }
 
 ///|
+/// Reliable service request/reply transport kept behind the middleware
+/// boundary. Public service clients delegate all wire I/O to this handle.
+priv struct MiddlewareServiceClient {
+  service : @ros_types.RosService
+  request_writer : @wire.ReliableDataWriter
+  response_reader : @wire.ReliableDataReaderSession
+  response_reader_guid : @rtps.Guid
+  wire_format : RosServiceWireFormat
+  payload_client_id : UInt64
+  shared_socket : Bool
+}
+
+///|
 fn RosMiddleware::new(backend : RosParticipant) -> RosMiddleware {
   { backend, }
+}
+
+///|
+fn MiddlewareServiceClient::new(
+  service : @ros_types.RosService,
+  request_socket : @wire.Udp,
+  response_socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_writer_id : @rtps.EntityId,
+  request_subscription : @rtps.SedpEndpointData,
+  response_reader_id : @rtps.EntityId,
+  response_publication : @rtps.SedpEndpointData,
+  first_request_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
+) -> Result[MiddlewareServiceClient, String] {
+  match
+    validate_service_endpoint(
+      request_subscription,
+      Subscription,
+      service.dds_request_name(),
+      service.dds_request_type_name(),
+    ) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  match
+    validate_service_endpoint(
+      response_publication,
+      Publication,
+      service.dds_response_name(),
+      service.dds_response_type_name(),
+    ) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  match
+    validate_service_endpoint_pair(request_subscription, response_publication) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let request_writer = match
+    @wire.ReliableDataWriter::new_for_subscription(
+      request_socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
+      first_request_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let response_reader = match
+    @wire.ReliableDataReaderSession::new_for_publication(
+      response_socket, guid_prefix, vendor_id, response_reader_id, response_publication,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({
+    service,
+    request_writer,
+    response_reader,
+    response_reader_guid: @rtps.Guid::new(guid_prefix, response_reader_id),
+    wire_format,
+    payload_client_id: service_payload_client_id(
+      @rtps.Guid::new(guid_prefix, request_writer_id),
+    ),
+    shared_socket: false,
+  })
+}
+
+///|
+fn MiddlewareServiceClient::new_with_shared_socket_and_wire_format(
+  service : @ros_types.RosService,
+  socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_writer_id : @rtps.EntityId,
+  request_subscription : @rtps.SedpEndpointData,
+  response_reader_id : @rtps.EntityId,
+  response_publication : @rtps.SedpEndpointData,
+  first_request_sequence_number : Int64,
+  wire_format : RosServiceWireFormat,
+) -> Result[MiddlewareServiceClient, String] {
+  let client = match
+    MiddlewareServiceClient::new(
+      service, socket, socket, guid_prefix, vendor_id, request_writer_id, request_subscription,
+      response_reader_id, response_publication, first_request_sequence_number, wire_format,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok({ ..client, shared_socket: true, })
+}
+
+///|
+fn MiddlewareServiceClient::service(
+  self : MiddlewareServiceClient,
+) -> @ros_types.RosService {
+  self.service
+}
+
+///|
+fn MiddlewareServiceClient::uses_shared_socket(
+  self : MiddlewareServiceClient,
+) -> Bool {
+  self.shared_socket
+}
+
+///|
+async fn MiddlewareServiceClient::request(
+  self : MiddlewareServiceClient,
+  serialized_request : Bytes,
+) -> Result[@rtps.SampleIdentity, String] {
+  let identity = match self.wire_format {
+    DdsRpcInline => {
+      let related_identity = @rtps.SampleIdentity::unknown_sequence(
+        self.response_reader_guid,
+      )
+      match
+        self.request_writer.write_with_related_sample_identity_and_return_identity(
+          serialized_request, related_identity,
+        ) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+    }
+    CycloneDdsPayload => {
+      let header = @ros_types.RosServicePayloadHeader::new(
+        self.payload_client_id,
+        self.request_writer.next_sequence_number(),
+      )
+      let payload = match header.to_cdr_payload(serialized_request) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      match self.request_writer.write_and_return_identity(payload) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+    }
+  }
+  match self.request_writer.send_heartbeat() {
+    Ok(_) =>
+      match
+        @rtps.SampleIdentity::new(
+          self.response_reader_guid,
+          identity.sequence_number(),
+        ) {
+        Ok(value) => Ok(value)
+        Err(message) => Err(message)
+      }
+    Err(message) => Err(message)
+  }
+}
+
+///|
+async fn MiddlewareServiceClient::receive_response(
+  self : MiddlewareServiceClient,
+  request_identity : @rtps.SampleIdentity,
+) -> Result[(Bytes, @socket.Addr), String] {
+  match self.wire_format {
+    DdsRpcInline => {
+      let received = if self.shared_socket {
+        self.response_reader.receive_related_data_with_writer(
+          request_identity,
+          self.request_writer,
+        )
+      } else {
+        self.response_reader.receive_related_data(request_identity)
+      }
+      let (data, source) = match received {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      Ok((data.serialized_payload(), source))
+    }
+    CycloneDdsPayload => {
+      while true {
+        let received = if self.shared_socket {
+          self.response_reader.receive_data_with_writer(self.request_writer)
+        } else {
+          self.response_reader.receive_data_with_identity()
+        }
+        let (data, _, source) = match received {
+          Ok(value) => value
+          Err(message) => return Err(message)
+        }
+        let (header, payload) = match
+          @ros_types.ros_service_payload_from_cdr(data.serialized_payload()) {
+          Ok(value) => value
+          Err(_) => continue
+        }
+        if header.client_id() == self.payload_client_id &&
+          header.sequence_number() == request_identity.sequence_number() {
+          return Ok((payload, source))
+        }
+      }
+      Err("reliable Cyclone DDS service response reader stopped")
+    }
+  }
+}
+
+///|
+async fn MiddlewareServiceClient::receive_request_control(
+  self : MiddlewareServiceClient,
+) -> Result[Unit, String] {
+  self.request_writer.receive_control()
+}
+
+///|
+fn MiddlewareServiceClient::close(self : MiddlewareServiceClient) -> Unit {
+  self.request_writer.close()
+  if !self.shared_socket {
+    self.response_reader.close()
+  }
 }
 
 ///|

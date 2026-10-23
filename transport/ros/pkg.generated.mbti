@@ -235,12 +235,7 @@ pub fn RosPublisher::topic(Self) -> @endpoints.RosTopic
 
 pub struct RosServiceClient {
   service : @endpoints.RosService
-  request_writer : @wire.ReliableDataWriter
-  response_reader : @wire.ReliableDataReaderSession
-  response_reader_guid : @core.Guid
-  wire_format : RosServiceWireFormat
-  payload_client_id : UInt64
-  shared_socket : Bool
+  // private fields
 }
 pub fn RosServiceClient::close(Self) -> Unit
 pub fn RosServiceClient::new(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
