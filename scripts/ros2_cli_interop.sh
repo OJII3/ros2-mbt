@@ -216,6 +216,11 @@ wait_for_probe_ready() {
     fi
     sleep 0.1
   done
+  # The probe can become ready and exit after receiving a sample between the
+  # grep and kill checks above. Check its final output before reporting failure.
+  if grep -Fq "PROBE_READY " "$output_log"; then
+    return 0
+  fi
   echo "ROS 2 topic probe did not become ready"
   return 1
 }
@@ -233,6 +238,9 @@ wait_for_probe_matched() {
     fi
     sleep 0.1
   done
+  if grep -Fq "PROBE_MATCHED " "$output_log"; then
+    return 0
+  fi
   echo "ROS 2 topic probe did not match a publisher"
   return 1
 }
