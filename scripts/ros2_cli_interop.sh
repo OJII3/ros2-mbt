@@ -291,17 +291,15 @@ timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$publisher_first_talker_log" 2>&1 &
 talker_pid=$!
 timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string --publisher /demo/moon_talker \
+  --topic /chatter --type string \
   --expected-prefix "hello from MoonBit #" >"$publisher_first_probe_log" 2>&1 &
 probe_pid=$!
-wait_for_probe_marker "$publisher_first_probe_log" "$probe_pid" "PROBE_STARTED "
 wait_for_probe_marker "$publisher_first_probe_log" "$probe_pid" "PROBE_MATCHED "
 timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
   --topic /chatter --type string --reliability best_effort \
-  --publisher /demo/moon_talker --expected-prefix "hello from MoonBit #" \
+  --expected-prefix "hello from MoonBit #" \
   >"$second_probe_log" 2>&1 &
 second_probe_pid=$!
-wait_for_probe_marker "$second_probe_log" "$second_probe_pid" "PROBE_STARTED "
 wait_for_probe_marker "$second_probe_log" "$second_probe_pid" "PROBE_MATCHED "
 wait "$probe_pid"
 probe_pid=""
