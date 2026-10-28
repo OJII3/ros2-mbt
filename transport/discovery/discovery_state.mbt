@@ -39,17 +39,16 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
       Err(message) => Err(message)
     }
   })
-  for remote in self.remote_participants {
-    match remote.lease_timer {
-      Some(timer) => {
-        let participant_guid = remote.participant.participant_guid()
-        tasks.push(async fn() {
-          timer.wait()
-          Ok(ParticipantLeaseExpired(participant_guid))
-        })
-      }
-      None => ()
+  match self.spdp.next_deadline() {
+    Some(deadline) => {
+      let delay = deadline - self.clock.now_ms()
+      let delay = if delay < 0L { 0L } else { delay }
+      tasks.push(async fn() {
+        @async.sleep(discovery_lease_timer_segment(delay))
+        Ok(ParticipantLeaseExpired)
+      })
     }
+    None => ()
   }
   @async.any(tasks, allow_failure=true)
 }
@@ -99,89 +98,6 @@ fn DiscoverySession::spdp_fragment_reader_index(
 }
 
 ///|
-/// Retain the latest SPDP locators for one remote participant.
-fn DiscoverySession::remember_remote_participant(
-  self : DiscoverySession,
-  participant : @rtps.SpdpParticipantData,
-) -> Unit {
-  if participant.participant_guid() == self.participant.participant_guid() {
-    return
-  }
-  let lease_remaining_ms = discovery_spdp_lease_milliseconds(participant)
-  for index in 0..<self.remote_participants.length() {
-    if self.remote_participants[index].participant.participant_guid() ==
-      participant.participant_guid() {
-      self.remote_participants[index].participant = participant
-      match (self.remote_participants[index].lease_timer, lease_remaining_ms) {
-        (Some(timer), Some(remaining_ms)) => {
-          let segment_ms = discovery_lease_timer_segment(remaining_ms)
-          self.remote_participants[index].lease_remaining_ms = remaining_ms
-          if segment_ms == self.remote_participants[index].lease_segment_ms {
-            timer.refresh()
-          } else {
-            timer.cancel()
-            self.remote_participants[index].lease_timer = Some(
-              Timer(segment_ms),
-            )
-            self.remote_participants[index].lease_segment_ms = segment_ms
-          }
-        }
-        (Some(timer), None) => {
-          timer.cancel()
-          self.remote_participants[index].lease_timer = None
-          self.remote_participants[index].lease_remaining_ms = 0L
-          self.remote_participants[index].lease_segment_ms = 0
-        }
-        (None, Some(remaining_ms)) => {
-          let segment_ms = discovery_lease_timer_segment(remaining_ms)
-          self.remote_participants[index].lease_timer = Some(Timer(segment_ms))
-          self.remote_participants[index].lease_remaining_ms = remaining_ms
-          self.remote_participants[index].lease_segment_ms = segment_ms
-        }
-        (None, None) => ()
-      }
-      return
-    }
-  }
-  let mut timer = None
-  let mut remaining_ms = 0L
-  let mut segment_ms = 0
-  match lease_remaining_ms {
-    Some(value) => {
-      remaining_ms = value
-      segment_ms = discovery_lease_timer_segment(value)
-      timer = Some(@async.Timer::Timer(segment_ms))
-    }
-    None => ()
-  }
-  self.remote_participants.push({
-    participant,
-    lease_timer: timer,
-    lease_remaining_ms: remaining_ms,
-    lease_segment_ms: segment_ms,
-  })
-}
-
-///|
-fn discovery_spdp_lease_milliseconds(
-  participant : @rtps.SpdpParticipantData,
-) -> Int64? {
-  let seconds = participant.lease_seconds()
-  let nanoseconds = participant.lease_nanoseconds()
-  if seconds == 0x7FFFFFFF && nanoseconds == 0xFFFFFFFFU {
-    return None
-  }
-  if seconds < 0 || nanoseconds >= 1_000_000_000U {
-    return None
-  }
-  let fractional_milliseconds = (nanoseconds.to_uint64() + 999_999U.to_uint64()) /
-    1_000_000U.to_uint64()
-  Some(
-    seconds.to_int64() * 1000L + fractional_milliseconds.reinterpret_as_int64(),
-  )
-}
-
-///|
 fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
   if remaining_ms > DISCOVERY_MAX_TIMER_MILLISECONDS.to_int64() {
     DISCOVERY_MAX_TIMER_MILLISECONDS
@@ -191,48 +107,11 @@ fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
 }
 
 ///|
-fn DiscoverySession::advance_expired_participant_lease(
-  self : DiscoverySession,
-  participant_guid : @rtps.Guid,
-) -> Bool {
-  for remote in self.remote_participants {
-    if remote.participant.participant_guid() != participant_guid {
-      continue
-    }
-    if remote.lease_timer is None {
-      return false
-    }
-    if remote.lease_remaining_ms > remote.lease_segment_ms.to_int64() {
-      remote.lease_remaining_ms -= remote.lease_segment_ms.to_int64()
-      remote.lease_segment_ms = discovery_lease_timer_segment(
-        remote.lease_remaining_ms,
-      )
-      remote.lease_timer = Some(Timer(remote.lease_segment_ms))
-      return false
-    }
-    return true
-  }
-  false
-}
-
-///|
-/// Forget one remote participant and its advertised locators.
+/// Drop transport receive state after a participant disappears.
 fn DiscoverySession::forget_remote_participant(
   self : DiscoverySession,
   participant_guid : @rtps.Guid,
 ) -> Unit {
-  let remaining : Array[DiscoveryRemoteParticipant] = []
-  for remote in self.remote_participants {
-    if remote.participant.participant_guid() != participant_guid {
-      remaining.push(remote)
-    } else {
-      match remote.lease_timer {
-        Some(timer) => timer.cancel()
-        None => ()
-      }
-    }
-  }
-  self.remote_participants = remaining
   let sedp_readers : Array[DiscoveryRemoteDataReader] = []
   for reader in self.sedp_readers {
     if reader.writer_prefix != participant_guid.prefix() {
@@ -256,8 +135,7 @@ fn DiscoverySession::acknowledgement_destination(
   participant_prefix : @rtps.GuidPrefix,
   source : @socket.Addr,
 ) -> @socket.Addr {
-  for remote in self.remote_participants {
-    let participant = remote.participant
+  for participant in self.spdp.participants() {
     if participant.participant_guid().prefix() != participant_prefix {
       continue
     }

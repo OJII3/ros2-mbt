@@ -100,6 +100,11 @@ pub fn qos_user_data_type_hash(String) -> @core.Parameter
 // Errors
 
 // Types and methods
+pub(all) enum ParticipantEvent {
+  Participant(SpdpParticipantData)
+  ParticipantRemoved(@core.Guid)
+}
+
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
   endpoint_guid : @core.Guid
@@ -228,6 +233,18 @@ pub fn SpdpParticipantData::to_dispose_data_submessage(Self, @core.EntityId, @co
 pub fn SpdpParticipantData::to_message(Self, @core.EntityId, @core.EntityId, Int64) -> @core.Message
 pub fn SpdpParticipantData::to_parameter_list(Self) -> @core.ParameterList
 pub fn SpdpParticipantData::vendor_id(Self) -> @core.VendorId
+
+type SpdpRemoteParticipant
+
+pub struct SpdpState {
+  local_participant : SpdpParticipantData
+  mut participants : Array[SpdpRemoteParticipant]
+}
+pub fn SpdpState::expire(Self, Int64) -> Array[ParticipantEvent]
+pub fn SpdpState::new(SpdpParticipantData) -> Self
+pub fn SpdpState::next_deadline(Self) -> Int64?
+pub fn SpdpState::participants(Self) -> Array[SpdpParticipantData]
+pub fn SpdpState::receive(Self, @core.DataSubmessage, Int64) -> Array[ParticipantEvent]
 
 // Type aliases
 

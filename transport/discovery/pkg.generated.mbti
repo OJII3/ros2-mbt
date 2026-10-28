@@ -13,6 +13,8 @@ import {
 // Errors
 
 // Types and methods
+type DiscoveryClock
+
 pub struct DiscoveryGraph {
   mut participants : Array[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData]
   mut publications : Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
@@ -36,8 +38,6 @@ pub fn DiscoveryGraph::subscription_count(Self) -> Int
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
 
 type DiscoveryRemoteDataReader
-
-type DiscoveryRemoteParticipant
 
 type DiscoverySedpWriter
 
@@ -79,7 +79,8 @@ pub struct DiscoverySession {
   mut sedp_readers : Array[DiscoveryRemoteDataReader]
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
-  mut remote_participants : Array[DiscoveryRemoteParticipant]
+  spdp : @OJII3/ros2-mbt/rtps/discovery.SpdpState
+  clock : DiscoveryClock
   mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
   mut pending_event_index : Int
 }

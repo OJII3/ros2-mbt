@@ -14,17 +14,9 @@ struct DiscoverySedpWriter {
 }
 
 ///|
-struct DiscoveryRemoteParticipant {
-  mut participant : @rtps.SpdpParticipantData
-  mut lease_timer : @async.Timer?
-  mut lease_remaining_ms : Int64
-  mut lease_segment_ms : Int32
-}
-
-///|
 priv enum DiscoveryReceiveOutcome {
   Message(@rtps.Message, @socket.Addr)
-  ParticipantLeaseExpired(@rtps.Guid)
+  ParticipantLeaseExpired
 }
 
 ///|
@@ -54,7 +46,8 @@ pub struct DiscoverySession {
   mut sedp_readers : Array[DiscoveryRemoteDataReader]
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
   sedp_writers : Array[DiscoverySedpWriter]
-  mut remote_participants : Array[DiscoveryRemoteParticipant]
+  spdp : @participant_discovery.SpdpState
+  clock : DiscoveryClock
   mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
   mut pending_event_index : Int32
 }
@@ -83,7 +76,8 @@ pub fn DiscoverySession::new(
     sedp_readers: [],
     spdp_fragment_readers: [],
     sedp_writers: [],
-    remote_participants: [],
+    spdp: @participant_discovery.SpdpState::new(participant),
+    clock: DiscoveryClock::new(),
     pending_events: [],
     pending_event_index: 0,
   })
@@ -118,7 +112,8 @@ pub fn DiscoverySession::new_with_receive_sockets(
     sedp_readers: [],
     spdp_fragment_readers: [],
     sedp_writers: [],
-    remote_participants: [],
+    spdp: @participant_discovery.SpdpState::new(participant),
+    clock: DiscoveryClock::new(),
     pending_events: [],
     pending_event_index: 0,
   })
@@ -335,8 +330,13 @@ pub async fn DiscoverySession::receive_once(
       }
       return Ok(event)
     }
+    self.queue_expired_participants()
+    if self.pending_events.length() > 0 {
+      continue
+    }
     match self.receive_message_or_lease_expiry() {
       Ok(Message(message, source)) => {
+        self.queue_expired_participants()
         let events = match self.decode_message(message, source) {
           Ok(value) => value
           Err(message) => return Err(message)
@@ -345,13 +345,7 @@ pub async fn DiscoverySession::receive_once(
           self.pending_events.push((event, source))
         }
       }
-      Ok(ParticipantLeaseExpired(participant_guid)) =>
-        if self.advance_expired_participant_lease(participant_guid) {
-          self.forget_remote_participant(participant_guid)
-          return Ok(
-            (ParticipantRemoved(participant_guid), @socket.Addr::new(0, 0)),
-          )
-        }
+      Ok(ParticipantLeaseExpired) => self.queue_expired_participants()
       Err(message) => return Err(message)
     }
   } nobreak {
@@ -362,12 +356,6 @@ pub async fn DiscoverySession::receive_once(
 ///|
 /// Close the session's underlying UDP socket.
 pub fn DiscoverySession::close(self : DiscoverySession) -> Unit {
-  for remote in self.remote_participants {
-    match remote.lease_timer {
-      Some(timer) => timer.cancel()
-      None => ()
-    }
-  }
   self.socket.close()
   for receive_socket in self.receive_sockets {
     receive_socket.close()

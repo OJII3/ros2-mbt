@@ -46,39 +46,10 @@ fn DiscoverySession::dispatch_spdp_data(
   events : Array[@wire.DiscoveryEvent],
   data : @rtps.DataSubmessage,
 ) -> Unit {
-  let status = match data.status_info() {
-    Ok(value) => value
-    Err(_) => return
-  }
-  match status {
-    Some(value) if (
-        value & (@rtps.STATUS_INFO_DISPOSED | @rtps.STATUS_INFO_UNREGISTERED)
-      ) !=
-      0U => {
-      if (data.flags() & @rtps.DATA_FLAG_KEY) == 0 {
-        return
-      }
-      match @rtps.SpdpParticipantData::participant_guid_from_key_data(data) {
-        Ok(participant_guid) => {
-          self.forget_remote_participant(participant_guid)
-          events.push(ParticipantRemoved(participant_guid))
-        }
-        Err(_) => ()
-      }
-    }
-    _ =>
-      match
-        @rtps.SpdpParticipantData::from_data_submessage_with_default_domain(
-          data,
-          self.participant.domain_id(),
-        ) {
-        Ok(participant) =>
-          if participant.domain_id() == self.participant.domain_id() {
-            self.remember_remote_participant(participant)
-            events.push(Participant(participant))
-          }
-        Err(_) => ()
-      }
+  let now_ms = self.clock.now_ms()
+  self.queue_expired_participants_at(now_ms)
+  for event in self.spdp.receive(data, now_ms) {
+    events.push(self.map_participant_event(event))
   }
 }
 
@@ -94,4 +65,38 @@ fn DiscoverySession::record_sedp_gap(
     Err(_) => return
   }
   ignore(self.sedp_readers[index].reader.accept_gap(gap))
+}
+
+///|
+/// Apply transport cleanup while mapping the pure participant event.
+fn DiscoverySession::map_participant_event(
+  self : DiscoverySession,
+  event : @participant_discovery.ParticipantEvent,
+) -> @wire.DiscoveryEvent {
+  match event {
+    Participant(participant) => Participant(participant)
+    ParticipantRemoved(guid) => {
+      self.forget_remote_participant(guid)
+      ParticipantRemoved(guid)
+    }
+  }
+}
+
+///|
+fn DiscoverySession::queue_expired_participants(
+  self : DiscoverySession,
+) -> Unit {
+  self.queue_expired_participants_at(self.clock.now_ms())
+}
+
+///|
+fn DiscoverySession::queue_expired_participants_at(
+  self : DiscoverySession,
+  now_ms : Int64,
+) -> Unit {
+  for event in self.spdp.expire(now_ms) {
+    self.pending_events.push(
+      (self.map_participant_event(event), @socket.Addr::new(0, 0)),
+    )
+  }
 }
