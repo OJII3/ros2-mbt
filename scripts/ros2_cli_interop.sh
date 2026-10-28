@@ -287,7 +287,8 @@ done
 # later subscriber is discovered, rather than relying on startup order.
 ROS_DOMAIN_ID="$startup_order_ros_domain_id"
 export ROS_DOMAIN_ID
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
+ROS2_MBT_TALKER_PUBLISH_UNTIL_STOP=1 \
+  timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
   >"$publisher_first_talker_log" 2>&1 &
 talker_pid=$!
 timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
@@ -305,7 +306,8 @@ wait "$probe_pid"
 probe_pid=""
 wait "$second_probe_pid"
 second_probe_pid=""
-wait "$talker_pid"
+kill -- "-$talker_pid" 2>/dev/null || true
+wait "$talker_pid" 2>/dev/null || true
 talker_pid=""
 if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$second_probe_log"; then
   echo "A later ROS 2 subscriber probe did not receive a subsequent sample"

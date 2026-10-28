@@ -6,6 +6,7 @@ async fn publish_reliable(
   prefix : @rtps.GuidPrefix,
   vendor_id : @rtps.VendorId,
   writer_id : @rtps.EntityId,
+  publish_until_stopped : Bool,
 ) -> Unit {
   let publisher = match
     @transport.ReliableRosPublisher::new(
@@ -60,7 +61,8 @@ async fn publish_reliable(
         }
       }
     }
-    for index in 0..<5 {
+    let mut index = 0
+    while publish_until_stopped || index < 5 {
       let message = @ros.StringMessage::new(
         "hello from MoonBit #" + index.to_string(),
       )
@@ -80,6 +82,7 @@ async fn publish_reliable(
           return
         }
       }
+      index += 1
       @async.sleep(1000)
     }
   }
@@ -88,6 +91,7 @@ async fn publish_reliable(
 
 ///|
 /// Publish String samples on `/chatter` without waiting for a subscription.
+/// `ROS2_MBT_TALKER_PUBLISH_UNTIL_STOP=1` keeps publishing until stopped.
 async fn main {
   let config = match @config.load() {
     Ok(value) => value
@@ -122,6 +126,10 @@ async fn main {
       return
     }
   }
+  let publish_until_stopped = @env.get_env_var(
+      "ROS2_MBT_TALKER_PUBLISH_UNTIL_STOP",
+    ) ==
+    Some("1")
   let graph_publication_id = match
     @rtps.EntityId::new(b"gph", @ros.ROS_GRAPH_PUBLICATION_ENTITY_KIND) {
     Ok(value) => value
@@ -202,6 +210,7 @@ async fn main {
     prefix,
     vendor_id,
     writer_id,
+    publish_until_stopped,
   )
   participant.close_discovery()
 }
