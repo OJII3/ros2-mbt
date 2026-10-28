@@ -156,14 +156,14 @@ async test "discovery session reassembles fragmented SPDP participant data" {
   fragmented_dispose.add(
     @rtps.Submessage::new(
       DataFrag,
-      (final_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+      final_key_fragment.flags() | @rtps.DATA_FRAG_FLAG_KEY,
       final_key_fragment.to_payload(),
     ),
   )
   fragmented_dispose.add(
     @rtps.Submessage::new(
       DataFrag,
-      (first_key_fragment.flags() & 0xFB) | @rtps.DATA_FLAG_KEY,
+      first_key_fragment.flags() | @rtps.DATA_FRAG_FLAG_KEY,
       first_key_fragment.to_payload(),
     ),
   )

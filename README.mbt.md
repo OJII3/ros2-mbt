@@ -47,6 +47,51 @@ The module is organized into focused packages:
 - `rtps` — RTPS wire and discovery types
 - `transport` — UDP transport, discovery, topics, services, and actions
 
+`rtps/discovery.DiscoveryEngine` owns SPDP participant state and the SEDP
+builtin writers, retained history, fragment assembly, and reliability control.
+Feed decoded messages to `receive` and nondecreasing milliseconds to `advance`;
+`next_deadline` tells the caller when to advance during idle periods. Explicit
+`announce_spdp` and `announce_sedp` calls produce outgoing messages without I/O.
+The caller schedules repeated SPDP announcements.
+
+Effects contain locator-addressed RTPS messages and discovery events. Producing
+effects consumes protocol sequence/count values, so failed sends must retry the
+same effects. `transport/discovery.DiscoverySession` supplies the monotonic clock,
+UDP receive/timer scheduling, and a serialized send queue. Socket failures retain
+the original effects for `flush_outgoing` to retry while other peers can still
+receive their queued datagrams. Unsupported transports and invalid destination
+ports move to `take_rejected_outgoing` for caller inspection or rerouting, so
+permanent failures cannot block the active queue. Concurrent SEDP announcements
+wake an idle receive to recalculate its heartbeat deadline.
+
+All local SEDP endpoints of a kind share the engine's builtin writer and sequence
+space. Participant discovery or changed SPDP metadata replays registered samples;
+unchanged SPDP refreshes do not create writes. History retains each endpoint's
+latest announcement or dispose tombstone, answers compacted sequences with GAP,
+and remains available independently of acknowledgements from other peers. Peers
+without a supported metatraffic locator are skipped when announcing endpoints;
+local registration and retained history remain available for supported peers.
+
+Discovery fragment admission is bounded before allocation: 128 receive writers
+across SPDP/SEDP (including undiscovered GUIDs), 16 incomplete samples, 1 MiB and
+4096 fragments per sample, and 4 MiB aggregate payload plus fragment-presence
+storage. SPDP uses best-effort fragment tracking with at most four incomplete
+samples and a 256-sequence duplicate window per writer. Its fragment readers
+expire five seconds after creation, without extending the deadline on traffic;
+`next_deadline` exposes this cleanup even for undiscovered writers. SEDP receive
+state is not expired by this cleanup. Rejected reliable samples remain retryable
+after capacity frees. SEDP
+history admits at most 1024 endpoint GUIDs and 16 MiB of serialized DATA and
+fragments per builtin writer; dispose tombstones count toward these limits.
+Sender reliability control state is limited to 256 peer/kind pairs. These bounds
+do not cap all memory: discovered participants, per-endpoint receive high-water
+marks, received sequence/GAP bookkeeping, and pending/rejected effects still need
+application lifetime management. The supplied UDP adapter is IPv4-only; outgoing
+locator selection matches the engine's configured destination transport kind.
+Writer slots have no idle eviction and are released by participant removal or
+engine recreation; completion or GAP releases incomplete sample storage. This is not full
+RTPS context support: INFO_SRC and INFO_REPLY are not interpreted by discovery.
+
 Add the native diagnostic CLI to a Nix flake:
 
 In the flake inputs:

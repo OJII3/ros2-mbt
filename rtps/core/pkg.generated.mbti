@@ -22,6 +22,8 @@ pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 pub const DATA_FRAG_FIXED_BODY_LENGTH : Int = 32
 
+pub const DATA_FRAG_FLAG_KEY : Byte = 0x04
+
 pub const DATA_FRAG_INLINE_QOS_OFFSET : Int = 28
 
 pub const DATA_INLINE_QOS_OFFSET : Int = 16
@@ -487,6 +489,47 @@ pub fn ProtocolVersion::equal(Self, Self) -> Bool
 pub fn ProtocolVersion::new(Byte, Byte) -> Self
 pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
 pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
+
+pub struct ReliableDataReader {
+  reader_id : EntityId
+  writer_id : EntityId
+  mut next_acknack_count : UInt
+  mut next_nackfrag_count : UInt
+  mut samples : Array[Int64]
+  mut gaps : Array[GapSubmessage]
+  mut fragments : Array[ReliableFragmentedSample]
+  mut acknowledged_through : Int64
+  mut accepted_sample_count : Int
+}
+pub fn ReliableDataReader::accept_best_effort_fragment(Self, DataFragSubmessage) -> Result[DataSubmessage?, String]
+pub fn ReliableDataReader::accept_data(Self, DataSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::accept_data_frag(Self, DataFragSubmessage) -> Result[DataSubmessage?, String]
+pub fn ReliableDataReader::accept_gap(Self, GapSubmessage) -> Result[Unit, String]
+pub fn ReliableDataReader::acknack_for_heartbeat(Self, HeartbeatSubmessage) -> Result[AckNackSubmessage, String]
+pub fn ReliableDataReader::acknacks_for_heartbeat(Self, HeartbeatSubmessage) -> Result[Array[AckNackSubmessage], String]
+pub fn ReliableDataReader::fragment_receive_usage(Self) -> (Int, Int)
+pub fn ReliableDataReader::has_incomplete_fragment(Self, Int64) -> Bool
+pub fn ReliableDataReader::has_received_sequence(Self, Int64) -> Bool
+pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(Self, HeartbeatFragSubmessage) -> Result[NackFragSubmessage, String]
+pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(Self, HeartbeatFragSubmessage) -> Result[Array[NackFragSubmessage], String]
+pub fn ReliableDataReader::new(EntityId, EntityId) -> Self
+pub fn ReliableDataReader::next_acknack_count(Self) -> UInt
+pub fn ReliableDataReader::next_nackfrag_count(Self) -> UInt
+pub fn ReliableDataReader::prune_best_effort_receive_state(Self, Int64) -> Unit
+pub fn ReliableDataReader::sample_count(Self) -> Int
+
+pub struct ReliableFragmentedSample {
+  reader_id : EntityId
+  writer_id : EntityId
+  sequence_number : Int64
+  data_flags : Byte
+  fragment_size : Int
+  sample_size : Int
+  mut inline_qos : Bytes
+  payload : Array[Byte]
+  received : Array[Bool]
+  mut received_count : Int
+}
 
 pub struct SampleIdentity {
   writer_guid : Guid

@@ -942,3 +942,244 @@ async test "ROS participant automatically announces endpoints after SPDP" {
   publisher.close()
   subscriber.close()
 }
+
+///|
+async fn participant_history_sequences(socket : @wire.Udp) -> Array[Int64] {
+  let sequences : Array[Int64] = []
+  while sequences.length() < 2 {
+    let (message, _) = @async.with_timeout(1000, async fn() {
+      socket.receive_message().unwrap()
+    })
+    for submessage in message.submessages() {
+      if submessage.id() == Data {
+        sequences.push(
+          @rtps.DataSubmessage::from_submessage(submessage)
+          .unwrap()
+          .writer_sequence_number(),
+        )
+      }
+    }
+  }
+  sequences
+}
+
+///|
+async test "SPDP refresh reuses registered history and new or rediscovered peers receive all endpoints" {
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let remote1_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  defer remote1_socket.close()
+  let remote2_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  defer remote2_socket.close()
+  let participant_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+  ).unwrap()
+  let reader_id = @rtps.EntityId::new(
+    b"\x00\x01\x00",
+    @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
+  ).unwrap()
+  let participants : Array[@rtps.SpdpParticipantData] = []
+  for id in 0..<3 {
+    participants.push(
+      @rtps.SpdpParticipantData::new(
+        @rtps.Guid::new(
+          @rtps.GuidPrefix::from_array([
+            id.to_byte(),
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+          ]).unwrap(),
+          participant_id,
+        ),
+        @rtps.VendorId::new(1, 15),
+        0,
+        60,
+        0U,
+        3U,
+      ),
+    )
+  }
+  participants[1].add_metatraffic_unicast(
+    remote1_socket.local_unicast_locator().unwrap(),
+  )
+  participants[2].add_metatraffic_unicast(
+    remote2_socket.local_unicast_locator().unwrap(),
+  )
+  let session = @discovery.DiscoverySession::new(
+    discovery_socket,
+    participants[0],
+    reader_id,
+    participant_id,
+    remote1_socket.local_addr(),
+    1L,
+  ).unwrap()
+  let node = @ros.RosParticipant::from_discovery_session(session, user_socket).unwrap()
+  defer node.close()
+  for id in 1..<3 {
+    node
+    .register_endpoint(
+      @rtps.SedpEndpointData::new(
+        Publication,
+        @rtps.Guid::new(
+          participants[0].participant_guid().prefix(),
+          @rtps.EntityId::new(Bytes::from_array([id.to_byte(), 0, 0]), 0x02).unwrap(),
+        ),
+        "rt/chatter",
+        "std_msgs::msg::dds_::String_",
+      ).unwrap(),
+    )
+    .unwrap()
+  }
+  assert_eq(node.discovery.next_sedp_sequence_number(Publication), 3L)
+  for (peer_index, socket) in [(1, remote1_socket), (2, remote2_socket)] {
+    let remote = participants[peer_index]
+    socket
+    .send_data(
+      remote.to_data_submessage(reader_id, participant_id, 1L),
+      remote.participant_guid().prefix(),
+      remote.vendor_id(),
+      discovery_socket.local_addr(),
+    )
+    .unwrap()
+    assert_true(
+      test_receive(() => node.receive_discovery_once()).unwrap().1
+      is Participant(_),
+    )
+    assert_eq(participant_history_sequences(socket), [1L, 2L])
+    assert_eq(node.discovery.next_sedp_sequence_number(Publication), 3L)
+  }
+  let remote = participants[1]
+  for sequence in 2..<12 {
+    remote1_socket
+    .send_data(
+      remote.to_data_submessage(reader_id, participant_id, sequence.to_int64()),
+      remote.participant_guid().prefix(),
+      remote.vendor_id(),
+      discovery_socket.local_addr(),
+    )
+    .unwrap()
+    assert_true(
+      test_receive(() => node.receive_discovery_once()).unwrap().1
+      is Participant(_),
+    )
+    assert_eq(node.discovery.next_sedp_sequence_number(Publication), 3L)
+  }
+  remote1_socket
+  .send_data(
+    remote.to_dispose_data_submessage(reader_id, participant_id, 12L),
+    remote.participant_guid().prefix(),
+    remote.vendor_id(),
+    discovery_socket.local_addr(),
+  )
+  .unwrap()
+  assert_true(
+    test_receive(() => node.receive_discovery_once()).unwrap().1
+    is ParticipantRemoved(_),
+  )
+  remote1_socket
+  .send_data(
+    remote.to_data_submessage(reader_id, participant_id, 13L),
+    remote.participant_guid().prefix(),
+    remote.vendor_id(),
+    discovery_socket.local_addr(),
+  )
+  .unwrap()
+  assert_true(
+    test_receive(() => node.receive_discovery_once()).unwrap().1
+    is Participant(_),
+  )
+  assert_eq(participant_history_sequences(remote1_socket), [1L, 2L])
+  assert_eq(node.discovery.next_sedp_sequence_number(Publication), 3L)
+}
+
+///|
+async test "endpoint registration reserves before async sending and separates admission from send failures" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let data = @wire.new_ddsi_participant(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0U,
+    0U,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let node = @ros.RosParticipant::from_sockets(
+    discovery_socket, user_socket, data, 0U, 1L,
+  ).unwrap()
+  defer node.close()
+  let endpoint = @rtps.SedpEndpointData::new(
+    Publication,
+    @rtps.Guid::new(prefix, @rtps.EntityId::new(b"pub", 0x02).unwrap()),
+    "rt/chatter",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  node.discovery.session.send_lock.acquire()
+  @async.with_task_group() <| group => {
+    let registering = group.spawn(() => node.register_endpoint(endpoint))
+    @async.sleep(1)
+    assert_eq(node.local_endpoints().length(), 1)
+    assert_eq(node.discovery.next_sedp_sequence_number(Publication), 2L)
+    // The first registration is still waiting to flush, so this is concurrent.
+    assert_true(node.register_endpoint(endpoint) is Err(_))
+    assert_eq(node.local_endpoints().length(), 1)
+    node.discovery.session.send_lock.release()
+    assert_true(registering.wait() is Ok(_))
+  }
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote = @rtps.SpdpParticipantData::new(
+    @rtps.Guid::new(remote_prefix, data.participant_guid().entity_id()),
+    data.vendor_id(),
+    0U,
+    60,
+    0U,
+    3U,
+  )
+  remote.add_metatraffic_unicast(
+    @rtps.Locator::new(
+      @rtps.LOCATOR_KIND_UDP_V6,
+      7410U,
+      Bytes::from_array(Array::make(16, 1)),
+    ).unwrap(),
+  )
+  node.discovery.graph().ingest(Participant(remote))
+  let second = @rtps.SedpEndpointData::new(
+    Publication,
+    @rtps.Guid::new(prefix, @rtps.EntityId::new(b"two", 0x02).unwrap()),
+    "rt/second",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  // Unsupported peers do not prevent local registration or retained history.
+  assert_true(node.register_endpoint(second) is Ok(_))
+  assert_eq(node.local_endpoints().length(), 2)
+  assert_eq(node.discovery.next_sedp_sequence_number(Publication), 3L)
+  remote.add_metatraffic_unicast(
+    @rtps.Locator::udp_v4(b"\x7F\x00\x00\x01", 7410U).unwrap(),
+  )
+  discovery_socket.close()
+  // Once admitted, a send failure preserves both registration and queued effects.
+  let third = @rtps.SedpEndpointData::new(
+    Publication,
+    @rtps.Guid::new(prefix, @rtps.EntityId::new(b"tri", 0x02).unwrap()),
+    "rt/third",
+    "std_msgs::msg::dds_::String_",
+  ).unwrap()
+  assert_true(node.register_endpoint(third) is Err(_))
+  assert_eq(node.local_endpoints().length(), 3)
+  assert_eq(node.discovery.next_sedp_sequence_number(Publication), 4L)
+  assert_true(node.discovery.session.outgoing.length() > 0)
+}

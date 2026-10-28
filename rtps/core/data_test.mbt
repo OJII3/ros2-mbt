@@ -135,7 +135,7 @@ test "RTPS DATA_FRAG parser accepts a big-endian body" {
   let decoded = @core.DataFragSubmessage::from_submessage(
     @core.Submessage::new(
       DataFrag,
-      @core.DATA_FLAG_DATA,
+      0x00,
       b"\x00\x00\x00\x1Crdr\xC7wrt\xC2\x00\x00\x00\x00\x00\x00\x00\x09\x00\x00\x00\x01\x00\x01\x00\x04\x00\x00\x00\x04data",
     ),
   ).unwrap()
@@ -147,10 +147,7 @@ test "RTPS DATA_FRAG parser accepts a big-endian body" {
   assert_eq(decoded.fragment_size(), 4U.to_uint16())
   assert_eq(decoded.sample_size(), 4U)
   assert_eq(decoded.serialized_payload(), b"data")
-  assert_eq(
-    decoded.flags(),
-    @core.DATA_FLAG_LITTLE_ENDIAN | @core.DATA_FLAG_DATA,
-  )
+  assert_eq(decoded.flags(), @core.DATA_FLAG_LITTLE_ENDIAN)
 }
 
 ///|

@@ -100,6 +100,72 @@ pub fn qos_user_data_type_hash(String) -> @core.Parameter
 // Errors
 
 // Types and methods
+pub(all) struct DiscoveryEffects {
+  outgoing : Array[DiscoveryOutput]
+  events : Array[DiscoveryEvent]
+}
+
+pub struct DiscoveryEngine {
+  participant : SpdpParticipantData
+  reader_id : @core.EntityId
+  writer_id : @core.EntityId
+  sender : DiscoverySender
+  spdp : SpdpState
+  mut heartbeat_deadline : Int64?
+  mut sedp_readers : Array[DiscoveryRemoteDataReader]
+  mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
+}
+pub fn DiscoveryEngine::advance(Self, Int64) -> DiscoveryEffects
+pub fn DiscoveryEngine::announce_sedp(Self, SedpEndpointData, Array[SpdpParticipantData], Bool) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoveryEngine::announce_spdp(Self, Bool) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoveryEngine::new(SpdpParticipantData, @core.EntityId, @core.EntityId, @core.Locator, Int64) -> Result[Self, String]
+pub fn DiscoveryEngine::next_deadline(Self) -> Int64?
+pub fn DiscoveryEngine::next_sedp_sequence_number(Self, SedpEndpointKind) -> Int64
+pub fn DiscoveryEngine::next_sequence_number(Self) -> Int64
+pub fn DiscoveryEngine::participants(Self) -> Array[SpdpParticipantData]
+pub fn DiscoveryEngine::receive(Self, @core.Message, @core.Locator, Int64) -> Result[DiscoveryEffects, String]
+pub fn DiscoveryEngine::replay_sedp(Self, SpdpParticipantData) -> Result[Array[DiscoveryOutput], String]
+
+pub(all) enum DiscoveryEvent {
+  Participant(SpdpParticipantData)
+  Publication(SedpEndpointData)
+  Subscription(SedpEndpointData)
+  EndpointRemoved(SedpEndpointKind, @core.Guid)
+  ParticipantRemoved(@core.Guid)
+}
+
+pub(all) struct DiscoveryOutput {
+  message : @core.Message
+  destination : @core.Locator
+}
+
+type DiscoveryReaderControl
+
+type DiscoveryRemoteDataReader
+
+pub struct DiscoverySender {
+  participant : SpdpParticipantData
+  reader_id : @core.EntityId
+  writer_id : @core.EntityId
+  destination : @core.Locator
+  mut next_sequence : Int64
+  mut sequence_exhausted : Bool
+  writers : Array[DiscoveryWriter]
+  mut controls : Array[DiscoveryReaderControl]
+}
+pub fn DiscoverySender::announce_sedp(Self, SedpEndpointData, Array[SpdpParticipantData], Bool) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoverySender::announce_spdp(Self, Bool) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoverySender::forget_remote_participant(Self, @core.GuidPrefix) -> Unit
+pub fn DiscoverySender::heartbeats(Self, Array[SpdpParticipantData]) -> Array[DiscoveryOutput]
+pub fn DiscoverySender::new(SpdpParticipantData, @core.EntityId, @core.EntityId, @core.Locator, Int64) -> Result[Self, String]
+pub fn DiscoverySender::next_sedp_sequence_number(Self, SedpEndpointKind) -> Int64
+pub fn DiscoverySender::next_sequence_number(Self) -> Int64
+pub fn DiscoverySender::replay_sedp(Self, SpdpParticipantData) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoverySender::retransmit_acknack(Self, @core.GuidPrefix, @core.AckNackSubmessage, @core.Locator) -> Result[Array[DiscoveryOutput], String]
+pub fn DiscoverySender::retransmit_nackfrag(Self, @core.GuidPrefix, @core.NackFragSubmessage, @core.Locator) -> Result[Array[DiscoveryOutput], String]
+
+type DiscoveryWriter
+
 pub(all) enum ParticipantEvent {
   Participant(SpdpParticipantData)
   ParticipantRemoved(@core.Guid)

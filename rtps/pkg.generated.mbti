@@ -35,6 +35,8 @@ pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 pub const DATA_FRAG_FIXED_BODY_LENGTH : Int = 32
 
+pub const DATA_FRAG_FLAG_KEY : Byte = 0x04
+
 pub const DATA_FRAG_INLINE_QOS_OFFSET : Int = 28
 
 pub const DATA_INLINE_QOS_OFFSET : Int = 16

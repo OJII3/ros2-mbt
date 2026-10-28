@@ -64,7 +64,7 @@ pub struct DataReaderState {
   writer_id : @core.EntityId
   writer_prefix : @core.GuidPrefix?
   participant_prefix : @core.GuidPrefix?
-  state : ReliableDataReader
+  state : @core.ReliableDataReader
 }
 pub fn DataReaderState::handle_message(Self, @core.Message) -> Result[@core.DataSubmessage?, String]
 pub fn DataReaderState::new(@core.EntityId, @core.EntityId) -> Self
@@ -103,36 +103,13 @@ pub(all) enum DiscoveryEvent {
   ParticipantRemoved(@core.Guid)
 }
 
-pub struct ReliableDataReader {
-  reader_id : @core.EntityId
-  writer_id : @core.EntityId
-  mut next_acknack_count : UInt
-  mut next_nackfrag_count : UInt
-  mut samples : Array[Int64]
-  mut gaps : Array[@core.GapSubmessage]
-  mut fragments : Array[ReliableFragmentedSample]
-  mut acknowledged_through : Int64
-  mut accepted_sample_count : Int
-}
-pub fn ReliableDataReader::accept_data(Self, @core.DataSubmessage) -> Result[Unit, String]
-pub fn ReliableDataReader::accept_data_frag(Self, @core.DataFragSubmessage) -> Result[@core.DataSubmessage?, String]
-pub fn ReliableDataReader::accept_gap(Self, @core.GapSubmessage) -> Result[Unit, String]
-pub fn ReliableDataReader::acknack_for_heartbeat(Self, @core.HeartbeatSubmessage) -> Result[@core.AckNackSubmessage, String]
-pub fn ReliableDataReader::acknacks_for_heartbeat(Self, @core.HeartbeatSubmessage) -> Result[Array[@core.AckNackSubmessage], String]
-pub fn ReliableDataReader::nackfrag_for_heartbeat_frag(Self, @core.HeartbeatFragSubmessage) -> Result[@core.NackFragSubmessage, String]
-pub fn ReliableDataReader::nackfrags_for_heartbeat_frag(Self, @core.HeartbeatFragSubmessage) -> Result[Array[@core.NackFragSubmessage], String]
-pub fn ReliableDataReader::new(@core.EntityId, @core.EntityId) -> Self
-pub fn ReliableDataReader::next_acknack_count(Self) -> UInt
-pub fn ReliableDataReader::next_nackfrag_count(Self) -> UInt
-pub fn ReliableDataReader::sample_count(Self) -> Int
-
 pub struct ReliableDataReaderSession {
   socket : Udp
   guid_prefix : @core.GuidPrefix
   vendor_id : @core.VendorId
   destinations : Array[@socket.Addr]
   writer_prefix : @core.GuidPrefix
-  state : ReliableDataReader
+  state : @core.ReliableDataReader
   mut pending_samples : Array[(@core.DataSubmessage, @socket.Addr)]
   mut pending_sample_index : Int
 }
@@ -166,7 +143,6 @@ pub async fn ReliableDataWriter::handle_control_message(Self, @core.Message) -> 
 pub async fn ReliableDataWriter::handle_nackfrag(Self, @core.NackFragSubmessage) -> Result[Unit, String]
 pub fn ReliableDataWriter::history_length(Self) -> Int
 pub fn ReliableDataWriter::new(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @core.EntityId, @socket.Addr, Int64) -> Result[Self, String]
-pub fn ReliableDataWriter::new_for_sedp(Udp, @core.VendorId, @discovery.SedpEndpointData, @discovery.SpdpParticipantData, Int64) -> Result[Self, String]
 pub fn ReliableDataWriter::new_for_subscription(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn ReliableDataWriter::next_heartbeat_count(Self) -> UInt
 pub fn ReliableDataWriter::next_sequence_number(Self) -> Int64
@@ -180,22 +156,7 @@ pub async fn ReliableDataWriter::write_and_return_identity(Self, Bytes) -> Resul
 pub async fn ReliableDataWriter::write_with_related_sample_identity(Self, Bytes, @core.SampleIdentity) -> Result[Unit, String]
 pub async fn ReliableDataWriter::write_with_related_sample_identity_and_return_identity(Self, Bytes, @core.SampleIdentity) -> Result[@core.SampleIdentity, String]
 
-type ReliableFragmentedSample
-
 type ReliableFragmentedWrite
-
-pub struct ReliableSedpWriter {
-  endpoint : @discovery.SedpEndpointData
-  writer : ReliableDataWriter
-}
-pub async fn ReliableSedpWriter::announce_once(Self) -> Result[Unit, String]
-pub fn ReliableSedpWriter::close(Self) -> Unit
-pub fn ReliableSedpWriter::endpoint(Self) -> @discovery.SedpEndpointData
-pub async fn ReliableSedpWriter::handle_acknack(Self, @core.AckNackSubmessage) -> Result[Unit, String]
-pub fn ReliableSedpWriter::history_length(Self) -> Int
-pub fn ReliableSedpWriter::new(Udp, @core.VendorId, @discovery.SedpEndpointData, @discovery.SpdpParticipantData, Int64) -> Result[Self, String]
-pub fn ReliableSedpWriter::next_sequence_number(Self) -> Int64
-pub async fn ReliableSedpWriter::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 
 pub struct Udp {
   server : @socket.UdpServer
@@ -238,5 +199,6 @@ pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
 pub fn Udp::set_multicast_interface(Self, @socket.Addr) -> Result[Unit, String]
 
 // Type aliases
+pub using @core {type ReliableDataReader}
 
 // Traits
