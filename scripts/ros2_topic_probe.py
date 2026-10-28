@@ -89,6 +89,7 @@ def main() -> int:
 
     rclpy.init(args=[])
     node = TopicProbe(args.topic, MessageType, args.reliability)
+    print(f"PROBE_STARTED {args.topic} {args.reliability}", flush=True)
     deadline = time.monotonic() + args.timeout
     try:
         if args.publisher:
