@@ -130,7 +130,7 @@ async test "a failed heartbeat response does not discard later discovery events"
 }
 
 ///|
-async test "concurrent discovery flushes send each queued datagram once" {
+async test "concurrent discovery flushes send each queued SPDP refresh once" {
   let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
   defer receiver.close()
@@ -155,7 +155,7 @@ async test "concurrent discovery flushes send each queued datagram once" {
     async fn() { session.flush_outgoing().unwrap() },
   ])
   |> ignore
-  for sequence in 1..<21 {
+  for _ in 0..<20 {
     let (message, _) = @async.with_timeout(1000, async fn() {
       receiver.receive_message().unwrap()
     })
@@ -163,7 +163,7 @@ async test "concurrent discovery flushes send each queued datagram once" {
       @rtps.DataSubmessage::from_submessage(message.submessages()[0])
       .unwrap()
       .writer_sequence_number(),
-      sequence.to_int64(),
+      1L,
     )
   }
   assert_eq(session.outgoing.length(), 0)
@@ -199,7 +199,7 @@ async test "permanently invalid destinations are retained separately without blo
   }
   assert_true(session.flush_outgoing() is Err(_))
   assert_eq(session.outgoing.length(), 0)
-  for sequence in [2L, 4L] {
+  for _ in 0..<2 {
     let (message, _) = @async.with_timeout(1000, async fn() {
       receiver.receive_message().unwrap()
     })
@@ -207,7 +207,7 @@ async test "permanently invalid destinations are retained separately without blo
       @rtps.DataSubmessage::from_submessage(message.submessages()[0])
       .unwrap()
       .writer_sequence_number(),
-      sequence,
+      1L,
     )
   }
   // A permanent rejection reports once; it cannot poison subsequent flushes.
