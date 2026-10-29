@@ -50,22 +50,27 @@ pub fn Message::with_destination_guid_prefix(
 }
 
 ///|
-/// Return the optional INFO_DST participant prefix carried by this message.
-pub fn Message::destination_guid_prefix(
+/// Return the INFO_DST context that applies at each submessage position.
+///
+/// The returned array has one entry per submessage. An entry is `None` when
+/// no INFO_DST has appeared yet, and otherwise contains the most recent
+/// destination prefix.
+pub fn Message::destination_contexts(
   self : Message,
-) -> Result[GuidPrefix?, String] {
+) -> Result[Array[GuidPrefix?], String] {
+  let destinations : Array[GuidPrefix?] = []
   let mut destination : GuidPrefix? = None
   for submessage in self.submessages {
-    if submessage.id() != InfoDestination {
-      continue
+    if submessage.id() == InfoDestination {
+      let info = match InfoDestinationSubmessage::from_submessage(submessage) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      destination = Some(info.guid_prefix())
     }
-    let info = match InfoDestinationSubmessage::from_submessage(submessage) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    destination = Some(info.guid_prefix())
+    destinations.push(destination)
   }
-  Ok(destination)
+  Ok(destinations)
 }
 
 ///|

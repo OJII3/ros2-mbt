@@ -187,7 +187,7 @@ async test "reliable writer directs discovered endpoint traffic" {
     Err(message) => fail(message)
   }
   let (message, _) = test_receive(() => receiver.receive_message()).unwrap()
-  assert_eq(message.destination_guid_prefix(), Ok(Some(remote_prefix)))
+  assert_eq(message.destination_contexts().unwrap()[0], Some(remote_prefix))
   let data = @rtps.DataSubmessage::from_submessage(message.submessages()[1]).unwrap()
   assert_eq(data.serialized_payload(), b"payload")
   writer.close()

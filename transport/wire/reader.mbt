@@ -142,17 +142,19 @@ pub fn DataReaderState::handle_message(
   self : DataReaderState,
   message : @rtps.Message,
 ) -> Result[@rtps.DataSubmessage?, String] {
-  match message.destination_guid_prefix() {
-    Ok(Some(destination)) =>
-      match self.participant_prefix {
-        Some(prefix) if destination != prefix &&
-          !transport_guid_prefix_is_unknown(destination) => return Ok(None)
-        _ => ()
-      }
-    Ok(None) => ()
+  let destinations = match message.destination_contexts() {
+    Ok(value) => value
     Err(_) => return Ok(None)
   }
-  for submessage in message.submessages() {
+  let submessages = message.submessages()
+  for index in 0..<submessages.length() {
+    let submessage = submessages[index]
+    if !transport_destination_matches(
+        destinations[index],
+        self.participant_prefix,
+      ) {
+      continue
+    }
     match submessage.id() {
       Data => {
         let data = match @rtps.DataSubmessage::from_submessage(submessage) {

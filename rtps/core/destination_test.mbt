@@ -35,10 +35,10 @@ test "RTPS message exposes its optional INFO_DST prefix" {
     ),
   )
   message.add(@core.InfoDestinationSubmessage::new(prefix).to_submessage())
-  assert_eq(message.destination_guid_prefix(), Ok(Some(prefix)))
+  assert_eq(message.destination_contexts(), Ok([Some(prefix)]))
   assert_eq(
-    @core.Message::new(@core.Header::new(prefix, @core.VendorId::new(1, 15))).destination_guid_prefix(),
-    Ok(None),
+    @core.Message::new(@core.Header::new(prefix, @core.VendorId::new(1, 15))).destination_contexts(),
+    Ok([]),
   )
 }
 
@@ -63,6 +63,9 @@ test "RTPS message prepends INFO_DST before existing submessages" {
   )
   let directed = message.with_destination_guid_prefix(destination)
   assert_eq(directed.submessages().length(), 2)
-  assert_eq(directed.destination_guid_prefix(), Ok(Some(destination)))
+  assert_eq(
+    directed.destination_contexts(),
+    Ok([Some(destination), Some(destination)]),
+  )
   assert_eq(directed.submessages()[1].id(), Data)
 }

@@ -60,13 +60,19 @@ pub async fn ReliableDataReaderSession::handle_message(
   source : @socket.Addr,
 ) -> Result[Array[(@rtps.DataSubmessage, @socket.Addr)], String] {
   let samples : Array[(@rtps.DataSubmessage, @socket.Addr)] = []
-  match message.destination_guid_prefix() {
-    Ok(Some(destination)) if destination != self.guid_prefix &&
-      !transport_guid_prefix_is_unknown(destination) => return Ok(samples)
-    Ok(_) => ()
+  let destinations = match message.destination_contexts() {
+    Ok(value) => value
     Err(_) => return Ok(samples)
   }
-  for submessage in message.submessages() {
+  let submessages = message.submessages()
+  for index in 0..<submessages.length() {
+    let submessage = submessages[index]
+    if !transport_destination_matches(
+        destinations[index],
+        Some(self.guid_prefix),
+      ) {
+      continue
+    }
     match submessage.id() {
       Data => {
         if message.header().guid_prefix() != self.writer_prefix {
@@ -213,13 +219,19 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       match submessage.id() {
         AckNack =>
           match control_writer {
@@ -412,13 +424,19 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       match submessage.id() {
         Data => {
           if message.header().guid_prefix() != self.writer_prefix {

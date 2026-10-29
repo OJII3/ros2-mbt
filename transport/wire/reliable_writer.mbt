@@ -570,13 +570,19 @@ pub async fn ReliableDataWriter::receive_acknack(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       if submessage.id() != AckNack ||
         !self.acknack_targets(message, submessage) {
         continue
@@ -613,13 +619,19 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       if submessage.id() != NackFrag {
         continue
       }
@@ -674,14 +686,20 @@ pub async fn ReliableDataWriter::handle_control_message(
   self : ReliableDataWriter,
   message : @rtps.Message,
 ) -> Result[Bool, String] {
-  match message.destination_guid_prefix() {
-    Ok(Some(destination)) if destination != self.guid_prefix &&
-      !transport_guid_prefix_is_unknown(destination) => return Ok(false)
-    Ok(_) => ()
+  let destinations = match message.destination_contexts() {
+    Ok(value) => value
     Err(_) => return Ok(false)
   }
   let mut handled = false
-  for submessage in message.submessages() {
+  let submessages = message.submessages()
+  for index in 0..<submessages.length() {
+    let submessage = submessages[index]
+    if !transport_destination_matches(
+        destinations[index],
+        Some(self.guid_prefix),
+      ) {
+      continue
+    }
     match submessage.id() {
       AckNack => {
         if !self.acknack_targets(message, submessage) {

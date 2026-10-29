@@ -152,6 +152,7 @@ pub struct DiscoverySender {
   mut sequence_exhausted : Bool
   writers : Array[DiscoveryWriter]
   mut controls : Array[DiscoveryReaderControl]
+  // private fields
 }
 pub fn DiscoverySender::announce_sedp(Self, SedpEndpointData, Array[SpdpParticipantData], Bool) -> Result[Array[DiscoveryOutput], String]
 pub fn DiscoverySender::announce_spdp(Self, Bool) -> Result[Array[DiscoveryOutput], String]

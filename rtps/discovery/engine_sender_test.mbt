@@ -47,24 +47,39 @@ fn sender_test_remote() -> @discovery.SpdpParticipantData {
 }
 
 ///|
-test "discovery sender consumes SPDP sequences when producing effects" {
+test "discovery sender reuses unchanged SPDP samples for refreshes" {
   let sender = sender_test_new()
   let first = sender.announce_spdp(false).unwrap()
+  let refresh = sender.announce_spdp(false).unwrap()
   let second = sender.announce_spdp(true).unwrap()
-  assert_eq(sender.next_sequence_number(), 19L)
+  let dispose_refresh = sender.announce_spdp(true).unwrap()
+  let after_dispose = sender.announce_spdp(false).unwrap()
+  assert_eq(sender.next_sequence_number(), 20L)
   assert_eq(first.length(), 1)
   let data = @core.DataSubmessage::from_submessage(
     first[0].message.submessages()[0],
   ).unwrap()
   assert_eq(data.writer_sequence_number(), 17L)
+  let refreshed = @core.DataSubmessage::from_submessage(
+    refresh[0].message.submessages()[0],
+  ).unwrap()
+  assert_eq(refreshed.writer_sequence_number(), 17L)
   let disposed = @core.DataSubmessage::from_submessage(
     second[0].message.submessages()[0],
   ).unwrap()
   assert_eq(disposed.writer_sequence_number(), 18L)
+  let disposed_again = @core.DataSubmessage::from_submessage(
+    dispose_refresh[0].message.submessages()[0],
+  ).unwrap()
+  assert_eq(disposed_again.writer_sequence_number(), 18L)
   assert_eq(
     disposed.status_info().unwrap(),
     Some(@core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED),
   )
+  let announced_again = @core.DataSubmessage::from_submessage(
+    after_dispose[0].message.submessages()[0],
+  ).unwrap()
+  assert_eq(announced_again.writer_sequence_number(), 19L)
 }
 
 ///|
@@ -78,7 +93,7 @@ test "discovery writer sequences are per kind and history survives acknowledgeme
   assert_eq(first.length(), 2)
   assert_eq(first[0].destination, remote.metatraffic_unicast_locators()[0])
   assert_eq(
-    first[0].message.destination_guid_prefix().unwrap(),
+    first[0].message.destination_contexts().unwrap()[0],
     Some(remote.participant_guid().prefix()),
   )
   assert_eq(sender.next_sedp_sequence_number(Publication), 2L)
@@ -324,7 +339,7 @@ test "SEDP skips unsupported peers in either order and retains replay history" {
     for output in outputs {
       assert_eq(output.destination, supported.metatraffic_unicast_locators()[0])
       assert_eq(
-        output.message.destination_guid_prefix().unwrap(),
+        output.message.destination_contexts().unwrap()[0],
         Some(supported.participant_guid().prefix()),
       )
     }

@@ -413,7 +413,7 @@ test "INFO_DST switches routing in submessage order including heartbeat response
     let output = effects.outgoing[index]
     assert_eq(output.destination, source)
     assert_eq(
-      output.message.destination_guid_prefix().unwrap(),
+      output.message.destination_contexts().unwrap()[0],
       Some(remote.participant_guid().prefix()),
     )
     let submessages = output.message.submessages()
@@ -646,7 +646,7 @@ test "SEDP retransmissions use the advertised metatraffic locator rather than pa
     for output in effects.outgoing {
       assert_eq(output.destination, advertised)
       assert_eq(
-        output.message.destination_guid_prefix().unwrap(),
+        output.message.destination_contexts().unwrap()[0],
         Some(remote.participant_guid().prefix()),
       )
     }

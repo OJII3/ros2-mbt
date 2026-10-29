@@ -85,7 +85,7 @@ async test "discovery accepts GUIDPREFIX_UNKNOWN as an all-participants destinat
 }
 
 ///|
-async test "discovery session repeats SPDP announcements" {
+async test "discovery session refreshes SPDP without allocating a new sample" {
   let prefix = match
     @rtps.GuidPrefix::from_array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
     Ok(value) => value
@@ -142,7 +142,7 @@ async test "discovery session repeats SPDP announcements" {
     Ok(_) => ()
     Err(message) => fail(message)
   }
-  assert_eq(session.next_sequence_number(), 3L)
+  assert_eq(session.next_sequence_number(), 2L)
   let (first, source) = match test_receive(() => receiver.receive_discovery()) {
     Ok(value) => value
     Err(message) => fail(message)

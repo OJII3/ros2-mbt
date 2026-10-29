@@ -49,6 +49,9 @@ pub struct DiscoverySender {
   destination : @core.Locator
   mut next_sequence : Int64
   mut sequence_exhausted : Bool
+  priv mut spdp_data : @core.DataSubmessage?
+  priv mut spdp_fragments : Array[@core.DataFragSubmessage]
+  priv mut spdp_dispose_state : Bool?
   writers : Array[DiscoveryWriter]
   mut controls : Array[DiscoveryReaderControl]
 }
@@ -71,6 +74,9 @@ pub fn DiscoverySender::new(
     destination,
     next_sequence: first_sequence_number,
     sequence_exhausted: false,
+    spdp_data: None,
+    spdp_fragments: [],
+    spdp_dispose_state: None,
     writers: [],
     controls: [],
   })
@@ -161,10 +167,33 @@ fn DiscoverySender::data_messages(
 }
 
 ///|
+fn DiscoverySender::spdp_outputs(
+  self : DiscoverySender,
+  write : DiscoveryWrite,
+) -> Array[DiscoveryOutput] {
+  self
+  .data_messages(write)
+  .map(fn(message) {
+    DiscoveryOutput::{ message, destination: self.destination, }
+  })
+}
+
+///|
 pub fn DiscoverySender::announce_spdp(
   self : DiscoverySender,
   dispose : Bool,
 ) -> Result[Array[DiscoveryOutput], String] {
+  match (self.spdp_data, self.spdp_dispose_state) {
+    (Some(data), Some(previous_dispose)) if previous_dispose == dispose =>
+      return Ok(
+        self.spdp_outputs({
+          endpoint_guid: self.participant.participant_guid(),
+          data,
+          fragments: self.spdp_fragments,
+        }),
+      )
+    _ => ()
+  }
   if self.sequence_exhausted {
     return Err("the SPDP sequence number space is exhausted")
   }
@@ -185,22 +214,20 @@ pub fn DiscoverySender::announce_spdp(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let write = DiscoveryWrite::{
+    endpoint_guid: self.participant.participant_guid(),
+    data,
+    fragments,
+  }
   if self.next_sequence == 0x7FFFFFFFFFFFFFFFL {
     self.sequence_exhausted = true
   } else {
     self.next_sequence += 1L
   }
-  Ok(
-    self
-    .data_messages({
-      endpoint_guid: self.participant.participant_guid(),
-      data,
-      fragments,
-    })
-    .map(fn(message) {
-      DiscoveryOutput::{ message, destination: self.destination, }
-    }),
-  )
+  self.spdp_data = Some(data)
+  self.spdp_fragments = fragments
+  self.spdp_dispose_state = Some(dispose)
+  Ok(self.spdp_outputs(write))
 }
 
 ///|

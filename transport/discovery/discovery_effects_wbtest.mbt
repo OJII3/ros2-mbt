@@ -53,9 +53,9 @@ async test "discovery commits only accepted sends and retries the same sequence"
     @rtps.DataSubmessage::from_submessage(message.submessages()[0])
     .unwrap()
     .writer_sequence_number(),
-    2L,
+    1L,
   )
-  assert_eq(session.engine.next_sequence_number(), 3L)
+  assert_eq(session.engine.next_sequence_number(), 2L)
   assert_eq(session.outgoing.length(), 0)
 }
 
