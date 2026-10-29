@@ -166,52 +166,6 @@ pub fn ReliableDataWriter::new_for_subscription(
 }
 
 ///|
-/// Create a reliable writer for one SEDP endpoint announcement.
-///
-/// The returned writer uses the local endpoint participant prefix and the
-/// builtin SEDP reader/writer IDs selected by the endpoint kind.
-pub fn ReliableDataWriter::new_for_sedp(
-  socket : Udp,
-  vendor_id : @rtps.VendorId,
-  endpoint : @rtps.SedpEndpointData,
-  remote_participant : @rtps.SpdpParticipantData,
-  first_sequence_number : Int64,
-) -> Result[ReliableDataWriter, String] {
-  let unicast_locators = remote_participant.metatraffic_unicast_locators()
-  let locators = if unicast_locators.length() > 0 {
-    unicast_locators
-  } else {
-    remote_participant.metatraffic_multicast_locators()
-  }
-  if locators.length() == 0 {
-    return Err("the remote participant has no metatraffic locators")
-  }
-  let destinations = match udp_locator_to_addrs(locators) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let kind = endpoint.kind()
-  let writer = match
-    ReliableDataWriter::new(
-      socket,
-      endpoint.participant_guid().prefix(),
-      vendor_id,
-      kind.builtin_reader_id(),
-      kind.builtin_writer_id(),
-      destinations[0],
-      first_sequence_number,
-    ) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  Ok({
-    ..writer,
-    destinations,
-    reader_prefix: Some(remote_participant.participant_guid().prefix()),
-  })
-}
-
-///|
 /// Check the entity IDs before parsing a control message from a shared socket.
 fn ReliableDataWriter::acknack_targets(
   self : ReliableDataWriter,
@@ -616,13 +570,19 @@ pub async fn ReliableDataWriter::receive_acknack(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       if submessage.id() != AckNack ||
         !self.acknack_targets(message, submessage) {
         continue
@@ -659,13 +619,19 @@ pub async fn ReliableDataWriter::receive_nackfrag(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    match message.destination_guid_prefix() {
-      Ok(Some(destination)) if destination != self.guid_prefix &&
-        !transport_guid_prefix_is_unknown(destination) => continue
-      Ok(_) => ()
+    let destinations = match message.destination_contexts() {
+      Ok(value) => value
       Err(_) => continue
     }
-    for submessage in message.submessages() {
+    let submessages = message.submessages()
+    for index in 0..<submessages.length() {
+      let submessage = submessages[index]
+      if !transport_destination_matches(
+          destinations[index],
+          Some(self.guid_prefix),
+        ) {
+        continue
+      }
       if submessage.id() != NackFrag {
         continue
       }
@@ -720,14 +686,20 @@ pub async fn ReliableDataWriter::handle_control_message(
   self : ReliableDataWriter,
   message : @rtps.Message,
 ) -> Result[Bool, String] {
-  match message.destination_guid_prefix() {
-    Ok(Some(destination)) if destination != self.guid_prefix &&
-      !transport_guid_prefix_is_unknown(destination) => return Ok(false)
-    Ok(_) => ()
+  let destinations = match message.destination_contexts() {
+    Ok(value) => value
     Err(_) => return Ok(false)
   }
   let mut handled = false
-  for submessage in message.submessages() {
+  let submessages = message.submessages()
+  for index in 0..<submessages.length() {
+    let submessage = submessages[index]
+    if !transport_destination_matches(
+        destinations[index],
+        Some(self.guid_prefix),
+      ) {
+      continue
+    }
     match submessage.id() {
       AckNack => {
         if !self.acknack_targets(message, submessage) {

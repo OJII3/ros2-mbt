@@ -3,23 +3,12 @@
 pub struct DiscoveryService {
   session : DiscoverySession
   graph : DiscoveryGraph
-  mut next_publication_sequence_number : Int64
-  mut next_subscription_sequence_number : Int64
-  mut next_publication_heartbeat_count : UInt32
-  mut next_subscription_heartbeat_count : UInt32
 }
 
 ///|
 /// Create a discovery service from a discovery session.
 pub fn DiscoveryService::new(session : DiscoverySession) -> DiscoveryService {
-  {
-    session,
-    graph: DiscoveryGraph::new(),
-    next_publication_sequence_number: 1L,
-    next_subscription_sequence_number: 1L,
-    next_publication_heartbeat_count: 1U,
-    next_subscription_heartbeat_count: 1U,
-  }
+  { session, graph: DiscoveryGraph::new(), }
 }
 
 ///|
@@ -49,121 +38,43 @@ pub async fn DiscoveryService::dispose_once_on(
 }
 
 ///|
-/// Advance the sequence and HEARTBEAT counters for one SEDP writer.
-fn DiscoveryService::advance_sedp_counters(
-  self : DiscoveryService,
-  kind : @rtps.SedpEndpointKind,
-) -> Unit {
-  match kind {
-    Publication => {
-      self.next_publication_sequence_number += 1L
-      self.next_publication_heartbeat_count += 1U
-    }
-    Subscription => {
-      self.next_subscription_sequence_number += 1L
-      self.next_subscription_heartbeat_count += 1U
-    }
-  }
-}
-
-///|
-/// Send one SEDP sample to a participant using already selected counters.
-async fn DiscoveryService::send_sedp_to_participant(
-  self : DiscoveryService,
-  endpoint : @rtps.SedpEndpointData,
-  remote_participant : @rtps.SpdpParticipantData,
-  sequence_number : Int64,
-  heartbeat_count : UInt32,
-) -> Result[Unit, String] {
-  match
-    self.session.remember_sedp_sample(
-      endpoint,
-      self.session.participant.vendor_id(),
-      sequence_number,
-    ) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
-  }
-  self.session.socket.send_sedp_to_participant_with_heartbeat_count(
-    endpoint,
-    self.session.participant.vendor_id(),
-    remote_participant,
-    sequence_number,
-    heartbeat_count,
-  )
-}
-
-///|
-/// Send one SEDP endpoint dispose sample to a participant.
-async fn DiscoveryService::send_sedp_dispose_to_participant(
-  self : DiscoveryService,
-  endpoint : @rtps.SedpEndpointData,
-  remote_participant : @rtps.SpdpParticipantData,
-  sequence_number : Int64,
-  heartbeat_count : UInt32,
-) -> Result[Unit, String] {
-  match self.session.remember_sedp_dispose_sample(endpoint, sequence_number) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
-  }
-  self.session.socket.send_sedp_dispose_to_participant_with_heartbeat_count(
-    endpoint,
-    self.session.participant.vendor_id(),
-    remote_participant,
-    sequence_number,
-    heartbeat_count,
-  )
-}
-
-///|
-/// Send one local SEDP endpoint announcement to a discovered participant.
+/// Produce one reliable announcement using the engine's unique builtin writer.
 pub async fn DiscoveryService::announce_sedp_once(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
   remote_participant : @rtps.SpdpParticipantData,
 ) -> Result[Unit, String] {
-  let sequence_number = match endpoint.kind() {
-    Publication => self.next_publication_sequence_number
-    Subscription => self.next_subscription_sequence_number
-  }
-  let heartbeat_count = match endpoint.kind() {
-    Publication => self.next_publication_heartbeat_count
-    Subscription => self.next_subscription_heartbeat_count
-  }
-  match
-    self.send_sedp_to_participant(
-      endpoint, remote_participant, sequence_number, heartbeat_count,
-    ) {
-    Ok(_) => {
-      self.advance_sedp_counters(endpoint.kind())
-      Ok(())
-    }
-    Err(message) => {
-      self.advance_sedp_counters(endpoint.kind())
-      Err(message)
-    }
+  self.send_sedp(endpoint, [remote_participant], false)
+}
+
+///|
+async fn DiscoveryService::send_sedp(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+  remotes : Array[@rtps.SpdpParticipantData],
+  dispose : Bool,
+) -> Result[Unit, String] {
+  match self.queue_sedp(endpoint, remotes, dispose) {
+    Ok(_) => self.flush_outgoing()
+    Err(message) => Err(message)
   }
 }
 
 ///|
-/// Create a reliable SEDP writer on the discovery session's UDP socket.
-///
-/// The returned writer shares that socket with this service. While it is
-/// receiving ACKNACKs, callers must not run another receive loop on the same
-/// service socket.
-pub fn DiscoveryService::new_reliable_sedp_writer(
+fn DiscoveryService::queue_sedp(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
-  remote_participant : @rtps.SpdpParticipantData,
-  first_sequence_number : Int64,
-) -> Result[@wire.ReliableSedpWriter, String] {
-  @wire.ReliableSedpWriter::new(
-    self.session.socket,
-    self.session.participant.vendor_id(),
-    endpoint,
-    remote_participant,
-    first_sequence_number,
-  )
+  remotes : Array[@rtps.SpdpParticipantData],
+  dispose : Bool,
+) -> Result[Unit, String] {
+  let outgoing = match
+    self.session.engine.announce_sedp(endpoint, remotes, dispose) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.session.enqueue_outgoing(outgoing)
+  self.session.notify_deadline_change()
+  Ok(())
 }
 
 ///|
@@ -172,36 +83,7 @@ pub async fn DiscoveryService::announce_sedp_to_all(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
 ) -> Result[Unit, String] {
-  let local_guid = self.session.participant.participant_guid()
-  let sequence_number = match endpoint.kind() {
-    Publication => self.next_publication_sequence_number
-    Subscription => self.next_subscription_sequence_number
-  }
-  let heartbeat_count = match endpoint.kind() {
-    Publication => self.next_publication_heartbeat_count
-    Subscription => self.next_subscription_heartbeat_count
-  }
-  let mut sent = false
-  for remote_participant in self.graph.participants() {
-    if remote_participant.participant_guid() == local_guid {
-      continue
-    }
-    sent = true
-    match
-      self.send_sedp_to_participant(
-        endpoint, remote_participant, sequence_number, heartbeat_count,
-      ) {
-      Ok(_) => ()
-      Err(message) => {
-        self.advance_sedp_counters(endpoint.kind())
-        return Err(message)
-      }
-    }
-  }
-  if sent {
-    self.advance_sedp_counters(endpoint.kind())
-  }
-  Ok(())
+  self.send_sedp(endpoint, self.graph.participants(), false)
 }
 
 ///|
@@ -210,36 +92,7 @@ pub async fn DiscoveryService::dispose_sedp_to_all(
   self : DiscoveryService,
   endpoint : @rtps.SedpEndpointData,
 ) -> Result[Unit, String] {
-  let local_guid = self.session.participant.participant_guid()
-  let sequence_number = match endpoint.kind() {
-    Publication => self.next_publication_sequence_number
-    Subscription => self.next_subscription_sequence_number
-  }
-  let heartbeat_count = match endpoint.kind() {
-    Publication => self.next_publication_heartbeat_count
-    Subscription => self.next_subscription_heartbeat_count
-  }
-  let mut sent = false
-  for remote_participant in self.graph.participants() {
-    if remote_participant.participant_guid() == local_guid {
-      continue
-    }
-    sent = true
-    match
-      self.send_sedp_dispose_to_participant(
-        endpoint, remote_participant, sequence_number, heartbeat_count,
-      ) {
-      Ok(_) => ()
-      Err(message) => {
-        self.advance_sedp_counters(endpoint.kind())
-        return Err(message)
-      }
-    }
-  }
-  if sent {
-    self.advance_sedp_counters(endpoint.kind())
-  }
-  Ok(())
+  self.send_sedp(endpoint, self.graph.participants(), true)
 }
 
 ///|
@@ -294,10 +147,7 @@ pub fn DiscoveryService::next_sedp_sequence_number(
   self : DiscoveryService,
   kind : @rtps.SedpEndpointKind,
 ) -> Int64 {
-  match kind {
-    Publication => self.next_publication_sequence_number
-    Subscription => self.next_subscription_sequence_number
-  }
+  self.session.engine.next_sedp_sequence_number(kind)
 }
 
 ///|
@@ -462,4 +312,36 @@ pub fn DiscoveryService::graph(self : DiscoveryService) -> DiscoveryGraph {
 /// Close the underlying discovery session.
 pub fn DiscoveryService::close(self : DiscoveryService) -> Unit {
   self.session.close()
+}
+
+///|
+/// Replay the latest retained endpoint samples without registering new writes.
+pub async fn DiscoveryService::replay_sedp(
+  self : DiscoveryService,
+  remote : @rtps.SpdpParticipantData,
+) -> Result[Unit, String] {
+  let outgoing = match self.session.engine.replay_sedp(remote) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  self.session.enqueue_outgoing(outgoing)
+  self.session.flush_outgoing()
+}
+
+///|
+/// Admit an endpoint announcement and queue its effects synchronously. An error
+/// leaves writer history and sequence state unchanged; UDP sends happen later.
+pub fn DiscoveryService::queue_sedp_to_all(
+  self : DiscoveryService,
+  endpoint : @rtps.SedpEndpointData,
+) -> Result[Unit, String] {
+  self.queue_sedp(endpoint, self.graph.participants(), false)
+}
+
+///|
+/// Deliver or retry effects admitted by queue_sedp_to_all without new writes.
+pub async fn DiscoveryService::flush_outgoing(
+  self : DiscoveryService,
+) -> Result[Unit, String] {
+  self.session.flush_outgoing()
 }

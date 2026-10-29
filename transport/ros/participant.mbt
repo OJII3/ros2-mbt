@@ -9,6 +9,7 @@ pub struct RosParticipant {
   user_socket : @wire.Udp
   user_locator : @rtps.Locator
   mut local_endpoints : Array[@rtps.SedpEndpointData]
+  mut announced_participants : Array[@rtps.SpdpParticipantData]
   mut spdp_socket : @wire.Udp?
   ros_graph : RosGraph
 }
@@ -63,6 +64,7 @@ pub fn RosParticipant::from_discovery_session(
     user_socket,
     user_locator,
     local_endpoints: [],
+    announced_participants: [],
     spdp_socket: None,
     ros_graph: RosGraph::new(),
   })
@@ -284,8 +286,13 @@ pub async fn RosParticipant::register_endpoint(
       return Err("the SEDP endpoint is already registered")
     }
   }
+  match self.discovery.queue_sedp_to_all(registered) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  // Both local registration and writer admission finish before the first await.
   self.local_endpoints.push(registered)
-  match self.discovery.announce_sedp_to_all(registered) {
+  match self.discovery.flush_outgoing() {
     Ok(_) => ()
     Err(message) => return Err(message)
   }
@@ -827,12 +834,29 @@ pub async fn RosParticipant::receive_discovery_once(
     Participant(remote_participant) =>
       if remote_participant.participant_guid() !=
         self.participant.participant_guid() {
-        for endpoint in self.local_endpoints {
-          match
-            self.discovery.announce_sedp_once(endpoint, remote_participant) {
+        let mut previous : @rtps.SpdpParticipantData? = None
+        for remote in self.announced_participants {
+          if remote.participant_guid() == remote_participant.participant_guid() {
+            previous = Some(remote)
+            break
+          }
+        }
+        let changed = match previous {
+          Some(remote) =>
+            remote.to_cdr_bytes() != remote_participant.to_cdr_bytes()
+          None => true
+        }
+        if changed {
+          match self.discovery.replay_sedp(remote_participant) {
             Ok(_) => ()
             Err(message) => return Err(message)
           }
+          self.announced_participants = self.announced_participants.filter(fn(
+            remote,
+          ) {
+            remote.participant_guid() != remote_participant.participant_guid()
+          })
+          self.announced_participants.push(remote_participant)
         }
       }
     Publication(publication) =>
@@ -873,8 +897,14 @@ pub async fn RosParticipant::receive_discovery_once(
         Subscription =>
           self.ros_graph.forget_endpoint(Subscription, endpoint_guid)
       }
-    ParticipantRemoved(participant_guid) =>
+    ParticipantRemoved(participant_guid) => {
+      self.announced_participants = self.announced_participants.filter(fn(
+        remote,
+      ) {
+        remote.participant_guid() != participant_guid
+      })
       self.ros_graph.forget_participant(participant_guid.prefix())
+    }
   }
   Ok((source, event))
 }

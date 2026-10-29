@@ -1,4 +1,8 @@
 ///|
+/// DATA_FRAG uses bit 2 for KeyFlag (unlike DATA, whose KeyFlag is bit 3).
+pub const DATA_FRAG_FLAG_KEY : Byte = 0x04
+
+///|
 /// The fixed DATA_FRAG submessage body before inline QoS or fragment data.
 pub const DATA_FRAG_FIXED_BODY_LENGTH : Int32 = 32
 
@@ -75,7 +79,7 @@ pub fn DataFragSubmessage::new(
     return Err("only the final RTPS DATA_FRAG may be short")
   }
   Ok({
-    flags: DATA_FLAG_LITTLE_ENDIAN | DATA_FLAG_DATA,
+    flags: DATA_FLAG_LITTLE_ENDIAN,
     extra_flags: 0,
     octets_to_inline_qos: DATA_FRAG_INLINE_QOS_OFFSET.to_uint16(),
     reader_id,
@@ -283,11 +287,6 @@ pub fn DataFragSubmessage::from_submessage(
     }
     inline_qos = decoded_inline_qos
     payload_offset = inline_qos_offset + consumed
-  }
-  let data_and_key_flags = submessage.flags() & (DATA_FLAG_DATA | DATA_FLAG_KEY)
-  if data_and_key_flags == 0 ||
-    data_and_key_flags == (DATA_FLAG_DATA | DATA_FLAG_KEY) {
-    return Err("RTPS DATA_FRAG must contain exactly one data or key flag")
   }
   let result = match
     DataFragSubmessage::new(

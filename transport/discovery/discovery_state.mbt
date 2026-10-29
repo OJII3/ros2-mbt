@@ -39,146 +39,22 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
       Err(message) => Err(message)
     }
   })
-  for remote in self.remote_participants {
-    match remote.lease_timer {
-      Some(timer) => {
-        let participant_guid = remote.participant.participant_guid()
-        tasks.push(async fn() {
-          timer.wait()
-          Ok(ParticipantLeaseExpired(participant_guid))
-        })
-      }
-      None => ()
-    }
-  }
-  @async.any(tasks, allow_failure=true)
-}
-
-///|
-/// Locate or create reliable receive state for one remote SEDP writer.
-fn DiscoverySession::sedp_reader_index(
-  self : DiscoverySession,
-  writer_prefix : @rtps.GuidPrefix,
-  writer_id : @rtps.EntityId,
-) -> Result[Int32, String] {
-  for index in 0..<self.sedp_readers.length() {
-    let reader = self.sedp_readers[index]
-    if reader.writer_prefix == writer_prefix && reader.writer_id == writer_id {
-      return Ok(index)
-    }
-  }
-  let kind = match @rtps.SedpEndpointKind::from_builtin_writer_id(writer_id) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  self.sedp_readers.push({
-    writer_prefix,
-    writer_id,
-    reader: @wire.ReliableDataReader::new(kind.builtin_reader_id(), writer_id),
+  tasks.push(async fn() {
+    self.deadline_changes.get()
+    Ok(DeadlineChanged)
   })
-  Ok(self.sedp_readers.length() - 1)
-}
-
-///|
-/// Locate or create fragment assembly state for one remote SPDP writer.
-fn DiscoverySession::spdp_fragment_reader_index(
-  self : DiscoverySession,
-  writer_prefix : @rtps.GuidPrefix,
-) -> Int32 {
-  for index in 0..<self.spdp_fragment_readers.length() {
-    if self.spdp_fragment_readers[index].writer_prefix == writer_prefix {
-      return index
-    }
-  }
-  self.spdp_fragment_readers.push({
-    writer_prefix,
-    writer_id: self.writer_id,
-    reader: @wire.ReliableDataReader::new(self.reader_id, self.writer_id),
-  })
-  self.spdp_fragment_readers.length() - 1
-}
-
-///|
-/// Retain the latest SPDP locators for one remote participant.
-fn DiscoverySession::remember_remote_participant(
-  self : DiscoverySession,
-  participant : @rtps.SpdpParticipantData,
-) -> Unit {
-  if participant.participant_guid() == self.participant.participant_guid() {
-    return
-  }
-  let lease_remaining_ms = discovery_spdp_lease_milliseconds(participant)
-  for index in 0..<self.remote_participants.length() {
-    if self.remote_participants[index].participant.participant_guid() ==
-      participant.participant_guid() {
-      self.remote_participants[index].participant = participant
-      match (self.remote_participants[index].lease_timer, lease_remaining_ms) {
-        (Some(timer), Some(remaining_ms)) => {
-          let segment_ms = discovery_lease_timer_segment(remaining_ms)
-          self.remote_participants[index].lease_remaining_ms = remaining_ms
-          if segment_ms == self.remote_participants[index].lease_segment_ms {
-            timer.refresh()
-          } else {
-            timer.cancel()
-            self.remote_participants[index].lease_timer = Some(
-              Timer(segment_ms),
-            )
-            self.remote_participants[index].lease_segment_ms = segment_ms
-          }
-        }
-        (Some(timer), None) => {
-          timer.cancel()
-          self.remote_participants[index].lease_timer = None
-          self.remote_participants[index].lease_remaining_ms = 0L
-          self.remote_participants[index].lease_segment_ms = 0
-        }
-        (None, Some(remaining_ms)) => {
-          let segment_ms = discovery_lease_timer_segment(remaining_ms)
-          self.remote_participants[index].lease_timer = Some(Timer(segment_ms))
-          self.remote_participants[index].lease_remaining_ms = remaining_ms
-          self.remote_participants[index].lease_segment_ms = segment_ms
-        }
-        (None, None) => ()
-      }
-      return
-    }
-  }
-  let mut timer = None
-  let mut remaining_ms = 0L
-  let mut segment_ms = 0
-  match lease_remaining_ms {
-    Some(value) => {
-      remaining_ms = value
-      segment_ms = discovery_lease_timer_segment(value)
-      timer = Some(@async.Timer::Timer(segment_ms))
+  match self.engine.next_deadline() {
+    Some(deadline) => {
+      let delay = deadline - self.clock.now_ms()
+      let delay = if delay < 0L { 0L } else { delay }
+      tasks.push(async fn() {
+        @async.sleep(discovery_lease_timer_segment(delay))
+        Ok(ParticipantLeaseExpired)
+      })
     }
     None => ()
   }
-  self.remote_participants.push({
-    participant,
-    lease_timer: timer,
-    lease_remaining_ms: remaining_ms,
-    lease_segment_ms: segment_ms,
-  })
-}
-
-///|
-fn discovery_spdp_lease_milliseconds(
-  participant : @rtps.SpdpParticipantData,
-) -> Int64? {
-  let seconds = participant.lease_seconds()
-  let nanoseconds = participant.lease_nanoseconds()
-  if seconds == 0x7FFFFFFF && nanoseconds == 0xFFFFFFFFU {
-    return None
-  }
-  if seconds < 0 || nanoseconds >= 1_000_000_000U {
-    return None
-  }
-  let fractional_milliseconds = (nanoseconds.to_uint64() + 999_999U.to_uint64()) /
-    1_000_000U.to_uint64()
-  Some(
-    seconds.to_int64() * 1000L + fractional_milliseconds.reinterpret_as_int64(),
-  )
+  @async.any(tasks, allow_failure=true)
 }
 
 ///|
@@ -191,190 +67,152 @@ fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
 }
 
 ///|
-fn DiscoverySession::advance_expired_participant_lease(
-  self : DiscoverySession,
-  participant_guid : @rtps.Guid,
-) -> Bool {
-  for remote in self.remote_participants {
-    if remote.participant.participant_guid() != participant_guid {
-      continue
-    }
-    if remote.lease_timer is None {
-      return false
-    }
-    if remote.lease_remaining_ms > remote.lease_segment_ms.to_int64() {
-      remote.lease_remaining_ms -= remote.lease_segment_ms.to_int64()
-      remote.lease_segment_ms = discovery_lease_timer_segment(
-        remote.lease_remaining_ms,
-      )
-      remote.lease_timer = Some(Timer(remote.lease_segment_ms))
-      return false
-    }
-    return true
-  }
-  false
+fn discovery_addr_to_locator(address : @socket.Addr) -> @rtps.Locator {
+  let ip = address.ip()
+  @rtps.Locator::udp_v4(
+    Bytes::from_array([
+      (ip >> 24).to_byte(),
+      (ip >> 16).to_byte(),
+      (ip >> 8).to_byte(),
+      ip.to_byte(),
+    ]),
+    address.port().reinterpret_as_uint(),
+  ).unwrap()
 }
 
 ///|
-/// Forget one remote participant and its advertised locators.
-fn DiscoverySession::forget_remote_participant(
+fn discovery_locator_to_addr(
+  locator : @rtps.Locator,
+) -> Result[@socket.Addr, String] {
+  if locator.kind() != @rtps.LOCATOR_KIND_UDP_V4 {
+    return Err("unsupported discovery locator transport")
+  }
+  if locator.port() == 0U || locator.port() > 65535U {
+    return Err("invalid discovery UDP destination port")
+  }
+  let address = locator.address()
+  let ip = (address[12].to_int().reinterpret_as_uint() << 24) |
+    (address[13].to_int().reinterpret_as_uint() << 16) |
+    (address[14].to_int().reinterpret_as_uint() << 8) |
+    address[15].to_int().reinterpret_as_uint()
+  Ok(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
+}
+
+///|
+fn DiscoverySession::enqueue_outgoing(
   self : DiscoverySession,
-  participant_guid : @rtps.Guid,
+  outgoing : Array[@participant_discovery.DiscoveryOutput],
 ) -> Unit {
-  let remaining : Array[DiscoveryRemoteParticipant] = []
-  for remote in self.remote_participants {
-    if remote.participant.participant_guid() != participant_guid {
-      remaining.push(remote)
-    } else {
-      match remote.lease_timer {
-        Some(timer) => timer.cancel()
-        None => ()
+  for output in outgoing {
+    self.outgoing.push(output)
+  }
+}
+
+///|
+/// Commit accepted datagrams; retain send failures for retry. Destinations
+/// this adapter can never deliver are kept separately for caller inspection.
+async fn DiscoverySession::flush_outgoing_on(
+  self : DiscoverySession,
+  socket : @wire.Udp,
+) -> Result[Unit, String] {
+  self.send_lock.acquire()
+  defer self.send_lock.release()
+  // Attempt each queued effect once. A failed destination must not prevent
+  // delivery to independent peers. New effects enqueued during a send are
+  // handled by the next flush, without changing the current retry set.
+  let mut remaining = self.outgoing.length()
+  let mut index = 0
+  let mut first_error : String? = None
+  while remaining > 0 {
+    remaining -= 1
+    let output = self.outgoing[index]
+    let destination = match discovery_locator_to_addr(output.destination) {
+      Ok(value) => value
+      Err(message) => {
+        self.rejected_outgoing.push(output)
+        self.outgoing.remove(index) |> ignore
+        if first_error is None {
+          first_error = Some(message)
+        }
+        continue
+      }
+    }
+    let sent = socket.send_message(output.message, destination) catch {
+      _ => Err("could not send discovery datagram")
+    }
+    match sent {
+      Ok(_) => self.outgoing.remove(index) |> ignore
+      Err(message) => {
+        index += 1
+        if first_error is None {
+          first_error = Some(message)
+        }
       }
     }
   }
-  self.remote_participants = remaining
-  let sedp_readers : Array[DiscoveryRemoteDataReader] = []
-  for reader in self.sedp_readers {
-    if reader.writer_prefix != participant_guid.prefix() {
-      sedp_readers.push(reader)
-    }
+  match first_error {
+    Some(message) => Err(message)
+    None => Ok(())
   }
-  self.sedp_readers = sedp_readers
-  let spdp_fragment_readers : Array[DiscoveryRemoteDataReader] = []
-  for reader in self.spdp_fragment_readers {
-    if reader.writer_prefix != participant_guid.prefix() {
-      spdp_fragment_readers.push(reader)
-    }
-  }
-  self.spdp_fragment_readers = spdp_fragment_readers
 }
 
 ///|
-/// Resolve an ACKNACK destination from SPDP, falling back to the packet source.
-fn DiscoverySession::acknowledgement_destination(
+/// Retry queued discovery datagrams without allocating new sequence numbers.
+pub async fn DiscoverySession::flush_outgoing(
   self : DiscoverySession,
-  participant_prefix : @rtps.GuidPrefix,
+) -> Result[Unit, String] {
+  self.flush_outgoing_on(self.socket)
+}
+
+///|
+fn DiscoverySession::enqueue_effects(
+  self : DiscoverySession,
+  effects : @participant_discovery.DiscoveryEffects,
   source : @socket.Addr,
-) -> @socket.Addr {
-  for remote in self.remote_participants {
-    let participant = remote.participant
-    if participant.participant_guid().prefix() != participant_prefix {
-      continue
-    }
-    match
-      discovery_udp_locator_to_addrs(participant.metatraffic_unicast_locators()) {
-      Ok(addresses) if addresses.length() > 0 => return addresses[0]
-      _ => ()
-    }
-  }
-  source
-}
-
-///|
-fn discovery_udp_locator_to_addrs(
-  locators : Array[@rtps.Locator],
-) -> Result[Array[@socket.Addr], String] {
-  let addresses : Array[@socket.Addr] = []
-  for locator in locators {
-    if locator.kind() != @rtps.LOCATOR_KIND_UDP_V4 {
-      continue
-    }
-    let address = locator.address()
-    let ip = (address[12].to_int().reinterpret_as_uint() << 24) |
-      (address[13].to_int().reinterpret_as_uint() << 16) |
-      (address[14].to_int().reinterpret_as_uint() << 8) |
-      address[15].to_int().reinterpret_as_uint()
-    addresses.push(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
-  }
-  if addresses.length() == 0 {
-    return Err("no supported UDP/IPv4 locators were advertised")
-  }
-  Ok(addresses)
-}
-
-///|
-/// Locate or create history for one local SEDP writer kind.
-fn DiscoverySession::sedp_writer_index(
-  self : DiscoverySession,
-  kind : @rtps.SedpEndpointKind,
-) -> Int32 {
-  for index in 0..<self.sedp_writers.length() {
-    if self.sedp_writers[index].kind == kind {
-      return index
-    }
-  }
-  self.sedp_writers.push({ kind, samples: [], })
-  self.sedp_writers.length() - 1
-}
-
-///|
-/// Retain one local SEDP sample for ACKNACK-driven retransmission.
-fn DiscoverySession::remember_sedp_sample(
-  self : DiscoverySession,
-  endpoint : @rtps.SedpEndpointData,
-  vendor_id : @rtps.VendorId,
-  sequence_number : Int64,
-) -> Result[Unit, String] {
-  let kind = endpoint.kind()
-  let sample = match
-    endpoint.to_data_submessage_with_vendor(
-      vendor_id,
-      kind.builtin_reader_id(),
-      kind.builtin_writer_id(),
-      sequence_number,
-    ) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  self.remember_sedp_data(kind, sequence_number, sample)
-}
-
-///|
-/// Retain one SEDP DATA sample for ACKNACK-driven retransmission.
-fn DiscoverySession::remember_sedp_data(
-  self : DiscoverySession,
-  kind : @rtps.SedpEndpointKind,
-  sequence_number : Int64,
-  sample : @rtps.DataSubmessage,
-) -> Result[Unit, String] {
-  let index = self.sedp_writer_index(kind)
-  for sample_index in 0..<self.sedp_writers[index].samples.length() {
-    if self.sedp_writers[index].samples[sample_index].writer_sequence_number() ==
-      sequence_number {
-      self.sedp_writers[index].samples[sample_index] = sample
-      return Ok(())
-    }
-  }
-  self.sedp_writers[index].samples.push(sample)
-  Ok(())
-}
-
-///|
-/// Retain one SEDP endpoint dispose sample for ACKNACK-driven retransmission.
-fn DiscoverySession::remember_sedp_dispose_sample(
-  self : DiscoverySession,
-  endpoint : @rtps.SedpEndpointData,
-  sequence_number : Int64,
-) -> Result[Unit, String] {
-  let kind = endpoint.kind()
-  let sample = endpoint.to_dispose_data_submessage(
-    kind.builtin_reader_id(),
-    kind.builtin_writer_id(),
-    sequence_number,
-  )
-  self.remember_sedp_data(kind, sequence_number, sample)
-}
-
-///|
-/// Remember a received SEDP DATA sample for later ACKNACK generation.
-fn DiscoverySession::record_sedp_data(
-  self : DiscoverySession,
-  writer_prefix : @rtps.GuidPrefix,
-  data : @rtps.DataSubmessage,
 ) -> Unit {
-  let index = match self.sedp_reader_index(writer_prefix, data.writer_id()) {
-    Ok(value) => value
-    Err(_) => return
+  self.enqueue_outgoing(effects.outgoing)
+  for event in effects.events {
+    self.pending_events.push((discovery_wire_event(event), source))
   }
-  ignore(self.sedp_readers[index].reader.accept_data(data))
+}
+
+///|
+fn discovery_wire_event(
+  event : @participant_discovery.DiscoveryEvent,
+) -> @wire.DiscoveryEvent {
+  match event {
+    Participant(value) => Participant(value)
+    Publication(value) => Publication(value)
+    Subscription(value) => Subscription(value)
+    EndpointRemoved(kind, guid) => EndpointRemoved(kind, guid)
+    ParticipantRemoved(guid) => ParticipantRemoved(guid)
+  }
+}
+
+///|
+fn DiscoverySession::queue_expired_participants(
+  self : DiscoverySession,
+) -> Unit {
+  self.enqueue_effects(
+    self.engine.advance(self.clock.now_ms()),
+    @socket.Addr::new(0, 0),
+  )
+}
+
+///|
+/// Wake a receive already waiting without a heartbeat timer. Notifications are
+/// coalesced and remain pending even if there is no active receive yet.
+fn DiscoverySession::notify_deadline_change(self : DiscoverySession) -> Unit {
+  ignore(self.deadline_changes.try_put(()) catch { _ => false })
+}
+
+///|
+/// Take permanently rejected destinations, preserving their original messages
+/// so the caller can inspect or reroute them. They never block the send queue.
+pub fn DiscoverySession::take_rejected_outgoing(
+  self : DiscoverySession,
+) -> Array[@participant_discovery.DiscoveryOutput] {
+  let rejected = self.rejected_outgoing
+  self.rejected_outgoing = []
+  rejected
 }

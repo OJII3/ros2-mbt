@@ -12,6 +12,19 @@ fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
   true
 }
 
+///|
+fn transport_destination_matches(
+  destination : @rtps.GuidPrefix?,
+  participant_prefix : @rtps.GuidPrefix?,
+) -> Bool {
+  match (destination, participant_prefix) {
+    (Some(destination), Some(participant_prefix)) if destination !=
+      participant_prefix &&
+      !transport_guid_prefix_is_unknown(destination) => false
+    _ => true
+  }
+}
+
 ///| A small UDP server wrapper for RTPS datagrams.
 
 ///|

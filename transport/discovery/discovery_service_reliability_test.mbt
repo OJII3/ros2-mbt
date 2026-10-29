@@ -95,8 +95,8 @@ async test "discovery service retransmits SEDP samples requested by ACKNACK" {
   }
   let (retransmitted_message, _) = test_receive(() => receiver.receive_message()).unwrap()
   assert_eq(
-    retransmitted_message.destination_guid_prefix(),
-    Ok(Some(remote_prefix)),
+    retransmitted_message.destination_contexts().unwrap()[0],
+    Some(remote_prefix),
   )
   let retransmitted = @rtps.DataSubmessage::from_submessage(
     retransmitted_message.submessages()[1],

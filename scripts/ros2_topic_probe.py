@@ -23,13 +23,6 @@ class TopicProbe(Node):
         self.message_type = message_type
         self.reliability = reliability
 
-    def has_publisher(self, expected_node: str) -> bool:
-        for endpoint in self.get_publishers_info_by_topic(self.topic):
-            full_name = f"{endpoint.node_namespace.rstrip('/')}/{endpoint.node_name}"
-            if full_name == expected_node:
-                return True
-        return False
-
     def create_probe_subscription(self, expected_prefix: str) -> None:
         reliability = (
             ReliabilityPolicy.BEST_EFFORT
@@ -75,8 +68,7 @@ def parse_args() -> argparse.Namespace:
         default="reliable",
     )
     parser.add_argument("--expected-prefix", default="")
-    parser.add_argument("--publisher", help="Wait for this fully qualified ROS node before subscribing")
-    parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--timeout", type=float, default=10.0)
     return parser.parse_args()
 
 
@@ -91,14 +83,6 @@ def main() -> int:
     node = TopicProbe(args.topic, MessageType, args.reliability)
     deadline = time.monotonic() + args.timeout
     try:
-        if args.publisher:
-            while time.monotonic() < deadline and not node.has_publisher(args.publisher):
-                rclpy.spin_once(node, timeout_sec=0.1)
-            if not node.has_publisher(args.publisher):
-                print(f"PROBE_TIMEOUT publisher={args.publisher}", file=sys.stderr)
-                return 1
-            print(f"PROBE_PUBLISHER_FOUND {args.publisher}", flush=True)
-
         node.create_probe_subscription(args.expected_prefix)
         while (
             rclpy.ok()

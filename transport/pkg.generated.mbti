@@ -64,7 +64,7 @@ pub using @OJII3/ros2-mbt/transport/discovery {type DiscoverySession}
 
 pub using @ros {type Executor}
 
-pub using @wire {type ReliableDataReader}
+pub using @core {type ReliableDataReader}
 
 pub using @wire {type ReliableDataReaderSession}
 
@@ -77,8 +77,6 @@ pub using @ros {type ReliableRosDiscoverySubscription}
 pub using @ros {type ReliableRosPublisher}
 
 pub using @ros {type ReliableRosSubscription}
-
-pub using @wire {type ReliableSedpWriter}
 
 pub using @ros {type RosActionClient}
 

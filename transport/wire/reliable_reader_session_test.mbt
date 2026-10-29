@@ -187,7 +187,7 @@ async test "reliable reader session receives discovered publication data" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(ack_message.destination_guid_prefix(), Ok(Some(prefix)))
+  assert_eq(ack_message.destination_contexts().unwrap()[0], Some(prefix))
   let acknack = match
     @rtps.AckNackSubmessage::from_submessage(ack_message.submessages()[1]) {
     Ok(value) => value

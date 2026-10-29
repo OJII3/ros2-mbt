@@ -176,6 +176,7 @@ pub struct RosParticipant {
   user_socket : @wire.Udp
   user_locator : @core.Locator
   mut local_endpoints : Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
+  mut announced_participants : Array[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData]
   mut spdp_socket : @wire.Udp?
   ros_graph : RosGraph
 }

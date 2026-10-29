@@ -142,17 +142,19 @@ pub fn DataReaderState::handle_message(
   self : DataReaderState,
   message : @rtps.Message,
 ) -> Result[@rtps.DataSubmessage?, String] {
-  match message.destination_guid_prefix() {
-    Ok(Some(destination)) =>
-      match self.participant_prefix {
-        Some(prefix) if destination != prefix &&
-          !transport_guid_prefix_is_unknown(destination) => return Ok(None)
-        _ => ()
-      }
-    Ok(None) => ()
+  let destinations = match message.destination_contexts() {
+    Ok(value) => value
     Err(_) => return Ok(None)
   }
-  for submessage in message.submessages() {
+  let submessages = message.submessages()
+  for index in 0..<submessages.length() {
+    let submessage = submessages[index]
+    if !transport_destination_matches(
+        destinations[index],
+        self.participant_prefix,
+      ) {
+      continue
+    }
     match submessage.id() {
       Data => {
         let data = match @rtps.DataSubmessage::from_submessage(submessage) {
@@ -176,7 +178,9 @@ pub fn DataReaderState::handle_message(
         }
         match self.state.accept_data(data) {
           Ok(_) => {
-            self.prune_receive_state(data.writer_sequence_number())
+            self.state.prune_best_effort_receive_state(
+              data.writer_sequence_number(),
+            )
             return Ok(Some(data))
           }
           Err(_) => continue
@@ -195,7 +199,7 @@ pub fn DataReaderState::handle_message(
         if !prefix_matches {
           continue
         }
-        let data = match self.accept_fragment(fragment) {
+        let data = match self.state.accept_best_effort_fragment(fragment) {
           Ok(value) => value
           Err(_) => continue
         }
@@ -208,84 +212,6 @@ pub fn DataReaderState::handle_message(
     }
   }
   Ok(None)
-}
-
-///|
-/// Best-effort sends no ACKNACK, so advance the shared reader state's cumulative
-/// cutoff locally. Release an incomplete sample once DATA completes it as well.
-fn DataReaderState::prune_receive_state(
-  self : DataReaderState,
-  sequence : Int64,
-) -> Unit {
-  self.state.advance_acknowledged_through(sequence - 256L)
-  let retained : Array[ReliableFragmentedSample] = []
-  for sample in self.state.fragments {
-    if !self.state.has_received_sequence(sample.sequence_number) {
-      retained.push(sample)
-    }
-  }
-  self.state.fragments = retained
-}
-
-///|
-/// Reject oversized samples before allocating and evict the oldest incomplete
-/// samples when the count or payload budget is exhausted.
-fn DataReaderState::accept_fragment(
-  self : DataReaderState,
-  fragment : @rtps.DataFragSubmessage,
-) -> Result[@rtps.DataSubmessage?, String] {
-  let sequence = fragment.writer_sequence_number()
-  if (
-      fragment.reader_id() != self.reader_id &&
-      fragment.reader_id() != @rtps.EntityId::unknown()
-    ) ||
-    fragment.writer_id() != self.writer_id ||
-    self.state.has_received_sequence(sequence) ||
-    fragment.sample_size() > 16U * 1024U * 1024U {
-    return Ok(None)
-  }
-  let mut already_pending = false
-  for sample in self.state.fragments {
-    if sample.sequence_number == sequence {
-      already_pending = true
-      break
-    }
-  }
-  if !already_pending {
-    while true {
-      let mut payload_bytes = fragment.sample_size().reinterpret_as_int()
-      let mut oldest_index = 0
-      for index in 0..<self.state.fragments.length() {
-        let sample = self.state.fragments[index]
-        payload_bytes += sample.sample_size
-        if sample.sequence_number <
-          self.state.fragments[oldest_index].sequence_number {
-          oldest_index = index
-        }
-      }
-      if self.state.fragments.length() < 4 && payload_bytes <= 16 * 1024 * 1024 {
-        break
-      }
-      let oldest = self.state.fragments[oldest_index]
-      if sequence <= oldest.sequence_number {
-        return Ok(None)
-      }
-      let retained : Array[ReliableFragmentedSample] = []
-      for sample in self.state.fragments {
-        if sample.sequence_number != oldest.sequence_number {
-          retained.push(sample)
-        }
-      }
-      self.state.fragments = retained
-    }
-  }
-  match self.state.accept_data_frag(fragment) {
-    Ok(data) => {
-      self.prune_receive_state(sequence)
-      Ok(data)
-    }
-    Err(message) => Err(message)
-  }
 }
 
 ///|

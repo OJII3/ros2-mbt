@@ -87,15 +87,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let reliable_writer = match
-    service.new_reliable_sedp_writer(endpoint, remote_participant, 1L) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  match reliable_writer.announce_once() {
-    Ok(_) => ()
-    Err(message) => fail(message)
-  }
+  service.announce_sedp_once(endpoint, remote_participant).unwrap()
   let (decoded, source) = match
     test_receive(() => receiver.receive_sedp(Publication)) {
     Ok(value) => value
@@ -109,36 +101,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
     Err(message) => fail(message)
   }
   assert_eq(heartbeat.last_sequence_number(), 1L)
-  let acknack = match
-    @rtps.AckNackSubmessage::new(
-      @rtps.SedpEndpointKind::Publication.builtin_reader_id(),
-      @rtps.SedpEndpointKind::Publication.builtin_writer_id(),
-      1L,
-      1U,
-      [0U],
-      1U,
-    ) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  match
-    receiver.send_acknack(
-      acknack,
-      remote_prefix,
-      @rtps.VendorId::new(1, 15),
-      sender.local_addr(),
-    ) {
-    Ok(_) => ()
-    Err(message) => fail(message)
-  }
-  let (decoded_acknack, _) = match
-    test_receive(() => reliable_writer.receive_acknack()) {
-    Ok(value) => value
-    Err(message) => fail(message)
-  }
-  assert_eq(decoded_acknack.count(), 1U)
-  assert_eq(reliable_writer.history_length(), 1)
-  assert_eq(service.next_sedp_sequence_number(Publication), 1L)
+  assert_eq(service.next_sedp_sequence_number(Publication), 2L)
   assert_eq(service.next_sedp_sequence_number(Subscription), 1L)
   service.close()
   receiver.close()

@@ -25,7 +25,6 @@ pub using @wire {
   type ReliableDataReader,
   type ReliableDataReaderSession,
   type ReliableDataWriter,
-  type ReliableSedpWriter,
   type Udp,
 }
 

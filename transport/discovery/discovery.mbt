@@ -1,45 +1,12 @@
 ///|
-/// Reliable receive state for one remote discovery builtin writer.
-struct DiscoveryRemoteDataReader {
-  writer_prefix : @rtps.GuidPrefix
-  writer_id : @rtps.EntityId
-  reader : @wire.ReliableDataReader
-}
-
-///|
-/// History for one local SEDP builtin writer.
-struct DiscoverySedpWriter {
-  kind : @rtps.SedpEndpointKind
-  samples : Array[@rtps.DataSubmessage]
-}
-
-///|
-struct DiscoveryRemoteParticipant {
-  mut participant : @rtps.SpdpParticipantData
-  mut lease_timer : @async.Timer?
-  mut lease_remaining_ms : Int64
-  mut lease_segment_ms : Int32
-}
-
-///|
 priv enum DiscoveryReceiveOutcome {
   Message(@rtps.Message, @socket.Addr)
-  ParticipantLeaseExpired(@rtps.Guid)
+  ParticipantLeaseExpired
+  DeadlineChanged
 }
 
 ///|
 const DISCOVERY_MAX_TIMER_MILLISECONDS : Int32 = 0x7FFFFFFF
-
-///|
-/// Return whether an RTPS destination prefix addresses every participant.
-fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
-  for byte in prefix.as_bytes() {
-    if byte != 0 {
-      return false
-    }
-  }
-  true
-}
 
 ///|
 /// State for periodically announcing one local participant through SPDP.
@@ -47,14 +14,12 @@ pub struct DiscoverySession {
   socket : @wire.Udp
   receive_sockets : Array[@wire.Udp]
   participant : @rtps.SpdpParticipantData
-  reader_id : @rtps.EntityId
-  writer_id : @rtps.EntityId
-  destination : @socket.Addr
-  mut next_sequence_number : Int64
-  mut sedp_readers : Array[DiscoveryRemoteDataReader]
-  mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
-  sedp_writers : Array[DiscoverySedpWriter]
-  mut remote_participants : Array[DiscoveryRemoteParticipant]
+  engine : @participant_discovery.DiscoveryEngine
+  outgoing : Array[@participant_discovery.DiscoveryOutput]
+  send_lock : @async.Mutex
+  deadline_changes : @async.Queue[Unit]
+  mut rejected_outgoing : Array[@participant_discovery.DiscoveryOutput]
+  clock : DiscoveryClock
   mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
   mut pending_event_index : Int32
 }
@@ -72,18 +37,27 @@ pub fn DiscoverySession::new(
   if first_sequence_number < 1L {
     return Err("an SPDP sequence number must be positive")
   }
+  let engine = match
+    @participant_discovery.DiscoveryEngine::new(
+      participant,
+      reader_id,
+      writer_id,
+      discovery_addr_to_locator(destination),
+      first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
   Ok({
     socket,
     receive_sockets: [],
     participant,
-    reader_id,
-    writer_id,
-    destination,
-    next_sequence_number: first_sequence_number,
-    sedp_readers: [],
-    spdp_fragment_readers: [],
-    sedp_writers: [],
-    remote_participants: [],
+    engine,
+    outgoing: [],
+    send_lock: @async.Mutex(),
+    deadline_changes: @async.Queue(kind=DiscardLatest(1)),
+    rejected_outgoing: [],
+    clock: DiscoveryClock::new(),
     pending_events: [],
     pending_event_index: 0,
   })
@@ -107,18 +81,27 @@ pub fn DiscoverySession::new_with_receive_sockets(
   if first_sequence_number < 1L {
     return Err("an SPDP sequence number must be positive")
   }
+  let engine = match
+    @participant_discovery.DiscoveryEngine::new(
+      participant,
+      reader_id,
+      writer_id,
+      discovery_addr_to_locator(destination),
+      first_sequence_number,
+    ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
   Ok({
     socket,
     receive_sockets,
     participant,
-    reader_id,
-    writer_id,
-    destination,
-    next_sequence_number: first_sequence_number,
-    sedp_readers: [],
-    spdp_fragment_readers: [],
-    sedp_writers: [],
-    remote_participants: [],
+    engine,
+    outgoing: [],
+    send_lock: @async.Mutex(),
+    deadline_changes: @async.Queue(kind=DiscardLatest(1)),
+    rejected_outgoing: [],
+    clock: DiscoveryClock::new(),
     pending_events: [],
     pending_event_index: 0,
   })
@@ -194,7 +177,7 @@ pub fn DiscoverySession::new_default(
 ///|
 /// Return the sequence number that will be used by the next announcement.
 pub fn DiscoverySession::next_sequence_number(self : DiscoverySession) -> Int64 {
-  self.next_sequence_number
+  self.engine.next_sequence_number()
 }
 
 ///|
@@ -219,26 +202,12 @@ async fn DiscoverySession::dispose_once_on(
   self : DiscoverySession,
   socket : @wire.Udp,
 ) -> Result[Unit, String] {
-  let sequence_number = self.next_sequence_number
-  let data = self.participant.to_dispose_data_submessage(
-    self.reader_id,
-    self.writer_id,
-    sequence_number,
-  )
-  match
-    socket.send_message(
-      data.to_message(
-        self.participant.participant_guid().prefix(),
-        self.participant.vendor_id(),
-      ),
-      self.destination,
-    ) {
-    Ok(_) => {
-      self.next_sequence_number = sequence_number + 1L
-      Ok(())
-    }
-    Err(message) => Err(message)
+  let outgoing = match self.engine.announce_spdp(true) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
+  self.enqueue_outgoing(outgoing)
+  self.flush_outgoing_on(socket)
 }
 
 ///|
@@ -255,21 +224,12 @@ async fn DiscoverySession::announce_once_on(
   self : DiscoverySession,
   socket : @wire.Udp,
 ) -> Result[Unit, String] {
-  let sequence_number = self.next_sequence_number
-  match
-    socket.send_spdp(
-      self.participant,
-      self.reader_id,
-      self.writer_id,
-      sequence_number,
-      self.destination,
-    ) {
-    Ok(_) => {
-      self.next_sequence_number = sequence_number + 1L
-      Ok(())
-    }
-    Err(message) => Err(message)
+  let outgoing = match self.engine.announce_spdp(false) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
+  self.enqueue_outgoing(outgoing)
+  self.flush_outgoing_on(socket)
 }
 
 ///|
@@ -335,23 +295,38 @@ pub async fn DiscoverySession::receive_once(
       }
       return Ok(event)
     }
+    self.queue_expired_participants()
+    match self.flush_outgoing() {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
+    if self.pending_events.length() > 0 {
+      continue
+    }
     match self.receive_message_or_lease_expiry() {
       Ok(Message(message, source)) => {
-        let events = match self.decode_message(message, source) {
+        let now_ms = self.clock.now_ms()
+        self.enqueue_effects(
+          self.engine.advance(now_ms),
+          @socket.Addr::new(0, 0),
+        )
+        let effects = match
+          self.engine.receive(
+            message,
+            discovery_addr_to_locator(source),
+            now_ms,
+          ) {
           Ok(value) => value
           Err(message) => return Err(message)
         }
-        for event in events {
-          self.pending_events.push((event, source))
+        self.enqueue_effects(effects, source)
+        match self.flush_outgoing_on(self.socket) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       }
-      Ok(ParticipantLeaseExpired(participant_guid)) =>
-        if self.advance_expired_participant_lease(participant_guid) {
-          self.forget_remote_participant(participant_guid)
-          return Ok(
-            (ParticipantRemoved(participant_guid), @socket.Addr::new(0, 0)),
-          )
-        }
+      Ok(ParticipantLeaseExpired) => self.queue_expired_participants()
+      Ok(DeadlineChanged) => ()
       Err(message) => return Err(message)
     }
   } nobreak {
@@ -362,12 +337,6 @@ pub async fn DiscoverySession::receive_once(
 ///|
 /// Close the session's underlying UDP socket.
 pub fn DiscoverySession::close(self : DiscoverySession) -> Unit {
-  for remote in self.remote_participants {
-    match remote.lease_timer {
-      Some(timer) => timer.cancel()
-      None => ()
-    }
-  }
   self.socket.close()
   for receive_socket in self.receive_sockets {
     receive_socket.close()
