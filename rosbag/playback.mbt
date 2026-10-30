@@ -128,3 +128,26 @@ pub async fn play(
     Err("bag playback stopped unexpectedly")
   }
 }
+
+///|
+/// Run a playback pass once or repeat it until it fails.
+/// A loop that publishes no messages is rejected to prevent a busy loop.
+pub async fn play_repeatedly(
+  loop_enabled : Bool,
+  play_pass : async () -> Result[UInt64, String],
+) -> Result[UInt64, String] {
+  while true {
+    let message_count = match play_pass() {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    if !loop_enabled {
+      return Ok(message_count)
+    }
+    if message_count == 0UL {
+      return Err("cannot loop a bag pass with no messages")
+    }
+  } nobreak {
+    Err("bag playback loop stopped unexpectedly")
+  }
+}

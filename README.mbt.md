@@ -183,6 +183,14 @@ ros2-mbt bag play recording.mcap --rate 0.5 \
   --topics /camera/image --topics /tf
 ```
 
+Use `--loop` to restart playback from the beginning after each pass. Stop it
+with Ctrl-C. Looping stops with an error if no selected messages are published,
+so an empty pass cannot spin continuously:
+
+```sh
+ros2-mbt bag play recording.mcap --loop
+```
+
 Playback sends the recorded CDR payloads through native ROS publishers and
 waits one second for topic discovery by default. Use `--discovery-time-ms` to
 change that wait. The reader streams records and message payloads rather than

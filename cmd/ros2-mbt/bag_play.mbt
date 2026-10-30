@@ -127,12 +127,45 @@ async fn publish_bag_message(
 }
 
 ///|
-/// Play a single ROS 2 MCAP file through the native ROS node transport.
+async fn play_bag_pass(
+  path : String,
+  catalog : @rosbag.BagCatalog,
+  topic_names : Array[String],
+  rate_milli : UInt32,
+  publishers : Array[BagPlaybackPublisher],
+) -> Result[UInt64, String] {
+  let file = @fs.open(path, mode=ReadOnly) catch {
+    _ => return Err("could not reopen MCAP file for playback: " + path)
+  }
+  defer file.close()
+  let reader = match @mcap.Reader::new(file) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let source = match @rosbag.McapMessageSource::new(reader, catalog) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  @rosbag.play(
+    source,
+    topic_names,
+    rate_milli,
+    fn() { @async.now() },
+    async fn(duration_ms) { @async.sleep(duration_ms) },
+    async fn(topic_name, payload) {
+      publish_bag_message(publishers, topic_name, payload)
+    },
+  )
+}
+
+///|
+/// Play a ROS 2 MCAP file through the native ROS node transport.
 async fn run_bag_play(
   path : String,
   requested_topics : Array[String],
   rate_milli : UInt32,
   discovery_time_ms : Int32,
+  loop_enabled : Bool,
 ) -> Result[Unit, String] {
   let catalog = match scan_bag_file(path) {
     Ok(value) => value
@@ -173,27 +206,6 @@ async fn run_bag_play(
       return Err(message)
     }
   }
-  let file = @fs.open(path, mode=ReadOnly) catch {
-    _ => {
-      ignore(node.dispose_and_close())
-      return Err("could not reopen MCAP file for playback: " + path)
-    }
-  }
-  defer file.close()
-  let reader = match @mcap.Reader::new(file) {
-    Ok(value) => value
-    Err(message) => {
-      ignore(node.dispose_and_close())
-      return Err(message)
-    }
-  }
-  let source = match @rosbag.McapMessageSource::new(reader, catalog) {
-    Ok(value) => value
-    Err(message) => {
-      ignore(node.dispose_and_close())
-      return Err(message)
-    }
-  }
   let topic_names : Array[String] = []
   for topic in selected_topics {
     topic_names.push(topic.name())
@@ -208,16 +220,12 @@ async fn run_bag_play(
       }
       defer executor.shutdown()
       @async.sleep(discovery_time_ms)
-      @rosbag.play(
-        source,
-        topic_names,
-        rate_milli,
-        fn() { @async.now() },
-        async fn(duration_ms) { @async.sleep(duration_ms) },
-        async fn(topic_name, payload) {
-          publish_bag_message(publishers, topic_name, payload)
-        },
-      )
+      if loop_enabled {
+        println("looping playback; press Ctrl-C to stop")
+      }
+      @rosbag.play_repeatedly(loop_enabled, async fn() {
+        play_bag_pass(path, catalog, topic_names, rate_milli, publishers)
+      })
     }
   catch {
     _ => Err("ROS executor failed while playing the MCAP file")

@@ -8,6 +8,8 @@ import {
 // Values
 pub async fn play(McapMessageSource, Array[String], UInt, () -> Int64, async (Int) -> Unit, async (String, Bytes) -> Result[Unit, String]) -> Result[UInt64, String]
 
+pub async fn play_repeatedly(Bool, async () -> Result[UInt64, String]) -> Result[UInt64, String]
+
 pub fn playback_target_ms(UInt64, UInt64, UInt) -> Result[Int64, String]
 
 pub async fn scan_mcap_catalog(@mcap.Reader) -> Result[BagCatalog, String]

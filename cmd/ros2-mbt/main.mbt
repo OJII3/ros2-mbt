@@ -149,6 +149,9 @@ fn bag_play_command() -> @argparse.Command {
         default_values=[DEFAULT_SPIN_TIME_MS],
       ),
     ],
+    flags=[
+      @argparse.FlagArg("loop", about="Repeat playback until interrupted."),
+    ],
     positionals=[@argparse.PositionArg("file", about="MCAP file path.")],
   )
 }
@@ -287,7 +290,13 @@ async fn dispatch_bag(matches : @argparse.Matches) -> Result[Unit, String] {
         Some(values) => values
         None => []
       }
-      run_bag_play(file, topics, rate_milli, discovery_time_ms)
+      run_bag_play(
+        file,
+        topics,
+        rate_milli,
+        discovery_time_ms,
+        flag_enabled(play_matches, "loop"),
+      )
     }
     Some((name, _)) => Err("unknown bag subcommand: " + name)
   }
