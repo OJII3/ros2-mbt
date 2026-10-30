@@ -169,6 +169,7 @@ pub struct RosNodePublisher[T] {
   // private fields
 }
 pub async fn[T] RosNodePublisher::publish(Self[T], T) -> Result[Unit, String]
+pub async fn[T] RosNodePublisher::publish_without_heartbeat(Self[T], T) -> Result[Unit, String]
 
 pub struct RosParticipant {
   participant : @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData

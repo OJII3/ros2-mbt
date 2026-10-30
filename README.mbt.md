@@ -19,6 +19,7 @@ and serialization.
 - Encode and decode RTPS and CDR data in MoonBit.
 - Generate MoonBit codecs from `.msg`, `.srv`, and `.action` definitions.
 - Use codecs for a selection of common ROS 2 Jazzy messages out of the box.
+- Replay uncompressed ROS 2 MCAP recordings with the `ros2-mbt bag play` CLI.
 
 ## Installation
 
@@ -42,7 +43,9 @@ import {
 The module is organized into focused packages:
 
 - `cdr` — CDR readers and writers
+- `mcap` — streaming MCAP record reader
 - `ros` — ROS names, endpoints, discovery data, and message types
+- `rosbag` — ROS 2 MCAP catalog and playback scheduling
 - `rosidl` — `.msg`, `.srv`, and `.action` parsing and codec generation
 - `rtps` — RTPS wire and discovery types
 - `transport` — UDP transport, discovery, topics, services, and actions
@@ -163,6 +166,30 @@ ros2 topic pub --qos-reliability reliable /chatter std_msgs/msg/String \
 nix develop .#ros2
 moon run examples/listener
 ```
+
+## Play an MCAP recording
+
+Replay a ROS 2 MCAP file at its recorded timing:
+
+```sh
+ros2-mbt bag play recording.mcap
+```
+
+Change the playback rate or select one or more topics with repeated
+`--topics` options:
+
+```sh
+ros2-mbt bag play recording.mcap --rate 0.5 \
+  --topics /camera/image --topics /tf
+```
+
+Playback sends the recorded CDR payloads through native ROS publishers and
+waits one second for topic discovery by default. Use `--discovery-time-ms` to
+change that wait. The reader streams records and message payloads rather than
+loading the entire recording into memory. This first version accepts the ROS 2
+MCAP profile with `cdr` channels and uncompressed chunks; MCAP chunk compression
+and rosbag2 message compression are not supported. It publishes with reliable,
+volatile QoS and cannot replay topics recorded with transient-local durability.
 
 For communication across hosts, set `ROS2_MBT_IP` to the MoonBit host's
 reachable IPv4 address and use the same `ROS_DOMAIN_ID` on both sides:
