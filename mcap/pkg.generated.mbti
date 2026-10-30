@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/mcap"
+
+import {
+  "moonbitlang/async/io",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Reader {
+  // private fields
+}
+pub async fn Reader::new(&@io.Reader) -> Result[Self, String]
+pub async fn Reader::next_record(Self) -> Result[Record?, String]
+pub fn Reader::profile(Self) -> String
+
+pub enum Record {
+  Schema(UInt16, String, String, Bytes)
+  Channel(UInt16, UInt16, String, String, Array[(String, String)])
+  Message(UInt16, UInt, UInt64, UInt64, Bytes)
+  Metadata(String, Array[(String, String)])
+  DataEnd
+}
+
+// Type aliases
+
+// Traits

@@ -160,15 +160,24 @@ pub async fn[T] RosNodePublisher::publish(
   self : RosNodePublisher[T],
   message : T,
 ) -> Result[Unit, String] {
+  match self.publish_without_heartbeat(message) {
+    Ok(_) => self.publisher.send_heartbeat()
+    Err(message) => Err(message)
+  }
+}
+
+///|
+/// Serialize and publish one message without sending an immediate heartbeat.
+/// The executor's periodic heartbeat is sufficient for sustained streams.
+pub async fn[T] RosNodePublisher::publish_without_heartbeat(
+  self : RosNodePublisher[T],
+  message : T,
+) -> Result[Unit, String] {
   let payload = match (self.encoder)(message) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match self.publisher.publish(payload) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
-  }
-  self.publisher.send_heartbeat()
+  self.publisher.publish(payload)
 }
 
 ///|

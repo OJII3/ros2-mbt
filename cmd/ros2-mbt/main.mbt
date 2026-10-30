@@ -129,11 +129,49 @@ fn node_command() -> @argparse.Command {
 }
 
 ///|
+fn bag_play_command() -> @argparse.Command {
+  @argparse.Command(
+    "play",
+    about="Play a ROS 2 MCAP bag file.",
+    options=[
+      @argparse.OptionArg(
+        "rate",
+        about="Playback speed multiplier (for example, 0.5 or 2.0).",
+        default_values=["1.0"],
+      ),
+      @argparse.OptionArg(
+        "topics",
+        about="Topic to play; repeat --topics to select multiple topics.",
+      ),
+      @argparse.OptionArg(
+        "discovery-time-ms",
+        about="Wait for ROS topic discovery before playback.",
+        default_values=[DEFAULT_SPIN_TIME_MS],
+      ),
+    ],
+    flags=[
+      @argparse.FlagArg("loop", about="Repeat playback until interrupted."),
+    ],
+    positionals=[@argparse.PositionArg("file", about="MCAP file path.")],
+  )
+}
+
+///|
+fn bag_command() -> @argparse.Command {
+  @argparse.Command(
+    "bag",
+    about="Play ROS bag recordings.",
+    subcommands=[bag_play_command()],
+    subcommand_required=true,
+  )
+}
+
+///|
 fn root_command() -> @argparse.Command {
   @argparse.Command(
     "ros2-mbt",
     about="Small ROS 2 discovery and diagnostics CLI for ros2-mbt.",
-    subcommands=[topic_command(), node_command()],
+    subcommands=[topic_command(), node_command(), bag_command()],
     subcommand_required=true,
   )
 }
@@ -226,11 +264,51 @@ async fn dispatch_node(matches : @argparse.Matches) -> Result[Unit, String] {
 }
 
 ///|
+async fn dispatch_bag(matches : @argparse.Matches) -> Result[Unit, String] {
+  match matches.subcommand {
+    None => Err("a bag subcommand is required")
+    Some(("play", play_matches)) => {
+      let file = match positional_value(play_matches, "file") {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let rate_value = match play_matches.values.get("rate") {
+        Some([value]) => value
+        Some(_) => return Err("option --rate must have one value")
+        None => "1.0"
+      }
+      let rate_milli = match parse_rate_milli(rate_value) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let discovery_time_ms = match
+        positive_option(play_matches, "discovery-time-ms", DEFAULT_SPIN_TIME_MS) {
+        Ok(value) => value
+        Err(message) => return Err(message)
+      }
+      let topics = match play_matches.values.get("topics") {
+        Some(values) => values
+        None => []
+      }
+      run_bag_play(
+        file,
+        topics,
+        rate_milli,
+        discovery_time_ms,
+        flag_enabled(play_matches, "loop"),
+      )
+    }
+    Some((name, _)) => Err("unknown bag subcommand: " + name)
+  }
+}
+
+///|
 async fn main {
   let matches = root_command().parse()
   let result = match matches.subcommand {
     Some(("topic", topic_matches)) => dispatch_topic(topic_matches)
     Some(("node", node_matches)) => dispatch_node(node_matches)
+    Some(("bag", bag_matches)) => dispatch_bag(bag_matches)
     Some((name, _)) => Err("unknown subcommand: " + name)
     None => Err("a subcommand is required")
   }

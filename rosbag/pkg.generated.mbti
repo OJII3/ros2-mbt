@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/rosbag"
+
+import {
+  "OJII3/ros2-mbt/mcap",
+}
+
+// Values
+pub async fn play(McapMessageSource, Array[String], UInt, () -> Int64, async (Int) -> Unit, async (String, Bytes) -> Result[Unit, String]) -> Result[UInt64, String]
+
+pub async fn play_repeatedly(Bool, async () -> Result[UInt64, String]) -> Result[UInt64, String]
+
+pub fn playback_target_ms(UInt64, UInt64, UInt) -> Result[Int64, String]
+
+pub async fn scan_mcap_catalog(@mcap.Reader) -> Result[BagCatalog, String]
+
+// Errors
+
+// Types and methods
+pub struct BagCatalog {
+  // private fields
+}
+pub fn BagCatalog::select_topics(Self, Array[String]) -> Result[Array[BagTopic], String]
+pub fn BagCatalog::topics(Self) -> Array[BagTopic]
+
+pub struct BagMessage {
+  // private fields
+}
+pub fn BagMessage::log_time_ns(Self) -> UInt64
+pub fn BagMessage::payload(Self) -> Bytes
+pub fn BagMessage::topic_name(Self) -> String
+
+pub struct BagTopic {
+  // private fields
+}
+pub fn BagTopic::name(Self) -> String
+pub fn BagTopic::qos_profiles(Self) -> Array[String]
+pub fn BagTopic::type_hash(Self) -> String
+pub fn BagTopic::type_name(Self) -> String
+
+pub struct McapMessageSource {
+  // private fields
+}
+pub fn McapMessageSource::new(@mcap.Reader, BagCatalog) -> Result[Self, String]
+pub async fn McapMessageSource::next(Self) -> Result[BagMessage?, String]
+
+// Type aliases
+
+// Traits
