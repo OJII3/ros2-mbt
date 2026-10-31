@@ -692,7 +692,7 @@ pub async fn RosParticipant::receive_ros_discovery_nackfrag(
 
 ///|
 /// Dispatch one user-socket datagram to the reliable ROS graph endpoints.
-async fn RosParticipant::handle_user_message(
+pub async fn RosParticipant::handle_user_message(
   self : RosParticipant,
   message : @rtps.Message,
   source : @socket.Addr,
@@ -717,7 +717,7 @@ async fn RosParticipant::handle_user_message(
 
 ///|
 /// Send periodic HEARTBEATs for active ROS graph writers.
-async fn RosParticipant::send_ros_discovery_heartbeats(
+pub async fn RosParticipant::send_ros_discovery_heartbeats(
   self : RosParticipant,
 ) -> Result[Unit, String] {
   for publisher in self.ros_graph.graph_publishers {

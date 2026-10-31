@@ -189,6 +189,7 @@ pub async fn RosParticipant::dispose_and_close(Self) -> Result[Unit, String]
 pub fn RosParticipant::from_discovery_session(@OJII3/ros2-mbt/transport/discovery.DiscoverySession, @wire.Udp) -> Result[Self, String]
 pub fn RosParticipant::from_sockets(@wire.Udp, @wire.Udp, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
 pub fn RosParticipant::graph(Self) -> @OJII3/ros2-mbt/transport/discovery.DiscoveryGraph
+pub async fn RosParticipant::handle_user_message(Self, @core.Message, @socket.Addr) -> Result[Unit, String]
 pub fn RosParticipant::into_parts(Self) -> (@OJII3/ros2-mbt/transport/discovery.DiscoveryService, @wire.Udp)
 pub fn RosParticipant::local_endpoints(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
 pub async fn RosParticipant::new_ddsi(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, Int, Int64, multicast_interface? : UInt) -> Result[Self, String]
@@ -211,6 +212,7 @@ pub async fn RosParticipant::register_topic_endpoint(Self, @endpoints.RosTopic, 
 pub async fn RosParticipant::register_topic_endpoint_with_type_hash(Self, @endpoints.RosTopic, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointKind, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpQos, String) -> Result[Unit, String]
 pub fn RosParticipant::ros_discovery_publisher_count(Self) -> Int
 pub fn RosParticipant::ros_discovery_subscription_count(Self) -> Int
+pub async fn RosParticipant::send_ros_discovery_heartbeats(Self) -> Result[Unit, String]
 pub async fn RosParticipant::set_ros_node_identity(Self, String, String) -> Result[Unit, String]
 pub async fn RosParticipant::unregister_endpoint(Self, @core.Guid) -> Result[Unit, String]
 pub fn RosParticipant::user_locator(Self) -> @core.Locator
@@ -256,8 +258,11 @@ pub struct RosServiceServer {
   wire_format : RosServiceWireFormat
   mut pending_payload_header : @endpoints.RosServicePayloadHeader?
   shared_socket : Bool
+  pending_requests : Array[(@core.DataSubmessage, @core.SampleIdentity, @socket.Addr)]
+  mut pending_request_index : Int
 }
 pub fn RosServiceServer::close(Self) -> Unit
+pub async fn RosServiceServer::handle_message(Self, @core.Message, @socket.Addr) -> Result[Unit, String]
 pub fn RosServiceServer::new(@endpoints.RosService, @wire.Udp, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosServiceServer::new_with_shared_socket(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64) -> Result[Self, String]
 pub fn RosServiceServer::new_with_shared_socket_and_wire_format(@endpoints.RosService, @wire.Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @core.EntityId, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int64, RosServiceWireFormat) -> Result[Self, String]
@@ -266,6 +271,7 @@ pub async fn RosServiceServer::receive_request(Self) -> Result[(Bytes, @core.Sam
 pub async fn RosServiceServer::receive_response_control(Self) -> Result[Unit, String]
 pub async fn RosServiceServer::respond(Self, @core.SampleIdentity, Bytes) -> Result[Unit, String]
 pub fn RosServiceServer::service(Self) -> @endpoints.RosService
+pub fn RosServiceServer::take_request(Self) -> Result[(Bytes, @core.SampleIdentity, @socket.Addr)?, String]
 
 pub(all) enum RosServiceWireFormat {
   DdsRpcInline

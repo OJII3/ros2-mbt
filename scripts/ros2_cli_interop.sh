@@ -150,9 +150,8 @@ wait_for_node_endpoint() {
   if [[ "${ROS2_MBT_NO_DAEMON:-0}" == "1" ]]; then
     daemon_args+=(--no-daemon)
   fi
-  local deadline=$((SECONDS + 45))
-  local node_info=""
-  while ((SECONDS < deadline)); do
+  for _ in {1..20}; do
+    local node_info
     node_info=$(timeout --kill-after=1s 3s ros2 node info \
       "${daemon_args[@]}" "$node_name" 2>/dev/null || true)
     if awk -v section="  $endpoint_section:" -v endpoint="    $endpoint_name:" '
@@ -166,9 +165,6 @@ wait_for_node_endpoint() {
     sleep 0.5
   done
   echo "ROS 2 CLI did not discover $endpoint_section endpoint $endpoint_name on $node_name"
-  if [[ -n "$node_info" ]]; then
-    printf 'Last ROS 2 node info output:\n%s\n' "$node_info"
-  fi
   return 1
 }
 
@@ -420,7 +416,7 @@ if ! grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
   exit 1
 fi
 
-timeout --kill-after=2s 90s "${moon_command[@]}" examples/service_server \
+timeout --kill-after=2s 45s "${moon_command[@]}" examples/service_server \
   >"$moon_service_log" 2>&1 &
 moon_service_pid=$!
 ROS2_MBT_NO_DAEMON=1 wait_for_ros_endpoint \
