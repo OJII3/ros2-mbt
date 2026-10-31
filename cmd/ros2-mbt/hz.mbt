@@ -1,54 +1,48 @@
 ///|
-struct HzStats {
-  mut samples : Int32
-  intervals : Array[Int64]
-}
-
-///|
-fn add_sample(
-  stats : HzStats,
-  previous_sample_ms : Int64?,
-  now_ms : Int64,
-) -> Int64 {
-  match previous_sample_ms {
-    None => ()
-    Some(previous) => stats.intervals.push(now_ms - previous)
-  }
-  stats.samples += 1
-  now_ms
-}
-
-///|
 fn print_hz_stats(stats : HzStats, duration_ms : Int32) -> Unit {
-  if stats.samples < 2 || stats.intervals.length() == 0 {
-    println("average rate: 0.0")
-    println("samples: " + stats.samples.to_string())
-    return
-  }
-  let mut total_interval_ms = 0L
-  let mut min_interval_ms = stats.intervals[0]
-  let mut max_interval_ms = stats.intervals[0]
-  for interval in stats.intervals {
-    total_interval_ms += interval
-    if interval < min_interval_ms {
-      min_interval_ms = interval
-    }
-    if interval > max_interval_ms {
-      max_interval_ms = interval
+  match summarize_hz_stats(stats, duration_ms) {
+    None => println("average rate: 0.0")
+    Some(summary) => {
+      println("average rate: " + summary.average.to_string())
+      println("min: " + summary.min.to_string())
+      println("max: " + summary.max.to_string())
     }
   }
-  let elapsed_ms = if total_interval_ms > 0L {
-    total_interval_ms
-  } else {
-    duration_ms.to_int64()
-  }
-  let average = stats.intervals.length().to_int64().to_double() /
-    elapsed_ms.to_double() *
-    1000.0
-  println("average rate: " + average.to_string())
-  println("min: " + (1000.0 / max_interval_ms.to_double()).to_string())
-  println("max: " + (1000.0 / min_interval_ms.to_double()).to_string())
   println("samples: " + stats.samples.to_string())
+}
+
+///|
+// The receiver reports whether a sample arrived within the requested timeout.
+// Clock and receive effects are supplied by the transport adapters.
+async fn collect_hz_stats(
+  duration_ms : Int32,
+  now_ms : () -> Int64,
+  receive_sample : async (Int32) -> Result[Bool, String],
+) -> Result[HzStats, String] {
+  let deadline = now_ms() + duration_ms.to_int64()
+  let stats = { samples: 0, intervals: [], }
+  let mut previous_sample_ms : Int64? = None
+  while true {
+    let remaining_ms = (deadline - now_ms()).to_int()
+    if remaining_ms <= 0 {
+      return Ok(stats)
+    }
+    let timeout_ms = if remaining_ms < CLI_DISCOVERY_POLL_MS {
+      remaining_ms
+    } else {
+      CLI_DISCOVERY_POLL_MS
+    }
+    match receive_sample(timeout_ms) {
+      Ok(false) => ()
+      Ok(true) =>
+        previous_sample_ms = Some(
+          add_sample(stats, previous_sample_ms, now_ms()),
+        )
+      Err(message) => return Err(message)
+    }
+  } nobreak {
+    Err("measurement loop stopped")
+  }
 }
 
 ///|
@@ -56,33 +50,21 @@ async fn measure_best_effort(
   subscription : @transport.RosSubscription,
   duration_ms : Int32,
 ) -> Result[Unit, String] {
-  let deadline = @async.now() + duration_ms.to_int64()
-  let stats = { samples: 0, intervals: [], }
-  let mut previous_sample_ms : Int64? = None
-  while true {
-    let remaining_ms = (deadline - @async.now()).to_int()
-    if remaining_ms <= 0 {
-      break
-    }
-    let timeout_ms = if remaining_ms < CLI_DISCOVERY_POLL_MS {
-      remaining_ms
-    } else {
-      CLI_DISCOVERY_POLL_MS
-    }
-    match
-      @async.with_timeout_opt(timeout_ms, async fn() { subscription.receive() }) {
-      None => ()
-      Some(Ok(_)) =>
-        previous_sample_ms = Some(
-          add_sample(stats, previous_sample_ms, @async.now()),
-        )
-      Some(Err(message)) => {
-        subscription.close()
-        return Err(message)
+  defer subscription.close()
+  let stats = match
+    collect_hz_stats(duration_ms, fn() { @async.now() }, async fn(timeout_ms) {
+      match
+        @async.with_timeout_opt(timeout_ms, async fn() {
+          subscription.receive()
+        }) {
+        None => Ok(false)
+        Some(Ok(_)) => Ok(true)
+        Some(Err(message)) => Err(message)
       }
-    }
+    }) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
-  subscription.close()
   print_hz_stats(stats, duration_ms)
   Ok(())
 }
@@ -92,33 +74,21 @@ async fn measure_reliable(
   subscription : @transport.ReliableRosSubscription,
   duration_ms : Int32,
 ) -> Result[Unit, String] {
-  let deadline = @async.now() + duration_ms.to_int64()
-  let stats = { samples: 0, intervals: [], }
-  let mut previous_sample_ms : Int64? = None
-  while true {
-    let remaining_ms = (deadline - @async.now()).to_int()
-    if remaining_ms <= 0 {
-      break
-    }
-    let timeout_ms = if remaining_ms < CLI_DISCOVERY_POLL_MS {
-      remaining_ms
-    } else {
-      CLI_DISCOVERY_POLL_MS
-    }
-    match
-      @async.with_timeout_opt(timeout_ms, async fn() { subscription.receive() }) {
-      None => ()
-      Some(Ok(_)) =>
-        previous_sample_ms = Some(
-          add_sample(stats, previous_sample_ms, @async.now()),
-        )
-      Some(Err(message)) => {
-        subscription.close()
-        return Err(message)
+  defer subscription.close()
+  let stats = match
+    collect_hz_stats(duration_ms, fn() { @async.now() }, async fn(timeout_ms) {
+      match
+        @async.with_timeout_opt(timeout_ms, async fn() {
+          subscription.receive()
+        }) {
+        None => Ok(false)
+        Some(Ok(_)) => Ok(true)
+        Some(Err(message)) => Err(message)
       }
-    }
+    }) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
-  subscription.close()
   print_hz_stats(stats, duration_ms)
   Ok(())
 }
