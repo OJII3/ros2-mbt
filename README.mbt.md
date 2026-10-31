@@ -7,7 +7,7 @@ DDS/RTPS, without linking against a ROS 2 client library. It provides the
 building blocks for ROS 2 topics, services, actions, parameters, discovery,
 and serialization.
 
-> **Status:** `0.9.0` — experimental. APIs and interoperability coverage may
+> **Status:** `0.10.0` — experimental. APIs and interoperability coverage may
 > change before `1.0.0`.
 
 ## What you can do
@@ -26,7 +26,7 @@ and serialization.
 Add the module to a MoonBit project:
 
 ```sh
-moon add OJII3/ros2-mbt@0.9.0
+moon add OJII3/ros2-mbt@0.10.0
 ```
 
 The library currently targets MoonBit's native backend. Most applications use
