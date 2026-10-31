@@ -654,9 +654,14 @@ async test "ROS participants discover service endpoints before request reply" {
     1L,
   ).unwrap()
   let request_identity = client_facade.request(b"discovered request").unwrap()
-  let (request, received_identity, _) = test_receive(() => {
-    server_facade.receive_request()
-  }).unwrap()
+  // The socket owner dispatches the request before the server consumes it.
+  let (message, source) = test_receive(() => server_socket.receive_message()).unwrap()
+  server_facade.handle_message(message, source).unwrap()
+  let (request, received_identity, _) = server_facade
+    .take_request()
+    .unwrap()
+    .unwrap()
+  assert_true(server_facade.take_request().unwrap() is None)
   assert_eq(request, b"discovered request")
   assert_eq(received_identity, request_identity)
   server_facade.respond(request_identity, b"discovered response").unwrap()

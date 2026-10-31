@@ -273,6 +273,10 @@ pub struct RosServiceServer {
   wire_format : RosServiceWireFormat
   mut pending_payload_header : @ros_types.RosServicePayloadHeader?
   shared_socket : Bool
+  pending_requests : Array[
+    (@rtps.DataSubmessage, @rtps.SampleIdentity, @socket.Addr),
+  ]
+  mut pending_request_index : Int32
 }
 
 ///|
@@ -367,6 +371,8 @@ pub fn RosServiceServer::new_with_wire_format(
     wire_format,
     pending_payload_header: None,
     shared_socket: false,
+    pending_requests: [],
+    pending_request_index: 0,
   })
 }
 
@@ -436,6 +442,11 @@ pub fn RosServiceServer::service(
 pub async fn RosServiceServer::receive_request(
   self : RosServiceServer,
 ) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String] {
+  match self.take_request() {
+    Ok(Some(request)) => return Ok(request)
+    Ok(None) => ()
+    Err(message) => return Err(message)
+  }
   let (data, identity, source) = match
     (if self.shared_socket {
       self.request_reader.receive_data_with_writer(self.response_writer)
@@ -445,6 +456,16 @@ pub async fn RosServiceServer::receive_request(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  self.decode_request(data, identity, source)
+}
+
+///|
+fn RosServiceServer::decode_request(
+  self : RosServiceServer,
+  data : @rtps.DataSubmessage,
+  identity : @rtps.SampleIdentity,
+  source : @socket.Addr,
+) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr), String] {
   let response_identity = match data.related_sample_identity() {
     Ok(Some(related)) =>
       match
@@ -524,5 +545,49 @@ pub fn RosServiceServer::close(self : RosServiceServer) -> Unit {
   self.request_reader.close()
   if !self.shared_socket {
     self.response_writer.close()
+  }
+}
+
+///|
+/// Dispatch a datagram received by the owner of a shared service socket.
+/// Requests are retained until take_request or receive_request consumes them.
+pub async fn RosServiceServer::handle_message(
+  self : RosServiceServer,
+  message : @rtps.Message,
+  source : @socket.Addr,
+) -> Result[Unit, String] {
+  match self.response_writer.handle_control_message(message) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  let samples = match self.request_reader.handle_message(message, source) {
+    Ok(samples) => samples
+    Err(message) => return Err(message)
+  }
+  for (data, source) in samples {
+    let identity = match data.sample_identity(message.header().guid_prefix()) {
+      Ok(identity) => identity
+      Err(message) => return Err(message)
+    }
+    self.pending_requests.push((data, identity, source))
+  }
+  Ok(())
+}
+
+///|
+/// Consume one request retained by the shared-socket dispatcher, if available.
+pub fn RosServiceServer::take_request(
+  self : RosServiceServer,
+) -> Result[(Bytes, @rtps.SampleIdentity, @socket.Addr)?, String] {
+  if self.pending_request_index >= self.pending_requests.length() {
+    self.pending_requests.clear()
+    self.pending_request_index = 0
+    return Ok(None)
+  }
+  let (data, identity, source) = self.pending_requests[self.pending_request_index]
+  self.pending_request_index += 1
+  match self.decode_request(data, identity, source) {
+    Ok(request) => Ok(Some(request))
+    Err(message) => Err(message)
   }
 }

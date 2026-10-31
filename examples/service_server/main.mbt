@@ -43,50 +43,6 @@ async fn discover_service(
 }
 
 ///|
-async fn announce_ros_graph_info(
-  participant : @transport.RosParticipant,
-) -> Result[Unit, String] {
-  let mut quiet_periods = 0
-  println("Waiting for ROS graph discovery readers")
-  while participant.ros_discovery_publisher_count() == 0 || quiet_periods < 12 {
-    let graph_publisher_count = participant.ros_discovery_publisher_count()
-    let received = if graph_publisher_count > 0 {
-      @async.with_timeout_opt(250, async fn() {
-        participant.receive_discovery_once()
-      })
-    } else {
-      Some(participant.receive_discovery_once())
-    }
-    match received {
-      None => quiet_periods += 1
-      Some(Ok(_)) =>
-        if participant.ros_discovery_publisher_count() > graph_publisher_count {
-          quiet_periods = 0
-        }
-      Some(Err(message)) => return Err(message)
-    }
-  }
-  println(
-    "ROS graph discovery readers: " +
-    participant.ros_discovery_publisher_count().to_string(),
-  )
-  let graph_info = match
-    participant.participant_entities_info("/demo", "moon_add_two_ints_server") {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for _ in 0..<3 {
-    match participant.publish_ros_discovery_info(graph_info) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
-    }
-    @async.sleep(250)
-  }
-  println("Announced ROS graph metadata for /demo/moon_add_two_ints_server")
-  Ok(())
-}
-
-///|
 /// Serve one `example_interfaces/srv/AddTwoInts` request over ROS 2 DDS.
 async fn main {
   let config = match @config.load() {
@@ -193,85 +149,183 @@ async fn main {
       return
     }
   }
-  let discovered_endpoints = @async.with_task_group() <| group => {
-    group.spawn_bg(no_wait=true) <| () => {
-      match participant.announce_spdp_forever(1000) {
-        Ok(_) => ()
-        Err(message) => fail(message)
-      }
-    }
-    match announce_ros_graph_info(participant) {
-      Ok(_) => discover_service(participant, service)
-      Err(message) => Err(message)
-    }
-  }
-  let (request_publication, response_subscription) = match
-    discovered_endpoints {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      participant.close()
-      return
-    }
-  }
-  let service_wire_format = match
-    participant
-    .graph()
-    .participant_vendor_id(request_publication.participant_guid()) {
-    Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
-      @transport.RosServiceWireFormat::CycloneDdsPayload
-    _ => DdsRpcInline
-  }
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
-  let server = match
-    @transport.RosServiceServer::new_with_shared_socket_and_wire_format(
-      service, user_socket, prefix, vendor_id, request_reader_id, request_publication,
-      response_writer_id, response_subscription, 1L, service_wire_format,
+  match
+    serve_once(
+      participant, service, prefix, vendor_id, request_reader_id, response_writer_id,
     ) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      return
-    }
-  }
-  let (request_payload, request_identity, _) = match server.receive_request() {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      server.close()
-      return
-    }
-  }
-  let request_reader = match @cdr.Reader::from_bytes(request_payload) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      server.close()
-      return
-    }
-  }
-  let a = match request_reader.read_i64() {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      server.close()
-      return
-    }
-  }
-  let b = match request_reader.read_i64() {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      server.close()
-      return
-    }
-  }
-  let response_writer = @cdr.Writer::new()
-  response_writer.write_i64(a + b)
-  match server.respond(request_identity, response_writer.to_bytes()) {
     Ok(_) => println("served AddTwoInts request")
     Err(message) => println(message)
   }
-  server.close()
+  participant.close()
+}
+
+///|
+priv enum ServerEvent {
+  Incoming(Result[(@rtps.Message, @socket.Addr), String])
+  Discovered(Result[(@rtps.SedpEndpointData, @rtps.SedpEndpointData), String])
+  Heartbeat
+}
+
+///|
+async fn serve_once(
+  participant : @transport.RosParticipant,
+  service : @ros.RosService,
+  prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  request_reader_id : @rtps.EntityId,
+  response_writer_id : @rtps.EntityId,
+) -> Result[Unit, String] {
+  @async.with_task_group() <| group => {
+    let events : @aqueue.Queue[ServerEvent] = @aqueue.Queue(
+      kind=@aqueue.Unbounded,
+    )
+    group.spawn_bg(no_wait=true) <| () => {
+      let result = discover_service(participant, service)
+      events.put(Discovered(result))
+      if result is Ok(_) {
+        while true {
+          match participant.receive_discovery_once() {
+            Ok(_) => ()
+            Err(message) => {
+              events.put(Discovered(Err(message)))
+              break
+            }
+          }
+        }
+      }
+    }
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        let incoming = participant.user_socket().receive_message()
+        events.put(Incoming(incoming))
+        if incoming is Err(_) {
+          break
+        }
+      }
+    }
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        events.put(Heartbeat)
+        @async.sleep(1000)
+      }
+    }
+    let mut server : @transport.RosServiceServer? = None
+    let early_requests : Array[(@rtps.Message, @socket.Addr)] = []
+    while true {
+      match events.get() {
+        Heartbeat => {
+          match participant.announce_spdp_once() {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
+          match participant.send_ros_discovery_heartbeats() {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
+        }
+        Discovered(Err(message)) | Incoming(Err(message)) => return Err(message)
+        Discovered(Ok((request_publication, response_subscription))) => {
+          let wire_format = match
+            participant
+            .graph()
+            .participant_vendor_id(request_publication.participant_guid()) {
+            Some(vendor) if vendor == @rtps.VendorId::new(1, 16) =>
+              @transport.RosServiceWireFormat::CycloneDdsPayload
+            _ => DdsRpcInline
+          }
+          let ready = match
+            @transport.RosServiceServer::new_with_shared_socket_and_wire_format(
+              service,
+              participant.user_socket(),
+              prefix,
+              vendor_id,
+              request_reader_id,
+              request_publication,
+              response_writer_id,
+              response_subscription,
+              1L,
+              wire_format,
+            ) {
+            Ok(server) => server
+            Err(message) => return Err(message)
+          }
+          for (message, source) in early_requests {
+            match ready.handle_message(message, source) {
+              Ok(_) => ()
+              Err(message) => return Err(message)
+            }
+          }
+          early_requests.clear()
+          server = Some(ready)
+        }
+        Incoming(Ok((message, source))) => {
+          match participant.handle_user_message(message, source) {
+            Ok(_) => ()
+            Err(message) => return Err(message)
+          }
+          match server {
+            Some(server) =>
+              match server.handle_message(message, source) {
+                Ok(_) => ()
+                Err(message) => return Err(message)
+              }
+            None => {
+              // Preserve requests that arrive before both client endpoints.
+              let mut is_request = false
+              for submessage in message.submessages() {
+                match submessage.id() {
+                  Data =>
+                    match @rtps.DataSubmessage::from_submessage(submessage) {
+                      Ok(data) if data.reader_id() == request_reader_id ||
+                        data.reader_id() == @rtps.EntityId::unknown() =>
+                        is_request = true
+                      _ => ()
+                    }
+                  DataFrag =>
+                    match
+                      @rtps.DataFragSubmessage::from_submessage(submessage) {
+                      Ok(data) if data.reader_id() == request_reader_id ||
+                        data.reader_id() == @rtps.EntityId::unknown() =>
+                        is_request = true
+                      _ => ()
+                    }
+                  _ => ()
+                }
+              }
+              if is_request {
+                early_requests.push((message, source))
+              }
+            }
+          }
+        }
+      }
+      match server {
+        Some(server) =>
+          match server.take_request() {
+            Ok(Some((payload, identity, _))) => {
+              let reader = match @cdr.Reader::from_bytes(payload) {
+                Ok(reader) => reader
+                Err(message) => return Err(message)
+              }
+              let a = match reader.read_i64() {
+                Ok(value) => value
+                Err(message) => return Err(message)
+              }
+              let b = match reader.read_i64() {
+                Ok(value) => value
+                Err(message) => return Err(message)
+              }
+              let response = @cdr.Writer::new()
+              response.write_i64(a + b)
+              return server.respond(identity, response.to_bytes())
+            }
+            Ok(None) => ()
+            Err(message) => return Err(message)
+          }
+        None => ()
+      }
+    } nobreak {
+      Err("service dispatcher stopped")
+    }
+  }
 }
