@@ -619,9 +619,8 @@ pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(
       .with_destination_guid_prefix(
         remote_participant.participant_guid().prefix(),
       )
-    match self.send_message(endpoint_message, destination) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.send_message(endpoint_message, destination) is Err(message) {
+      return Err(message)
     }
     let heartbeat = match
       @rtps.HeartbeatSubmessage::new(

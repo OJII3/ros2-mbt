@@ -212,9 +212,8 @@ pub async fn RosActionClient::receive_goal_feedback(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match reader.read_byte_array(16) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if reader.read_byte_array(16) is Err(message) {
+    return Err(message)
   }
   let feedback_payload = match reader.read_byte_array(reader.remaining()) {
     Ok(value) => value
@@ -341,9 +340,8 @@ fn ros_action_send_goal_request(
   if goal_id.length() != 16 {
     return Err("an action goal ID must contain exactly 16 bytes")
   }
-  match @cdr.Reader::from_bytes(serialized_goal) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if @cdr.Reader::from_bytes(serialized_goal) is Err(message) {
+    return Err(message)
   }
   if serialized_goal[0] != 0 || serialized_goal[1] != 1 {
     return Err("an action goal payload must use little-endian ROS CDR")

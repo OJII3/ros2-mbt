@@ -300,9 +300,8 @@ pub fn MessageDefinition::new_with_types(
         }
       None => ()
     }
-    match rosidl_moon_type_for_field(field.type_name, nested_types) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if rosidl_moon_type_for_field(field.type_name, nested_types) is Err(message) {
+      return Err(message)
     }
     match field.collection {
       FixedArray(length) =>
@@ -343,9 +342,9 @@ pub fn MessageDefinition::with_constants(
     if !rosidl_constant_identifier(constant.name) {
       return Err("ROS message constant names must be uppercase identifiers")
     }
-    match rosidl_constant_literal(constant.type_name, constant.value) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if rosidl_constant_literal(constant.type_name, constant.value)
+      is Err(message) {
+      return Err(message)
     }
   }
   Ok({ ..self, constants, })

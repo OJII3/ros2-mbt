@@ -226,9 +226,8 @@ pub async fn[T] RosNode::create_subscription(
   })
   let graph = self.middleware.graph()
   for publication in graph.publications() {
-    match self.add_publication(publication) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.add_publication(publication) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -295,9 +294,8 @@ pub async fn RosNode::send_publisher_heartbeats(
   self : RosNode,
 ) -> Result[Unit, String] {
   for entry in self.publishers {
-    match entry.publisher.send_heartbeat() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if entry.publisher.send_heartbeat() is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -584,18 +582,17 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
       Discovery(node_index, result) =>
         match result {
           Ok(event) =>
-            match self.nodes[node_index].handle_discovery_event(event) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
+            if self.nodes[node_index].handle_discovery_event(event)
+              is Err(message) {
+              return Err(message)
             }
           Err(message) => return Err(message)
         }
       Datagram(node_index, result) =>
         match result {
           Ok(incoming) =>
-            match self.nodes[node_index].handle_message(incoming) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
+            if self.nodes[node_index].handle_message(incoming) is Err(message) {
+              return Err(message)
             }
           Err(_) => ()
         }
@@ -616,9 +613,8 @@ fn RosNode::handle_discovery_event(
     Subscription(subscription) => {
       for entry in self.publishers {
         if entry.publisher.matches(subscription) {
-          match entry.publisher.add_subscription(subscription) {
-            Ok(_) => ()
-            Err(message) => return Err(message)
+          if entry.publisher.add_subscription(subscription) is Err(message) {
+            return Err(message)
           }
         }
       }
@@ -668,14 +664,12 @@ async fn RosNode::handle_message(
   self : RosNode,
   incoming : MiddlewareIncoming,
 ) -> Result[Unit, String] {
-  match self.middleware.handle_datagram(incoming) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.middleware.handle_datagram(incoming) is Err(message) {
+    return Err(message)
   }
   for entry in self.publishers {
-    match entry.publisher.handle_incoming(incoming) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if entry.publisher.handle_incoming(incoming) is Err(message) {
+      return Err(message)
     }
   }
   for subscription_index in 0..<self.subscriptions.length() {
@@ -688,9 +682,8 @@ async fn RosNode::handle_message(
         Err(_) => continue
       }
       for payload in payloads {
-        match callback(payload) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if callback(payload) is Err(message) {
+          return Err(message)
         }
       }
     }

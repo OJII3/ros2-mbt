@@ -573,9 +573,9 @@ pub fn SedpEndpointData::qos(
           Ok(value) => value
           Err(message) => return Err(message)
         }
-        match sedp_qos_duration(value, 4, "reliability max blocking time") {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if sedp_qos_duration(value, 4, "reliability max blocking time")
+          is Err(message) {
+          return Err(message)
         }
       }
       @core.PID_DURABILITY =>

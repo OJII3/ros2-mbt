@@ -249,9 +249,8 @@ pub async fn DiscoverySession::announce_n(
     if index > 0 {
       @async.sleep(interval_ms)
     }
-    match self.announce_once() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_once() is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -270,9 +269,8 @@ pub async fn DiscoverySession::announce_forever(
     return Err("the discovery announcement interval must be positive")
   }
   while true {
-    match self.announce_once() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_once() is Err(message) {
+      return Err(message)
     }
     @async.sleep(interval_ms)
   }
@@ -296,9 +294,8 @@ pub async fn DiscoverySession::receive_once(
       return Ok(event)
     }
     self.queue_expired_participants()
-    match self.flush_outgoing() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.flush_outgoing() is Err(message) {
+      return Err(message)
     }
     if self.pending_events.length() > 0 {
       continue
@@ -320,9 +317,8 @@ pub async fn DiscoverySession::receive_once(
           Err(message) => return Err(message)
         }
         self.enqueue_effects(effects, source)
-        match self.flush_outgoing_on(self.socket) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.flush_outgoing_on(self.socket) is Err(message) {
+          return Err(message)
         }
       }
       Ok(ParticipantLeaseExpired) => self.queue_expired_participants()

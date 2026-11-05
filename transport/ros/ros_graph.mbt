@@ -84,9 +84,8 @@ async fn RosGraph::publish(
 ) -> Result[Unit, String] {
   self.latest_graph_info = Some(info)
   for publisher in self.graph_publishers {
-    match publisher.announce_once(info) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if publisher.announce_once(info) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -256,9 +255,8 @@ async fn RosGraph::match_subscription(
     match info {
       Some(info) => {
         self.latest_graph_info = Some(info)
-        match publisher.announce_once(info) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if publisher.announce_once(info) is Err(message) {
+          return Err(message)
         }
       }
       None => ()

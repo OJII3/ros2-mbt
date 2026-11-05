@@ -195,9 +195,8 @@ pub async fn DataWriter::write(
   }
   for message in messages {
     for destination in self.destinations {
-      match self.socket.send_message(message, destination) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if self.socket.send_message(message, destination) is Err(message) {
+        return Err(message)
       }
     }
   }

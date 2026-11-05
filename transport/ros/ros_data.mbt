@@ -174,9 +174,8 @@ pub async fn RosPublisher::publish(
   }
   self.next_sequence_number += 1L
   for (_, writer) in writers {
-    match writer.write(serialized_payload) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if writer.write(serialized_payload) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())

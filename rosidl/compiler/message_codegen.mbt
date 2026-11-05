@@ -133,9 +133,8 @@ pub fn MessageDefinition::generate_moonbit(self : MessageDefinition) -> String {
     self.type_name +
     ") -> Result[Bytes, String] {\n"
   output += "  let writer = @cdr.Writer::new()\n"
-  output += "  match self.write_cdr(writer) {\n"
-  output += "    Ok(_) => ()\n"
-  output += "    Err(message) => return Err(message)\n"
+  output += "  if self.write_cdr(writer) is Err(message) {\n"
+  output += "    return Err(message)\n"
   output += "  }\n"
   output += "  Ok(writer.to_bytes())\n}\n\n"
   output += "///|\n"
@@ -234,16 +233,11 @@ fn rosidl_generate_default_field(
           field.name +
           " : " +
           field_type +
-          " = []\n" +
-          "  for _ in 0..<" +
+          " = Array::make(" +
           length.to_string() +
-          " {\n" +
-          "    " +
-          field.name +
-          ".push(" +
+          ", " +
           rosidl_default_scalar(field, nested_types) +
-          ")\n" +
-          "  }\n"
+          ")\n"
         Sequence | BoundedSequence(_) =>
           "  let " + field.name + " : " + field_type + " = []\n"
       }
@@ -339,31 +333,27 @@ fn rosidl_generate_writer_call(
         "write_bounded_string"
       }
       indent +
-      "match writer." +
+      "if writer." +
       bounded_method +
       "(" +
       value +
       ", " +
       bound.to_string() +
-      ") {\n" +
+      ") is Err(message) {\n" +
       indent +
-      "  Ok(_) => ()\n" +
-      indent +
-      "  Err(message) => return Err(message)\n" +
+      "  return Err(message)\n" +
       indent +
       "}\n"
     }
     None if field.type_name == "wstring" =>
       indent +
-      "match writer." +
+      "if writer." +
       codec_method +
       "(" +
       value +
-      ") {\n" +
+      ") is Err(message) {\n" +
       indent +
-      "  Ok(_) => ()\n" +
-      indent +
-      "  Err(message) => return Err(message)\n" +
+      "  return Err(message)\n" +
       indent +
       "}\n"
     None => indent + "writer." + codec_method + "(" + value + ")\n"
@@ -560,13 +550,11 @@ fn rosidl_generate_nested_writer_call(
   indent : String,
 ) -> String {
   indent +
-  "match " +
+  "if " +
   value +
-  ".write_cdr(writer) {\n" +
+  ".write_cdr(writer) is Err(message) {\n" +
   indent +
-  "  Ok(_) => ()\n" +
-  indent +
-  "  Err(message) => return Err(message)\n" +
+  "  return Err(message)\n" +
   indent +
   "}\n"
 }

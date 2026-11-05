@@ -138,9 +138,8 @@ pub fn Twist::write_cdr(
   self : Twist,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.linear.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.linear.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   self.angular.write_cdr(writer)
 }
@@ -264,9 +263,8 @@ pub fn Point::read_cdr(reader : @cdr.Reader) -> Result[Point, String] {
 /// Serialize the point as CDR bytes.
 pub fn Point::to_cdr_bytes(self : Point) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -386,9 +384,8 @@ pub fn Quaternion::read_cdr(reader : @cdr.Reader) -> Result[Quaternion, String] 
 /// Serialize the quaternion as CDR bytes.
 pub fn Quaternion::to_cdr_bytes(self : Quaternion) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -450,13 +447,11 @@ pub fn Pose::write_cdr(
   self : Pose,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.position.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.position.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.orientation.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.orientation.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -479,9 +474,8 @@ pub fn Pose::read_cdr(reader : @cdr.Reader) -> Result[Pose, String] {
 /// Serialize the pose as CDR bytes.
 pub fn Pose::to_cdr_bytes(self : Pose) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -550,13 +544,11 @@ pub fn Transform::write_cdr(
   self : Transform,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.translation.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.translation.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.rotation.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.rotation.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -579,9 +571,8 @@ pub fn Transform::read_cdr(reader : @cdr.Reader) -> Result[Transform, String] {
 /// Serialize the transform as CDR bytes.
 pub fn Transform::to_cdr_bytes(self : Transform) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -659,14 +650,12 @@ pub fn TransformStamped::write_cdr(
   self : TransformStamped,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_string(self.child_frame_id)
-  match self.transform.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.transform.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -697,9 +686,8 @@ pub fn TransformStamped::to_cdr_bytes(
   self : TransformStamped,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -767,13 +755,11 @@ pub fn PoseStamped::write_cdr(
   self : PoseStamped,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.pose.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.pose.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -798,9 +784,8 @@ pub fn PoseStamped::read_cdr(
 /// Serialize the stamped pose as CDR bytes.
 pub fn PoseStamped::to_cdr_bytes(self : PoseStamped) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -849,10 +834,7 @@ pub fn PoseWithCovariance::new(
 /// Create a pose with zero covariance.
 pub fn PoseWithCovariance::default() -> PoseWithCovariance {
   let pose : Pose = Pose::default()
-  let covariance : Array[Double] = []
-  for _ in 0..<36 {
-    covariance.push(0.0)
-  }
+  let covariance : Array[Double] = Array::make(36, 0.0)
   PoseWithCovariance::new(pose, covariance)
 }
 
@@ -879,9 +861,8 @@ pub fn PoseWithCovariance::write_cdr(
   if self.covariance.length() != 36 {
     return Err("PoseWithCovariance covariance must contain exactly 36 values")
   }
-  match self.pose.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.pose.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   for value in self.covariance {
     writer.write_f64(value)
@@ -916,9 +897,8 @@ pub fn PoseWithCovariance::to_cdr_bytes(
   self : PoseWithCovariance,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1027,10 +1007,7 @@ pub fn TwistWithCovariance::new(
 /// Create a twist with zero covariance.
 pub fn TwistWithCovariance::default() -> TwistWithCovariance {
   let twist : Twist = Twist::default()
-  let covariance : Array[Double] = []
-  for _ in 0..<36 {
-    covariance.push(0.0)
-  }
+  let covariance : Array[Double] = Array::make(36, 0.0)
   TwistWithCovariance::new(twist, covariance)
 }
 
@@ -1057,9 +1034,8 @@ pub fn TwistWithCovariance::write_cdr(
   if self.covariance.length() != 36 {
     return Err("TwistWithCovariance covariance must contain exactly 36 values")
   }
-  match self.twist.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.twist.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   for value in self.covariance {
     writer.write_f64(value)
@@ -1094,9 +1070,8 @@ pub fn TwistWithCovariance::to_cdr_bytes(
   self : TwistWithCovariance,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

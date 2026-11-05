@@ -304,9 +304,8 @@ pub fn ReliableDataReader::accept_data_frag(
       self.fragments.length() - 1
     }
   }
-  match self.fragments[index].accept_fragment(fragment) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.fragments[index].accept_fragment(fragment) is Err(message) {
+    return Err(message)
   }
   if !self.fragments[index].is_complete() {
     return Ok(None)

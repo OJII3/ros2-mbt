@@ -138,9 +138,8 @@ pub async fn ReliableDataReaderSession::handle_message(
           heartbeat.writer_id() != self.state.writer_id {
           continue
         }
-        match self.acknowledge_heartbeat(heartbeat) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.acknowledge_heartbeat(heartbeat) is Err(message) {
+          return Err(message)
         }
       }
       HeartbeatFrag => {
@@ -159,9 +158,8 @@ pub async fn ReliableDataReaderSession::handle_message(
           heartbeat.writer_id() != self.state.writer_id {
           continue
         }
-        match self.acknowledge_heartbeat_frag(heartbeat) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.acknowledge_heartbeat_frag(heartbeat) is Err(message) {
+          return Err(message)
         }
       }
       _ => ()

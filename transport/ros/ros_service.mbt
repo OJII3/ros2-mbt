@@ -508,9 +508,8 @@ pub async fn RosServiceServer::respond(
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      match self.response_writer.write(payload) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if self.response_writer.write(payload) is Err(message) {
+        return Err(message)
       }
       self.pending_payload_header = None
     }
@@ -557,9 +556,8 @@ pub async fn RosServiceServer::handle_message(
   message : @rtps.Message,
   source : @socket.Addr,
 ) -> Result[Unit, String] {
-  match self.response_writer.handle_control_message(message) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.response_writer.handle_control_message(message) is Err(message) {
+    return Err(message)
   }
   let samples = match self.request_reader.handle_message(message, source) {
     Ok(samples) => samples

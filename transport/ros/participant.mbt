@@ -259,9 +259,8 @@ pub async fn RosParticipant::set_ros_node_identity(
   node_namespace : String,
   node_name : String,
 ) -> Result[Unit, String] {
-  match @ros_types.NodeEntitiesInfo::new(node_namespace, node_name) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if @ros_types.NodeEntitiesInfo::new(node_namespace, node_name) is Err(message) {
+    return Err(message)
   }
   self.ros_graph.ros_node_namespace = Some(node_namespace)
   self.ros_graph.ros_node_name = Some(node_name)
@@ -286,15 +285,13 @@ pub async fn RosParticipant::register_endpoint(
       return Err("the SEDP endpoint is already registered")
     }
   }
-  match self.discovery.queue_sedp_to_all(registered) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.discovery.queue_sedp_to_all(registered) is Err(message) {
+    return Err(message)
   }
   // Both local registration and writer admission finish before the first await.
   self.local_endpoints.push(registered)
-  match self.discovery.flush_outgoing() {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.discovery.flush_outgoing() is Err(message) {
+    return Err(message)
   }
   self.refresh_ros_discovery_info()
 }
@@ -316,9 +313,8 @@ pub async fn RosParticipant::unregister_endpoint(
     return Err("the SEDP endpoint is not registered")
   }
   let endpoint = self.local_endpoints[endpoint_index]
-  match self.discovery.dispose_sedp_to_all(endpoint) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.discovery.dispose_sedp_to_all(endpoint) is Err(message) {
+    return Err(message)
   }
   let remaining : Array[@rtps.SedpEndpointData] = []
   for index in 0..<self.local_endpoints.length() {
@@ -423,9 +419,8 @@ async fn RosParticipant::register_service_server_with_optional_type_hashes(
     None => ()
   }
   request.add_unicast_locator(self.user_locator)
-  match self.register_endpoint(request) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.register_endpoint(request) is Err(message) {
+    return Err(message)
   }
   let response = match
     service.response_to_sedp_with_related_endpoint(
@@ -509,9 +504,8 @@ async fn RosParticipant::register_service_client_with_optional_type_hashes(
     None => ()
   }
   request.add_unicast_locator(self.user_locator)
-  match self.register_endpoint(request) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.register_endpoint(request) is Err(message) {
+    return Err(message)
   }
   let response = match
     service.response_to_sedp_with_related_endpoint(
@@ -584,9 +578,8 @@ pub async fn RosParticipant::register_ros_discovery_info(
     Err(message) => return Err(message)
   }
   publication.add_unicast_locator(self.user_locator)
-  match self.register_endpoint(publication) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.register_endpoint(publication) is Err(message) {
+    return Err(message)
   }
   let subscription = match
     @ros_types.ros_discovery_info_to_sedp(
@@ -707,9 +700,8 @@ pub async fn RosParticipant::handle_user_message(
     }
   }
   for publisher in self.ros_graph.graph_publishers {
-    match publisher.handle_message(message) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if publisher.handle_message(message) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -721,9 +713,8 @@ pub async fn RosParticipant::send_ros_discovery_heartbeats(
   self : RosParticipant,
 ) -> Result[Unit, String] {
   for publisher in self.ros_graph.graph_publishers {
-    match publisher.writer.send_heartbeat() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if publisher.writer.send_heartbeat() is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -762,9 +753,8 @@ pub async fn RosParticipant::announce_spdp_forever(
     return Err("the discovery announcement interval must be positive")
   }
   while true {
-    match self.announce_spdp_once() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_spdp_once() is Err(message) {
+      return Err(message)
     }
     @async.sleep(interval_ms)
   }
@@ -847,9 +837,8 @@ pub async fn RosParticipant::receive_discovery_once(
           None => true
         }
         if changed {
-          match self.discovery.replay_sedp(remote_participant) {
-            Ok(_) => ()
-            Err(message) => return Err(message)
+          if self.discovery.replay_sedp(remote_participant) is Err(message) {
+            return Err(message)
           }
           self.announced_participants = self.announced_participants.filter(fn(
             remote,

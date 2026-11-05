@@ -127,9 +127,8 @@ async fn spin_discovery(
       Some(Err(message)) => return Err(message)
     }
     if collect_graph {
-      match receive_graph_samples(participant) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if receive_graph_samples(participant) is Err(message) {
+        return Err(message)
       }
     }
   } nobreak {

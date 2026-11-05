@@ -326,9 +326,9 @@ async fn RosMiddleware::create_publisher(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match self.register_topic(topic, Publication, writer_id, qos, type_hash) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.register_topic(topic, Publication, writer_id, qos, type_hash)
+    is Err(message) {
+    return Err(message)
   }
   Ok(MiddlewarePublisher::new(writer, topic, type_hash, qos))
 }

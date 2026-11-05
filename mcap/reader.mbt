@@ -187,9 +187,8 @@ async fn read_required_header(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match cursor.read_string() {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if cursor.read_string() is Err(message) {
+    return Err(message)
   }
   match cursor.finish() {
     Ok(_) => Ok(profile)
@@ -269,9 +268,8 @@ fn parse_record(opcode : Byte, payload : Bytes) -> Result[Record?, String] {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      match cursor.finish() {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if cursor.finish() is Err(message) {
+        return Err(message)
       }
       let metadata_cursor = Cursor::new(metadata_bytes)
       let metadata : Array[(String, String)] = []
@@ -325,9 +323,8 @@ fn parse_record(opcode : Byte, payload : Bytes) -> Result[Record?, String] {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      match cursor.finish() {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if cursor.finish() is Err(message) {
+        return Err(message)
       }
       let metadata_cursor = Cursor::new(metadata_bytes)
       let metadata : Array[(String, String)] = []
@@ -345,9 +342,8 @@ fn parse_record(opcode : Byte, payload : Bytes) -> Result[Record?, String] {
       Ok(Some(Metadata(name, metadata)))
     }
     0x0F => {
-      match cursor.take(4) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if cursor.take(4) is Err(message) {
+        return Err(message)
       }
       match cursor.finish() {
         Ok(_) => Ok(Some(DataEnd))
@@ -362,9 +358,8 @@ fn parse_record(opcode : Byte, payload : Bytes) -> Result[Record?, String] {
 fn parse_chunk(payload : Bytes) -> Result[Bytes, String] {
   let cursor = Cursor::new(payload)
   for _ in 0..<2 {
-    match cursor.read_u64() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if cursor.read_u64() is Err(message) {
+      return Err(message)
     }
   }
   let uncompressed_size = match cursor.read_u64() {
@@ -396,9 +391,8 @@ fn parse_chunk(payload : Bytes) -> Result[Bytes, String] {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match cursor.finish() {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if cursor.finish() is Err(message) {
+    return Err(message)
   }
   if expected_crc != 0 && crc32(records) != expected_crc {
     return Err("MCAP chunk CRC32 mismatch")

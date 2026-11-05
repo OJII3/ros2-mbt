@@ -48,9 +48,8 @@ pub fn parse_message_with_types(
           _ => ""
         },
       )
-      match rosidl_constant_literal(declaration[0], value) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if rosidl_constant_literal(declaration[0], value) is Err(message) {
+        return Err(message)
       }
       constants.push(
         MessageConstant::new(declaration[0], declaration[1], value),

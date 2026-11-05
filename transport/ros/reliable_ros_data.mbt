@@ -229,16 +229,14 @@ pub async fn ReliableRosPublisher::publish(
   for target in writers {
     match target.reliable_writer {
       Some(writer) =>
-        match writer.write(serialized_payload) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if writer.write(serialized_payload) is Err(message) {
+          return Err(message)
         }
       None =>
         match target.best_effort_writer {
           Some(writer) =>
-            match writer.write(serialized_payload) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
+            if writer.write(serialized_payload) is Err(message) {
+              return Err(message)
             }
           None => ()
         }
@@ -259,9 +257,8 @@ pub async fn ReliableRosPublisher::send_heartbeat(
   for target in writers {
     match target.reliable_writer {
       Some(writer) =>
-        match writer.send_heartbeat() {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if writer.send_heartbeat() is Err(message) {
+          return Err(message)
         }
       None => ()
     }
@@ -411,9 +408,8 @@ pub async fn ReliableRosPublisher::handle_message(
   for target in writers {
     match target.reliable_writer {
       Some(writer) =>
-        match writer.handle_control_message(message) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if writer.handle_control_message(message) is Err(message) {
+          return Err(message)
         }
       None => ()
     }

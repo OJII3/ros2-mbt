@@ -113,9 +113,8 @@ pub async fn DiscoveryService::announce_sedp_n(
     if index > 0 {
       @async.sleep(interval_ms)
     }
-    match self.announce_sedp_to_all(endpoint) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_sedp_to_all(endpoint) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -132,9 +131,8 @@ pub async fn DiscoveryService::announce_sedp_forever(
     return Err("the SEDP announcement interval must be positive")
   }
   while true {
-    match self.announce_sedp_to_all(endpoint) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_sedp_to_all(endpoint) is Err(message) {
+      return Err(message)
     }
     @async.sleep(interval_ms)
   }

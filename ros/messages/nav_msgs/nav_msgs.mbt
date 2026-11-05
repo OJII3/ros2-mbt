@@ -59,18 +59,15 @@ pub fn Odometry::write_cdr(
   self : Odometry,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_string(self.child_frame_id)
-  match self.pose.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.pose.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.twist.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.twist.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -101,9 +98,8 @@ pub fn Odometry::read_cdr(reader : @cdr.Reader) -> Result[Odometry, String] {
 /// Serialize odometry as CDR bytes.
 pub fn Odometry::to_cdr_bytes(self : Odometry) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -172,15 +168,13 @@ pub fn Path::write_cdr(
   self : Path,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.poses.length().reinterpret_as_uint())
   for value in self.poses {
-    match value.write_cdr(writer) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if value.write_cdr(writer) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -219,9 +213,8 @@ pub fn Path::read_cdr(reader : @cdr.Reader) -> Result[Path, String] {
 /// Serialize the path as CDR bytes.
 pub fn Path::to_cdr_bytes(self : Path) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -319,16 +312,14 @@ pub fn MapMetaData::write_cdr(
   self : MapMetaData,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.map_load_time.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.map_load_time.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_f32(self.resolution)
   writer.write_u32(self.width)
   writer.write_u32(self.height)
-  match self.origin.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.origin.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -365,9 +356,8 @@ pub fn MapMetaData::read_cdr(
 /// Serialize map metadata as CDR bytes.
 pub fn MapMetaData::to_cdr_bytes(self : MapMetaData) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -471,13 +461,11 @@ pub fn OccupancyGrid::write_cdr(
   self : OccupancyGrid,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.info.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.info.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.data.length().reinterpret_as_uint())
   for value in self.data {
@@ -527,9 +515,8 @@ pub fn OccupancyGrid::to_cdr_bytes(
   self : OccupancyGrid,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
