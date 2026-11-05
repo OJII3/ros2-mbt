@@ -4,10 +4,11 @@ pub const SAMPLE_IDENTITY_UNKNOWN_SEQUENCE : Int64 = -4294967296L
 
 ///|
 /// The RTPS sample identity used to correlate a DDS-RPC reply with a request.
+#derive(Eq, Debug)
 pub struct SampleIdentity {
   writer_guid : Guid
   sequence_number : Int64
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SampleIdentity with Eq::{not_equal, equal}

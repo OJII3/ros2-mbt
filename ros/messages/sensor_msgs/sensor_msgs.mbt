@@ -1,5 +1,6 @@
 ///|
 /// Generated from sensor_msgs/msg/Imu.msg
+#derive(Eq, Debug)
 pub struct Imu {
   header : @std.Header
   orientation : @geometry.Quaternion
@@ -8,7 +9,7 @@ pub struct Imu {
   angular_velocity_covariance : Array[Double]
   linear_acceleration : @geometry.Vector3
   linear_acceleration_covariance : Array[Double]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create an IMU message.
@@ -231,6 +232,7 @@ pub fn Imu::from_cdr_bytes(input : Bytes) -> Result[Imu, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/LaserScan.msg
+#derive(Eq, Debug)
 pub struct LaserScan {
   header : @std.Header
   angle_min : Float
@@ -242,7 +244,7 @@ pub struct LaserScan {
   range_max : Float
   ranges : Array[Float]
   intensities : Array[Float]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a laser scan message.
@@ -486,6 +488,7 @@ pub fn LaserScan::from_cdr_bytes(input : Bytes) -> Result[LaserScan, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/Image.msg
+#derive(Eq, Debug)
 pub struct Image {
   header : @std.Header
   height : UInt32
@@ -494,7 +497,7 @@ pub struct Image {
   is_bigendian : Byte
   step : UInt32
   data : Array[Byte]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create an image message.
@@ -665,11 +668,12 @@ pub fn Image::from_cdr_bytes(input : Bytes) -> Result[Image, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/CompressedImage.msg
+#derive(Eq, Debug)
 pub struct CompressedImage {
   header : @std.Header
   format : String
   data : Array[Byte]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a compressed image message.
@@ -794,13 +798,14 @@ pub fn CompressedImage::from_cdr_bytes(
 
 ///|
 /// Generated from sensor_msgs/msg/JointState.msg
+#derive(Eq, Debug)
 pub struct JointState {
   header : @std.Header
   name : Array[String]
   position : Array[Double]
   velocity : Array[Double]
   effort : Array[Double]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a joint state message.
@@ -990,12 +995,13 @@ pub fn JointState::from_cdr_bytes(input : Bytes) -> Result[JointState, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/PointField.msg
+#derive(Eq, Debug)
 pub struct PointField {
   name : String
   offset : UInt32
   datatype : Byte
   count : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 
@@ -1141,10 +1147,11 @@ pub fn PointField::from_cdr_bytes(input : Bytes) -> Result[PointField, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/NavSatStatus.msg
+#derive(Eq, Debug)
 pub struct NavSatStatus {
   status : Int32
   service : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 
@@ -1279,13 +1286,14 @@ pub fn NavSatStatus::from_cdr_bytes(
 
 ///|
 /// Generated from sensor_msgs/msg/RegionOfInterest.msg
+#derive(Eq, Debug)
 pub struct RegionOfInterest {
   x_offset : UInt32
   y_offset : UInt32
   height : UInt32
   width : UInt32
   do_rectify : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 
@@ -1418,6 +1426,7 @@ pub fn RegionOfInterest::from_cdr_bytes(
 
 ///|
 /// Generated from sensor_msgs/msg/CameraInfo.msg
+#derive(Eq, Debug)
 pub struct CameraInfo {
   header : @std.Header
   height : UInt32
@@ -1430,7 +1439,7 @@ pub struct CameraInfo {
   binning_x : UInt32
   binning_y : UInt32
   roi : RegionOfInterest
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a camera information message.
@@ -1714,6 +1723,7 @@ pub fn CameraInfo::from_cdr_bytes(input : Bytes) -> Result[CameraInfo, String] {
 
 ///|
 /// Generated from sensor_msgs/msg/PointCloud2.msg
+#derive(Eq, Debug)
 pub struct PointCloud2 {
   header : @std.Header
   height : UInt32
@@ -1724,7 +1734,7 @@ pub struct PointCloud2 {
   row_step : UInt32
   data : Array[Byte]
   is_dense : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a point cloud message.
@@ -1962,6 +1972,7 @@ pub fn PointCloud2::from_cdr_bytes(
 
 ///|
 /// Generated from sensor_msgs/msg/NavSatFix.msg
+#derive(Eq, Debug)
 pub struct NavSatFix {
   header : @std.Header
   status : NavSatStatus
@@ -1970,7 +1981,7 @@ pub struct NavSatFix {
   altitude : Double
   position_covariance : Array[Double]
   position_covariance_type : Byte
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Imu with Eq::{not_equal, equal}

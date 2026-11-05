@@ -8,11 +8,12 @@ pub const Twist_TYPE_HASH : String = "RIHS01_9c45bf16fe0983d80e3cfe750d6835843d2
 
 ///|
 /// A geometry_msgs/msg/Vector3 value.
+#derive(Eq, Debug)
 pub struct Vector3 {
   x : Double
   y : Double
   z : Double
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a 3D vector.
@@ -101,10 +102,11 @@ pub fn Vector3::from_cdr_bytes(input : Bytes) -> Result[Vector3, String] {
 
 ///|
 /// A geometry_msgs/msg/Twist value.
+#derive(Eq, Debug)
 pub struct Twist {
   linear : Vector3
   angular : Vector3
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a twist from linear and angular vectors.
@@ -184,11 +186,12 @@ pub fn Twist::from_cdr_bytes(input : Bytes) -> Result[Twist, String] {
 
 ///|
 /// Generated from geometry_msgs/msg/Point.msg
+#derive(Eq, Debug)
 pub struct Point {
   x : Double
   y : Double
   z : Double
-} derive(Eq, Debug)
+}
 
 ///|
 /// Type hash for `geometry_msgs/msg/Point`.
@@ -287,12 +290,13 @@ pub fn Point::from_cdr_bytes(input : Bytes) -> Result[Point, String] {
 
 ///|
 /// Generated from geometry_msgs/msg/Quaternion.msg
+#derive(Eq, Debug)
 pub struct Quaternion {
   x : Double
   y : Double
   z : Double
   w : Double
-} derive(Eq, Debug)
+}
 
 ///|
 /// Type hash for `geometry_msgs/msg/Quaternion`.
@@ -408,10 +412,11 @@ pub fn Quaternion::from_cdr_bytes(input : Bytes) -> Result[Quaternion, String] {
 
 ///|
 /// Generated from geometry_msgs/msg/Pose.msg
+#derive(Eq, Debug)
 pub struct Pose {
   position : Point
   orientation : Quaternion
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a pose from a position and orientation.
@@ -504,10 +509,11 @@ pub const Pose_TYPE_HASH : String = "RIHS01_d501954e9476cea2996984e812054b68026a
 
 ///|
 /// Generated from geometry_msgs/msg/Transform.msg
+#derive(Eq, Debug)
 pub struct Transform {
   translation : Vector3
   rotation : Quaternion
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a transform.
@@ -603,11 +609,12 @@ pub const Transform_TYPE_HASH : String = "RIHS01_beb83fbe698636351461f6f35d1abb2
 
 ///|
 /// Generated from geometry_msgs/msg/TransformStamped.msg
+#derive(Eq, Debug)
 pub struct TransformStamped {
   header : @std_msgs.Header
   child_frame_id : String
   transform : Transform
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a stamped transform.
@@ -722,10 +729,11 @@ pub const TransformStamped_TYPE_HASH : String = "RIHS01_0a241f87d04668d94099cbb5
 
 ///|
 /// Generated from geometry_msgs/msg/PoseStamped.msg
+#derive(Eq, Debug)
 pub struct PoseStamped {
   header : @std_msgs.Header
   pose : Pose
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a stamped pose.
@@ -822,10 +830,11 @@ pub const PoseStamped_TYPE_HASH : String = "RIHS01_10f3786d7d40fd2b54367835614bf
 
 ///|
 /// Generated from geometry_msgs/msg/PoseWithCovariance.msg
+#derive(Eq, Debug)
 pub struct PoseWithCovariance {
   pose : Pose
   covariance : Array[Double]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a pose with covariance.
@@ -939,10 +948,11 @@ pub const PoseWithCovariance_TYPE_HASH : String = "RIHS01_9a7c0fd234b7f45c609874
 
 ///|
 /// Generated from geometry_msgs/msg/TwistWithCovariance.msg
+#derive(Eq, Debug)
 pub struct TwistWithCovariance {
   twist : Twist
   covariance : Array[Double]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Vector3 with Eq::{not_equal, equal}

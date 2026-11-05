@@ -110,7 +110,10 @@ async fn run_topic_hz(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let publication_result = @async.with_task_group() <| group => {
+  let mut publication_result : Result[@rtps.SedpEndpointData, String] = Err(
+    "no publication was discovered",
+  )
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match cli.participant.announce_spdp_forever(CLI_DISCOVERY_INTERVAL_MS) {
         Ok(_) => ()
@@ -118,7 +121,8 @@ async fn run_topic_hz(
           println("error: discovery announcement failed: " + message)
       }
     }
-    match spin_discovery(cli.participant, spin_time_ms, false) {
+    publication_result = match
+      spin_discovery(cli.participant, spin_time_ms, false) {
       Ok(_) => find_publication(cli.participant, ros_name)
       Err(message) => Err(message)
     }

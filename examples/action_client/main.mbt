@@ -352,14 +352,19 @@ async fn main {
       return
     }
   }
-  let discovered_endpoints = @async.with_task_group() <| group => {
+  let mut discovered_endpoints : Result[@transport.RosActionEndpoints, String] = Err(
+    "action discovery did not run",
+  )
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
         Ok(_) => ()
         Err(message) => fail(message)
       }
     }
-    @transport.RosActionEndpoints::discover(participant, action)
+    discovered_endpoints = @transport.RosActionEndpoints::discover(
+      participant, action,
+    )
   }
   let endpoints = match discovered_endpoints {
     Ok(value) => value

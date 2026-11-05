@@ -13,7 +13,3 @@ keywords = [ "dds", "rtps", "ros2" ]
 preferred_target = "native"
 
 description = "A small DDS/RTPS compatibility layer for MoonBit and ROS 2"
-
-import {
-  "moonbitlang/async@0.22.0",
-}

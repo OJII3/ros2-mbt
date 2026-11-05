@@ -10,60 +10,60 @@ pub const CDR_BE : UInt16 = 0x0000
 
 pub const CDR_LE : UInt16 = 0x0001
 
-pub const ENCAPSULATION_LENGTH : Int = 4
+pub const ENCAPSULATION_LENGTH : Int32 = 4
 
 // Errors
 
 // Types and methods
 pub struct Reader {
   bytes : Bytes
-  mut offset : Int
+  mut offset : Int32
   little_endian : Bool
 }
 pub fn Reader::from_bytes(Bytes) -> Result[Self, String]
 pub fn Reader::read_bool(Self) -> Result[Bool, String]
-pub fn Reader::read_bounded_string(Self, Int) -> Result[String, String]
-pub fn Reader::read_bounded_wstring(Self, Int) -> Result[String, String]
-pub fn Reader::read_byte_array(Self, Int) -> Result[Bytes, String]
+pub fn Reader::read_bounded_string(Self, Int32) -> Result[String, String]
+pub fn Reader::read_bounded_wstring(Self, Int32) -> Result[String, String]
+pub fn Reader::read_byte_array(Self, Int32) -> Result[Bytes, String]
 pub fn Reader::read_byte_sequence(Self) -> Result[Bytes, String]
 pub fn Reader::read_f32(Self) -> Result[Float, String]
 pub fn Reader::read_f64(Self) -> Result[Double, String]
-pub fn Reader::read_i16(Self) -> Result[Int, String]
-pub fn Reader::read_i32(Self) -> Result[Int, String]
+pub fn Reader::read_i16(Self) -> Result[Int32, String]
+pub fn Reader::read_i32(Self) -> Result[Int32, String]
 pub fn Reader::read_i64(Self) -> Result[Int64, String]
-pub fn Reader::read_i8(Self) -> Result[Int, String]
+pub fn Reader::read_i8(Self) -> Result[Int32, String]
 pub fn Reader::read_string(Self) -> Result[String, String]
-pub fn Reader::read_u16(Self) -> Result[UInt, String]
-pub fn Reader::read_u32(Self) -> Result[UInt, String]
+pub fn Reader::read_u16(Self) -> Result[UInt32, String]
+pub fn Reader::read_u32(Self) -> Result[UInt32, String]
 pub fn Reader::read_u64(Self) -> Result[UInt64, String]
 pub fn Reader::read_u8(Self) -> Result[Byte, String]
 pub fn Reader::read_wstring(Self) -> Result[String, String]
-pub fn Reader::remaining(Self) -> Int
-pub fn Reader::remaining_is_zero_padding(Self, Int) -> Bool
+pub fn Reader::remaining(Self) -> Int32
+pub fn Reader::remaining_is_zero_padding(Self, Int32) -> Bool
 
 pub struct Writer {
   buffer : @buffer.Buffer
 }
-pub fn Writer::length(Self) -> Int
+pub fn Writer::length(Self) -> Int32
 pub fn Writer::new() -> Self
 pub fn Writer::to_bytes(Self) -> Bytes
-pub fn Writer::with_capacity(Int) -> Self
+pub fn Writer::with_capacity(Int32) -> Self
 pub fn Writer::write_bool(Self, Bool) -> Unit
-pub fn Writer::write_bounded_string(Self, String, Int) -> Result[Unit, String]
-pub fn Writer::write_bounded_wstring(Self, String, Int) -> Result[Unit, String]
+pub fn Writer::write_bounded_string(Self, String, Int32) -> Result[Unit, String]
+pub fn Writer::write_bounded_wstring(Self, String, Int32) -> Result[Unit, String]
 pub fn Writer::write_byte_array(Self, Bytes) -> Unit
 pub fn Writer::write_byte_sequence(Self, Bytes) -> Unit
 pub fn Writer::write_f32(Self, Float) -> Unit
 pub fn Writer::write_f64(Self, Double) -> Unit
 pub fn Writer::write_i16(Self, Int16) -> Unit
-pub fn Writer::write_i16_int(Self, Int) -> Unit
-pub fn Writer::write_i32(Self, Int) -> Unit
+pub fn Writer::write_i16_int(Self, Int32) -> Unit
+pub fn Writer::write_i32(Self, Int32) -> Unit
 pub fn Writer::write_i64(Self, Int64) -> Unit
-pub fn Writer::write_i8(Self, Int) -> Unit
+pub fn Writer::write_i8(Self, Int32) -> Unit
 pub fn Writer::write_string(Self, String) -> Unit
 pub fn Writer::write_u16(Self, UInt16) -> Unit
-pub fn Writer::write_u16_uint(Self, UInt) -> Unit
-pub fn Writer::write_u32(Self, UInt) -> Unit
+pub fn Writer::write_u16_uint(Self, UInt32) -> Unit
+pub fn Writer::write_u32(Self, UInt32) -> Unit
 pub fn Writer::write_u64(Self, UInt64) -> Unit
 pub fn Writer::write_u8(Self, Byte) -> Unit
 pub fn Writer::write_wstring(Self, String) -> Result[Unit, String]

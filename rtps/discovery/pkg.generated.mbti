@@ -7,33 +7,33 @@ import {
 }
 
 // Values
-pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
+pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt32 = 0x00000001
 
-pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
+pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt32 = 0x00000002
 
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt = 0x00000004
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt32 = 0x00000004
 
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt = 0x00000008
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt32 = 0x00000008
 
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt = 0x00000010
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt32 = 0x00000010
 
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt = 0x00000020
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt32 = 0x00000020
 
 pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
 
 pub const DATA_REPRESENTATION_XCDR2 : UInt16 = 2
 
-pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
+pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt32 = 0
 
-pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
+pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt32 = 1
 
-pub const DURABILITY_PERSISTENT : UInt = 3
+pub const DURABILITY_PERSISTENT : UInt32 = 3
 
-pub const DURABILITY_TRANSIENT : UInt = 2
+pub const DURABILITY_TRANSIENT : UInt32 = 2
 
-pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
+pub const DURABILITY_TRANSIENT_LOCAL : UInt32 = 1
 
-pub const DURABILITY_VOLATILE : UInt = 0
+pub const DURABILITY_VOLATILE : UInt32 = 0
 
 pub const ENTITYID_SEDP_PUBLICATIONS_READER : Byte = 0xC7
 
@@ -47,51 +47,51 @@ pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER : Byte = 0xC7
 
 pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
-pub const HISTORY_KEEP_ALL : UInt = 1
+pub const HISTORY_KEEP_ALL : UInt32 = 1
 
-pub const HISTORY_KEEP_LAST : UInt = 0
+pub const HISTORY_KEEP_LAST : UInt32 = 0
 
-pub const LIVELINESS_AUTOMATIC : UInt = 0
+pub const LIVELINESS_AUTOMATIC : UInt32 = 0
 
-pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
+pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt32 = 1
 
-pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
+pub const LIVELINESS_MANUAL_BY_TOPIC : UInt32 = 2
 
-pub const OWNERSHIP_EXCLUSIVE : UInt = 1
+pub const OWNERSHIP_EXCLUSIVE : UInt32 = 1
 
-pub const OWNERSHIP_SHARED : UInt = 0
+pub const OWNERSHIP_SHARED : UInt32 = 0
 
-pub const RELIABILITY_BEST_EFFORT : UInt = 1
+pub const RELIABILITY_BEST_EFFORT : UInt32 = 1
 
-pub const RELIABILITY_RELIABLE : UInt = 2
+pub const RELIABILITY_RELIABLE : UInt32 = 2
 
 pub fn qos_data_representation(Array[UInt16]) -> @core.Parameter
 
-pub fn qos_deadline(Int, UInt) -> @core.Parameter
+pub fn qos_deadline(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_destination_order(UInt) -> @core.Parameter
+pub fn qos_destination_order(UInt32) -> @core.Parameter
 
-pub fn qos_durability(UInt) -> @core.Parameter
+pub fn qos_durability(UInt32) -> @core.Parameter
 
 pub fn qos_expects_inline_qos(Bool) -> @core.Parameter
 
-pub fn qos_history(UInt, Int) -> @core.Parameter
+pub fn qos_history(UInt32, Int32) -> @core.Parameter
 
-pub fn qos_latency_budget(Int, UInt) -> @core.Parameter
+pub fn qos_latency_budget(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_lifespan(Int, UInt) -> @core.Parameter
+pub fn qos_lifespan(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_liveliness(UInt, Int, UInt) -> @core.Parameter
+pub fn qos_liveliness(UInt32, Int32, UInt32) -> @core.Parameter
 
-pub fn qos_ownership(UInt) -> @core.Parameter
+pub fn qos_ownership(UInt32) -> @core.Parameter
 
-pub fn qos_ownership_strength(Int) -> @core.Parameter
+pub fn qos_ownership_strength(Int32) -> @core.Parameter
 
-pub fn qos_reliability(UInt, Int, UInt) -> @core.Parameter
+pub fn qos_reliability(UInt32, Int32, UInt32) -> @core.Parameter
 
-pub fn qos_resource_limits(Int, Int, Int) -> @core.Parameter
+pub fn qos_resource_limits(Int32, Int32, Int32) -> @core.Parameter
 
-pub fn qos_type_max_size_serialized(UInt) -> @core.Parameter
+pub fn qos_type_max_size_serialized(UInt32) -> @core.Parameter
 
 pub fn qos_user_data(Bytes) -> @core.Parameter
 
@@ -172,6 +172,7 @@ pub(all) enum ParticipantEvent {
   ParticipantRemoved(@core.Guid)
 }
 
+#derive(Eq, @debug.Debug)
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
   endpoint_guid : @core.Guid
@@ -181,7 +182,7 @@ pub struct SedpEndpointData {
   unicast_locators : Array[@core.Locator]
   multicast_locators : Array[@core.Locator]
   extra_parameters : Array[@core.Parameter]
-} derive(Eq, @debug.Debug)
+}
 pub fn SedpEndpointData::add_multicast_locator(Self, @core.Locator) -> Unit
 pub fn SedpEndpointData::add_parameter(Self, @core.Parameter) -> Unit
 pub fn SedpEndpointData::add_unicast_locator(Self, @core.Locator) -> Unit
@@ -215,10 +216,11 @@ pub fn SedpEndpointData::unicast_locators(Self) -> Array[@core.Locator]
 pub fn SedpEndpointData::with_participant_guid(Self, @core.Guid) -> Self
 pub fn SedpEndpointData::with_unicast_locators(Self, Array[@core.Locator]) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SedpEndpointKind {
   Publication
   Subscription
-} derive(Eq, @debug.Debug)
+}
 pub fn SedpEndpointKind::builtin_reader_id(Self) -> @core.EntityId
 pub fn SedpEndpointKind::builtin_writer_id(Self) -> @core.EntityId
 pub fn SedpEndpointKind::equal(Self, Self) -> Bool
@@ -226,50 +228,51 @@ pub fn SedpEndpointKind::from_builtin_writer_id(@core.EntityId) -> Result[Self, 
 pub fn SedpEndpointKind::not_equal(Self, Self) -> Bool
 pub fn SedpEndpointKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct SedpQos {
-  reliability : UInt
-  durability : UInt
-  history : UInt
-  depth : Int
+  reliability : UInt32
+  durability : UInt32
+  history : UInt32
+  depth : Int32
   data_representation : Array[UInt16]
-  deadline_seconds : Int
-  deadline_fraction : UInt
-  liveliness : UInt
-  liveliness_lease_seconds : Int
-  liveliness_lease_fraction : UInt
-} derive(Eq, @debug.Debug)
-pub fn SedpQos::best_effort(depth? : Int) -> Self
+  deadline_seconds : Int32
+  deadline_fraction : UInt32
+  liveliness : UInt32
+  liveliness_lease_seconds : Int32
+  liveliness_lease_fraction : UInt32
+}
+pub fn SedpQos::best_effort(depth? : Int32) -> Self
 pub fn SedpQos::compatible_with(Self, Self) -> Bool
 pub fn SedpQos::data_representation(Self) -> Array[UInt16]
-pub fn SedpQos::deadline_fraction(Self) -> UInt
+pub fn SedpQos::deadline_fraction(Self) -> UInt32
 pub fn SedpQos::deadline_parameter(Self) -> @core.Parameter
-pub fn SedpQos::deadline_seconds(Self) -> Int
+pub fn SedpQos::deadline_seconds(Self) -> Int32
 pub fn SedpQos::default() -> Self
-pub fn SedpQos::depth(Self) -> Int
-pub fn SedpQos::durability(Self) -> UInt
+pub fn SedpQos::depth(Self) -> Int32
+pub fn SedpQos::durability(Self) -> UInt32
 pub fn SedpQos::equal(Self, Self) -> Bool
-pub fn SedpQos::history(Self) -> UInt
-pub fn SedpQos::liveliness(Self) -> UInt
-pub fn SedpQos::liveliness_lease_fraction(Self) -> UInt
-pub fn SedpQos::liveliness_lease_seconds(Self) -> Int
+pub fn SedpQos::history(Self) -> UInt32
+pub fn SedpQos::liveliness(Self) -> UInt32
+pub fn SedpQos::liveliness_lease_fraction(Self) -> UInt32
+pub fn SedpQos::liveliness_lease_seconds(Self) -> Int32
 pub fn SedpQos::liveliness_parameter(Self) -> @core.Parameter
-pub fn SedpQos::new(UInt, UInt, UInt, Int) -> Self
+pub fn SedpQos::new(UInt32, UInt32, UInt32, Int32) -> Self
 pub fn SedpQos::not_equal(Self, Self) -> Bool
-pub fn SedpQos::reliability(Self) -> UInt
-pub fn SedpQos::reliable(depth? : Int) -> Self
+pub fn SedpQos::reliability(Self) -> UInt32
+pub fn SedpQos::reliable(depth? : Int32) -> Self
 pub fn SedpQos::to_repr(Self) -> @debug.Repr
 pub fn SedpQos::with_data_representation(Self, Array[UInt16]) -> Self
-pub fn SedpQos::with_deadline(Self, Int, UInt) -> Result[Self, String]
-pub fn SedpQos::with_liveliness(Self, UInt, Int, UInt) -> Result[Self, String]
+pub fn SedpQos::with_deadline(Self, Int32, UInt32) -> Result[Self, String]
+pub fn SedpQos::with_liveliness(Self, UInt32, Int32, UInt32) -> Result[Self, String]
 
 pub struct SpdpParticipantData {
   protocol_version : @core.ProtocolVersion
   vendor_id : @core.VendorId
   participant_guid : @core.Guid
-  domain_id : UInt
-  lease_seconds : Int
-  lease_nanoseconds : UInt
-  builtin_endpoint_set : UInt
+  domain_id : UInt32
+  lease_seconds : Int32
+  lease_nanoseconds : UInt32
+  builtin_endpoint_set : UInt32
   metatraffic_unicast_locators : Array[@core.Locator]
   metatraffic_multicast_locators : Array[@core.Locator]
   default_unicast_locators : Array[@core.Locator]
@@ -279,19 +282,19 @@ pub fn SpdpParticipantData::add_default_multicast(Self, @core.Locator) -> Unit
 pub fn SpdpParticipantData::add_default_unicast(Self, @core.Locator) -> Unit
 pub fn SpdpParticipantData::add_metatraffic_multicast(Self, @core.Locator) -> Unit
 pub fn SpdpParticipantData::add_metatraffic_unicast(Self, @core.Locator) -> Unit
-pub fn SpdpParticipantData::builtin_endpoint_set(Self) -> UInt
+pub fn SpdpParticipantData::builtin_endpoint_set(Self) -> UInt32
 pub fn SpdpParticipantData::default_multicast_locators(Self) -> Array[@core.Locator]
 pub fn SpdpParticipantData::default_unicast_locators(Self) -> Array[@core.Locator]
-pub fn SpdpParticipantData::domain_id(Self) -> UInt
+pub fn SpdpParticipantData::domain_id(Self) -> UInt32
 pub fn SpdpParticipantData::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn SpdpParticipantData::from_data_submessage(@core.DataSubmessage) -> Result[Self, String]
-pub fn SpdpParticipantData::from_data_submessage_with_default_domain(@core.DataSubmessage, UInt) -> Result[Self, String]
+pub fn SpdpParticipantData::from_data_submessage_with_default_domain(@core.DataSubmessage, UInt32) -> Result[Self, String]
 pub fn SpdpParticipantData::from_parameter_list(@core.ParameterList) -> Result[Self, String]
-pub fn SpdpParticipantData::lease_nanoseconds(Self) -> UInt
-pub fn SpdpParticipantData::lease_seconds(Self) -> Int
+pub fn SpdpParticipantData::lease_nanoseconds(Self) -> UInt32
+pub fn SpdpParticipantData::lease_seconds(Self) -> Int32
 pub fn SpdpParticipantData::metatraffic_multicast_locators(Self) -> Array[@core.Locator]
 pub fn SpdpParticipantData::metatraffic_unicast_locators(Self) -> Array[@core.Locator]
-pub fn SpdpParticipantData::new(@core.Guid, @core.VendorId, UInt, Int, UInt, UInt) -> Self
+pub fn SpdpParticipantData::new(@core.Guid, @core.VendorId, UInt32, Int32, UInt32, UInt32) -> Self
 pub fn SpdpParticipantData::participant_guid(Self) -> @core.Guid
 pub fn SpdpParticipantData::participant_guid_from_key_data(@core.DataSubmessage) -> Result[@core.Guid, String]
 pub fn SpdpParticipantData::to_cdr_bytes(Self) -> Bytes

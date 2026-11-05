@@ -1,11 +1,12 @@
 ///|
 /// The collection shape of a ROS message field.
+#derive(Eq, Debug)
 pub(all) enum MessageFieldCollection {
   Scalar
   FixedArray(Int32)
   Sequence
   BoundedSequence(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return the fixed array length, if this collection is a fixed array.
@@ -42,31 +43,35 @@ pub fn MessageFieldCollection::sequence_bound(
 
 ///|
 /// A field in a ROS `.msg` definition.
+#derive(Eq, Debug)
 pub struct MessageField {
   type_name : String
   name : String
   collection : MessageFieldCollection
   string_upper_bound : Int32?
   default_value : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A nested message type available to the code generator.
+#derive(Eq, Debug)
 pub struct MessageTypeReference {
   ros_name : String
   moon_name : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// A scalar constant declared in a ROS `.msg` definition.
+#derive(Eq, Debug)
 pub struct MessageConstant {
   type_name : String
   name : String
   value : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// A parsed ROS message definition containing supported primitive fields.
+#derive(Eq, Debug)
 pub struct MessageDefinition {
   package_name : String
   interface_namespace : String
@@ -74,16 +79,17 @@ pub struct MessageDefinition {
   fields : Array[MessageField]
   constants : Array[MessageConstant]
   nested_types : Array[MessageTypeReference]
-} derive(Eq, Debug)
+}
 
 ///|
 /// A parsed ROS service definition containing request and response messages.
+#derive(Eq, Debug)
 pub struct ServiceDefinition {
   package_name : String
   service_name : String
   request : MessageDefinition
   response : MessageDefinition
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MessageFieldCollection with Eq::{not_equal, equal}

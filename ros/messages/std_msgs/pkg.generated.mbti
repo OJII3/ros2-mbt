@@ -16,10 +16,11 @@ pub const STD_MSGS_STRING_TYPE_HASH : String = "RIHS01_df668c740482bbd48fb39d76a
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Header {
   stamp : @builtin_interfaces.Time
   frame_id : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Header::default() -> Self
 pub fn Header::equal(Self, Self) -> Bool
 pub fn Header::frame_id(Self) -> String

@@ -15,35 +15,37 @@ pub const Time_TYPE_HASH : String = "RIHS01_b106235e25a4c5ed35098aa0a61a3ee9c9b1
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Duration {
-  sec : Int
-  nanosec : UInt
-} derive(Eq, @debug.Debug)
+  sec : Int32
+  nanosec : UInt32
+}
 pub fn Duration::default() -> Self
 pub fn Duration::equal(Self, Self) -> Bool
 pub fn Duration::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn Duration::nanosec(Self) -> UInt
-pub fn Duration::new(Int, UInt) -> Self
+pub fn Duration::nanosec(Self) -> UInt32
+pub fn Duration::new(Int32, UInt32) -> Self
 pub fn Duration::not_equal(Self, Self) -> Bool
 pub fn Duration::read_cdr(@cdr.Reader) -> Result[Self, String]
-pub fn Duration::sec(Self) -> Int
+pub fn Duration::sec(Self) -> Int32
 pub fn Duration::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Duration::to_repr(Self) -> @debug.Repr
 pub fn Duration::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Duration::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Time {
-  sec : Int
-  nanosec : UInt
-} derive(Eq, @debug.Debug)
+  sec : Int32
+  nanosec : UInt32
+}
 pub fn Time::default() -> Self
 pub fn Time::equal(Self, Self) -> Bool
 pub fn Time::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn Time::nanosec(Self) -> UInt
-pub fn Time::new(Int, UInt) -> Self
+pub fn Time::nanosec(Self) -> UInt32
+pub fn Time::new(Int32, UInt32) -> Self
 pub fn Time::not_equal(Self, Self) -> Bool
 pub fn Time::read_cdr(@cdr.Reader) -> Result[Self, String]
-pub fn Time::sec(Self) -> Int
+pub fn Time::sec(Self) -> Int32
 pub fn Time::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn Time::to_repr(Self) -> @debug.Repr
 pub fn Time::type_support() -> @endpoints.RosMessageType[Self]

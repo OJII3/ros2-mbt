@@ -1,9 +1,10 @@
 ///|
 /// The kind of endpoint announced by an SEDP sample.
+#derive(Eq, Debug)
 pub(all) enum SedpEndpointKind {
   Publication
   Subscription
-} derive(Eq, Debug)
+}
 
 ///|
 /// Entity ID suffix for the SEDP publications writer.
@@ -69,6 +70,7 @@ pub fn SedpEndpointKind::from_builtin_writer_id(
 
 ///|
 /// A common SEDP publication/subscription endpoint sample.
+#derive(Eq, Debug)
 pub struct SedpEndpointData {
   kind : SedpEndpointKind
   endpoint_guid : @core.Guid
@@ -78,10 +80,11 @@ pub struct SedpEndpointData {
   unicast_locators : Array[@core.Locator]
   multicast_locators : Array[@core.Locator]
   extra_parameters : Array[@core.Parameter]
-} derive(Eq, Debug)
+}
 
 ///|
 /// DDS QoS policies needed for endpoint compatibility checks.
+#derive(Eq, Debug)
 pub struct SedpQos {
   reliability : UInt32
   durability : UInt32
@@ -93,7 +96,7 @@ pub struct SedpQos {
   liveliness : UInt32
   liveliness_lease_seconds : Int32
   liveliness_lease_fraction : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SedpEndpointKind with Eq::{not_equal, equal}

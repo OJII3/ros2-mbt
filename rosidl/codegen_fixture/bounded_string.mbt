@@ -1,8 +1,9 @@
 ///|
 /// Generated from demo/msg/BoundedString.msg
+#derive(Eq, Debug)
 pub struct BoundedString {
   name : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BoundedString with Eq::{not_equal, equal}

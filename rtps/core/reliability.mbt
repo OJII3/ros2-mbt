@@ -24,6 +24,7 @@ pub const HEARTBEAT_BODY_LENGTH : Int32 = 28
 
 ///|
 /// A decoded RTPS HEARTBEAT submessage.
+#derive(Eq, Debug)
 pub struct HeartbeatSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -31,7 +32,7 @@ pub struct HeartbeatSubmessage {
   first_sequence_number : Int64
   last_sequence_number : Int64
   count : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a little-endian HEARTBEAT with a valid available sequence range.
@@ -105,6 +106,7 @@ pub fn HeartbeatSubmessage::count(self : HeartbeatSubmessage) -> UInt32 {
 
 ///|
 /// A decoded RTPS ACKNACK submessage and its missing-sequence bitmap.
+#derive(Eq, Debug)
 pub struct AckNackSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -113,10 +115,11 @@ pub struct AckNackSubmessage {
   num_bits : UInt32
   bitmap : Array[UInt32]
   count : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 /// A decoded RTPS GAP submessage and its irrelevant-sequence bitmap.
+#derive(Eq, Debug)
 pub struct GapSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -125,7 +128,7 @@ pub struct GapSubmessage {
   gap_list_base : Int64
   gap_list_num_bits : UInt32
   gap_list_bitmap : Array[UInt32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend HeartbeatSubmessage with Eq::{not_equal, equal}

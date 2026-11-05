@@ -1,11 +1,12 @@
 ///|
 /// Generated from nav_msgs/msg/Odometry.msg
+#derive(Eq, Debug)
 pub struct Odometry {
   header : @std_msgs.Header
   child_frame_id : String
   pose : @geometry_msgs.PoseWithCovariance
   twist : @geometry_msgs.TwistWithCovariance
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create an odometry message.
@@ -130,10 +131,11 @@ pub const Odometry_TYPE_HASH : String = "RIHS01_3cc97dc7fb7502f8714462c526d369e3
 
 ///|
 /// Generated from nav_msgs/msg/Path.msg
+#derive(Eq, Debug)
 pub struct Path {
   header : @std_msgs.Header
   poses : Array[@geometry_msgs.PoseStamped]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a path message.
@@ -247,13 +249,14 @@ pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227
 
 ///|
 /// Generated from nav_msgs/msg/MapMetaData.msg
+#derive(Eq, Debug)
 pub struct MapMetaData {
   map_load_time : @builtin_interfaces.Time
   resolution : Float
   width : UInt32
   height : UInt32
   origin : @geometry_msgs.Pose
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create map metadata.
@@ -394,11 +397,12 @@ pub const MapMetaData_TYPE_HASH : String = "RIHS01_2772d4b2000ef2b35dbaeb80fd394
 
 ///|
 /// Generated from nav_msgs/msg/OccupancyGrid.msg
+#derive(Eq, Debug)
 pub struct OccupancyGrid {
   header : @std_msgs.Header
   info : MapMetaData
   data : Array[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Odometry with Eq::{not_equal, equal}

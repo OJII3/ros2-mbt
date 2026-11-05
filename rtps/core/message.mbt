@@ -1,9 +1,10 @@
 ///|
 /// An RTPS message containing one fixed header and zero or more submessages.
+#derive(Eq, Debug)
 pub struct Message {
   header : Header
   submessages : Array[Submessage]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Message with Eq::{not_equal, equal}

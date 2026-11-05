@@ -136,14 +136,18 @@ async fn main {
       return
     }
   }
-  let discovered_endpoints = @async.with_task_group() <| group => {
+  let mut discovered_endpoints : Result[
+    (@rtps.SedpEndpointData, @rtps.SedpEndpointData),
+    String,
+  ] = Err("service discovery did not run")
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
         Ok(_) => ()
         Err(message) => fail(message)
       }
     }
-    discover_service(participant, service)
+    discovered_endpoints = discover_service(participant, service)
   }
   let (request_subscription, response_publication) = match
     discovered_endpoints {

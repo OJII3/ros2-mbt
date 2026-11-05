@@ -175,7 +175,8 @@ async fn run_topic_list(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let result = @async.with_task_group() <| group => {
+  let mut result : Result[Unit, String] = Ok(())
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match cli.participant.announce_spdp_forever(CLI_DISCOVERY_INTERVAL_MS) {
         Ok(_) => ()
@@ -183,7 +184,7 @@ async fn run_topic_list(
           println("error: discovery announcement failed: " + message)
       }
     }
-    match spin_discovery(cli.participant, spin_time_ms, false) {
+    result = match spin_discovery(cli.participant, spin_time_ms, false) {
       Ok(_) => {
         print_topic_summaries(
           topic_summaries(cli.participant.graph(), include_hidden_topics),

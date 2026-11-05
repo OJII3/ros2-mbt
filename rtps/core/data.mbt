@@ -36,6 +36,7 @@ pub const DATA_INLINE_QOS_OFFSET : Int32 = DATA_FIXED_BODY_LENGTH - 4
 
 ///|
 /// The RTPS DATA submessage body used by discovery and user data.
+#derive(Eq, Debug)
 pub struct DataSubmessage {
   flags : Byte
   extra_flags : UInt16
@@ -45,7 +46,7 @@ pub struct DataSubmessage {
   writer_sequence_number : Int64
   inline_qos : Bytes
   serialized_payload : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend DataSubmessage with Eq::{not_equal, equal}

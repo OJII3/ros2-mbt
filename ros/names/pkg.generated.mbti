@@ -21,11 +21,12 @@ pub fn ros_type_to_dds(String, String, String) -> Result[String, String]
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum DdsTopicKind {
   Topic
   ServiceRequest
   ServiceResponse
-} derive(Eq, @debug.Debug)
+}
 pub fn DdsTopicKind::equal(Self, Self) -> Bool
 pub fn DdsTopicKind::not_equal(Self, Self) -> Bool
 pub fn DdsTopicKind::to_repr(Self) -> @debug.Repr

@@ -1,5 +1,6 @@
 ///|
 /// A dynamically decoded ROS message value.
+#derive(Eq, Debug)
 pub enum Value {
   BoolValue(Bool)
   SignedValue(Int64)
@@ -8,7 +9,7 @@ pub enum Value {
   StringValue(String)
   ArrayValue(Array[Value])
   ObjectValue(Array[(String, Value)])
-} derive(Eq, Debug)
+}
 
 ///|
 /// Decode one serialized ROS message using its installed interface definition.

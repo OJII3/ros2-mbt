@@ -22,19 +22,20 @@ pub const Path_TYPE_HASH : String = "RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct MapMetaData {
   map_load_time : @builtin_interfaces.Time
   resolution : Float
-  width : UInt
-  height : UInt
+  width : UInt32
+  height : UInt32
   origin : @geometry_msgs.Pose
-} derive(Eq, @debug.Debug)
+}
 pub fn MapMetaData::default() -> Self
 pub fn MapMetaData::equal(Self, Self) -> Bool
 pub fn MapMetaData::from_cdr_bytes(Bytes) -> Result[Self, String]
-pub fn MapMetaData::height(Self) -> UInt
+pub fn MapMetaData::height(Self) -> UInt32
 pub fn MapMetaData::map_load_time(Self) -> @builtin_interfaces.Time
-pub fn MapMetaData::new(@builtin_interfaces.Time, Float, UInt, UInt, @geometry_msgs.Pose) -> Self
+pub fn MapMetaData::new(@builtin_interfaces.Time, Float, UInt32, UInt32, @geometry_msgs.Pose) -> Self
 pub fn MapMetaData::not_equal(Self, Self) -> Bool
 pub fn MapMetaData::origin(Self) -> @geometry_msgs.Pose
 pub fn MapMetaData::read_cdr(@cdr.Reader) -> Result[Self, String]
@@ -42,21 +43,22 @@ pub fn MapMetaData::resolution(Self) -> Float
 pub fn MapMetaData::to_cdr_bytes(Self) -> Result[Bytes, String]
 pub fn MapMetaData::to_repr(Self) -> @debug.Repr
 pub fn MapMetaData::type_support() -> @endpoints.RosMessageType[Self]
-pub fn MapMetaData::width(Self) -> UInt
+pub fn MapMetaData::width(Self) -> UInt32
 pub fn MapMetaData::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct OccupancyGrid {
   header : @std_msgs.Header
   info : MapMetaData
-  data : Array[Int]
-} derive(Eq, @debug.Debug)
-pub fn OccupancyGrid::data(Self) -> Array[Int]
+  data : Array[Int32]
+}
+pub fn OccupancyGrid::data(Self) -> Array[Int32]
 pub fn OccupancyGrid::default() -> Self
 pub fn OccupancyGrid::equal(Self, Self) -> Bool
 pub fn OccupancyGrid::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn OccupancyGrid::header(Self) -> @std_msgs.Header
 pub fn OccupancyGrid::info(Self) -> MapMetaData
-pub fn OccupancyGrid::new(@std_msgs.Header, MapMetaData, Array[Int]) -> Self
+pub fn OccupancyGrid::new(@std_msgs.Header, MapMetaData, Array[Int32]) -> Self
 pub fn OccupancyGrid::not_equal(Self, Self) -> Bool
 pub fn OccupancyGrid::read_cdr(@cdr.Reader) -> Result[Self, String]
 pub fn OccupancyGrid::to_cdr_bytes(Self) -> Result[Bytes, String]
@@ -64,12 +66,13 @@ pub fn OccupancyGrid::to_repr(Self) -> @debug.Repr
 pub fn OccupancyGrid::type_support() -> @endpoints.RosMessageType[Self]
 pub fn OccupancyGrid::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Odometry {
   header : @std_msgs.Header
   child_frame_id : String
   pose : @geometry_msgs.PoseWithCovariance
   twist : @geometry_msgs.TwistWithCovariance
-} derive(Eq, @debug.Debug)
+}
 pub fn Odometry::child_frame_id(Self) -> String
 pub fn Odometry::default() -> Self
 pub fn Odometry::equal(Self, Self) -> Bool
@@ -85,10 +88,11 @@ pub fn Odometry::twist(Self) -> @geometry_msgs.TwistWithCovariance
 pub fn Odometry::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Odometry::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Path {
   header : @std_msgs.Header
   poses : Array[@geometry_msgs.PoseStamped]
-} derive(Eq, @debug.Debug)
+}
 pub fn Path::default() -> Self
 pub fn Path::equal(Self, Self) -> Bool
 pub fn Path::from_cdr_bytes(Bytes) -> Result[Self, String]

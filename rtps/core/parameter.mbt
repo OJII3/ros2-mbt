@@ -148,10 +148,11 @@ pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
 ///|
 /// One RTPS parameter value; known scalar fields are normalized to little-endian.
+#derive(Eq, Debug)
 pub struct Parameter {
   id : UInt16
   value : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Parameter with Eq::{not_equal, equal}
