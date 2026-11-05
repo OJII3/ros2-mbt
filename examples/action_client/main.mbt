@@ -79,14 +79,7 @@ fn close_action_client_io(
 
 ///|
 fn format_int_sequence(sequence : Array[Int32]) -> String {
-  let mut sequence_text = ""
-  for index in 0..<sequence.length() {
-    if index > 0 {
-      sequence_text += ", "
-    }
-    sequence_text += sequence[index].to_string()
-  }
-  sequence_text
+  sequence.map(fn(value) { value.to_string() }).join(", ")
 }
 
 ///|
@@ -577,12 +570,9 @@ async fn main {
         return
       }
     }
-    let mut found_goal = false
-    for canceled_goal in cancel_response.goals_canceling() {
-      if canceled_goal.goal_id() == goal.goal_id() {
-        found_goal = true
-      }
-    }
+    let found_goal = cancel_response
+      .goals_canceling()
+      .any(fn(canceled_goal) { canceled_goal.goal_id() == goal.goal_id() })
     if !found_goal {
       println("CancelGoal response did not include the requested goal")
       close_action_client_io(

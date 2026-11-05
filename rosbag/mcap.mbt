@@ -82,10 +82,7 @@ pub async fn scan_mcap_catalog(
       ) => {
         if message_encoding != "cdr" {
           return Err(
-            "ROS 2 MCAP channel " +
-            topic_name +
-            " uses unsupported encoding: " +
-            message_encoding,
+            "ROS 2 MCAP channel \{topic_name} uses unsupported encoding: \{message_encoding}",
           )
         }
         let schema = match schema_info_by_id(schemas, schema_id) {
@@ -193,15 +190,7 @@ fn metadata_equal(
   left : Array[(String, String)],
   right : Array[(String, String)],
 ) -> Bool {
-  if left.length() != right.length() {
-    return false
-  }
-  for index in 0..<left.length() {
-    if left[index] != right[index] {
-      return false
-    }
-  }
-  true
+  left == right
 }
 
 ///|
@@ -209,22 +198,14 @@ fn channel_route_by_id(
   channels : Array[ChannelRoute],
   id : UInt16,
 ) -> ChannelRoute? {
-  for channel in channels {
-    if channel.id == id {
-      return Some(channel)
-    }
-  }
-  None
+  channels
+  .search_by(fn(channel) { channel.id == id })
+  .map(fn(index) { channels[index] })
 }
 
 ///|
 fn bag_topic_index(topics : Array[BagTopic], name : String) -> Int32? {
-  for index in 0..<topics.length() {
-    if topics[index].name == name {
-      return Some(index)
-    }
-  }
-  None
+  topics.search_by(fn(topic) { topic.name == name })
 }
 
 ///|
@@ -239,21 +220,16 @@ fn metadata_value(metadata : Array[(String, String)], key : String) -> String {
 
 ///|
 fn contains_string(values : Array[String], target : String) -> Bool {
-  for value in values {
-    if value == target {
-      return true
-    }
-  }
-  false
+  values.contains(target)
 }
 
 ///|
 fn valid_ros_message_type(type_name : String) -> Bool {
-  let parts = type_name.split("/").collect()
-  parts.length() == 3 &&
-  parts[1] == "msg" &&
-  parts[0].length() > 0 &&
-  parts[2].length() > 0
+  match type_name.split("/").collect() {
+    [package_part, "msg", type_part] =>
+      package_part.length() > 0 && type_part.length() > 0
+    _ => false
+  }
 }
 
 ///|
@@ -306,11 +282,7 @@ pub async fn McapMessageSource::next(
 ///|
 /// Return the topics contained in this catalog.
 pub fn BagCatalog::topics(self : BagCatalog) -> Array[BagTopic] {
-  let topics : Array[BagTopic] = []
-  for topic in self.topics {
-    topics.push(topic)
-  }
-  topics
+  self.topics.copy()
 }
 
 ///|
@@ -334,11 +306,7 @@ pub fn BagTopic::type_hash(self : BagTopic) -> String {
 ///|
 /// Return recorded QoS profiles as their original YAML strings.
 pub fn BagTopic::qos_profiles(self : BagTopic) -> Array[String] {
-  let profiles : Array[String] = []
-  for profile in self.qos_profiles {
-    profiles.push(profile)
-  }
-  profiles
+  self.qos_profiles.copy()
 }
 
 ///|

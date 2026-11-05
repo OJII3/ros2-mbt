@@ -58,6 +58,8 @@ pub fn EntityId::kind(self : EntityId) -> Byte {
 /// Serialize an entity identifier.
 pub fn EntityId::to_bytes(self : EntityId) -> Bytes {
   let bytes : Array[Byte] = []
+  bytes.reserve_capacity(4)
+  // Perf: index loop beats push_iter on this hot path.
   for i in 0..<3 {
     bytes.push(self.key[i])
   }
@@ -96,8 +98,10 @@ pub fn Guid::entity_id(self : Guid) -> EntityId {
 /// Serialize a GUID as prefix followed by entity identifier.
 pub fn Guid::to_bytes(self : Guid) -> Bytes {
   let bytes : Array[Byte] = []
+  bytes.reserve_capacity(16)
   let prefix = self.prefix.as_bytes()
   let entity_id = self.entity_id.to_bytes()
+  // Perf: index loops beat push_iter on this hot path.
   for i in 0..<prefix.length() {
     bytes.push(prefix[i])
   }

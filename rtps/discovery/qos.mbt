@@ -105,12 +105,8 @@ fn qos_duration(seconds : Int32, nanoseconds : UInt32) -> Bytes {
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
   let fraction_bytes = qos_u32_le(qos_nanoseconds_to_fraction(nanoseconds))
-  for i in 0..<4 {
-    bytes.push(seconds_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(fraction_bytes[i])
-  }
+  bytes.push_iter(seconds_bytes[:4].iter())
+  bytes.push_iter(fraction_bytes[:4].iter())
   Bytes::from_array(bytes)
 }
 
@@ -131,12 +127,8 @@ pub fn qos_reliability(
   let duration_bytes = qos_duration(
     max_blocking_seconds, max_blocking_nanoseconds,
   )
-  for i in 0..<4 {
-    bytes.push(kind_bytes[i])
-  }
-  for i in 0..<8 {
-    bytes.push(duration_bytes[i])
-  }
+  bytes.push_iter(kind_bytes[:4].iter())
+  bytes.push_iter(duration_bytes[:8].iter())
   @core.Parameter::new(@core.PID_RELIABILITY, Bytes::from_array(bytes))
 }
 
@@ -152,12 +144,8 @@ pub fn qos_history(kind : UInt32, depth : Int32) -> @core.Parameter {
   let bytes : Array[Byte] = []
   let kind_bytes = qos_kind(kind)
   let depth_bytes = qos_i32_le(depth)
-  for i in 0..<4 {
-    bytes.push(kind_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(depth_bytes[i])
-  }
+  bytes.push_iter(kind_bytes[:4].iter())
+  bytes.push_iter(depth_bytes[:4].iter())
   @core.Parameter::new(@core.PID_HISTORY, Bytes::from_array(bytes))
 }
 
@@ -172,12 +160,8 @@ fn qos_deadline_fraction(seconds : Int32, fraction : UInt32) -> @core.Parameter 
   let bytes : Array[Byte] = []
   let seconds_bytes = qos_i32_le(seconds)
   let fraction_bytes = qos_u32_le(fraction)
-  for i in 0..<4 {
-    bytes.push(seconds_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(fraction_bytes[i])
-  }
+  bytes.push_iter(seconds_bytes[:4].iter())
+  bytes.push_iter(fraction_bytes[:4].iter())
   @core.Parameter::new(@core.PID_DEADLINE, Bytes::from_array(bytes))
 }
 
@@ -235,15 +219,9 @@ fn qos_liveliness_fraction(
   let kind_bytes = qos_kind(kind)
   let seconds_bytes = qos_i32_le(lease_seconds)
   let fraction_bytes = qos_u32_le(lease_fraction)
-  for i in 0..<4 {
-    bytes.push(kind_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(seconds_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(fraction_bytes[i])
-  }
+  bytes.push_iter(kind_bytes[:4].iter())
+  bytes.push_iter(seconds_bytes[:4].iter())
+  bytes.push_iter(fraction_bytes[:4].iter())
   @core.Parameter::new(@core.PID_LIVELINESS, Bytes::from_array(bytes))
 }
 
@@ -276,9 +254,7 @@ pub fn qos_resource_limits(
   let values = [max_samples, max_instances, max_samples_per_instance]
   for value in values {
     let encoded = qos_i32_le(value)
-    for i in 0..<4 {
-      bytes.push(encoded[i])
-    }
+    bytes.push_iter(encoded[:4].iter())
   }
   @core.Parameter::new(@core.PID_RESOURCE_LIMITS, Bytes::from_array(bytes))
 }
@@ -304,9 +280,7 @@ pub fn qos_data_representation(
   let bytes : Array[Byte] = []
   let length = representations.length().reinterpret_as_uint()
   let length_bytes = qos_u32_le(length)
-  for i in 0..<4 {
-    bytes.push(length_bytes[i])
-  }
+  bytes.push_iter(length_bytes[:4].iter())
   for representation in representations {
     bytes.push(representation.to_byte())
     bytes.push((representation.to_int() >> 8).to_byte())

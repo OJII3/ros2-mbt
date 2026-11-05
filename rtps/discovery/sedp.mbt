@@ -573,9 +573,9 @@ pub fn SedpEndpointData::qos(
           Ok(value) => value
           Err(message) => return Err(message)
         }
-        match sedp_qos_duration(value, 4, "reliability max blocking time") {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if sedp_qos_duration(value, 4, "reliability max blocking time")
+          is Err(message) {
+          return Err(message)
         }
       }
       @core.PID_DURABILITY =>
@@ -784,9 +784,7 @@ fn sedp_string(value : String) -> Result[Bytes, String] {
   }
   let bytes : Array[Byte] = []
   let length_bytes = sedp_u32_le(length.reinterpret_as_uint())
-  for i in 0..<4 {
-    bytes.push(length_bytes[i])
-  }
+  bytes.push_iter(length_bytes[:4].iter())
   for byte in encoded {
     bytes.push(byte)
   }

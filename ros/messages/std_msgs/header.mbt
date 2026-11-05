@@ -47,9 +47,8 @@ pub fn Header::write_cdr(
   self : Header,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.stamp.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.stamp.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_string(self.frame_id)
   Ok(())
@@ -73,9 +72,8 @@ pub fn Header::read_cdr(reader : @cdr.Reader) -> Result[Header, String] {
 /// Serialize the header as CDR bytes.
 pub fn Header::to_cdr_bytes(self : Header) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

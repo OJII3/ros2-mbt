@@ -21,13 +21,15 @@ pub fn SpdpState::new(local_participant : SpdpParticipantData) -> SpdpState {
 ///|
 /// Return the earliest finite lease deadline in the caller's clock, if any.
 pub fn SpdpState::next_deadline(self : SpdpState) -> Int64? {
-  let mut earliest = None
+  let mut earliest : Int64? = None
   for remote in self.participants {
     if remote.deadline is Some(deadline) {
-      match earliest {
-        Some(previous) if previous <= deadline => ()
-        _ => earliest = Some(deadline)
-      }
+      earliest = Some(
+        match earliest {
+          Some(previous) => previous.min(deadline)
+          None => deadline
+        },
+      )
     }
   }
   earliest

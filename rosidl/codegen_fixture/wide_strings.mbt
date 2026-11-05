@@ -38,19 +38,16 @@ pub fn WideStrings::write_cdr(
   self : WideStrings,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match writer.write_wstring(self.data) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if writer.write_wstring(self.data) is Err(message) {
+    return Err(message)
   }
-  match writer.write_bounded_wstring(self.bounded, 2) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if writer.write_bounded_wstring(self.bounded, 2) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.values.length().reinterpret_as_uint())
   for value in self.values {
-    match writer.write_wstring(value) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if writer.write_wstring(value) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -92,9 +89,8 @@ pub fn WideStrings::read_cdr(
 /// Serialize the wide string message as CDR bytes.
 pub fn WideStrings::to_cdr_bytes(self : WideStrings) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

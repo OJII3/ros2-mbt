@@ -95,6 +95,19 @@ fn Reader::take(self : Reader, length : Int32) -> Result[BytesView, String] {
 }
 
 ///|
+// Perf: explicit matches keep CDR reads free of per-call closure allocation.
+fn Reader::take_aligned(
+  self : Reader,
+  alignment : Int32,
+  length : Int32,
+) -> Result[BytesView, String] {
+  match self.align(alignment) {
+    Ok(_) => self.take(length)
+    Err(message) => Err(message)
+  }
+}
+
+///|
 fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
   // The encapsulation header is not part of the CDR stream used for
   // alignment. XCDR1 therefore aligns from the first byte after the header.
@@ -108,6 +121,7 @@ fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
 
 ///|
 /// Read an unaligned CDR octet.
+// Perf: explicit match instead of Result::map avoids a closure per byte read.
 pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
   match self.take(1) {
     Ok(view) => Ok(view[0])
@@ -121,11 +135,7 @@ pub fn Reader::read_i8(self : Reader) -> Result[Int32, String] {
   match self.read_u8() {
     Ok(value) => {
       let raw = value.to_int()
-      if raw >= 128 {
-        Ok(raw - 256)
-      } else {
-        Ok(raw)
-      }
+      Ok(if raw >= 128 { raw - 256 } else { raw })
     }
     Err(message) => Err(message)
   }
@@ -144,120 +154,85 @@ pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
 
 ///|
 /// Read a signed 16-bit integer.
+// Perf: use explicit matches instead of Result::map; closures cost a per-read allocation.
 pub fn Reader::read_i16(self : Reader) -> Result[Int32, String] {
-  match self.align(2) {
+  match self.take_aligned(2, 2) {
+    Ok(view) => {
+      let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
+      Ok(if raw >= 32768 { raw - 65536 } else { raw })
+    }
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(2) {
-        Err(message) => Err(message)
-        Ok(view) => {
-          let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
-          Ok(if raw >= 32768 { raw - 65536 } else { raw })
-        }
-      }
   }
 }
 
 ///|
 /// Read an unsigned 16-bit integer.
 pub fn Reader::read_u16(self : Reader) -> Result[UInt32, String] {
-  match self.align(2) {
+  match self.take_aligned(2, 2) {
+    Ok(view) => Ok(cdr_reader_read_u16(view, self.little_endian))
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(2) {
-        Err(message) => Err(message)
-        Ok(view) => Ok(cdr_reader_read_u16(view, self.little_endian))
-      }
   }
 }
 
 ///|
 /// Read a signed 32-bit integer.
 pub fn Reader::read_i32(self : Reader) -> Result[Int32, String] {
-  match self.align(4) {
+  match self.take_aligned(4, 4) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int())
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(4) {
-        Err(message) => Err(message)
-        Ok(view) =>
-          Ok(cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int())
-      }
   }
 }
 
 ///|
 /// Read an unsigned 32-bit integer.
 pub fn Reader::read_u32(self : Reader) -> Result[UInt32, String] {
-  match self.align(4) {
+  match self.take_aligned(4, 4) {
+    Ok(view) => Ok(cdr_reader_read_u32(view, self.little_endian))
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(4) {
-        Err(message) => Err(message)
-        Ok(view) => Ok(cdr_reader_read_u32(view, self.little_endian))
-      }
   }
 }
 
 ///|
 /// Read a signed 64-bit integer.
 pub fn Reader::read_i64(self : Reader) -> Result[Int64, String] {
-  match self.align(8) {
+  match self.take_aligned(8, 8) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64())
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(8) {
-        Err(message) => Err(message)
-        Ok(view) =>
-          Ok(
-            cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64(),
-          )
-      }
   }
 }
 
 ///|
 /// Read an unsigned 64-bit integer.
 pub fn Reader::read_u64(self : Reader) -> Result[UInt64, String] {
-  match self.align(8) {
+  match self.take_aligned(8, 8) {
+    Ok(view) => Ok(cdr_reader_read_u64(view, self.little_endian))
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(8) {
-        Err(message) => Err(message)
-        Ok(view) => Ok(cdr_reader_read_u64(view, self.little_endian))
-      }
   }
 }
 
 ///|
 /// Read an IEEE-754 single-precision value.
 pub fn Reader::read_f32(self : Reader) -> Result[Float, String] {
-  match self.align(4) {
+  match self.take_aligned(4, 4) {
+    Ok(view) =>
+      Ok(
+        Float::reinterpret_from_uint(
+          cdr_reader_read_u32(view, self.little_endian),
+        ),
+      )
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(4) {
-        Err(message) => Err(message)
-        Ok(view) =>
-          Ok(
-            Float::reinterpret_from_uint(
-              cdr_reader_read_u32(view, self.little_endian),
-            ),
-          )
-      }
   }
 }
 
 ///|
 /// Read an IEEE-754 double-precision value.
 pub fn Reader::read_f64(self : Reader) -> Result[Double, String] {
-  match self.align(8) {
+  match self.take_aligned(8, 8) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double())
     Err(message) => Err(message)
-    Ok(_) =>
-      match self.take(8) {
-        Err(message) => Err(message)
-        Ok(view) =>
-          Ok(
-            cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double(),
-          )
-      }
   }
 }
 
@@ -267,20 +242,15 @@ pub fn Reader::read_byte_array(
   self : Reader,
   length : Int32,
 ) -> Result[Bytes, String] {
-  match self.take(length) {
-    Ok(view) => Ok(view.to_owned())
-    Err(message) => Err(message)
-  }
+  self.take(length).map(fn(view) { view.to_owned() })
 }
 
 ///|
 /// Read a byte sequence with a CDR uint32 length prefix.
 pub fn Reader::read_byte_sequence(self : Reader) -> Result[Bytes, String] {
-  let length = match self.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => return Err(message)
-  }
-  self.read_byte_array(length)
+  self
+  .read_u32()
+  .bind(fn(length) { self.read_byte_array(length.reinterpret_as_int()) })
 }
 
 ///|

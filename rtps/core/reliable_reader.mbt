@@ -286,13 +286,9 @@ pub fn ReliableDataReader::accept_data_frag(
   if self.has_received_sequence(fragment.writer_sequence_number()) {
     return Ok(None)
   }
-  let mut index : Int32? = None
-  for i in 0..<self.fragments.length() {
-    if self.fragments[i].sequence_number == fragment.writer_sequence_number() {
-      index = Some(i)
-      break
-    }
-  }
+  let index = self.fragments.search_by(fn(sample) {
+    sample.sequence_number == fragment.writer_sequence_number()
+  })
   let index = match index {
     Some(value) => value
     None => {
@@ -304,21 +300,14 @@ pub fn ReliableDataReader::accept_data_frag(
       self.fragments.length() - 1
     }
   }
-  match self.fragments[index].accept_fragment(fragment) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.fragments[index].accept_fragment(fragment) is Err(message) {
+    return Err(message)
   }
   if !self.fragments[index].is_complete() {
     return Ok(None)
   }
   let data = self.fragments[index].to_data()
-  let retained_fragments : Array[ReliableFragmentedSample] = []
-  for i in 0..<self.fragments.length() {
-    if i != index {
-      retained_fragments.push(self.fragments[i])
-    }
-  }
-  self.fragments = retained_fragments
+  ignore(self.fragments.remove(index))
   self.samples.push(data.writer_sequence_number())
   self.accepted_sample_count += 1
   Ok(Some(data))
@@ -416,12 +405,7 @@ fn reliable_reader_has_sequence(
   samples : Array[Int64],
   sequence_number : Int64,
 ) -> Bool {
-  for sample in samples {
-    if sample == sequence_number {
-      return true
-    }
-  }
-  false
+  samples.contains(sequence_number)
 }
 
 ///|
@@ -444,12 +428,7 @@ fn reliable_reader_gap_contains_sequence(
   gaps : Array[GapSubmessage],
   sequence_number : Int64,
 ) -> Bool {
-  for gap in gaps {
-    if gap.contains_sequence(sequence_number) {
-      return true
-    }
-  }
-  false
+  gaps.any(fn(gap) { gap.contains_sequence(sequence_number) })
 }
 
 ///|

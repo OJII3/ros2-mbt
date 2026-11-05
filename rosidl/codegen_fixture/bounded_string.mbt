@@ -33,9 +33,8 @@ pub fn BoundedString::write_cdr(
   self : BoundedString,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match writer.write_bounded_string(self.name, 3) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if writer.write_bounded_string(self.name, 3) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -58,9 +57,8 @@ pub fn BoundedString::to_cdr_bytes(
   self : BoundedString,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

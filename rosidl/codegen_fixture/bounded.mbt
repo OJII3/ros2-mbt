@@ -85,9 +85,8 @@ pub fn Bounded::read_cdr(reader : @cdr.Reader) -> Result[Bounded, String] {
 /// Serialize the bounded message as CDR bytes.
 pub fn Bounded::to_cdr_bytes(self : Bounded) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

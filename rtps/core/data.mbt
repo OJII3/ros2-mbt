@@ -179,10 +179,10 @@ pub fn DataSubmessage::serialized_payload(self : DataSubmessage) -> Bytes {
 }
 
 ///|
-/// Decode the related request identity from inline QoS, if present.
-pub fn DataSubmessage::related_sample_identity(
+fn DataSubmessage::inline_parameter(
   self : DataSubmessage,
-) -> Result[SampleIdentity?, String] {
+  id : UInt16,
+) -> Result[Bytes?, String] {
   if self.inline_qos.length() == 0 {
     return Ok(None)
   }
@@ -191,16 +191,27 @@ pub fn DataSubmessage::related_sample_identity(
     Err(message) => return Err(message)
   }
   for parameter in parameters.values() {
-    if parameter.id() != PID_RELATED_SAMPLE_IDENTITY {
-      continue
+    if parameter.id() == id {
+      return Ok(Some(parameter.value()))
     }
-    let identity = match SampleIdentity::from_bytes(parameter.value()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok(Some(identity))
   }
   Ok(None)
+}
+
+///|
+/// Decode the related request identity from inline QoS, if present.
+pub fn DataSubmessage::related_sample_identity(
+  self : DataSubmessage,
+) -> Result[SampleIdentity?, String] {
+  let value = match self.inline_parameter(PID_RELATED_SAMPLE_IDENTITY) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match value {
+    Some(value) =>
+      SampleIdentity::from_bytes(value).map(fn(identity) { Some(identity) })
+    None => Ok(None)
+  }
 }
 
 ///|
@@ -208,24 +219,19 @@ pub fn DataSubmessage::related_sample_identity(
 pub fn DataSubmessage::status_info(
   self : DataSubmessage,
 ) -> Result[UInt32?, String] {
-  if self.inline_qos.length() == 0 {
-    return Ok(None)
-  }
-  let parameters = match ParameterList::from_bytes(self.inline_qos) {
-    Ok((value, _)) => value
+  let value = match self.inline_parameter(PID_STATUS_INFO) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  for parameter in parameters.values() {
-    if parameter.id() != PID_STATUS_INFO {
-      continue
-    }
-    let value = parameter.value()
-    if value.length() != 4 {
-      return Err("RTPS PID_STATUS_INFO must contain 4 bytes")
-    }
-    return Ok(Some(data_read_u32_le(value, 0)))
+  match value {
+    Some(value) =>
+      if value.length() != 4 {
+        Err("RTPS PID_STATUS_INFO must contain 4 bytes")
+      } else {
+        Ok(Some(data_read_u32_le(value, 0)))
+      }
+    None => Ok(None)
   }
-  Ok(None)
 }
 
 ///|
@@ -284,10 +290,17 @@ fn data_read_u32_le(input : Bytes, offset : Int32) -> UInt32 {
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
+  // Reserve the exact payload size to avoid repeated reallocation per sample.
+  bytes.reserve_capacity(
+    DATA_FIXED_BODY_LENGTH +
+    self.inline_qos.length() +
+    self.serialized_payload.length(),
+  )
   data_append_u16_le(bytes, self.extra_flags)
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
+  // Perf: index loops beat push_iter on this hot path.
   for i in 0..<4 {
     bytes.push(reader_id[i])
   }
@@ -379,14 +392,15 @@ pub fn DataSubmessage::from_submessage(
     12,
     little_endian,
   )
-  let mut inline_qos = b""
-  let mut payload_offset = DATA_FIXED_BODY_LENGTH
   let inline_qos_offset = 4 + octets_to_inline_qos.to_int()
   if octets_to_inline_qos.to_int() < DATA_INLINE_QOS_OFFSET ||
     inline_qos_offset > submessage.payload.length() {
     return Err("RTPS DATA octetsToInlineQos points outside the DATA body")
   }
-  if (submessage.flags & DATA_FLAG_INLINE_QOS) != 0 {
+  let (inline_qos, payload_offset) = if (
+      submessage.flags & DATA_FLAG_INLINE_QOS
+    ) !=
+    0 {
     let remaining = bytes_from(
       submessage.payload,
       inline_qos_offset,
@@ -397,10 +411,9 @@ pub fn DataSubmessage::from_submessage(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    inline_qos = decoded_inline_qos
-    payload_offset = inline_qos_offset + consumed
+    (decoded_inline_qos, inline_qos_offset + consumed)
   } else {
-    payload_offset = inline_qos_offset
+    (b"", inline_qos_offset)
   }
   let data_and_key_flags = submessage.flags & (DATA_FLAG_DATA | DATA_FLAG_KEY)
   if data_and_key_flags == 0 {

@@ -48,9 +48,8 @@ pub fn parse_message_with_types(
           _ => ""
         },
       )
-      match rosidl_constant_literal(declaration[0], value) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if rosidl_constant_literal(declaration[0], value) is Err(message) {
+        return Err(message)
       }
       constants.push(
         MessageConstant::new(declaration[0], declaration[1], value),
@@ -237,21 +236,17 @@ fn rosidl_parse_field_type(
   type_spec : String,
 ) -> Result[(String, Int32?, MessageFieldCollection), String] {
   let parts = type_spec.split("[").collect()
+  if parts.length() > 2 {
+    return Err("ROS message field type has an invalid collection suffix")
+  }
+  let (base_type, string_upper_bound) = match
+    rosidl_parse_base_field_type(parts[0].to_owned()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
   if parts.length() == 1 {
-    let (base_type, string_upper_bound) = match
-      rosidl_parse_base_field_type(parts[0].to_owned()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
     Ok((base_type, string_upper_bound, Scalar))
-  } else if parts.length() != 2 {
-    Err("ROS message field type has an invalid collection suffix")
   } else {
-    let (base_type, string_upper_bound) = match
-      rosidl_parse_base_field_type(parts[0].to_owned()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
     let suffix = parts[1].to_owned()
     if suffix.length() == 0 || suffix[suffix.length() - 1] != ']' {
       return Err("ROS message collection type must end with ]")
@@ -326,18 +321,7 @@ fn rosidl_without_comment(line : String) -> String {
 
 ///|
 fn rosidl_trim(value : String) -> String {
-  let bytes = @utf8.encode(value)
-  let mut start = 0
-  let mut end = bytes.length()
-  while start < end && rosidl_space(bytes[start]) {
-    start += 1
-  }
-  while end > start && rosidl_space(bytes[end - 1]) {
-    end -= 1
-  }
-  @utf8.decode(bytes[start:end]) catch {
-    _ => ""
-  }
+  value.trim().to_owned()
 }
 
 ///|

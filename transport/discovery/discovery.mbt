@@ -108,14 +108,9 @@ pub fn DiscoverySession::new_with_receive_sockets(
 }
 
 ///|
-/// Create a default DDSI session with an additional metatraffic receiver.
-pub fn DiscoverySession::new_default_with_receive_sockets(
-  socket : @wire.Udp,
-  receive_sockets : Array[@wire.Udp],
-  participant : @rtps.SpdpParticipantData,
+fn default_spdp_endpoints(
   domain_id : UInt32,
-  first_sequence_number : Int64,
-) -> Result[DiscoverySession, String] {
+) -> Result[(@socket.Addr, @rtps.EntityId, @rtps.EntityId), String] {
   let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -133,6 +128,23 @@ pub fn DiscoverySession::new_default_with_receive_sockets(
       b"\x00\x01\x00",
       @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
     ) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  Ok((destination, reader_id, writer_id))
+}
+
+///|
+/// Create a default DDSI session with an additional metatraffic receiver.
+pub fn DiscoverySession::new_default_with_receive_sockets(
+  socket : @wire.Udp,
+  receive_sockets : Array[@wire.Udp],
+  participant : @rtps.SpdpParticipantData,
+  domain_id : UInt32,
+  first_sequence_number : Int64,
+) -> Result[DiscoverySession, String] {
+  let (destination, reader_id, writer_id) = match
+    default_spdp_endpoints(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -149,23 +161,8 @@ pub fn DiscoverySession::new_default(
   domain_id : UInt32,
   first_sequence_number : Int64,
 ) -> Result[DiscoverySession, String] {
-  let destination = match @wire.ddsi_default_spdp_multicast_addr(domain_id) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let reader_id = match
-    @rtps.EntityId::new(
-      b"\x00\x01\x00",
-      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER,
-    ) {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  let writer_id = match
-    @rtps.EntityId::new(
-      b"\x00\x01\x00",
-      @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
-    ) {
+  let (destination, reader_id, writer_id) = match
+    default_spdp_endpoints(domain_id) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
@@ -249,9 +246,8 @@ pub async fn DiscoverySession::announce_n(
     if index > 0 {
       @async.sleep(interval_ms)
     }
-    match self.announce_once() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_once() is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -270,13 +266,13 @@ pub async fn DiscoverySession::announce_forever(
     return Err("the discovery announcement interval must be positive")
   }
   while true {
-    match self.announce_once() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.announce_once() is Err(message) {
+      return Err(message)
     }
     @async.sleep(interval_ms)
+  } nobreak {
+    Ok(())
   }
-  Ok(())
 }
 
 ///|
@@ -296,9 +292,8 @@ pub async fn DiscoverySession::receive_once(
       return Ok(event)
     }
     self.queue_expired_participants()
-    match self.flush_outgoing() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if self.flush_outgoing() is Err(message) {
+      return Err(message)
     }
     if self.pending_events.length() > 0 {
       continue
@@ -320,9 +315,8 @@ pub async fn DiscoverySession::receive_once(
           Err(message) => return Err(message)
         }
         self.enqueue_effects(effects, source)
-        match self.flush_outgoing_on(self.socket) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.flush_outgoing_on(self.socket) is Err(message) {
+          return Err(message)
         }
       }
       Ok(ParticipantLeaseExpired) => self.queue_expired_participants()

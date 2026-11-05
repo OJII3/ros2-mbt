@@ -79,6 +79,7 @@ pub fn Message::destination_contexts(
 pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
   let bytes : Array[Byte] = []
   let header = self.header.to_bytes()
+  // Perf: index loops + reserve_capacity beat push_iter on this hot path.
   for i in 0..<header.length() {
     bytes.push(header[i])
   }
@@ -95,10 +96,7 @@ pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
       let remainder = encoded.length() % 4
       if remainder != 0 {
         let padding_length = 4 - remainder
-        let padding : Array[Byte] = []
-        for _ in 0..<padding_length {
-          padding.push(0)
-        }
+        let padding : Array[Byte] = Array::make(padding_length, 0)
         let encoded_padding = match
           Submessage::new(
             Pad,

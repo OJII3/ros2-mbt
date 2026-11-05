@@ -118,8 +118,9 @@ pub async fn DataReader::receive(
       Ok(None) => continue
       Err(message) => return Err(message)
     }
+  } nobreak {
+    Err("best-effort reader stopped")
   }
-  Err("best-effort reader stopped")
 }
 
 ///|

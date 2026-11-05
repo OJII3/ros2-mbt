@@ -84,9 +84,8 @@ async fn RosGraph::publish(
 ) -> Result[Unit, String] {
   self.latest_graph_info = Some(info)
   for publisher in self.graph_publishers {
-    match publisher.announce_once(info) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if publisher.announce_once(info) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())
@@ -123,28 +122,18 @@ fn RosGraph::forget_endpoint(
 ) -> Unit {
   match kind {
     Publication => {
-      let guids : Array[@rtps.Guid] = []
-      let subscriptions : Array[ReliableRosDiscoverySubscription] = []
-      for index in 0..<self.graph_subscription_guids.length() {
-        if self.graph_subscription_guids[index] == endpoint_guid {
-          continue
-        }
-        guids.push(self.graph_subscription_guids[index])
-        subscriptions.push(self.graph_subscriptions[index])
-      }
+      let (guids, subscriptions) = self.graph_subscription_guids
+        .zip(self.graph_subscriptions)
+        .filter(fn(pair) { pair.0 != endpoint_guid })
+        .unzip()
       self.graph_subscription_guids = guids
       self.graph_subscriptions = subscriptions
     }
     Subscription => {
-      let guids : Array[@rtps.Guid] = []
-      let publishers : Array[ReliableRosDiscoveryPublisher] = []
-      for index in 0..<self.graph_publisher_guids.length() {
-        if self.graph_publisher_guids[index] == endpoint_guid {
-          continue
-        }
-        guids.push(self.graph_publisher_guids[index])
-        publishers.push(self.graph_publishers[index])
-      }
+      let (guids, publishers) = self.graph_publisher_guids
+        .zip(self.graph_publishers)
+        .filter(fn(pair) { pair.0 != endpoint_guid })
+        .unzip()
       self.graph_publisher_guids = guids
       self.graph_publishers = publishers
     }
@@ -182,10 +171,8 @@ fn RosGraph::match_publication(
     None => return Ok(())
   }
   let endpoint_guid = publication.endpoint_guid()
-  for guid in self.graph_subscription_guids {
-    if guid == endpoint_guid {
-      return Ok(())
-    }
+  if self.graph_subscription_guids.contains(endpoint_guid) {
+    return Ok(())
   }
   let reader = match
     ReliableRosDiscoverySubscription::new_for_publication(
@@ -231,10 +218,8 @@ async fn RosGraph::match_subscription(
     None => return Ok(())
   }
   let endpoint_guid = subscription.endpoint_guid()
-  for guid in self.graph_publisher_guids {
-    if guid == endpoint_guid {
-      return Ok(())
-    }
+  if self.graph_publisher_guids.contains(endpoint_guid) {
+    return Ok(())
   }
   let publisher = match
     ReliableRosDiscoveryPublisher::new_for_subscription(
@@ -256,9 +241,8 @@ async fn RosGraph::match_subscription(
     match info {
       Some(info) => {
         self.latest_graph_info = Some(info)
-        match publisher.announce_once(info) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if publisher.announce_once(info) is Err(message) {
+          return Err(message)
         }
       }
       None => ()
@@ -309,26 +293,16 @@ fn RosGraph::forget_participant(
   self : RosGraph,
   participant_prefix : @rtps.GuidPrefix,
 ) -> Unit {
-  let subscription_guids : Array[@rtps.Guid] = []
-  let subscriptions : Array[ReliableRosDiscoverySubscription] = []
-  for index in 0..<self.graph_subscription_guids.length() {
-    if self.graph_subscription_guids[index].prefix() == participant_prefix {
-      continue
-    }
-    subscription_guids.push(self.graph_subscription_guids[index])
-    subscriptions.push(self.graph_subscriptions[index])
-  }
+  let (subscription_guids, subscriptions) = self.graph_subscription_guids
+    .zip(self.graph_subscriptions)
+    .filter(fn(pair) { pair.0.prefix() != participant_prefix })
+    .unzip()
   self.graph_subscription_guids = subscription_guids
   self.graph_subscriptions = subscriptions
-  let publisher_guids : Array[@rtps.Guid] = []
-  let publishers : Array[ReliableRosDiscoveryPublisher] = []
-  for index in 0..<self.graph_publisher_guids.length() {
-    if self.graph_publisher_guids[index].prefix() == participant_prefix {
-      continue
-    }
-    publisher_guids.push(self.graph_publisher_guids[index])
-    publishers.push(self.graph_publishers[index])
-  }
+  let (publisher_guids, publishers) = self.graph_publisher_guids
+    .zip(self.graph_publishers)
+    .filter(fn(pair) { pair.0.prefix() != participant_prefix })
+    .unzip()
   self.graph_publisher_guids = publisher_guids
   self.graph_publishers = publishers
 }

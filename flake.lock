@@ -39,11 +39,11 @@
     "moon-registry": {
       "flake": false,
       "locked": {
-        "lastModified": 1790173124,
-        "narHash": "sha256-RQ7Ys8zjZpD80zY7Ie6Of+W0H/3keNcqA+x6s8ljtzs=",
+        "lastModified": 1793890793,
+        "narHash": "sha256-pX8zBO1jViRzxes2JIYbq8j+VEgnFDZVpkby+Z1DWKA=",
         "ref": "refs/heads/main",
-        "rev": "a31b9e172d2b7bc1ffb7f8928043bd9a3ad91278",
-        "revCount": 16150,
+        "rev": "554706a85af7a93c8fd190c9e108ef13b1d00e05",
+        "revCount": 22094,
         "type": "git",
         "url": "https://mooncakes.io/git/index"
       },
@@ -81,11 +81,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793697098,
-        "narHash": "sha256-hpNgAArT6SlHYE0h3/8zC3SJsUdcRv70+aYOLx0IYZw=",
+        "lastModified": 1793869854,
+        "narHash": "sha256-l6cEgBmbqDbgnj/P+6IZfXHZ6LAA5eBDhDgC15QyHdI=",
         "owner": "moonbit-community",
         "repo": "moonbit-overlay",
-        "rev": "913c9b848d9a82129589697d84fed2c092954421",
+        "rev": "8795c9c4efc3a6cc442b12c2942353a89d12f77c",
         "type": "github"
       },
       "original": {

@@ -257,9 +257,8 @@ async fn get_integer_parameter(
     Ok(value) => value.to_int()
     Err(message) => return Err(message)
   }
-  match reader.read_bool() {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if reader.read_bool() is Err(message) {
+    return Err(message)
   }
   let parameter_value = match reader.read_i64() {
     Ok(value) => value
@@ -349,9 +348,8 @@ async fn parameter_name_is_listed(
     return Err("invalid ListParameters prefixes sequence length")
   }
   for _ in 0..<prefix_count {
-    match reader.read_string() {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if reader.read_string() is Err(message) {
+      return Err(message)
     }
   }
   Ok(found)

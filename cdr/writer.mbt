@@ -16,9 +16,7 @@ pub struct Writer {
 }
 
 ///|
-/// Create an empty CDR little-endian payload.
-pub fn Writer::new() -> Writer {
-  let buffer = @buffer.Buffer()
+fn Writer::with_header(buffer : @buffer.Buffer) -> Writer {
   // The encapsulation header itself is written in network byte order. The
   // CDR body that follows is little-endian.
   buffer.write_byte(0)
@@ -29,14 +27,15 @@ pub fn Writer::new() -> Writer {
 }
 
 ///|
+/// Create an empty CDR little-endian payload.
+pub fn Writer::new() -> Writer {
+  Writer::with_header(@buffer.Buffer())
+}
+
+///|
 /// Create a writer with a buffer capacity hint.
 pub fn Writer::with_capacity(size_hint : Int32) -> Writer {
-  let buffer = @buffer.Buffer(size_hint~)
-  buffer.write_byte(0)
-  buffer.write_byte(1)
-  buffer.write_byte(0)
-  buffer.write_byte(0)
-  { buffer, }
+  Writer::with_header(@buffer.Buffer(size_hint~))
 }
 
 ///|
@@ -109,8 +108,7 @@ pub fn Writer::write_u16(self : Writer, value : UInt16) -> Unit {
 /// Write a CDR uint16 from a MoonBit UInt.
 pub fn Writer::write_u16_uint(self : Writer, value : UInt32) -> Unit {
   self.align(2)
-  self.buffer.write_byte(value.to_byte())
-  self.buffer.write_byte((value >> 8).to_byte())
+  self.buffer.write_uint16_le(value.to_uint16())
 }
 
 ///|
@@ -204,11 +202,16 @@ pub fn Writer::write_wstring(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  self.write_code_units(units)
+  Ok(())
+}
+
+///|
+fn Writer::write_code_units(self : Writer, units : Array[UInt32]) -> Unit {
   self.write_u32(units.length().reinterpret_as_uint())
   for unit in units {
     self.write_u32(unit)
   }
-  Ok(())
 }
 
 ///|
@@ -228,10 +231,7 @@ pub fn Writer::write_bounded_wstring(
   if units.length() > maximum_length {
     return Err("CDR wide string exceeds its code-unit bound")
   }
-  self.write_u32(units.length().reinterpret_as_uint())
-  for unit in units {
-    self.write_u32(unit)
-  }
+  self.write_code_units(units)
   Ok(())
 }
 

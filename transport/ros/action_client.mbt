@@ -191,8 +191,9 @@ pub async fn RosActionClient::receive_feedback(
     if received_goal_id == goal_id {
       return Ok(payload)
     }
+  } nobreak {
+    Err("action feedback receive loop stopped")
   }
-  Err("action feedback receive loop stopped")
 }
 
 ///|
@@ -212,9 +213,8 @@ pub async fn RosActionClient::receive_goal_feedback(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match reader.read_byte_array(16) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if reader.read_byte_array(16) is Err(message) {
+    return Err(message)
   }
   let feedback_payload = match reader.read_byte_array(reader.remaining()) {
     Ok(value) => value
@@ -249,8 +249,9 @@ pub async fn RosActionClient::receive_next_goal_status(
         return Ok(goal_status)
       }
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped")
   }
-  Err("GoalStatusArray receive loop stopped")
 }
 
 ///|
@@ -267,8 +268,9 @@ pub async fn RosActionClient::receive_terminal_goal_status(
     if status.is_terminal() {
       return Ok(status)
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped before a terminal status")
   }
-  Err("GoalStatusArray receive loop stopped before a terminal status")
 }
 
 ///|
@@ -298,8 +300,9 @@ pub async fn RosActionClient::receive_goal_status(
     if status.status() == expected_status {
       return Ok(status)
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped")
   }
-  Err("GoalStatusArray receive loop stopped")
 }
 
 ///|
@@ -341,9 +344,8 @@ fn ros_action_send_goal_request(
   if goal_id.length() != 16 {
     return Err("an action goal ID must contain exactly 16 bytes")
   }
-  match @cdr.Reader::from_bytes(serialized_goal) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if @cdr.Reader::from_bytes(serialized_goal) is Err(message) {
+    return Err(message)
   }
   if serialized_goal[0] != 0 || serialized_goal[1] != 1 {
     return Err("an action goal payload must use little-endian ROS CDR")

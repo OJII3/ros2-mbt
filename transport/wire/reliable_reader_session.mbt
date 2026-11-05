@@ -138,9 +138,8 @@ pub async fn ReliableDataReaderSession::handle_message(
           heartbeat.writer_id() != self.state.writer_id {
           continue
         }
-        match self.acknowledge_heartbeat(heartbeat) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.acknowledge_heartbeat(heartbeat) is Err(message) {
+          return Err(message)
         }
       }
       HeartbeatFrag => {
@@ -159,9 +158,8 @@ pub async fn ReliableDataReaderSession::handle_message(
           heartbeat.writer_id() != self.state.writer_id {
           continue
         }
-        match self.acknowledge_heartbeat_frag(heartbeat) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if self.acknowledge_heartbeat_frag(heartbeat) is Err(message) {
+          return Err(message)
         }
       }
       _ => ()
@@ -366,8 +364,9 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
         _ => ()
       }
     }
+  } nobreak {
+    Err("reliable reader stopped")
   }
-  Err("reliable reader stopped")
 }
 
 ///|
@@ -410,8 +409,9 @@ async fn ReliableDataReaderSession::receive_related_data_with_optional_writer(
         return Ok((data, source))
       _ => ()
     }
+  } nobreak {
+    Err("reliable related-data reader stopped")
   }
-  Err("reliable related-data reader stopped")
 }
 
 ///|
@@ -528,8 +528,9 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
         _ => ()
       }
     }
+  } nobreak {
+    Err("reliable reader stopped")
   }
-  Err("reliable reader stopped")
 }
 
 ///|

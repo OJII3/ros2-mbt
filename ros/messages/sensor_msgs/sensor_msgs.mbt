@@ -38,20 +38,11 @@ pub fn Imu::new(
 pub fn Imu::default() -> Imu {
   let header : @std.Header = @std.Header::default()
   let orientation : @geometry.Quaternion = @geometry.Quaternion::default()
-  let orientation_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    orientation_covariance.push(0.0)
-  }
+  let orientation_covariance : Array[Double] = Array::make(9, 0.0)
   let angular_velocity : @geometry.Vector3 = @geometry.Vector3::default()
-  let angular_velocity_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    angular_velocity_covariance.push(0.0)
-  }
+  let angular_velocity_covariance : Array[Double] = Array::make(9, 0.0)
   let linear_acceleration : @geometry.Vector3 = @geometry.Vector3::default()
-  let linear_acceleration_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    linear_acceleration_covariance.push(0.0)
-  }
+  let linear_acceleration_covariance : Array[Double] = Array::make(9, 0.0)
   Imu::new(
     header, orientation, orientation_covariance, angular_velocity, angular_velocity_covariance,
     linear_acceleration, linear_acceleration_covariance,
@@ -118,27 +109,23 @@ pub fn Imu::write_cdr(self : Imu, writer : @cdr.Writer) -> Result[Unit, String] 
       "sensor_msgs/msg/Imu linear_acceleration_covariance must contain exactly 9 elements",
     )
   }
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.orientation.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.orientation.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   for value in self.orientation_covariance {
     writer.write_f64(value)
   }
-  match self.angular_velocity.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.angular_velocity.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   for value in self.angular_velocity_covariance {
     writer.write_f64(value)
   }
-  match self.linear_acceleration.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.linear_acceleration.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   for value in self.linear_acceleration_covariance {
     writer.write_f64(value)
@@ -204,9 +191,8 @@ pub fn Imu::read_cdr(reader : @cdr.Reader) -> Result[Imu, String] {
 /// Serialize the IMU message as CDR bytes.
 pub fn Imu::to_cdr_bytes(self : Imu) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -359,9 +345,8 @@ pub fn LaserScan::write_cdr(
   self : LaserScan,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_f32(self.angle_min)
   writer.write_f32(self.angle_max)
@@ -460,9 +445,8 @@ pub fn LaserScan::read_cdr(reader : @cdr.Reader) -> Result[LaserScan, String] {
 /// Serialize the laser scan as CDR bytes.
 pub fn LaserScan::to_cdr_bytes(self : LaserScan) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -574,9 +558,8 @@ pub fn Image::write_cdr(
   self : Image,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.height)
   writer.write_u32(self.width)
@@ -640,9 +623,8 @@ pub fn Image::read_cdr(reader : @cdr.Reader) -> Result[Image, String] {
 /// Serialize the image as CDR bytes.
 pub fn Image::to_cdr_bytes(self : Image) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -718,9 +700,8 @@ pub fn CompressedImage::write_cdr(
   self : CompressedImage,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_string(self.format)
   writer.write_u32(self.data.length().reinterpret_as_uint())
@@ -768,9 +749,8 @@ pub fn CompressedImage::to_cdr_bytes(
   self : CompressedImage,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -866,9 +846,8 @@ pub fn JointState::write_cdr(
   self : JointState,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.name.length().reinterpret_as_uint())
   for value in self.name {
@@ -967,9 +946,8 @@ pub fn JointState::read_cdr(reader : @cdr.Reader) -> Result[JointState, String] 
 /// Serialize the joint state as CDR bytes.
 pub fn JointState::to_cdr_bytes(self : JointState) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1121,9 +1099,8 @@ pub fn PointField::read_cdr(reader : @cdr.Reader) -> Result[PointField, String] 
 /// Serialize a point field as CDR bytes.
 pub fn PointField::to_cdr_bytes(self : PointField) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1258,9 +1235,8 @@ pub fn NavSatStatus::read_cdr(
 /// Serialize satellite navigation status as CDR bytes.
 pub fn NavSatStatus::to_cdr_bytes(self : NavSatStatus) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1398,9 +1374,8 @@ pub fn RegionOfInterest::to_cdr_bytes(
   self : RegionOfInterest,
 ) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1479,18 +1454,9 @@ pub fn CameraInfo::default() -> CameraInfo {
   let width : UInt32 = 0
   let distortion_model : String = ""
   let d : Array[Double] = []
-  let k : Array[Double] = []
-  for _ in 0..<9 {
-    k.push(0.0)
-  }
-  let r : Array[Double] = []
-  for _ in 0..<9 {
-    r.push(0.0)
-  }
-  let p : Array[Double] = []
-  for _ in 0..<12 {
-    p.push(0.0)
-  }
+  let k : Array[Double] = Array::make(9, 0.0)
+  let r : Array[Double] = Array::make(9, 0.0)
+  let p : Array[Double] = Array::make(12, 0.0)
   let binning_x : UInt32 = 0
   let binning_y : UInt32 = 0
   let roi : RegionOfInterest = RegionOfInterest::default()
@@ -1580,9 +1546,8 @@ pub fn CameraInfo::write_cdr(
   if self.p.length() != 12 {
     return Err("sensor_msgs/msg/CameraInfo p must contain exactly 12 elements")
   }
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.height)
   writer.write_u32(self.width)
@@ -1602,9 +1567,8 @@ pub fn CameraInfo::write_cdr(
   }
   writer.write_u32(self.binning_x)
   writer.write_u32(self.binning_y)
-  match self.roi.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.roi.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(())
 }
@@ -1695,9 +1659,8 @@ pub fn CameraInfo::read_cdr(reader : @cdr.Reader) -> Result[CameraInfo, String] 
 /// Serialize camera information as CDR bytes.
 pub fn CameraInfo::to_cdr_bytes(self : CameraInfo) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -1839,17 +1802,15 @@ pub fn PointCloud2::write_cdr(
   self : PointCloud2,
   writer : @cdr.Writer,
 ) -> Result[Unit, String] {
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_u32(self.height)
   writer.write_u32(self.width)
   writer.write_u32(self.fields.length().reinterpret_as_uint())
   for value in self.fields {
-    match value.write_cdr(writer) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if value.write_cdr(writer) is Err(message) {
+      return Err(message)
     }
   }
   writer.write_bool(self.is_bigendian)
@@ -1942,9 +1903,8 @@ pub fn PointCloud2::read_cdr(
 /// Serialize the point cloud as CDR bytes.
 pub fn PointCloud2::to_cdr_bytes(self : PointCloud2) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -2095,10 +2055,7 @@ pub fn NavSatFix::default() -> NavSatFix {
   let latitude : Double = 0.0
   let longitude : Double = 0.0
   let altitude : Double = 0.0
-  let position_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    position_covariance.push(0.0)
-  }
+  let position_covariance : Array[Double] = Array::make(9, 0.0)
   let position_covariance_type : Byte = 0
   NavSatFix::new(
     header, status, latitude, longitude, altitude, position_covariance, position_covariance_type,
@@ -2158,13 +2115,11 @@ pub fn NavSatFix::write_cdr(
       "sensor_msgs/msg/NavSatFix position_covariance must contain exactly 9 elements",
     )
   }
-  match self.header.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.header.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
-  match self.status.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.status.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   writer.write_f64(self.latitude)
   writer.write_f64(self.longitude)
@@ -2223,9 +2178,8 @@ pub fn NavSatFix::read_cdr(reader : @cdr.Reader) -> Result[NavSatFix, String] {
 /// Serialize a satellite fix as CDR bytes.
 pub fn NavSatFix::to_cdr_bytes(self : NavSatFix) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

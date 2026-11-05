@@ -71,9 +71,8 @@ pub fn Time::read_cdr(reader : @cdr.Reader) -> Result[Time, String] {
 /// Serialize the time as CDR bytes.
 pub fn Time::to_cdr_bytes(self : Time) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }
@@ -168,9 +167,8 @@ pub fn Duration::read_cdr(reader : @cdr.Reader) -> Result[Duration, String] {
 /// Serialize the duration as CDR bytes.
 pub fn Duration::to_cdr_bytes(self : Duration) -> Result[Bytes, String] {
   let writer = @cdr.Writer::new()
-  match self.write_cdr(writer) {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if self.write_cdr(writer) is Err(message) {
+    return Err(message)
   }
   Ok(writer.to_bytes())
 }

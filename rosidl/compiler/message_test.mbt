@@ -140,9 +140,7 @@ test "ROS message parser generates validated primitive field defaults" {
   assert_true(generated.contains("let label : String = \"hello world\""))
   assert_true(generated.contains("let samples : Array[Int] = [1, 2, 3]"))
   assert_true(generated.contains("let history : Array[Int] = []"))
-  assert_true(generated.contains("let zeros : Array[Int] = []"))
-  assert_true(generated.contains("for _ in 0..<2 {"))
-  assert_true(generated.contains("zeros.push(0)"))
+  assert_true(generated.contains("let zeros : Array[Int] = Array::make(2, 0)"))
   let without_defaults = @compiler.parse_message(
     "demo", "msg", "Defaulted", "bool enabled\nint32 count\nstring label\nint32[3] samples\nint32[<=3] history\nint32[2] zeros",
   ).unwrap()
@@ -504,7 +502,9 @@ test "ROS message generator handles nested message fields" {
   assert_true(generated.contains("self.position.write_cdr(writer)"))
   assert_true(generated.contains("Vector3::read_cdr(reader)"))
   assert_true(generated.contains("bounded_length > 2"))
-  assert_true(generated.contains("match self.position.write_cdr(writer)"))
+  assert_true(
+    generated.contains("if self.position.write_cdr(writer) is Err(message)"),
+  )
   assert_true(generated.contains("if self.bounded.length() > 2"))
   assert_true(generated.contains("Vector3::default()"))
 }

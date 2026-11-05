@@ -109,11 +109,13 @@ pub fn Header::guid_prefix(self : Header) -> GuidPrefix {
 /// Serialize an RTPS message header in network byte order.
 pub fn Header::to_bytes(self : Header) -> Bytes {
   let bytes : Array[Byte] = [b'R', b'T', b'P', b'S']
+  bytes.reserve_capacity(HEADER_LENGTH)
   bytes.push(self.protocol_version.major)
   bytes.push(self.protocol_version.minor)
   bytes.push(self.vendor_id.major)
   bytes.push(self.vendor_id.minor)
   let prefix = self.guid_prefix.as_bytes()
+  // Perf: index loop + reserve_capacity beats push_iter on this hot path.
   for i in 0..<prefix.length() {
     bytes.push(prefix[i])
   }
@@ -285,20 +287,21 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
   let length = self.payload.length()
   let length_low = (length & 0xFF).to_byte()
   let length_high = ((length >> 8) & 0xFF).to_byte()
+  let little = (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0
+  let (first_length, second_length) = if little {
+    (length_low, length_high)
+  } else {
+    (length_high, length_low)
+  }
   let bytes : Array[Byte] = [
     self.id.to_byte(),
     self.flags,
-    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
-      length_low
-    } else {
-      length_high
-    },
-    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
-      length_high
-    } else {
-      length_low
-    },
+    first_length,
+    second_length,
   ]
+  // Reserve the exact submessage size to avoid repeated reallocation.
+  bytes.reserve_capacity(SUBMESSAGE_HEADER_LENGTH + length)
+  // Perf: index loop beats push_iter on this hot path.
   for i in 0..<length {
     bytes.push(self.payload[i])
   }
@@ -307,11 +310,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
 
 ///|
 fn bytes_from(input : Bytes, start : Int32, length : Int32) -> Bytes {
-  let bytes : Array[Byte] = []
-  for i in 0..<length {
-    bytes.push(input[start + i])
-  }
-  Bytes::from_array(bytes)
+  input[start:start + length].to_owned()
 }
 
 ///|

@@ -102,9 +102,7 @@ pub fn Locator::to_bytes(self : Locator) -> Bytes {
     (port >> 16).to_byte(),
     (port >> 24).to_byte(),
   ]
-  for i in 0..<16 {
-    bytes.push(self.address[i])
-  }
+  bytes.push_iter(self.address[:16].iter())
   Bytes::from_array(bytes)
 }
 

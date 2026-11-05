@@ -332,9 +332,7 @@ fn append_parameter(bytes : Array[Byte], parameter : Parameter) -> Unit {
   let padded_length = (value.length() + 3) / 4 * 4
   append_u16_le(bytes, parameter.id)
   append_u16_le(bytes, padded_length.to_uint16())
-  for i in 0..<value.length() {
-    bytes.push(value[i])
-  }
+  bytes.push_iter(value.iter())
   if padded_length != value.length() {
     for _ in 0..<(padded_length - value.length()) {
       bytes.push(0)
@@ -361,9 +359,7 @@ pub fn ParameterList::to_cdr_bytes(self : ParameterList) -> Bytes {
   // RTPS ParameterList CDR uses the PL_CDR_LE encapsulation identifier
   // (0x0003), distinct from the regular CDR_LE identifier (0x0001).
   let bytes : Array[Byte] = [0, 3, 0, 0]
-  for i in 0..<body.length() {
-    bytes.push(body[i])
-  }
+  bytes.push_iter(body.iter())
   Bytes::from_array(bytes)
 }
 

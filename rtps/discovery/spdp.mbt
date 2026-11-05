@@ -211,12 +211,8 @@ fn spdp_duration(seconds : Int32, nanoseconds : UInt32) -> Bytes {
     qos_nanoseconds_to_fraction(nanoseconds)
   }
   let fraction_bytes = spdp_u32_le(fraction)
-  for i in 0..<4 {
-    bytes.push(seconds_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(fraction_bytes[i])
-  }
+  bytes.push_iter(seconds_bytes[:4].iter())
+  bytes.push_iter(fraction_bytes[:4].iter())
   Bytes::from_array(bytes)
 }
 
@@ -229,6 +225,19 @@ fn spdp_read_u32(value : Bytes) -> Result[UInt32, String] {
     [u32le(result)] => Ok(result)
     _ => Err("invalid SPDP uint32 parameter")
   }
+}
+
+///|
+fn spdp_push_locator(
+  locators : Array[@core.Locator],
+  value : Bytes,
+) -> Result[Unit, String] {
+  let locator = match @core.Locator::from_bytes(value) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  locators.push(locator)
+  Ok(())
 }
 
 ///|
@@ -418,33 +427,23 @@ fn SpdpParticipantData::from_parameter_list_with_default_domain(
           Err(message) => return Err(message)
         }
       @core.PID_METATRAFFIC_UNICAST_LOCATOR =>
-        metatraffic_unicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(metatraffic_unicast_locators, value)
+          is Err(message) {
+          return Err(message)
+        }
       @core.PID_METATRAFFIC_MULTICAST_LOCATOR =>
-        metatraffic_multicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(metatraffic_multicast_locators, value)
+          is Err(message) {
+          return Err(message)
+        }
       @core.PID_DEFAULT_UNICAST_LOCATOR =>
-        default_unicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(default_unicast_locators, value) is Err(message) {
+          return Err(message)
+        }
       @core.PID_DEFAULT_MULTICAST_LOCATOR =>
-        default_multicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(default_multicast_locators, value) is Err(message) {
+          return Err(message)
+        }
       _ => ()
     }
   }

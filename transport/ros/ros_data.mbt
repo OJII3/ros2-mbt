@@ -38,16 +38,10 @@ pub fn RosPublisher::new(
 }
 
 ///|
-/// Create a publisher for a discovered subscription with a matching topic.
-pub fn RosPublisher::new_for_subscription(
+fn validate_best_effort_subscription(
   topic : @ros_types.RosTopic,
-  socket : @wire.Udp,
-  guid_prefix : @rtps.GuidPrefix,
-  vendor_id : @rtps.VendorId,
-  writer_id : @rtps.EntityId,
   subscription : @rtps.SedpEndpointData,
-  first_sequence_number : Int64,
-) -> Result[RosPublisher, String] {
+) -> Result[Unit, String] {
   if subscription.topic_name() != topic.dds_name() ||
     subscription.type_name() != topic.dds_type_name() {
     return Err("the discovered subscription does not match the ROS topic")
@@ -62,6 +56,23 @@ pub fn RosPublisher::new_for_subscription(
   if qos.durability() != @rtps.DURABILITY_VOLATILE {
     return Err("the discovered subscription has incompatible durability")
   }
+  Ok(())
+}
+
+///|
+/// Create a publisher for a discovered subscription with a matching topic.
+pub fn RosPublisher::new_for_subscription(
+  topic : @ros_types.RosTopic,
+  socket : @wire.Udp,
+  guid_prefix : @rtps.GuidPrefix,
+  vendor_id : @rtps.VendorId,
+  writer_id : @rtps.EntityId,
+  subscription : @rtps.SedpEndpointData,
+  first_sequence_number : Int64,
+) -> Result[RosPublisher, String] {
+  if validate_best_effort_subscription(topic, subscription) is Err(message) {
+    return Err(message)
+  }
   let publisher = match
     RosPublisher::new(
       topic, socket, guid_prefix, vendor_id, writer_id, first_sequence_number,
@@ -69,10 +80,7 @@ pub fn RosPublisher::new_for_subscription(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  match publisher.add_subscription(subscription) {
-    Ok(_) => Ok(publisher)
-    Err(message) => Err(message)
-  }
+  publisher.add_subscription(subscription).map(fn(_) { publisher })
 }
 
 ///|
@@ -81,19 +89,8 @@ pub fn RosPublisher::add_subscription(
   self : RosPublisher,
   subscription : @rtps.SedpEndpointData,
 ) -> Result[Unit, String] {
-  if subscription.topic_name() != self.topic.dds_name() ||
-    subscription.type_name() != self.topic.dds_type_name() {
-    return Err("the discovered subscription does not match the ROS topic")
-  }
-  let qos = match subscription.qos() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  if qos.reliability() != @rtps.RELIABILITY_BEST_EFFORT {
-    return Err("the discovered subscription is not best effort")
-  }
-  if qos.durability() != @rtps.DURABILITY_VOLATILE {
-    return Err("the discovered subscription has incompatible durability")
+  if validate_best_effort_subscription(self.topic, subscription) is Err(message) {
+    return Err(message)
   }
   for (guid, _) in self.writers {
     if guid == subscription.endpoint_guid() {
@@ -174,9 +171,8 @@ pub async fn RosPublisher::publish(
   }
   self.next_sequence_number += 1L
   for (_, writer) in writers {
-    match writer.write(serialized_payload) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if writer.write(serialized_payload) is Err(message) {
+      return Err(message)
     }
   }
   Ok(())

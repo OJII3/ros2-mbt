@@ -126,15 +126,10 @@ pub async fn load_message_schema(
   while cursor < pending.length() {
     let current = pending[cursor]
     cursor += 1
-    let mut already_loaded = false
-    for source in sources {
-      if source.package_name() == current.package_name &&
-        source.type_name() == current.type_name {
-        already_loaded = true
-        break
-      }
-    }
-    if already_loaded {
+    if sources.any(fn(source) {
+        source.package_name() == current.package_name &&
+        source.type_name() == current.type_name
+      }) {
       continue
     }
     let source = match

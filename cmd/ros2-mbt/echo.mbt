@@ -49,29 +49,36 @@ fn echo_reader_id() -> Result[@rtps.EntityId, String] {
 }
 
 ///|
+async fn echo_loop(
+  receive : async () -> Result[Bytes, String],
+  close : () -> Unit,
+  schema : @introspection.MessageSchema,
+) -> Result[Unit, String] {
+  defer close()
+  while true {
+    match receive() {
+      Ok(payload) =>
+        match print_dynamic_sample(schema, payload) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
+        }
+      Err(message) => return Err(message)
+    }
+  } nobreak {
+    Ok(())
+  }
+}
+
+///|
 async fn echo_best_effort(
   subscription : @transport.RosSubscription,
   schema : @introspection.MessageSchema,
 ) -> Result[Unit, String] {
-  while true {
-    match subscription.receive() {
-      Ok((payload, _)) =>
-        match print_dynamic_sample(schema, payload) {
-          Ok(_) => ()
-          Err(message) => {
-            subscription.close()
-            return Err(message)
-          }
-        }
-      Err(message) => {
-        subscription.close()
-        return Err(message)
-      }
-    }
-  } nobreak {
-    subscription.close()
-    Ok(())
-  }
+  echo_loop(
+    async fn() { subscription.receive().map(fn(pair) { pair.0 }) },
+    fn() { subscription.close() },
+    schema,
+  )
 }
 
 ///|
@@ -79,25 +86,11 @@ async fn echo_reliable(
   subscription : @transport.ReliableRosSubscription,
   schema : @introspection.MessageSchema,
 ) -> Result[Unit, String] {
-  while true {
-    match subscription.receive() {
-      Ok((payload, _)) =>
-        match print_dynamic_sample(schema, payload) {
-          Ok(_) => ()
-          Err(message) => {
-            subscription.close()
-            return Err(message)
-          }
-        }
-      Err(message) => {
-        subscription.close()
-        return Err(message)
-      }
-    }
-  } nobreak {
-    subscription.close()
-    Ok(())
-  }
+  echo_loop(
+    async fn() { subscription.receive().map(fn(pair) { pair.0 }) },
+    fn() { subscription.close() },
+    schema,
+  )
 }
 
 ///|

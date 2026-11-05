@@ -102,12 +102,8 @@ pub fn HeartbeatFragSubmessage::to_payload(
   let bytes : Array[Byte] = []
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   reliability_append_i64(bytes, self.writer_sequence_number)
   reliability_append_u32(bytes, self.last_fragment_number)
   reliability_append_u32(bytes, self.count)
@@ -283,12 +279,8 @@ pub fn NackFragSubmessage::to_payload(self : NackFragSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   reliability_append_i64(bytes, self.writer_sequence_number)
   reliability_append_u32(bytes, self.bitmap_base)
   reliability_append_u32(bytes, self.num_bits)

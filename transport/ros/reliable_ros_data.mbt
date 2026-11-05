@@ -196,19 +196,12 @@ pub fn ReliableRosPublisher::next_sequence_number(
 pub fn ReliableRosPublisher::history_length(
   self : ReliableRosPublisher,
 ) -> Int32 {
-  let mut length = 0
-  for target in self.writers {
+  self.writers.fold(init=0, fn(length, target) {
     match target.reliable_writer {
-      Some(writer) => {
-        let writer_length = writer.history_length()
-        if writer_length > length {
-          length = writer_length
-        }
-      }
-      None => ()
+      Some(writer) => length.max(writer.history_length())
+      None => length
     }
-  }
-  length
+  })
 }
 
 ///|
@@ -221,27 +214,17 @@ pub async fn ReliableRosPublisher::publish(
   self : ReliableRosPublisher,
   serialized_payload : Bytes,
 ) -> Result[Unit, String] {
-  let writers : Array[ReliableRosTarget] = []
-  for target in self.writers {
-    writers.push(target)
-  }
+  let writers = self.writers.copy()
   self.next_sequence_number += 1L
   for target in writers {
-    match target.reliable_writer {
-      Some(writer) =>
-        match writer.write(serialized_payload) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
-        }
-      None =>
-        match target.best_effort_writer {
-          Some(writer) =>
-            match writer.write(serialized_payload) {
-              Ok(_) => ()
-              Err(message) => return Err(message)
-            }
-          None => ()
-        }
+    if target.reliable_writer is Some(writer) {
+      if writer.write(serialized_payload) is Err(message) {
+        return Err(message)
+      }
+    } else if target.best_effort_writer is Some(writer) {
+      if writer.write(serialized_payload) is Err(message) {
+        return Err(message)
+      }
     }
   }
   Ok(())
@@ -259,9 +242,8 @@ pub async fn ReliableRosPublisher::send_heartbeat(
   for target in writers {
     match target.reliable_writer {
       Some(writer) =>
-        match writer.send_heartbeat() {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if writer.send_heartbeat() is Err(message) {
+          return Err(message)
         }
       None => ()
     }
@@ -270,36 +252,48 @@ pub async fn ReliableRosPublisher::send_heartbeat(
 }
 
 ///|
-/// Receive a matching ACKNACK and retransmit requested samples.
-pub async fn ReliableRosPublisher::receive_acknack(
+async fn[T] ReliableRosPublisher::receive_control_submessage(
   self : ReliableRosPublisher,
-) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  id : @rtps.SubmessageId,
+  parse : (@rtps.Submessage) -> Result[T, String],
+) -> Result[(T, @socket.Addr), String] {
   while true {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     for target in self.writers {
-      match target.reliable_writer {
-        Some(writer) =>
-          match writer.handle_control_message(message) {
-            Ok(true) =>
-              for submessage in message.submessages() {
-                if submessage.id() == @rtps.SubmessageId::AckNack {
-                  match @rtps.AckNackSubmessage::from_submessage(submessage) {
-                    Ok(value) => return Ok((value, source))
-                    Err(message) => return Err(message)
-                  }
+      if target.reliable_writer is Some(writer) {
+        match writer.handle_control_message(message) {
+          Ok(true) =>
+            for submessage in message.submessages() {
+              if submessage.id() == id {
+                let value = match parse(submessage) {
+                  Ok(value) => value
+                  Err(message) => return Err(message)
                 }
+                return Ok((value, source))
               }
-            Ok(false) => ()
-            Err(message) => return Err(message)
-          }
-        None => ()
+            }
+          Ok(false) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
+  } nobreak {
+    Err("reliable publisher stopped")
   }
-  Err("reliable publisher stopped")
+}
+
+///|
+/// Receive a matching ACKNACK and retransmit requested samples.
+pub async fn ReliableRosPublisher::receive_acknack(
+  self : ReliableRosPublisher,
+) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  self.receive_control_submessage(
+    @rtps.SubmessageId::AckNack,
+    @rtps.AckNackSubmessage::from_submessage,
+  )
 }
 
 ///|
@@ -326,32 +320,10 @@ pub async fn ReliableRosPublisher::handle_acknack(
 pub async fn ReliableRosPublisher::receive_nackfrag(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
-  while true {
-    let (message, source) = match self.socket.receive_message() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    for target in self.writers {
-      match target.reliable_writer {
-        Some(writer) =>
-          match writer.handle_control_message(message) {
-            Ok(true) =>
-              for submessage in message.submessages() {
-                if submessage.id() == @rtps.SubmessageId::NackFrag {
-                  match @rtps.NackFragSubmessage::from_submessage(submessage) {
-                    Ok(value) => return Ok((value, source))
-                    Err(message) => return Err(message)
-                  }
-                }
-              }
-            Ok(false) => ()
-            Err(message) => return Err(message)
-          }
-        None => ()
-      }
-    }
-  }
-  Err("reliable publisher stopped")
+  self.receive_control_submessage(
+    @rtps.SubmessageId::NackFrag,
+    @rtps.NackFragSubmessage::from_submessage,
+  )
 }
 
 ///|
@@ -375,8 +347,9 @@ pub async fn ReliableRosPublisher::receive_control(
         None => ()
       }
     }
+  } nobreak {
+    Err("reliable publisher stopped")
   }
-  Err("reliable publisher stopped")
 }
 
 ///|
@@ -411,9 +384,8 @@ pub async fn ReliableRosPublisher::handle_message(
   for target in writers {
     match target.reliable_writer {
       Some(writer) =>
-        match writer.handle_control_message(message) {
-          Ok(_) => ()
-          Err(message) => return Err(message)
+        if writer.handle_control_message(message) is Err(message) {
+          return Err(message)
         }
       None => ()
     }

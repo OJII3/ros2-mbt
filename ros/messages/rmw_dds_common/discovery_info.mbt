@@ -54,13 +54,11 @@ pub fn NodeEntitiesInfo::new(
   node_namespace : String,
   node_name : String,
 ) -> Result[NodeEntitiesInfo, String] {
-  match discovery_info_validate_string(node_namespace, "namespace") {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if discovery_info_validate_string(node_namespace, "namespace") is Err(message) {
+    return Err(message)
   }
-  match discovery_info_validate_string(node_name, "name") {
-    Ok(_) => ()
-    Err(message) => return Err(message)
+  if discovery_info_validate_string(node_name, "name") is Err(message) {
+    return Err(message)
   }
   Ok({ node_namespace, node_name, reader_gid_seq: [], writer_gid_seq: [], })
 }

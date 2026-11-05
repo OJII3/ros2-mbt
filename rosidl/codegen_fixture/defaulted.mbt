@@ -37,10 +37,7 @@ pub fn Defaulted::default() -> Defaulted {
   let label : String = "hello world"
   let samples : Array[Int32] = [1, 2, 3]
   let history : Array[Int32] = []
-  let zeros : Array[Int32] = []
-  for _ in 0..<2 {
-    zeros.push(0)
-  }
+  let zeros : Array[Int32] = Array::make(2, 0)
   Defaulted::new(enabled, count, label, samples, history, zeros)
 }
 

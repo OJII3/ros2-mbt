@@ -73,14 +73,9 @@ pub fn MessageWorkspace::generate_action_moonbit(
       Err(message) => return Err(message)
     }
     for reference in references {
-      let mut already_present = false
-      for existing in nested_types {
-        if existing.ros_name == reference.ros_name {
-          already_present = true
-          break
-        }
-      }
-      if !already_present {
+      if !nested_types.any(fn(existing) {
+          existing.ros_name == reference.ros_name
+        }) {
         nested_types.push(reference)
       }
     }
@@ -129,15 +124,13 @@ pub fn MessageWorkspace::generate_action_moonbit(
   }
   let hash_workspace = MessageWorkspace::new()
   for source in self.sources {
-    match hash_workspace.add_source(source) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if hash_workspace.add_source(source) is Err(message) {
+      return Err(message)
     }
   }
   for mapping in self.imports {
-    match hash_workspace.add_import(mapping) {
-      Ok(_) => ()
-      Err(message) => return Err(message)
+    if hash_workspace.add_import(mapping) is Err(message) {
+      return Err(message)
     }
   }
   for source in action_sources {
@@ -148,9 +141,8 @@ pub fn MessageWorkspace::generate_action_moonbit(
         source.type_name,
       ) <
       0 {
-      match hash_workspace.add_source(source) {
-        Ok(_) => ()
-        Err(message) => return Err(message)
+      if hash_workspace.add_source(source) is Err(message) {
+        return Err(message)
       }
     }
   }
