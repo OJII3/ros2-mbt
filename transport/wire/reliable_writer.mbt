@@ -40,11 +40,7 @@ fn reliable_writer_fragment_data(
   let fragments : Array[@rtps.DataFragSubmessage] = []
   for index in 0..<fragment_count {
     let offset = index * RELIABLE_WRITER_FRAGMENT_SIZE
-    let length = if payload.length() - offset > RELIABLE_WRITER_FRAGMENT_SIZE {
-      RELIABLE_WRITER_FRAGMENT_SIZE
-    } else {
-      payload.length() - offset
-    }
+    let length = (payload.length() - offset).min(RELIABLE_WRITER_FRAGMENT_SIZE)
     let fragment = match
       @rtps.DataFragSubmessage::new(
         data.reader_id(),
@@ -234,25 +230,13 @@ fn ReliableDataWriter::discard_acknowledged(
   self : ReliableDataWriter,
   bitmap_base : Int64,
 ) -> Unit {
-  let acknowledged_before = if bitmap_base > self.next_sequence_number {
-    self.next_sequence_number
-  } else {
-    bitmap_base
-  }
-  let retained_history : Array[@rtps.DataSubmessage] = []
-  for sample in self.history {
-    if sample.writer_sequence_number() >= acknowledged_before {
-      retained_history.push(sample)
-    }
-  }
-  self.history = retained_history
-  let retained_fragments : Array[ReliableFragmentedWrite] = []
-  for fragmented in self.fragmented_history {
-    if fragmented.sequence_number >= acknowledged_before {
-      retained_fragments.push(fragmented)
-    }
-  }
-  self.fragmented_history = retained_fragments
+  let acknowledged_before = bitmap_base.min(self.next_sequence_number)
+  self.history = self.history.filter(fn(sample) {
+    sample.writer_sequence_number() >= acknowledged_before
+  })
+  self.fragmented_history = self.fragmented_history.filter(fn(fragmented) {
+    fragmented.sequence_number >= acknowledged_before
+  })
 }
 
 ///|
@@ -334,8 +318,7 @@ async fn ReliableDataWriter::write_data(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    for index in 0..<fragments.length() {
-      let fragment = fragments[index]
+    for fragment in fragments {
       for destination in self.destinations {
         match
           self.socket.send_message(
@@ -466,13 +449,11 @@ pub async fn ReliableDataWriter::handle_acknack(
       continue
     }
     let requested_sequence = acknack.bitmap_base() + offset.to_int64()
-    let mut fragmented_found = false
-    for fragmented in self.fragmented_history {
-      if fragmented.sequence_number != requested_sequence {
-        continue
-      }
-      fragmented_found = true
-      for fragment in fragmented.fragments {
+    if self.fragmented_history.search_by(fn(fragmented) {
+        fragmented.sequence_number == requested_sequence
+      })
+      is Some(index) {
+      for fragment in self.fragmented_history[index].fragments {
         for destination in self.destinations {
           match
             self.socket.send_message(
@@ -486,8 +467,6 @@ pub async fn ReliableDataWriter::handle_acknack(
           }
         }
       }
-    }
-    if fragmented_found {
       continue
     }
     for sample in self.history {
