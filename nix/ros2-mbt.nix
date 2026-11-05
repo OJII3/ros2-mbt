@@ -6,13 +6,13 @@
 
 moon2nix.buildMoonPackage {
   name = "ros2-mbt";
-  version = "0.11.0";
+  version = "0.12.0";
 
   src = lib.cleanSource ../.;
 
   moonMod = {
     name = "OJII3/ros2-mbt";
-    version = "0.11.0";
+    version = "0.12.0";
     preferred-target = "native";
   };
   inherit moonRegistryIndex;
