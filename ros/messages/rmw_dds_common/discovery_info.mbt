@@ -1,8 +1,9 @@
 ///|
 /// The 16-byte ROS 2 graph-discovery GID.
+#derive(Eq, Debug)
 pub struct Gid {
   data : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a ROS discovery GID.
@@ -27,12 +28,13 @@ pub fn Gid::data(self : Gid) -> Bytes {
 
 ///|
 /// ROS node metadata and its associated reader/writer GIDs.
+#derive(Eq, Debug)
 pub struct NodeEntitiesInfo {
   node_namespace : String
   node_name : String
   reader_gid_seq : Array[Gid]
   writer_gid_seq : Array[Gid]
-} derive(Eq, Debug)
+}
 
 ///|
 fn discovery_info_validate_string(
@@ -107,10 +109,11 @@ pub fn NodeEntitiesInfo::add_writer_gid(
 
 ///|
 /// Participant metadata containing all nodes owned by the participant.
+#derive(Eq, Debug)
 pub struct ParticipantEntitiesInfo {
   gid : Gid
   node_entities_info_seq : Array[NodeEntitiesInfo]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Gid with Eq::{not_equal, equal}

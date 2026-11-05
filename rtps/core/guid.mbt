@@ -1,16 +1,18 @@
 ///|
 /// The four-byte entity identifier within an RTPS GUID.
+#derive(Eq, Debug)
 pub struct EntityId {
   key : Bytes
   kind : Byte
-} derive(Eq, Debug)
+}
 
 ///|
 /// A complete RTPS GUID.
+#derive(Eq, Debug)
 pub struct Guid {
   prefix : GuidPrefix
   entity_id : EntityId
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend EntityId with Eq::{not_equal, equal}

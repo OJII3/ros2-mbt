@@ -8,9 +8,9 @@ pub fn load() -> Result[Config, String]
 
 // Types and methods
 pub struct Config {
-  ip : UInt
-  domain_id : UInt
-  multicast_interface : UInt?
+  ip : UInt32
+  domain_id : UInt32
+  multicast_interface : UInt32?
 }
 
 // Type aliases

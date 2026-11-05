@@ -1,5 +1,6 @@
 ///|
 /// Generated from demo/msg/Defaulted.msg
+#derive(Eq, Debug)
 pub struct Defaulted {
   enabled : Bool
   count : Int32
@@ -7,7 +8,7 @@ pub struct Defaulted {
   samples : Array[Int32]
   history : Array[Int32]
   zeros : Array[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Defaulted with Eq::{not_equal, equal}

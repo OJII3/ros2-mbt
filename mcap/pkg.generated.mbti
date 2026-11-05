@@ -2,7 +2,7 @@
 package "OJII3/ros2-mbt/mcap"
 
 import {
-  "moonbitlang/async/io",
+  "moonbitlang/core/async/io",
 }
 
 // Values
@@ -13,14 +13,14 @@ import {
 pub struct Reader {
   // private fields
 }
-pub async fn Reader::new(&@io.Reader) -> Result[Self, String]
+pub async fn Reader::new(&@io.BinaryReader) -> Result[Self, String]
 pub async fn Reader::next_record(Self) -> Result[Record?, String]
 pub fn Reader::profile(Self) -> String
 
 pub enum Record {
   Schema(UInt16, String, String, Bytes)
   Channel(UInt16, UInt16, String, String, Array[(String, String)])
-  Message(UInt16, UInt, UInt64, UInt64, Bytes)
+  Message(UInt16, UInt32, UInt64, UInt64, Bytes)
   Metadata(String, Array[(String, String)])
   DataEnd
 }

@@ -12,6 +12,7 @@ pub const HEARTBEAT_FRAG_BODY_LENGTH : Int32 = 24
 
 ///|
 /// A decoded RTPS HEARTBEAT_FRAG submessage.
+#derive(Eq, Debug)
 pub struct HeartbeatFragSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -19,7 +20,7 @@ pub struct HeartbeatFragSubmessage {
   writer_sequence_number : Int64
   last_fragment_number : UInt32
   count : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend HeartbeatFragSubmessage with Eq::{not_equal, equal}
@@ -175,6 +176,7 @@ pub fn HeartbeatFragSubmessage::from_submessage(
 
 ///|
 /// A decoded RTPS NACK_FRAG submessage.
+#derive(Eq, Debug)
 pub struct NackFragSubmessage {
   flags : Byte
   reader_id : EntityId
@@ -184,7 +186,7 @@ pub struct NackFragSubmessage {
   num_bits : UInt32
   bitmap : Array[UInt32]
   count : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend NackFragSubmessage with Eq::{not_equal, equal}

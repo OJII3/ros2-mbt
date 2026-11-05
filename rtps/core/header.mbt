@@ -20,31 +20,35 @@ pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 ///|
 /// The RTPS protocol version.
+#derive(Eq, Debug)
 pub struct ProtocolVersion {
   major : Byte
   minor : Byte
-} derive(Eq, Debug)
+}
 
 ///|
 /// The vendor identifier carried by an RTPS message header.
+#derive(Eq, Debug)
 pub struct VendorId {
   major : Byte
   minor : Byte
-} derive(Eq, Debug)
+}
 
 ///|
 /// The 12-byte prefix shared by all GUIDs in one DDS domain participant.
+#derive(Eq, Debug)
 pub struct GuidPrefix {
   bytes : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 /// The RTPS message header.
+#derive(Eq, Debug)
 pub struct Header {
   protocol_version : ProtocolVersion
   vendor_id : VendorId
   guid_prefix : GuidPrefix
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create an RTPS protocol version.
@@ -145,6 +149,7 @@ pub fn Header::from_bytes(input : Bytes) -> Result[Header, String] {
 
 ///|
 /// The RTPS submessage identifiers defined by the core protocol.
+#derive(Eq, Debug)
 pub(all) enum SubmessageId {
   Pad
   InfoTimestamp
@@ -158,7 +163,7 @@ pub(all) enum SubmessageId {
   HeartbeatFrag
   DataFrag
   Unknown(Byte)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Convert a submessage identifier to its wire byte.
@@ -200,11 +205,12 @@ pub fn SubmessageId::from_byte(value : Byte) -> Result[SubmessageId, String] {
 
 ///|
 /// A raw RTPS submessage. The payload is kept opaque until its type is implemented.
+#derive(Eq, Debug)
 pub struct Submessage {
   id : SubmessageId
   flags : Byte
   payload : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ProtocolVersion with Eq::{not_equal, equal}

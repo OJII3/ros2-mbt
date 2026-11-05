@@ -1,10 +1,11 @@
 ///|
 /// ROS 2 entity-name kinds that use distinct DDS topic prefixes.
+#derive(Eq, Debug)
 pub(all) enum DdsTopicKind {
   Topic
   ServiceRequest
   ServiceResponse
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend DdsTopicKind with Eq::{not_equal, equal}

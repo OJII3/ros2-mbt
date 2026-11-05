@@ -113,6 +113,7 @@ async fn run_topic_echo(
     Ok(value) => value
     Err(message) => return Err(message)
   }
+  let mut result : Result[Unit, String] = Ok(())
   @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match cli.participant.announce_spdp_forever(CLI_DISCOVERY_INTERVAL_MS) {
@@ -128,12 +129,14 @@ async fn run_topic_echo(
           Ok(value) => value
           Err(message) => {
             cli.participant.close()
-            return Err(message)
+            result = Err(message)
+            return
           }
         }
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     let ros_type_name = ros_type_name_from_dds(publication.type_name())
@@ -141,7 +144,8 @@ async fn run_topic_echo(
       Ok(value) => value
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     let topic = match
@@ -153,14 +157,16 @@ async fn run_topic_echo(
       Ok(value) => value
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     let publisher_qos = match publication.qos() {
       Ok(value) => value
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     let requested_qos = @rtps.SedpQos::new(
@@ -173,7 +179,8 @@ async fn run_topic_echo(
       Ok(value) => value
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     match
@@ -186,12 +193,13 @@ async fn run_topic_echo(
       Ok(_) => ()
       Err(message) => {
         cli.participant.close()
-        return Err(message)
+        result = Err(message)
+        return
       }
     }
     let (discovery, user_socket) = cli.participant.into_parts()
     let is_reliable = publisher_qos.reliability() == @rtps.RELIABILITY_RELIABLE
-    let result = if is_reliable {
+    let echo_result = if is_reliable {
       let subscription = match
         @transport.ReliableRosSubscription::new_for_publication(
           topic,
@@ -205,7 +213,8 @@ async fn run_topic_echo(
         Err(message) => {
           user_socket.close()
           discovery.close()
-          return Err(message)
+          result = Err(message)
+          return
         }
       }
       echo_reliable(subscription, schema)
@@ -222,12 +231,14 @@ async fn run_topic_echo(
         Err(message) => {
           user_socket.close()
           discovery.close()
-          return Err(message)
+          result = Err(message)
+          return
         }
       }
       echo_best_effort(subscription, schema)
     }
     discovery.close()
-    result
+    result = echo_result
   }
+  result
 }

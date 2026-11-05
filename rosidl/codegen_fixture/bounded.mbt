@@ -1,8 +1,9 @@
 ///|
 /// Generated from demo/msg/Bounded.msg
+#derive(Eq, Debug)
 pub struct Bounded {
   values : Array[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Bounded with Eq::{not_equal, equal}

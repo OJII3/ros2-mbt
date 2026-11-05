@@ -11,9 +11,10 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Gid {
   data : Bytes
-} derive(Eq, @debug.Debug)
+}
 pub fn Gid::data(Self) -> Bytes
 pub fn Gid::equal(Self, Self) -> Bool
 pub fn Gid::from_guid(@core.Guid) -> Self
@@ -21,12 +22,13 @@ pub fn Gid::new(Bytes) -> Result[Self, String]
 pub fn Gid::not_equal(Self, Self) -> Bool
 pub fn Gid::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct NodeEntitiesInfo {
   node_namespace : String
   node_name : String
   reader_gid_seq : Array[Gid]
   writer_gid_seq : Array[Gid]
-} derive(Eq, @debug.Debug)
+}
 pub fn NodeEntitiesInfo::add_reader_gid(Self, Gid) -> Unit
 pub fn NodeEntitiesInfo::add_writer_gid(Self, Gid) -> Unit
 pub fn NodeEntitiesInfo::equal(Self, Self) -> Bool
@@ -40,10 +42,11 @@ pub fn NodeEntitiesInfo::to_cdr_bytes(Self) -> Bytes
 pub fn NodeEntitiesInfo::to_repr(Self) -> @debug.Repr
 pub fn NodeEntitiesInfo::writer_gid_seq(Self) -> Array[Gid]
 
+#derive(Eq, @debug.Debug)
 pub struct ParticipantEntitiesInfo {
   gid : Gid
   node_entities_info_seq : Array[NodeEntitiesInfo]
-} derive(Eq, @debug.Debug)
+}
 pub fn ParticipantEntitiesInfo::add_node(Self, NodeEntitiesInfo) -> Unit
 pub fn ParticipantEntitiesInfo::equal(Self, Self) -> Bool
 pub fn ParticipantEntitiesInfo::from_cdr_bytes(Bytes) -> Result[Self, String]

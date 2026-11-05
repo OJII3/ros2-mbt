@@ -6,51 +6,54 @@ import {
 }
 
 // Values
-pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int = 6
+pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int32 = 6
 
-pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int = 1
+pub const ROS_ACTION_GOAL_STATUS_ACCEPTED : Int32 = 1
 
-pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int = 5
+pub const ROS_ACTION_GOAL_STATUS_CANCELED : Int32 = 5
 
-pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int = 3
+pub const ROS_ACTION_GOAL_STATUS_CANCELING : Int32 = 3
 
-pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int = 2
+pub const ROS_ACTION_GOAL_STATUS_EXECUTING : Int32 = 2
 
-pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int = 4
+pub const ROS_ACTION_GOAL_STATUS_SUCCEEDED : Int32 = 4
 
-pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int = 0
+pub const ROS_ACTION_GOAL_STATUS_UNKNOWN : Int32 = 0
 
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct RosActionGoalInfo {
   goal_id : Bytes
-  stamp_sec : Int
-  stamp_nanosec : UInt
-} derive(Eq, @debug.Debug)
+  stamp_sec : Int32
+  stamp_nanosec : UInt32
+}
 pub fn RosActionGoalInfo::equal(Self, Self) -> Bool
 pub fn RosActionGoalInfo::goal_id(Self) -> Bytes
-pub fn RosActionGoalInfo::new(Bytes, Int, UInt) -> Result[Self, String]
+pub fn RosActionGoalInfo::new(Bytes, Int32, UInt32) -> Result[Self, String]
 pub fn RosActionGoalInfo::not_equal(Self, Self) -> Bool
-pub fn RosActionGoalInfo::stamp_nanosec(Self) -> UInt
-pub fn RosActionGoalInfo::stamp_sec(Self) -> Int
+pub fn RosActionGoalInfo::stamp_nanosec(Self) -> UInt32
+pub fn RosActionGoalInfo::stamp_sec(Self) -> Int32
 pub fn RosActionGoalInfo::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct RosActionGoalStatus {
   goal_info : RosActionGoalInfo
-  status : Int
-} derive(Eq, @debug.Debug)
+  status : Int32
+}
 pub fn RosActionGoalStatus::equal(Self, Self) -> Bool
 pub fn RosActionGoalStatus::goal_info(Self) -> RosActionGoalInfo
 pub fn RosActionGoalStatus::is_terminal(Self) -> Bool
-pub fn RosActionGoalStatus::new(RosActionGoalInfo, Int) -> Result[Self, String]
+pub fn RosActionGoalStatus::new(RosActionGoalInfo, Int32) -> Result[Self, String]
 pub fn RosActionGoalStatus::not_equal(Self, Self) -> Bool
-pub fn RosActionGoalStatus::status(Self) -> Int
+pub fn RosActionGoalStatus::status(Self) -> Int32
 pub fn RosActionGoalStatus::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct RosActionGoalStatusArray {
   status_list : Array[RosActionGoalStatus]
-} derive(Eq, @debug.Debug)
+}
 pub fn RosActionGoalStatusArray::equal(Self, Self) -> Bool
 pub fn RosActionGoalStatusArray::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn RosActionGoalStatusArray::new(Array[RosActionGoalStatus]) -> Self
@@ -59,9 +62,10 @@ pub fn RosActionGoalStatusArray::status_list(Self) -> Array[RosActionGoalStatus]
 pub fn RosActionGoalStatusArray::to_cdr_bytes(Self) -> Bytes
 pub fn RosActionGoalStatusArray::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct RosCancelGoalRequest {
   goal_info : RosActionGoalInfo
-} derive(Eq, @debug.Debug)
+}
 pub fn RosCancelGoalRequest::equal(Self, Self) -> Bool
 pub fn RosCancelGoalRequest::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn RosCancelGoalRequest::goal_info(Self) -> RosActionGoalInfo
@@ -70,16 +74,17 @@ pub fn RosCancelGoalRequest::not_equal(Self, Self) -> Bool
 pub fn RosCancelGoalRequest::to_cdr_bytes(Self) -> Bytes
 pub fn RosCancelGoalRequest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct RosCancelGoalResponse {
-  return_code : Int
+  return_code : Int32
   goals_canceling : Array[RosActionGoalInfo]
-} derive(Eq, @debug.Debug)
+}
 pub fn RosCancelGoalResponse::equal(Self, Self) -> Bool
 pub fn RosCancelGoalResponse::from_cdr_bytes(Bytes) -> Result[Self, String]
 pub fn RosCancelGoalResponse::goals_canceling(Self) -> Array[RosActionGoalInfo]
-pub fn RosCancelGoalResponse::new(Int, Array[RosActionGoalInfo]) -> Result[Self, String]
+pub fn RosCancelGoalResponse::new(Int32, Array[RosActionGoalInfo]) -> Result[Self, String]
 pub fn RosCancelGoalResponse::not_equal(Self, Self) -> Bool
-pub fn RosCancelGoalResponse::return_code(Self) -> Int
+pub fn RosCancelGoalResponse::return_code(Self) -> Int32
 pub fn RosCancelGoalResponse::to_cdr_bytes(Self) -> Bytes
 pub fn RosCancelGoalResponse::to_repr(Self) -> @debug.Repr
 

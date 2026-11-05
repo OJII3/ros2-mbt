@@ -5,45 +5,45 @@ import {
   "OJII3/ros2-mbt/ros/messages/rmw_dds_common",
   "OJII3/ros2-mbt/rtps/core",
   "OJII3/ros2-mbt/rtps/discovery",
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async/socket",
 }
 
 // Values
-pub const DDSI_DEFAULT_MULTICAST_IP : UInt = 0xEFFF0001
+pub const DDSI_DEFAULT_MULTICAST_IP : UInt32 = 0xEFFF0001
 
-pub const DDSI_DOMAIN_ID_GAIN : Int = 250
+pub const DDSI_DOMAIN_ID_GAIN : Int32 = 250
 
-pub const DDSI_PARTICIPANT_ID_GAIN : Int = 2
+pub const DDSI_PARTICIPANT_ID_GAIN : Int32 = 2
 
-pub const DDSI_PORT_BASE : Int = 7400
+pub const DDSI_PORT_BASE : Int32 = 7400
 
-pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
+pub const DDSI_SPDP_MULTICAST_OFFSET : Int32 = 0
 
-pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
+pub const DDSI_SPDP_UNICAST_OFFSET : Int32 = 10
 
-pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
+pub const DDSI_USER_MULTICAST_OFFSET : Int32 = 1
 
-pub const DDSI_USER_UNICAST_OFFSET : Int = 11
+pub const DDSI_USER_UNICAST_OFFSET : Int32 = 11
 
-pub const MAX_DATAGRAM_SIZE : Int = 65535
+pub const MAX_DATAGRAM_SIZE : Int32 = 65535
 
-pub fn ddsi_default_spdp_multicast_addr(UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_spdp_multicast_addr(UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_spdp_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_spdp_unicast_addr(UInt32, UInt32, UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_user_multicast_addr(UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_user_multicast_addr(UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_user_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_user_unicast_addr(UInt32, UInt32, UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_spdp_multicast_port(UInt) -> Result[Int, String]
+pub fn ddsi_spdp_multicast_port(UInt32) -> Result[Int32, String]
 
-pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
+pub fn ddsi_spdp_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
-pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
+pub fn ddsi_user_multicast_port(UInt32) -> Result[Int32, String]
 
-pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
+pub fn ddsi_user_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
-pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, Int) -> Result[@discovery.SpdpParticipantData, String]
+pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt32, UInt32, UInt32, Int32) -> Result[@discovery.SpdpParticipantData, String]
 
 // Errors
 
@@ -111,7 +111,7 @@ pub struct ReliableDataReaderSession {
   writer_prefix : @core.GuidPrefix
   state : @core.ReliableDataReader
   mut pending_samples : Array[(@core.DataSubmessage, @socket.Addr)]
-  mut pending_sample_index : Int
+  mut pending_sample_index : Int32
 }
 pub fn ReliableDataReaderSession::close(Self) -> Unit
 pub async fn ReliableDataReaderSession::handle_message(Self, @core.Message, @socket.Addr) -> Result[Array[(@core.DataSubmessage, @socket.Addr)], String]
@@ -122,7 +122,7 @@ pub async fn ReliableDataReaderSession::receive_data_with_writer(Self, ReliableD
 pub async fn ReliableDataReaderSession::receive_heartbeat(Self) -> Result[(@core.HeartbeatSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_related_data(Self, @core.SampleIdentity) -> Result[(@core.DataSubmessage, @socket.Addr), String]
 pub async fn ReliableDataReaderSession::receive_related_data_with_writer(Self, @core.SampleIdentity, ReliableDataWriter) -> Result[(@core.DataSubmessage, @socket.Addr), String]
-pub fn ReliableDataReaderSession::sample_count(Self) -> Int
+pub fn ReliableDataReaderSession::sample_count(Self) -> Int32
 
 pub struct ReliableDataWriter {
   socket : Udp
@@ -133,7 +133,7 @@ pub struct ReliableDataWriter {
   destinations : Array[@socket.Addr]
   reader_prefix : @core.GuidPrefix?
   mut next_sequence_number : Int64
-  mut next_heartbeat_count : UInt
+  mut next_heartbeat_count : UInt32
   mut history : Array[@core.DataSubmessage]
   mut fragmented_history : Array[ReliableFragmentedWrite]
 }
@@ -141,10 +141,10 @@ pub fn ReliableDataWriter::close(Self) -> Unit
 pub async fn ReliableDataWriter::handle_acknack(Self, @core.AckNackSubmessage) -> Result[Unit, String]
 pub async fn ReliableDataWriter::handle_control_message(Self, @core.Message) -> Result[Bool, String]
 pub async fn ReliableDataWriter::handle_nackfrag(Self, @core.NackFragSubmessage) -> Result[Unit, String]
-pub fn ReliableDataWriter::history_length(Self) -> Int
+pub fn ReliableDataWriter::history_length(Self) -> Int32
 pub fn ReliableDataWriter::new(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @core.EntityId, @socket.Addr, Int64) -> Result[Self, String]
 pub fn ReliableDataWriter::new_for_subscription(Udp, @core.GuidPrefix, @core.VendorId, @core.EntityId, @discovery.SedpEndpointData, Int64) -> Result[Self, String]
-pub fn ReliableDataWriter::next_heartbeat_count(Self) -> UInt
+pub fn ReliableDataWriter::next_heartbeat_count(Self) -> UInt32
 pub fn ReliableDataWriter::next_sequence_number(Self) -> Int64
 pub async fn ReliableDataWriter::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn ReliableDataWriter::receive_control(Self) -> Result[Unit, String]
@@ -163,10 +163,10 @@ pub struct Udp {
 }
 pub async fn Udp::bind(@socket.Addr) -> Result[Self, String]
 pub fn Udp::close(Self) -> Unit
-pub async fn Udp::ddsi_spdp_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
-pub async fn Udp::ddsi_spdp_unicast(UInt, UInt, UInt) -> Result[Self, String]
-pub async fn Udp::ddsi_user_multicast(UInt, interface_addr? : @socket.Addr) -> Result[Self, String]
-pub async fn Udp::ddsi_user_unicast(UInt, UInt, UInt) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_multicast(UInt32, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_unicast(UInt32, UInt32, UInt32) -> Result[Self, String]
+pub async fn Udp::ddsi_user_multicast(UInt32, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_user_unicast(UInt32, UInt32, UInt32) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub fn Udp::local_unicast_locator(Self) -> Result[@core.Locator, String]
@@ -191,9 +191,9 @@ pub async fn Udp::send_nack_frag(Self, @core.NackFragSubmessage, @core.GuidPrefi
 pub async fn Udp::send_ros_discovery_info(Self, @rmw_dds_common.ParticipantEntitiesInfo, @core.GuidPrefix, @core.VendorId, @core.EntityId, @core.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp(Self, @discovery.SedpEndpointData, @core.VendorId, @core.EntityId, @core.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_sedp_dispose_to_participant(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64) -> Result[Unit, String]
-pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
+pub async fn Udp::send_sedp_dispose_to_participant_with_heartbeat_count(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64, UInt32) -> Result[Unit, String]
 pub async fn Udp::send_sedp_to_participant(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64) -> Result[Unit, String]
-pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64, UInt) -> Result[Unit, String]
+pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64, UInt32) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @discovery.SpdpParticipantData, @core.EntityId, @core.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
 pub fn Udp::set_multicast_interface(Self, @socket.Addr) -> Result[Unit, String]

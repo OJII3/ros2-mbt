@@ -32,11 +32,12 @@ pub const Vector3_TYPE_HASH : String = "RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Point {
   x : Double
   y : Double
   z : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn Point::default() -> Self
 pub fn Point::equal(Self, Self) -> Bool
 pub fn Point::from_cdr_bytes(Bytes) -> Result[Self, String]
@@ -51,10 +52,11 @@ pub fn Point::x(Self) -> Double
 pub fn Point::y(Self) -> Double
 pub fn Point::z(Self) -> Double
 
+#derive(Eq, @debug.Debug)
 pub struct Pose {
   position : Point
   orientation : Quaternion
-} derive(Eq, @debug.Debug)
+}
 pub fn Pose::default() -> Self
 pub fn Pose::equal(Self, Self) -> Bool
 pub fn Pose::from_cdr_bytes(Bytes) -> Result[Self, String]
@@ -68,10 +70,11 @@ pub fn Pose::to_repr(Self) -> @debug.Repr
 pub fn Pose::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Pose::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct PoseStamped {
   header : @std_msgs.Header
   pose : Pose
-} derive(Eq, @debug.Debug)
+}
 pub fn PoseStamped::default() -> Self
 pub fn PoseStamped::equal(Self, Self) -> Bool
 pub fn PoseStamped::from_cdr_bytes(Bytes) -> Result[Self, String]
@@ -85,10 +88,11 @@ pub fn PoseStamped::to_repr(Self) -> @debug.Repr
 pub fn PoseStamped::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PoseStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct PoseWithCovariance {
   pose : Pose
   covariance : Array[Double]
-} derive(Eq, @debug.Debug)
+}
 pub fn PoseWithCovariance::covariance(Self) -> Array[Double]
 pub fn PoseWithCovariance::default() -> Self
 pub fn PoseWithCovariance::equal(Self, Self) -> Bool
@@ -102,12 +106,13 @@ pub fn PoseWithCovariance::to_repr(Self) -> @debug.Repr
 pub fn PoseWithCovariance::type_support() -> @endpoints.RosMessageType[Self]
 pub fn PoseWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Quaternion {
   x : Double
   y : Double
   z : Double
   w : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn Quaternion::default() -> Self
 pub fn Quaternion::equal(Self, Self) -> Bool
 pub fn Quaternion::from_cdr_bytes(Bytes) -> Result[Self, String]
@@ -123,10 +128,11 @@ pub fn Quaternion::x(Self) -> Double
 pub fn Quaternion::y(Self) -> Double
 pub fn Quaternion::z(Self) -> Double
 
+#derive(Eq, @debug.Debug)
 pub struct Transform {
   translation : Vector3
   rotation : Quaternion
-} derive(Eq, @debug.Debug)
+}
 pub fn Transform::default() -> Self
 pub fn Transform::equal(Self, Self) -> Bool
 pub fn Transform::from_cdr_bytes(Bytes) -> Result[Self, String]
@@ -140,11 +146,12 @@ pub fn Transform::translation(Self) -> Vector3
 pub fn Transform::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Transform::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct TransformStamped {
   header : @std_msgs.Header
   child_frame_id : String
   transform : Transform
-} derive(Eq, @debug.Debug)
+}
 pub fn TransformStamped::child_frame_id(Self) -> String
 pub fn TransformStamped::default() -> Self
 pub fn TransformStamped::equal(Self, Self) -> Bool
@@ -159,10 +166,11 @@ pub fn TransformStamped::transform(Self) -> Transform
 pub fn TransformStamped::type_support() -> @endpoints.RosMessageType[Self]
 pub fn TransformStamped::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Twist {
   linear : Vector3
   angular : Vector3
-} derive(Eq, @debug.Debug)
+}
 pub fn Twist::angular(Self) -> Vector3
 pub fn Twist::default() -> Self
 pub fn Twist::equal(Self, Self) -> Bool
@@ -176,10 +184,11 @@ pub fn Twist::to_repr(Self) -> @debug.Repr
 pub fn Twist::type_support() -> @endpoints.RosMessageType[Self]
 pub fn Twist::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct TwistWithCovariance {
   twist : Twist
   covariance : Array[Double]
-} derive(Eq, @debug.Debug)
+}
 pub fn TwistWithCovariance::covariance(Self) -> Array[Double]
 pub fn TwistWithCovariance::default() -> Self
 pub fn TwistWithCovariance::equal(Self, Self) -> Bool
@@ -193,11 +202,12 @@ pub fn TwistWithCovariance::twist(Self) -> Twist
 pub fn TwistWithCovariance::type_support() -> @endpoints.RosMessageType[Self]
 pub fn TwistWithCovariance::write_cdr(Self, @cdr.Writer) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug)
 pub struct Vector3 {
   x : Double
   y : Double
   z : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn Vector3::default() -> Self
 pub fn Vector3::equal(Self, Self) -> Bool
 pub fn Vector3::from_cdr_bytes(Bytes) -> Result[Self, String]

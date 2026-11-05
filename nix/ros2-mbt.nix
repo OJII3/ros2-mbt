@@ -14,7 +14,6 @@ moon2nix.buildMoonPackage {
     name = "OJII3/ros2-mbt";
     version = "0.10.0";
     preferred-target = "native";
-    deps."moonbitlang/async" = "0.22.0";
   };
   inherit moonRegistryIndex;
   moonFlags = [ "cmd/ros2-mbt" ];

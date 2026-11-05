@@ -77,7 +77,7 @@ async fn find_message_source(
       type_name +
       ".msg"
     if @fs.exists(path) {
-      let source = @fs.read_file(path).text() catch {
+      let source = @fs.read_text(path) catch {
         _ => return Err("could not read ROS message definition: " + path)
       }
       return Ok(Some((path, source)))

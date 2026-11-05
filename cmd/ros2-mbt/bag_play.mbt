@@ -210,7 +210,8 @@ async fn run_bag_play(
   for topic in selected_topics {
     topic_names.push(topic.name())
   }
-  let playback_result = try
+  let mut playback_result : Result[UInt64, String] = Ok(0)
+  try
     @async.with_task_group() <| group => {
       group.spawn_bg(no_wait=true) <| () => {
         match executor.spin() {
@@ -223,12 +224,13 @@ async fn run_bag_play(
       if loop_enabled {
         println("looping playback; press Ctrl-C to stop")
       }
-      @rosbag.play_repeatedly(loop_enabled, async fn() {
+      playback_result = @rosbag.play_repeatedly(loop_enabled, async fn() {
         play_bag_pass(path, catalog, topic_names, rate_milli, publishers)
       })
     }
   catch {
-    _ => Err("ROS executor failed while playing the MCAP file")
+    _ =>
+      playback_result = Err("ROS executor failed while playing the MCAP file")
   }
   executor.shutdown()
   let dispose_result = node.dispose_and_close()

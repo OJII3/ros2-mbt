@@ -5,45 +5,45 @@ import {
   "OJII3/ros2-mbt/rtps/core",
   "OJII3/ros2-mbt/transport/ros",
   "OJII3/ros2-mbt/transport/wire",
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async/socket",
 }
 
 // Values
-pub const DDSI_DEFAULT_MULTICAST_IP : UInt = 0xEFFF0001
+pub const DDSI_DEFAULT_MULTICAST_IP : UInt32 = 0xEFFF0001
 
-pub const DDSI_DOMAIN_ID_GAIN : Int = 250
+pub const DDSI_DOMAIN_ID_GAIN : Int32 = 250
 
-pub const DDSI_PARTICIPANT_ID_GAIN : Int = 2
+pub const DDSI_PARTICIPANT_ID_GAIN : Int32 = 2
 
-pub const DDSI_PORT_BASE : Int = 7400
+pub const DDSI_PORT_BASE : Int32 = 7400
 
-pub const DDSI_SPDP_MULTICAST_OFFSET : Int = 0
+pub const DDSI_SPDP_MULTICAST_OFFSET : Int32 = 0
 
-pub const DDSI_SPDP_UNICAST_OFFSET : Int = 10
+pub const DDSI_SPDP_UNICAST_OFFSET : Int32 = 10
 
-pub const DDSI_USER_MULTICAST_OFFSET : Int = 1
+pub const DDSI_USER_MULTICAST_OFFSET : Int32 = 1
 
-pub const DDSI_USER_UNICAST_OFFSET : Int = 11
+pub const DDSI_USER_UNICAST_OFFSET : Int32 = 11
 
-pub const MAX_DATAGRAM_SIZE : Int = 65535
+pub const MAX_DATAGRAM_SIZE : Int32 = 65535
 
-pub fn ddsi_default_spdp_multicast_addr(UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_spdp_multicast_addr(UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_spdp_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_spdp_unicast_addr(UInt32, UInt32, UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_user_multicast_addr(UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_user_multicast_addr(UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_default_user_unicast_addr(UInt, UInt, UInt) -> Result[@socket.Addr, String]
+pub fn ddsi_default_user_unicast_addr(UInt32, UInt32, UInt32) -> Result[@socket.Addr, String]
 
-pub fn ddsi_spdp_multicast_port(UInt) -> Result[Int, String]
+pub fn ddsi_spdp_multicast_port(UInt32) -> Result[Int32, String]
 
-pub fn ddsi_spdp_unicast_port(UInt, UInt) -> Result[Int, String]
+pub fn ddsi_spdp_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
-pub fn ddsi_user_multicast_port(UInt) -> Result[Int, String]
+pub fn ddsi_user_multicast_port(UInt32) -> Result[Int32, String]
 
-pub fn ddsi_user_unicast_port(UInt, UInt) -> Result[Int, String]
+pub fn ddsi_user_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
-pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt, UInt, UInt, Int) -> Result[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, String]
+pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt32, UInt32, UInt32, Int32) -> Result[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, String]
 
 // Errors
 

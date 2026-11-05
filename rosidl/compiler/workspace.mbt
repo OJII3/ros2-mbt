@@ -1,11 +1,12 @@
 ///|
 /// A ROS message source file known to the workspace resolver.
+#derive(Eq, Debug)
 pub struct MessageSource {
   package_name : String
   interface_namespace : String
   type_name : String
   source : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a source descriptor without parsing its contents yet.
@@ -49,11 +50,12 @@ pub fn MessageSource::source(self : MessageSource) -> String {
 
 ///|
 /// A MoonBit package import used by generated message code.
+#derive(Eq, Debug)
 pub struct MessageImport {
   ros_package_name : String
   moon_package_path : String
   moon_alias : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MessageSource with Eq::{not_equal, equal}

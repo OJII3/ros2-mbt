@@ -12,11 +12,12 @@ pub const LOCATOR_KIND_UDP_V6 : Int32 = 2
 
 ///|
 /// An RTPS locator containing a transport kind, port, and 16-byte address.
+#derive(Eq, Debug)
 pub struct Locator {
   kind : Int32
   port : UInt32
   address : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Locator with Eq::{not_equal, equal}

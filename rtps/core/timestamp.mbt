@@ -8,12 +8,13 @@ pub const INFO_TIMESTAMP_FLAG_INVALIDATE : Byte = 0x02
 
 ///|
 /// The RTPS INFO_TS timestamp carried in NTP seconds and fractional seconds.
+#derive(Eq, Debug)
 pub struct InfoTimestampSubmessage {
   flags : Byte
   seconds : Int32
   fraction : UInt32
   valid : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend InfoTimestampSubmessage with Eq::{not_equal, equal}

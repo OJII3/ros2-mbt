@@ -515,7 +515,8 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
   }
   self.running = true
   let result = @async.handle_cancellation(async fn() {
-    let result = @async.with_task_group() <| group => {
+    let mut result : Result[Unit, String] = Ok(())
+    @async.with_task_group() <| group => {
       for node in self.nodes {
         group.spawn_bg(no_wait=true) <| () => {
           match node.announce_spdp_forever(1000) {
@@ -535,7 +536,7 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
           }
         }
       }
-      self.spin_loop()
+      result = self.spin_loop()
     }
     self.running = false
     result

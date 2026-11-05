@@ -5,9 +5,9 @@ import {
   "OJII3/ros2-mbt/ros/messages/rmw_dds_common",
   "OJII3/ros2-mbt/rtps/core",
   "OJII3/ros2-mbt/transport/wire",
-  "moonbitlang/async",
-  "moonbitlang/async/aqueue",
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/aqueue",
+  "moonbitlang/core/async/socket",
 }
 
 // Values
@@ -29,14 +29,14 @@ pub fn DiscoveryGraph::find_subscriptions(Self, String, String) -> Array[@OJII3/
 pub fn DiscoveryGraph::ingest(Self, @wire.DiscoveryEvent) -> Unit
 pub fn DiscoveryGraph::ingest_ros_discovery_info(Self, @rmw_dds_common.ParticipantEntitiesInfo) -> Unit
 pub fn DiscoveryGraph::new() -> Self
-pub fn DiscoveryGraph::participant_count(Self) -> Int
+pub fn DiscoveryGraph::participant_count(Self) -> Int32
 pub fn DiscoveryGraph::participant_vendor_id(Self, @core.Guid) -> @core.VendorId?
 pub fn DiscoveryGraph::participants(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData]
-pub fn DiscoveryGraph::publication_count(Self) -> Int
+pub fn DiscoveryGraph::publication_count(Self) -> Int32
 pub fn DiscoveryGraph::publications(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
-pub fn DiscoveryGraph::ros_participant_count(Self) -> Int
+pub fn DiscoveryGraph::ros_participant_count(Self) -> Int32
 pub fn DiscoveryGraph::ros_participants(Self) -> Array[@rmw_dds_common.ParticipantEntitiesInfo]
-pub fn DiscoveryGraph::subscription_count(Self) -> Int
+pub fn DiscoveryGraph::subscription_count(Self) -> Int32
 pub fn DiscoveryGraph::subscriptions(Self) -> Array[@OJII3/ros2-mbt/rtps/discovery.SedpEndpointData]
 
 pub struct DiscoveryService {
@@ -45,8 +45,8 @@ pub struct DiscoveryService {
 }
 pub async fn DiscoveryService::announce_once(Self) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_once_on(Self, @wire.Udp) -> Result[Unit, String]
-pub async fn DiscoveryService::announce_sedp_forever(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int) -> Result[Unit, String]
-pub async fn DiscoveryService::announce_sedp_n(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int, Int) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_forever(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int32) -> Result[Unit, String]
+pub async fn DiscoveryService::announce_sedp_n(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, Int32, Int32) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_once(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData) -> Result[Unit, String]
 pub async fn DiscoveryService::announce_sedp_to_all(Self, @OJII3/ros2-mbt/rtps/discovery.SedpEndpointData) -> Result[Unit, String]
 pub fn DiscoveryService::close(Self) -> Unit
@@ -75,17 +75,17 @@ pub struct DiscoverySession {
   mut rejected_outgoing : Array[@OJII3/ros2-mbt/rtps/discovery.DiscoveryOutput]
   clock : DiscoveryClock
   mut pending_events : Array[(@wire.DiscoveryEvent, @socket.Addr)]
-  mut pending_event_index : Int
+  mut pending_event_index : Int32
 }
-pub async fn DiscoverySession::announce_forever(Self, Int) -> Result[Unit, String]
-pub async fn DiscoverySession::announce_n(Self, Int, Int) -> Result[Unit, String]
+pub async fn DiscoverySession::announce_forever(Self, Int32) -> Result[Unit, String]
+pub async fn DiscoverySession::announce_n(Self, Int32, Int32) -> Result[Unit, String]
 pub async fn DiscoverySession::announce_once(Self) -> Result[Unit, String]
 pub fn DiscoverySession::close(Self) -> Unit
 pub async fn DiscoverySession::dispose_once(Self) -> Result[Unit, String]
 pub async fn DiscoverySession::flush_outgoing(Self) -> Result[Unit, String]
 pub fn DiscoverySession::new(@wire.Udp, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, @core.EntityId, @core.EntityId, @socket.Addr, Int64) -> Result[Self, String]
-pub fn DiscoverySession::new_default(@wire.Udp, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
-pub fn DiscoverySession::new_default_with_receive_sockets(@wire.Udp, Array[@wire.Udp], @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt, Int64) -> Result[Self, String]
+pub fn DiscoverySession::new_default(@wire.Udp, @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt32, Int64) -> Result[Self, String]
+pub fn DiscoverySession::new_default_with_receive_sockets(@wire.Udp, Array[@wire.Udp], @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, UInt32, Int64) -> Result[Self, String]
 pub fn DiscoverySession::new_with_receive_sockets(@wire.Udp, Array[@wire.Udp], @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, @core.EntityId, @core.EntityId, @socket.Addr, Int64) -> Result[Self, String]
 pub fn DiscoverySession::next_sequence_number(Self) -> Int64
 pub fn DiscoverySession::participant(Self) -> @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData

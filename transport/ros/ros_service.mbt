@@ -79,10 +79,11 @@ fn validate_service_endpoint_pair(
 
 ///|
 /// Service payload wire format used by the remote ROS 2 implementation.
+#derive(Eq, Debug)
 pub(all) enum RosServiceWireFormat {
   DdsRpcInline
   CycloneDdsPayload
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RosServiceWireFormat with Eq::{not_equal, equal}

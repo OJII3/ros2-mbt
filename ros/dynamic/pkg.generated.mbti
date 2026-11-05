@@ -14,6 +14,7 @@ pub fn to_yaml(Value) -> Result[String, String]
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub enum Value {
   BoolValue(Bool)
   SignedValue(Int64)
@@ -22,7 +23,7 @@ pub enum Value {
   StringValue(String)
   ArrayValue(Array[Value])
   ObjectValue(Array[(String, Value)])
-} derive(Eq, @debug.Debug)
+}
 
 // Type aliases
 

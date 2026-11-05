@@ -4,10 +4,11 @@ pub const INFO_DESTINATION_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
 ///|
 /// RTPS INFO_DST carrying the destination participant GUID prefix.
+#derive(Eq, Debug)
 pub struct InfoDestinationSubmessage {
   flags : Byte
   guid_prefix : GuidPrefix
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend InfoDestinationSubmessage with Eq::{not_equal, equal}

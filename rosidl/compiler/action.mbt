@@ -1,13 +1,14 @@
 ///|
 /// A parsed ROS action definition containing its goal, result, and feedback
 /// message definitions.
+#derive(Eq, Debug)
 pub struct ActionDefinition {
   package_name : String
   action_name : String
   goal : MessageDefinition
   result : MessageDefinition
   feedback : MessageDefinition
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ActionDefinition with Eq::{not_equal, equal}

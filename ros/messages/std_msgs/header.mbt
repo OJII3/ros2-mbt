@@ -1,9 +1,10 @@
 ///|
 /// Generated from std_msgs/msg/Header.msg
+#derive(Eq, Debug)
 pub struct Header {
   stamp : @builtin_interfaces.Time
   frame_id : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Header with Eq::{not_equal, equal}

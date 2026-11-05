@@ -11,19 +11,19 @@ pub const ACKNACK_FLAG_FINAL : Byte = 0x02
 
 pub const ACKNACK_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt = 0x00000001
+pub const BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER : UInt32 = 0x00000001
 
-pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt = 0x00000002
+pub const BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR : UInt32 = 0x00000002
 
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt = 0x00000004
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_ANNOUNCER : UInt32 = 0x00000004
 
-pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt = 0x00000008
+pub const BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR : UInt32 = 0x00000008
 
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt = 0x00000010
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_ANNOUNCER : UInt32 = 0x00000010
 
-pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt = 0x00000020
+pub const BUILTIN_ENDPOINT_SUBSCRIPTIONS_DETECTOR : UInt32 = 0x00000020
 
-pub const DATA_FIXED_BODY_LENGTH : Int = 20
+pub const DATA_FIXED_BODY_LENGTH : Int32 = 20
 
 pub const DATA_FLAG_DATA : Byte = 0x04
 
@@ -33,29 +33,29 @@ pub const DATA_FLAG_KEY : Byte = 0x08
 
 pub const DATA_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const DATA_FRAG_FIXED_BODY_LENGTH : Int = 32
+pub const DATA_FRAG_FIXED_BODY_LENGTH : Int32 = 32
 
 pub const DATA_FRAG_FLAG_KEY : Byte = 0x04
 
-pub const DATA_FRAG_INLINE_QOS_OFFSET : Int = 28
+pub const DATA_FRAG_INLINE_QOS_OFFSET : Int32 = 28
 
-pub const DATA_INLINE_QOS_OFFSET : Int = 16
+pub const DATA_INLINE_QOS_OFFSET : Int32 = 16
 
 pub const DATA_REPRESENTATION_XCDR1 : UInt16 = 0
 
 pub const DATA_REPRESENTATION_XCDR2 : UInt16 = 2
 
-pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt = 0
+pub const DESTINATION_ORDER_BY_RECEPTION_TIMESTAMP : UInt32 = 0
 
-pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt = 1
+pub const DESTINATION_ORDER_BY_SOURCE_TIMESTAMP : UInt32 = 1
 
-pub const DURABILITY_PERSISTENT : UInt = 3
+pub const DURABILITY_PERSISTENT : UInt32 = 3
 
-pub const DURABILITY_TRANSIENT : UInt = 2
+pub const DURABILITY_TRANSIENT : UInt32 = 2
 
-pub const DURABILITY_TRANSIENT_LOCAL : UInt = 1
+pub const DURABILITY_TRANSIENT_LOCAL : UInt32 = 1
 
-pub const DURABILITY_VOLATILE : UInt = 0
+pub const DURABILITY_VOLATILE : UInt32 = 0
 
 pub const ENTITYID_SEDP_PUBLICATIONS_READER : Byte = 0xC7
 
@@ -71,21 +71,21 @@ pub const ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER : Byte = 0xC2
 
 pub const GAP_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const HEADER_LENGTH : Int = 20
+pub const HEADER_LENGTH : Int32 = 20
 
-pub const HEARTBEAT_BODY_LENGTH : Int = 28
+pub const HEARTBEAT_BODY_LENGTH : Int32 = 28
 
 pub const HEARTBEAT_FLAG_FINAL : Byte = 0x02
 
 pub const HEARTBEAT_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const HEARTBEAT_FRAG_BODY_LENGTH : Int = 24
+pub const HEARTBEAT_FRAG_BODY_LENGTH : Int32 = 24
 
 pub const HEARTBEAT_FRAG_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const HISTORY_KEEP_ALL : UInt = 1
+pub const HISTORY_KEEP_ALL : UInt32 = 1
 
-pub const HISTORY_KEEP_LAST : UInt = 0
+pub const HISTORY_KEEP_LAST : UInt32 = 0
 
 pub const INFO_DESTINATION_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
@@ -93,23 +93,23 @@ pub const INFO_TIMESTAMP_FLAG_INVALIDATE : Byte = 0x02
 
 pub const INFO_TIMESTAMP_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const LIVELINESS_AUTOMATIC : UInt = 0
+pub const LIVELINESS_AUTOMATIC : UInt32 = 0
 
-pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt = 1
+pub const LIVELINESS_MANUAL_BY_PARTICIPANT : UInt32 = 1
 
-pub const LIVELINESS_MANUAL_BY_TOPIC : UInt = 2
+pub const LIVELINESS_MANUAL_BY_TOPIC : UInt32 = 2
 
-pub const LOCATOR_KIND_UDP_V4 : Int = 1
+pub const LOCATOR_KIND_UDP_V4 : Int32 = 1
 
-pub const LOCATOR_KIND_UDP_V6 : Int = 2
+pub const LOCATOR_KIND_UDP_V6 : Int32 = 2
 
-pub const LOCATOR_LENGTH : Int = 24
+pub const LOCATOR_LENGTH : Int32 = 24
 
 pub const NACK_FRAG_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const OWNERSHIP_EXCLUSIVE : UInt = 1
+pub const OWNERSHIP_EXCLUSIVE : UInt32 = 1
 
-pub const OWNERSHIP_SHARED : UInt = 0
+pub const OWNERSHIP_SHARED : UInt32 = 0
 
 pub const PID_BUILTIN_ENDPOINT_SET : UInt16 = 0x0058
 
@@ -189,49 +189,49 @@ pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
-pub const RELIABILITY_BEST_EFFORT : UInt = 1
+pub const RELIABILITY_BEST_EFFORT : UInt32 = 1
 
-pub const RELIABILITY_RELIABLE : UInt = 2
+pub const RELIABILITY_RELIABLE : UInt32 = 2
 
 pub const SAMPLE_IDENTITY_UNKNOWN_SEQUENCE : Int64 = -4294967296
 
-pub const STATUS_INFO_ALIVE : UInt = 0x00000000
+pub const STATUS_INFO_ALIVE : UInt32 = 0x00000000
 
-pub const STATUS_INFO_DISPOSED : UInt = 0x00000001
+pub const STATUS_INFO_DISPOSED : UInt32 = 0x00000001
 
-pub const STATUS_INFO_UNREGISTERED : UInt = 0x00000002
+pub const STATUS_INFO_UNREGISTERED : UInt32 = 0x00000002
 
 pub const SUBMESSAGE_FLAG_LITTLE_ENDIAN : Byte = 0x01
 
-pub const SUBMESSAGE_HEADER_LENGTH : Int = 4
+pub const SUBMESSAGE_HEADER_LENGTH : Int32 = 4
 
 pub fn qos_data_representation(Array[UInt16]) -> @core.Parameter
 
-pub fn qos_deadline(Int, UInt) -> @core.Parameter
+pub fn qos_deadline(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_destination_order(UInt) -> @core.Parameter
+pub fn qos_destination_order(UInt32) -> @core.Parameter
 
-pub fn qos_durability(UInt) -> @core.Parameter
+pub fn qos_durability(UInt32) -> @core.Parameter
 
 pub fn qos_expects_inline_qos(Bool) -> @core.Parameter
 
-pub fn qos_history(UInt, Int) -> @core.Parameter
+pub fn qos_history(UInt32, Int32) -> @core.Parameter
 
-pub fn qos_latency_budget(Int, UInt) -> @core.Parameter
+pub fn qos_latency_budget(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_lifespan(Int, UInt) -> @core.Parameter
+pub fn qos_lifespan(Int32, UInt32) -> @core.Parameter
 
-pub fn qos_liveliness(UInt, Int, UInt) -> @core.Parameter
+pub fn qos_liveliness(UInt32, Int32, UInt32) -> @core.Parameter
 
-pub fn qos_ownership(UInt) -> @core.Parameter
+pub fn qos_ownership(UInt32) -> @core.Parameter
 
-pub fn qos_ownership_strength(Int) -> @core.Parameter
+pub fn qos_ownership_strength(Int32) -> @core.Parameter
 
-pub fn qos_reliability(UInt, Int, UInt) -> @core.Parameter
+pub fn qos_reliability(UInt32, Int32, UInt32) -> @core.Parameter
 
-pub fn qos_resource_limits(Int, Int, Int) -> @core.Parameter
+pub fn qos_resource_limits(Int32, Int32, Int32) -> @core.Parameter
 
-pub fn qos_type_max_size_serialized(UInt) -> @core.Parameter
+pub fn qos_type_max_size_serialized(UInt32) -> @core.Parameter
 
 pub fn qos_user_data(Bytes) -> @core.Parameter
 

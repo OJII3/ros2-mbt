@@ -1,9 +1,10 @@
 ///|
 /// Generated from builtin_interfaces/msg/Time.msg
+#derive(Eq, Debug)
 pub struct Time {
   sec : Int32
   nanosec : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Time with Eq::{not_equal, equal}
@@ -96,10 +97,11 @@ pub fn Time::from_cdr_bytes(input : Bytes) -> Result[Time, String] {
 
 ///|
 /// Generated from builtin_interfaces/msg/Duration.msg
+#derive(Eq, Debug)
 pub struct Duration {
   sec : Int32
   nanosec : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Duration with Eq::{not_equal, equal}

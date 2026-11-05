@@ -1,16 +1,16 @@
 import {
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async/socket",
   "OJII3/ros2-mbt/ros",
   "OJII3/ros2-mbt/rtps",
   "OJII3/ros2-mbt/rtps/core",
 }
 
 import {
-  "moonbitlang/async",
+  "moonbitlang/core/async",
 } for "test"
 
 import {
-  "moonbitlang/async",
+  "moonbitlang/core/async",
 } for "wbtest"
 
 max_concurrent_tests = 1

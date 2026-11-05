@@ -232,14 +232,17 @@ async fn main {
       return
     }
   }
-  let discovered_publication = @async.with_task_group() <| group => {
+  let mut discovered_publication : Result[@rtps.SedpEndpointData, String] = Err(
+    "publication discovery did not run",
+  )
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
         Ok(_) => ()
         Err(message) => fail(message)
       }
     }
-    discover_publication(participant, topic)
+    discovered_publication = discover_publication(participant, topic)
   }
   let publication = match discovered_publication {
     Ok(value) => value

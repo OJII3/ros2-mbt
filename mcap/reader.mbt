@@ -21,7 +21,7 @@ pub enum Record {
 /// A streaming MCAP reader. Chunk records with no compression are expanded
 /// into the same record stream as unchunked files.
 pub struct Reader {
-  priv source : &@io.Reader
+  priv source : &@io.BinaryReader
   priv profile : String
   priv mut chunk : Bytes?
   priv mut chunk_offset : Int32
@@ -129,7 +129,7 @@ fn Cursor::finish(self : Cursor) -> Result[Unit, String] {
 
 ///|
 async fn read_exactly(
-  source : &@io.Reader,
+  source : &@io.BinaryReader,
   count : Int32,
   context : String,
 ) -> Result[Bytes, String] {
@@ -139,7 +139,9 @@ async fn read_exactly(
 }
 
 ///|
-async fn read_raw_record(source : &@io.Reader) -> Result[(Byte, Bytes), String] {
+async fn read_raw_record(
+  source : &@io.BinaryReader,
+) -> Result[(Byte, Bytes), String] {
   let opcode = match read_exactly(source, 1, "record opcode") {
     Ok(value) => value[0]
     Err(message) => return Err(message)
@@ -163,7 +165,9 @@ async fn read_raw_record(source : &@io.Reader) -> Result[(Byte, Bytes), String] 
 }
 
 ///|
-async fn read_required_header(source : &@io.Reader) -> Result[String, String] {
+async fn read_required_header(
+  source : &@io.BinaryReader,
+) -> Result[String, String] {
   let magic = match read_exactly(source, MCAP_MAGIC.length(), "header magic") {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -195,7 +199,7 @@ async fn read_required_header(source : &@io.Reader) -> Result[String, String] {
 
 ///|
 /// Open an MCAP stream from any async reader, including a file or memory reader.
-pub async fn Reader::new(source : &@io.Reader) -> Result[Reader, String] {
+pub async fn Reader::new(source : &@io.BinaryReader) -> Result[Reader, String] {
   let profile = match read_required_header(source) {
     Ok(value) => value
     Err(message) => return Err(message)

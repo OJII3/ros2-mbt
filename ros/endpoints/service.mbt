@@ -1,19 +1,21 @@
 ///|
 /// A ROS 2 service mapped to its request and response DDS topics.
+#derive(Eq, Debug)
 pub struct RosService {
   ros_name : String
   dds_request_name : String
   dds_response_name : String
   dds_request_type_name : String
   dds_response_type_name : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// The request identity wrapper used by rmw_cyclonedds_cpp service topics.
+#derive(Eq, Debug)
 pub struct RosServicePayloadHeader {
   client_id : UInt64
   sequence_number : Int64
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RosService with Eq::{not_equal, equal}

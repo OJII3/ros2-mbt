@@ -1,10 +1,11 @@
 ///|
 /// Generated from demo/msg/WideStrings.msg
+#derive(Eq, Debug)
 pub struct WideStrings {
   data : String
   bounded : String
   values : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WideStrings with Eq::{not_equal, equal}

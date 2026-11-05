@@ -28,11 +28,12 @@ pub const ROS_ACTION_GOAL_STATUS_ABORTED : Int32 = 6
 
 ///|
 /// The goal identifier and timestamp carried by ROS 2 action control messages.
+#derive(Eq, Debug)
 pub struct RosActionGoalInfo {
   goal_id : Bytes
   stamp_sec : Int32
   stamp_nanosec : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create action goal information.
@@ -67,10 +68,11 @@ pub fn RosActionGoalInfo::stamp_nanosec(self : RosActionGoalInfo) -> UInt32 {
 
 ///|
 /// A goal and its current status in `action_msgs/msg/GoalStatus`.
+#derive(Eq, Debug)
 pub struct RosActionGoalStatus {
   goal_info : RosActionGoalInfo
   status : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a goal status value.
@@ -108,9 +110,10 @@ pub fn RosActionGoalStatus::is_terminal(self : RosActionGoalStatus) -> Bool {
 
 ///|
 /// The status sequence published on a ROS 2 action's status topic.
+#derive(Eq, Debug)
 pub struct RosActionGoalStatusArray {
   status_list : Array[RosActionGoalStatus]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create an action goal status array.
@@ -178,9 +181,10 @@ pub fn RosActionGoalStatusArray::from_cdr_bytes(
 
 ///|
 /// A request for the standard `action_msgs/srv/CancelGoal` service.
+#derive(Eq, Debug)
 pub struct RosCancelGoalRequest {
   goal_info : RosActionGoalInfo
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a CancelGoal request.
@@ -227,10 +231,11 @@ pub fn RosCancelGoalRequest::from_cdr_bytes(
 
 ///|
 /// A response from the standard `action_msgs/srv/CancelGoal` service.
+#derive(Eq, Debug)
 pub struct RosCancelGoalResponse {
   return_code : Int32
   goals_canceling : Array[RosActionGoalInfo]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RosActionGoalInfo with Eq::{not_equal, equal}

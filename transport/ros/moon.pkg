@@ -1,9 +1,9 @@
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
-  "moonbitlang/async",
-  "moonbitlang/async/aqueue",
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/aqueue",
+  "moonbitlang/core/async/socket",
   "OJII3/ros2-mbt/cdr",
   "OJII3/ros2-mbt/ros" @ros_types,
   "OJII3/ros2-mbt/rtps",

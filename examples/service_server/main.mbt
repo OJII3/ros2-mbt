@@ -175,6 +175,7 @@ async fn serve_once(
   request_reader_id : @rtps.EntityId,
   response_writer_id : @rtps.EntityId,
 ) -> Result[Unit, String] {
+  let mut result : Result[Unit, String] = Err("service dispatcher stopped")
   @async.with_task_group() <| group => {
     let events : @aqueue.Queue[ServerEvent] = @aqueue.Queue(
       kind=@aqueue.Unbounded,
@@ -216,14 +217,23 @@ async fn serve_once(
         Heartbeat => {
           match participant.announce_spdp_once() {
             Ok(_) => ()
-            Err(message) => return Err(message)
+            Err(message) => {
+              result = Err(message)
+              return
+            }
           }
           match participant.send_ros_discovery_heartbeats() {
             Ok(_) => ()
-            Err(message) => return Err(message)
+            Err(message) => {
+              result = Err(message)
+              return
+            }
           }
         }
-        Discovered(Err(message)) | Incoming(Err(message)) => return Err(message)
+        Discovered(Err(message)) | Incoming(Err(message)) => {
+          result = Err(message)
+          return
+        }
         Discovered(Ok((request_publication, response_subscription))) => {
           let wire_format = match
             participant
@@ -247,12 +257,18 @@ async fn serve_once(
               wire_format,
             ) {
             Ok(server) => server
-            Err(message) => return Err(message)
+            Err(message) => {
+              result = Err(message)
+              return
+            }
           }
           for (message, source) in early_requests {
             match ready.handle_message(message, source) {
               Ok(_) => ()
-              Err(message) => return Err(message)
+              Err(message) => {
+                result = Err(message)
+                return
+              }
             }
           }
           early_requests.clear()
@@ -261,13 +277,19 @@ async fn serve_once(
         Incoming(Ok((message, source))) => {
           match participant.handle_user_message(message, source) {
             Ok(_) => ()
-            Err(message) => return Err(message)
+            Err(message) => {
+              result = Err(message)
+              return
+            }
           }
           match server {
             Some(server) =>
               match server.handle_message(message, source) {
                 Ok(_) => ()
-                Err(message) => return Err(message)
+                Err(message) => {
+                  result = Err(message)
+                  return
+                }
               }
             None => {
               // Preserve requests that arrive before both client endpoints.
@@ -305,27 +327,41 @@ async fn serve_once(
             Ok(Some((payload, identity, _))) => {
               let reader = match @cdr.Reader::from_bytes(payload) {
                 Ok(reader) => reader
-                Err(message) => return Err(message)
+                Err(message) => {
+                  result = Err(message)
+                  return
+                }
               }
               let a = match reader.read_i64() {
                 Ok(value) => value
-                Err(message) => return Err(message)
+                Err(message) => {
+                  result = Err(message)
+                  return
+                }
               }
               let b = match reader.read_i64() {
                 Ok(value) => value
-                Err(message) => return Err(message)
+                Err(message) => {
+                  result = Err(message)
+                  return
+                }
               }
               let response = @cdr.Writer::new()
               response.write_i64(a + b)
-              return server.respond(identity, response.to_bytes())
+              result = server.respond(identity, response.to_bytes())
+              return
             }
             Ok(None) => ()
-            Err(message) => return Err(message)
+            Err(message) => {
+              result = Err(message)
+              return
+            }
           }
         None => ()
       }
     } nobreak {
-      Err("service dispatcher stopped")
+      result = Err("service dispatcher stopped")
     }
   }
+  result
 }

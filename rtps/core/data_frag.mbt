@@ -12,6 +12,7 @@ pub const DATA_FRAG_INLINE_QOS_OFFSET : Int32 = DATA_FRAG_FIXED_BODY_LENGTH - 4
 
 ///|
 /// A decoded RTPS DATA_FRAG submessage.
+#derive(Eq, Debug)
 pub struct DataFragSubmessage {
   flags : Byte
   extra_flags : UInt16
@@ -25,7 +26,7 @@ pub struct DataFragSubmessage {
   sample_size : UInt32
   inline_qos : Bytes
   serialized_payload : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend DataFragSubmessage with Eq::{not_equal, equal}

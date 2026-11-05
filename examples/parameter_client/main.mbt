@@ -650,14 +650,31 @@ async fn main {
       return
     }
   }
-  let endpoints = @async.with_task_group() <| group => {
+  let mut endpoints : Result[
+    (
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+      @rtps.SedpEndpointData,
+    ),
+    String,
+  ] = Err("parameter service discovery did not run")
+  @async.with_task_group() <| group => {
     group.spawn_bg(no_wait=true) <| () => {
       match participant.announce_spdp_forever(1000) {
         Ok(_) => ()
         Err(message) => fail(message)
       }
     }
-    discover_parameter_services(
+    endpoints = discover_parameter_services(
       participant, get_service, get_parameter_types_service, set_service, set_atomically_service,
       list_service, describe_service,
     )

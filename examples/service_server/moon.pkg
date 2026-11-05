@@ -4,9 +4,9 @@ import {
   "OJII3/ros2-mbt/ros",
   "OJII3/ros2-mbt/rtps",
   "OJII3/ros2-mbt/transport",
-  "moonbitlang/async",
-  "moonbitlang/async/aqueue",
-  "moonbitlang/async/socket",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/aqueue",
+  "moonbitlang/core/async/socket",
 }
 
 supported_targets = "native"
