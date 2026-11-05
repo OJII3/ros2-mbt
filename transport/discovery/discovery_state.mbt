@@ -4,26 +4,12 @@ async fn DiscoverySession::receive_message(
   self : DiscoverySession,
 ) -> Result[(@rtps.Message, @socket.Addr), String] {
   if self.receive_sockets.length() == 0 {
-    let (message, source) = match self.socket.receive_message() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok((message, source))
+    return self.socket.receive_message()
   }
   let tasks : Array[async () -> Result[(@rtps.Message, @socket.Addr), String]] = []
-  tasks.push(async fn() {
-    match self.socket.receive_message() {
-      Ok((message, source)) => Ok((message, source))
-      Err(message) => Err(message)
-    }
-  })
+  tasks.push(async fn() { self.socket.receive_message() })
   for receive_socket in self.receive_sockets {
-    tasks.push(async fn() {
-      match receive_socket.receive_message() {
-        Ok((message, source)) => Ok((message, source))
-        Err(message) => Err(message)
-      }
-    })
+    tasks.push(async fn() { receive_socket.receive_message() })
   }
   @async.any(tasks, allow_failure=true)
 }
@@ -34,10 +20,7 @@ async fn DiscoverySession::receive_message_or_lease_expiry(
 ) -> Result[DiscoveryReceiveOutcome, String] {
   let tasks : Array[async () -> Result[DiscoveryReceiveOutcome, String]] = []
   tasks.push(async fn() {
-    match self.receive_message() {
-      Ok((message, source)) => Ok(Message(message, source))
-      Err(message) => Err(message)
-    }
+    self.receive_message().map(fn(pair) { Message(pair.0, pair.1) })
   })
   tasks.push(async fn() {
     self.deadline_changes.get()

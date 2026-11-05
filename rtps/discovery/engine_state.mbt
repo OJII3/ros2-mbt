@@ -65,20 +65,12 @@ fn DiscoveryEngine::forget_remote_participant(
   self : DiscoveryEngine,
   participant_guid : @core.Guid,
 ) -> Unit {
-  let sedp_readers : Array[DiscoveryRemoteDataReader] = []
-  for reader in self.sedp_readers {
-    if reader.writer_prefix != participant_guid.prefix() {
-      sedp_readers.push(reader)
-    }
-  }
-  self.sedp_readers = sedp_readers
-  let spdp_fragment_readers : Array[DiscoveryRemoteDataReader] = []
-  for reader in self.spdp_fragment_readers {
-    if reader.writer_prefix != participant_guid.prefix() {
-      spdp_fragment_readers.push(reader)
-    }
-  }
-  self.spdp_fragment_readers = spdp_fragment_readers
+  self.sedp_readers = self.sedp_readers.filter(fn(reader) {
+    reader.writer_prefix != participant_guid.prefix()
+  })
+  self.spdp_fragment_readers = self.spdp_fragment_readers.filter(fn(reader) {
+    reader.writer_prefix != participant_guid.prefix()
+  })
   self.sender.forget_remote_participant(participant_guid.prefix())
 }
 

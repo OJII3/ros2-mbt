@@ -252,37 +252,48 @@ pub async fn ReliableRosPublisher::send_heartbeat(
 }
 
 ///|
-/// Receive a matching ACKNACK and retransmit requested samples.
-pub async fn ReliableRosPublisher::receive_acknack(
+async fn[T] ReliableRosPublisher::receive_control_submessage(
   self : ReliableRosPublisher,
-) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  id : @rtps.SubmessageId,
+  parse : (@rtps.Submessage) -> Result[T, String],
+) -> Result[(T, @socket.Addr), String] {
   while true {
     let (message, source) = match self.socket.receive_message() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     for target in self.writers {
-      match target.reliable_writer {
-        Some(writer) =>
-          match writer.handle_control_message(message) {
-            Ok(true) =>
-              for submessage in message.submessages() {
-                if submessage.id() == @rtps.SubmessageId::AckNack {
-                  match @rtps.AckNackSubmessage::from_submessage(submessage) {
-                    Ok(value) => return Ok((value, source))
-                    Err(message) => return Err(message)
-                  }
+      if target.reliable_writer is Some(writer) {
+        match writer.handle_control_message(message) {
+          Ok(true) =>
+            for submessage in message.submessages() {
+              if submessage.id() == id {
+                let value = match parse(submessage) {
+                  Ok(value) => value
+                  Err(message) => return Err(message)
                 }
+                return Ok((value, source))
               }
-            Ok(false) => ()
-            Err(message) => return Err(message)
-          }
-        None => ()
+            }
+          Ok(false) => ()
+          Err(message) => return Err(message)
+        }
       }
     }
   } nobreak {
     Err("reliable publisher stopped")
   }
+}
+
+///|
+/// Receive a matching ACKNACK and retransmit requested samples.
+pub async fn ReliableRosPublisher::receive_acknack(
+  self : ReliableRosPublisher,
+) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
+  self.receive_control_submessage(
+    @rtps.SubmessageId::AckNack,
+    @rtps.AckNackSubmessage::from_submessage,
+  )
 }
 
 ///|
@@ -309,33 +320,10 @@ pub async fn ReliableRosPublisher::handle_acknack(
 pub async fn ReliableRosPublisher::receive_nackfrag(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
-  while true {
-    let (message, source) = match self.socket.receive_message() {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    for target in self.writers {
-      match target.reliable_writer {
-        Some(writer) =>
-          match writer.handle_control_message(message) {
-            Ok(true) =>
-              for submessage in message.submessages() {
-                if submessage.id() == @rtps.SubmessageId::NackFrag {
-                  match @rtps.NackFragSubmessage::from_submessage(submessage) {
-                    Ok(value) => return Ok((value, source))
-                    Err(message) => return Err(message)
-                  }
-                }
-              }
-            Ok(false) => ()
-            Err(message) => return Err(message)
-          }
-        None => ()
-      }
-    }
-  } nobreak {
-    Err("reliable publisher stopped")
-  }
+  self.receive_control_submessage(
+    @rtps.SubmessageId::NackFrag,
+    @rtps.NackFragSubmessage::from_submessage,
+  )
 }
 
 ///|
