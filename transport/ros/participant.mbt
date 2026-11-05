@@ -8,7 +8,7 @@ pub struct RosParticipant {
   discovery : @discovery.DiscoveryService
   user_socket : @wire.Udp
   user_locator : @rtps.Locator
-  mut local_endpoints : Array[@rtps.SedpEndpointData]
+  local_endpoints : Array[@rtps.SedpEndpointData]
   mut announced_participants : Array[@rtps.SpdpParticipantData]
   mut spdp_socket : @wire.Udp?
   ros_graph : RosGraph
@@ -89,10 +89,9 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let interface_addr = match multicast_interface {
-    Some(ip) => Some(@socket.Addr::new(ip, 0))
-    None => None
-  }
+  let interface_addr = multicast_interface.map(fn(ip) {
+    @socket.Addr::new(ip, 0)
+  })
   let discovery_receive_socket = match
     @wire.Udp::ddsi_spdp_multicast(domain_id, interface_addr?) {
     Ok(value) => value
@@ -302,27 +301,18 @@ pub async fn RosParticipant::unregister_endpoint(
   self : RosParticipant,
   endpoint_guid : @rtps.Guid,
 ) -> Result[Unit, String] {
-  let mut endpoint_index = -1
-  for index in 0..<self.local_endpoints.length() {
-    if self.local_endpoints[index].endpoint_guid() == endpoint_guid {
-      endpoint_index = index
-      break
-    }
-  }
-  if endpoint_index < 0 {
-    return Err("the SEDP endpoint is not registered")
+  let endpoint_index = match
+    self.local_endpoints.search_by(fn(endpoint) {
+      endpoint.endpoint_guid() == endpoint_guid
+    }) {
+    Some(index) => index
+    None => return Err("the SEDP endpoint is not registered")
   }
   let endpoint = self.local_endpoints[endpoint_index]
   if self.discovery.dispose_sedp_to_all(endpoint) is Err(message) {
     return Err(message)
   }
-  let remaining : Array[@rtps.SedpEndpointData] = []
-  for index in 0..<self.local_endpoints.length() {
-    if index != endpoint_index {
-      remaining.push(self.local_endpoints[index])
-    }
-  }
-  self.local_endpoints = remaining
+  ignore(self.local_endpoints.remove(endpoint_index))
   let prefix = self.participant.participant_guid().prefix()
   match self.ros_graph.graph_publication_id {
     Some(id) if endpoint_guid == @rtps.Guid::new(prefix, id) => {
@@ -825,18 +815,14 @@ pub async fn RosParticipant::receive_discovery_once(
     Participant(remote_participant) =>
       if remote_participant.participant_guid() !=
         self.participant.participant_guid() {
-        let mut previous : @rtps.SpdpParticipantData? = None
-        for remote in self.announced_participants {
-          if remote.participant_guid() == remote_participant.participant_guid() {
-            previous = Some(remote)
-            break
-          }
-        }
-        let changed = match previous {
-          Some(remote) =>
-            remote.to_cdr_bytes() != remote_participant.to_cdr_bytes()
-          None => true
-        }
+        let changed = self.announced_participants
+          .search_by(fn(remote) {
+            remote.participant_guid() == remote_participant.participant_guid()
+          })
+          .map_or(true, fn(index) {
+            self.announced_participants[index].to_cdr_bytes() !=
+            remote_participant.to_cdr_bytes()
+          })
         if changed {
           if self.discovery.replay_sedp(remote_participant) is Err(message) {
             return Err(message)

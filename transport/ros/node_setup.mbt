@@ -12,20 +12,17 @@ pub async fn RosNode::new_ddsi(
   multicast_interface? : UInt32,
 ) -> Result[RosNode, String] {
   let vendor_id = @rtps.VendorId::new(1, 15)
-  let prefix_bytes = match @env.rand(12) {
-    Some(value) => value.to_array()
-    None => return Err("secure randomness is unavailable for a DDS GUID prefix")
+  guard @env.rand(12) is Some(random) else {
+    return Err("secure randomness is unavailable for a DDS GUID prefix")
   }
+  let prefix_bytes = random.to_array()
   prefix_bytes[0] = 1
   prefix_bytes[1] = 15
   let guid_prefix = match @rtps.GuidPrefix::from_array(prefix_bytes) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let multicast_interface = match multicast_interface {
-    Some(value) => value
-    None => ip
-  }
+  let multicast_interface = multicast_interface.unwrap_or(ip)
   let participant = match
     RosParticipant::new_ddsi(
       guid_prefix,

@@ -193,14 +193,10 @@ async fn MiddlewareServiceClient::request(
   }
   match self.request_writer.send_heartbeat() {
     Ok(_) =>
-      match
-        @rtps.SampleIdentity::new(
-          self.response_reader_guid,
-          identity.sequence_number(),
-        ) {
-        Ok(value) => Ok(value)
-        Err(message) => Err(message)
-      }
+      @rtps.SampleIdentity::new(
+        self.response_reader_guid,
+        identity.sequence_number(),
+      )
     Err(message) => Err(message)
   }
 }

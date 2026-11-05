@@ -42,6 +42,18 @@ async fn collect_hz_stats(
 }
 
 ///|
+async fn[T] receive_with_timeout(
+  receive : async () -> Result[T, String],
+  timeout_ms : Int32,
+) -> Result[Bool, String] {
+  match @async.with_timeout_opt(timeout_ms, receive) {
+    None => Ok(false)
+    Some(Ok(_)) => Ok(true)
+    Some(Err(message)) => Err(message)
+  }
+}
+
+///|
 async fn measure_best_effort(
   subscription : @transport.RosSubscription,
   duration_ms : Int32,
@@ -49,14 +61,7 @@ async fn measure_best_effort(
   defer subscription.close()
   let stats = match
     collect_hz_stats(duration_ms, fn() { @async.now() }, async fn(timeout_ms) {
-      match
-        @async.with_timeout_opt(timeout_ms, async fn() {
-          subscription.receive()
-        }) {
-        None => Ok(false)
-        Some(Ok(_)) => Ok(true)
-        Some(Err(message)) => Err(message)
-      }
+      receive_with_timeout(async fn() { subscription.receive() }, timeout_ms)
     }) {
     Ok(value) => value
     Err(message) => return Err(message)
@@ -73,14 +78,7 @@ async fn measure_reliable(
   defer subscription.close()
   let stats = match
     collect_hz_stats(duration_ms, fn() { @async.now() }, async fn(timeout_ms) {
-      match
-        @async.with_timeout_opt(timeout_ms, async fn() {
-          subscription.receive()
-        }) {
-        None => Ok(false)
-        Some(Ok(_)) => Ok(true)
-        Some(Err(message)) => Err(message)
-      }
+      receive_with_timeout(async fn() { subscription.receive() }, timeout_ms)
     }) {
     Ok(value) => value
     Err(message) => return Err(message)

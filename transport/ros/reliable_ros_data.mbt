@@ -196,19 +196,12 @@ pub fn ReliableRosPublisher::next_sequence_number(
 pub fn ReliableRosPublisher::history_length(
   self : ReliableRosPublisher,
 ) -> Int32 {
-  let mut length = 0
-  for target in self.writers {
+  self.writers.fold(init=0, fn(length, target) {
     match target.reliable_writer {
-      Some(writer) => {
-        let writer_length = writer.history_length()
-        if writer_length > length {
-          length = writer_length
-        }
-      }
-      None => ()
+      Some(writer) => length.max(writer.history_length())
+      None => length
     }
-  }
-  length
+  })
 }
 
 ///|
@@ -221,25 +214,17 @@ pub async fn ReliableRosPublisher::publish(
   self : ReliableRosPublisher,
   serialized_payload : Bytes,
 ) -> Result[Unit, String] {
-  let writers : Array[ReliableRosTarget] = []
-  for target in self.writers {
-    writers.push(target)
-  }
+  let writers = self.writers.copy()
   self.next_sequence_number += 1L
   for target in writers {
-    match target.reliable_writer {
-      Some(writer) =>
-        if writer.write(serialized_payload) is Err(message) {
-          return Err(message)
-        }
-      None =>
-        match target.best_effort_writer {
-          Some(writer) =>
-            if writer.write(serialized_payload) is Err(message) {
-              return Err(message)
-            }
-          None => ()
-        }
+    if target.reliable_writer is Some(writer) {
+      if writer.write(serialized_payload) is Err(message) {
+        return Err(message)
+      }
+    } else if target.best_effort_writer is Some(writer) {
+      if writer.write(serialized_payload) is Err(message) {
+        return Err(message)
+      }
     }
   }
   Ok(())

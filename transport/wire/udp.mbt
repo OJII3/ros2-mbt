@@ -283,25 +283,39 @@ pub async fn Udp::receive_message(
 }
 
 ///|
-/// Receive and parse the first DATA submessage in a UDP datagram.
-pub async fn Udp::receive_data(
+async fn[T] Udp::receive_submessage(
   self : Udp,
-) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  id : @rtps.SubmessageId,
+  parse : (@rtps.Submessage) -> Result[T, String],
+  missing : String,
+) -> Result[(T, @socket.Addr), String] {
   let (message, source) = match self.receive_message() {
     Ok(value) => value
     Err(message) => return Err(message)
   }
   for submessage in message.submessages() {
-    if submessage.id() != Data {
+    if submessage.id() != id {
       continue
     }
-    let data = match @rtps.DataSubmessage::from_submessage(submessage) {
+    let value = match parse(submessage) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    return Ok((data, source))
+    return Ok((value, source))
   }
-  Err("RTPS datagram does not contain a DATA submessage")
+  Err(missing)
+}
+
+///|
+/// Receive and parse the first DATA submessage in a UDP datagram.
+pub async fn Udp::receive_data(
+  self : Udp,
+) -> Result[(@rtps.DataSubmessage, @socket.Addr), String] {
+  self.receive_submessage(
+    Data,
+    @rtps.DataSubmessage::from_submessage,
+    "RTPS datagram does not contain a DATA submessage",
+  )
 }
 
 ///|
@@ -347,22 +361,11 @@ pub async fn Udp::receive_ros_discovery_info(
 pub async fn Udp::receive_heartbeat(
   self : Udp,
 ) -> Result[(@rtps.HeartbeatSubmessage, @socket.Addr), String] {
-  let (message, source) = match self.receive_message() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for submessage in message.submessages() {
-    if submessage.id() != Heartbeat {
-      continue
-    }
-    let heartbeat = match
-      @rtps.HeartbeatSubmessage::from_submessage(submessage) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok((heartbeat, source))
-  }
-  Err("RTPS datagram does not contain a HEARTBEAT submessage")
+  self.receive_submessage(
+    Heartbeat,
+    @rtps.HeartbeatSubmessage::from_submessage,
+    "RTPS datagram does not contain a HEARTBEAT submessage",
+  )
 }
 
 ///|
@@ -370,21 +373,11 @@ pub async fn Udp::receive_heartbeat(
 pub async fn Udp::receive_acknack(
   self : Udp,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
-  let (message, source) = match self.receive_message() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for submessage in message.submessages() {
-    if submessage.id() != AckNack {
-      continue
-    }
-    let acknack = match @rtps.AckNackSubmessage::from_submessage(submessage) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok((acknack, source))
-  }
-  Err("RTPS datagram does not contain an ACKNACK submessage")
+  self.receive_submessage(
+    AckNack,
+    @rtps.AckNackSubmessage::from_submessage,
+    "RTPS datagram does not contain an ACKNACK submessage",
+  )
 }
 
 ///|
@@ -392,21 +385,11 @@ pub async fn Udp::receive_acknack(
 pub async fn Udp::receive_nack_frag(
   self : Udp,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
-  let (message, source) = match self.receive_message() {
-    Ok(value) => value
-    Err(message) => return Err(message)
-  }
-  for submessage in message.submessages() {
-    if submessage.id() != NackFrag {
-      continue
-    }
-    let nackfrag = match @rtps.NackFragSubmessage::from_submessage(submessage) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok((nackfrag, source))
-  }
-  Err("RTPS datagram does not contain a NACK_FRAG submessage")
+  self.receive_submessage(
+    NackFrag,
+    @rtps.NackFragSubmessage::from_submessage,
+    "RTPS datagram does not contain a NACK_FRAG submessage",
+  )
 }
 
 ///|

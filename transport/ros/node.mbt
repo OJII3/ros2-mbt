@@ -249,14 +249,9 @@ fn RosNode::add_publication(
       continue
     }
     let endpoint_guid = publication.endpoint_guid()
-    let mut already_added = false
-    for reader in subscription.readers {
-      if reader.endpoint_guid == endpoint_guid {
-        already_added = true
-        break
-      }
-    }
-    if already_added {
+    if subscription.readers.any(fn(reader) {
+        reader.endpoint_guid == endpoint_guid
+      }) {
       continue
     }
     let reader = match
@@ -466,10 +461,10 @@ pub fn Executor::add_node(
   if node_interface.is_attached() {
     return Err("a ROS node can only belong to one executor")
   }
-  for existing in self.nodes {
-    if existing.participant_guid() == node_interface.participant_guid() {
-      return Err("the ROS node is already attached to this executor")
-    }
+  if self.nodes.any(fn(existing) {
+      existing.participant_guid() == node_interface.participant_guid()
+    }) {
+    return Err("the ROS node is already attached to this executor")
   }
   node_interface.attach()
   self.nodes.push(node_interface)
@@ -512,6 +507,10 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
     return Err("cannot spin an executor with no ROS nodes")
   }
   self.running = true
+  defer {
+    self.running = false
+    self.detach_nodes()
+  }
   let result = @async.handle_cancellation(async fn() {
     let mut result : Result[Unit, String] = Ok(())
     @async.with_task_group() <| group => {
@@ -539,19 +538,9 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
     self.running = false
     result
   }) catch {
-    Failure(message) => {
-      self.running = false
-      self.detach_nodes()
-      return Err(message)
-    }
-    _ => {
-      self.running = false
-      self.detach_nodes()
-      return Err("a ROS executor task failed")
-    }
+    Failure(message) => return Err(message)
+    _ => return Err("a ROS executor task failed")
   }
-  self.running = false
-  self.detach_nodes()
   match result {
     Some(value) => value
     None => Ok(())
@@ -677,10 +666,7 @@ async fn RosNode::handle_message(
     let reader_count = self.subscriptions[subscription_index].readers.length()
     for reader_index in 0..<reader_count {
       let reader = self.subscriptions[subscription_index].readers[reader_index]
-      let payloads = match reader.take_incoming(incoming) {
-        Ok(value) => value
-        Err(_) => continue
-      }
+      guard reader.take_incoming(incoming) is Ok(payloads) else { continue }
       for payload in payloads {
         if callback(payload) is Err(message) {
           return Err(message)
