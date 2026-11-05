@@ -113,11 +113,7 @@ async fn spin_discovery(
     if remaining_ms <= 0 {
       return Ok(())
     }
-    let timeout_ms = if remaining_ms < CLI_DISCOVERY_POLL_MS {
-      remaining_ms
-    } else {
-      CLI_DISCOVERY_POLL_MS
-    }
+    let timeout_ms = remaining_ms.min(CLI_DISCOVERY_POLL_MS)
     match
       @async.with_timeout_opt(timeout_ms, async fn() {
         participant.receive_discovery_once()
@@ -141,11 +137,7 @@ fn normalize_ros_topic_name(name : String) -> Result[String, String] {
   if name.length() == 0 {
     return Err("topic name must not be empty")
   }
-  if name[0] == '/' {
-    Ok(name)
-  } else {
-    Ok("/" + name)
-  }
+  Ok(if name.has_prefix("/") { name } else { "/" + name })
 }
 
 ///|

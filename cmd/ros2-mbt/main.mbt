@@ -190,10 +190,7 @@ fn positional_value(
 
 ///|
 fn flag_enabled(matches : @argparse.Matches, name : String) -> Bool {
-  match matches.flags.get(name) {
-    Some(value) => value
-    None => false
-  }
+  matches.flags.get(name).unwrap_or(false)
 }
 
 ///|
@@ -286,10 +283,7 @@ async fn dispatch_bag(matches : @argparse.Matches) -> Result[Unit, String] {
         Ok(value) => value
         Err(message) => return Err(message)
       }
-      let topics = match play_matches.values.get("topics") {
-        Some(values) => values
-        None => []
-      }
+      let topics = play_matches.values.get("topics").unwrap_or([])
       run_bag_play(
         file,
         topics,

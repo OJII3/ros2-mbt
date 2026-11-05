@@ -27,11 +27,7 @@ async fn collect_hz_stats(
     if remaining_ms <= 0 {
       return Ok(stats)
     }
-    let timeout_ms = if remaining_ms < CLI_DISCOVERY_POLL_MS {
-      remaining_ms
-    } else {
-      CLI_DISCOVERY_POLL_MS
-    }
+    let timeout_ms = remaining_ms.min(CLI_DISCOVERY_POLL_MS)
     match receive_sample(timeout_ms) {
       Ok(false) => ()
       Ok(true) =>

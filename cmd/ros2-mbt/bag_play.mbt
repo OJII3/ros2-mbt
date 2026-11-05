@@ -6,18 +6,18 @@ priv struct BagPlaybackPublisher {
 
 ///|
 fn parse_rate_milli(value : String) -> Result[UInt32, String] {
-  let parts = value.split(".").collect()
-  if parts.length() > 2 {
-    return Err("option --rate must be a positive decimal number")
+  let (whole_text, fractional_text) = match value.split(".").collect() {
+    [whole] => (whole.to_owned(), "")
+    [whole, fractional] => (whole.to_owned(), fractional.to_owned())
+    _ => return Err("option --rate must be a positive decimal number")
   }
-  let whole = if parts[0].length() == 0 {
+  let whole = if whole_text.length() == 0 {
     0
   } else {
-    @string.parse_int(parts[0]) catch {
+    @string.parse_int(whole_text) catch {
       _ => return Err("option --rate must be a positive decimal number")
     }
   }
-  let fractional_text = if parts.length() == 2 { parts[1] } else { "" }
   if fractional_text.length() > 3 {
     return Err("option --rate supports at most three decimal places")
   }
@@ -206,10 +206,7 @@ async fn run_bag_play(
       return Err(message)
     }
   }
-  let topic_names : Array[String] = []
-  for topic in selected_topics {
-    topic_names.push(topic.name())
-  }
+  let topic_names = selected_topics.map(fn(topic) { topic.name() })
   let mut playback_result : Result[UInt64, String] = Ok(0)
   try
     @async.with_task_group() <| group => {
@@ -234,18 +231,12 @@ async fn run_bag_play(
   }
   executor.shutdown()
   let dispose_result = node.dispose_and_close()
-  match playback_result {
-    Err(message) => {
-      ignore(dispose_result)
-      Err(message)
+  match (playback_result, dispose_result) {
+    (Err(message), _) => Err(message)
+    (Ok(message_count), Ok(_)) => {
+      println("played \{message_count} messages")
+      Ok(())
     }
-    Ok(message_count) =>
-      match dispose_result {
-        Ok(_) => {
-          println("played " + message_count.to_string() + " messages")
-          Ok(())
-        }
-        Err(message) => Err(message)
-      }
+    (Ok(_), Err(message)) => Err(message)
   }
 }

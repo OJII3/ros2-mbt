@@ -325,7 +325,7 @@ fn rosidl_without_comment(line : String) -> String {
 
 ///|
 fn rosidl_trim(value : String) -> String {
-  value.trim().to_string()
+  value.trim().to_owned()
 }
 
 ///|

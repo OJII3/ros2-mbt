@@ -10,9 +10,8 @@ fn add_sample(
   previous_sample_ms : Int64?,
   now_ms : Int64,
 ) -> Int64 {
-  match previous_sample_ms {
-    None => ()
-    Some(previous) => stats.intervals.push(now_ms - previous)
+  if previous_sample_ms is Some(previous) {
+    stats.intervals.push(now_ms - previous)
   }
   stats.samples += 1
   now_ms
@@ -30,18 +29,21 @@ fn summarize_hz_stats(stats : HzStats, duration_ms : Int32) -> HzSummary? {
   if stats.samples < 2 || stats.intervals.length() == 0 {
     return None
   }
-  let mut total_interval_ms = 0L
-  let mut min_interval_ms = stats.intervals[0]
-  let mut max_interval_ms = stats.intervals[0]
-  for interval in stats.intervals {
-    total_interval_ms += interval
-    if interval < min_interval_ms {
-      min_interval_ms = interval
-    }
-    if interval > max_interval_ms {
-      max_interval_ms = interval
-    }
-  }
+  let total_interval_ms = stats.intervals.fold(init=0L, fn(total, interval) {
+    total + interval
+  })
+  let min_interval_ms = stats.intervals.fold(init=stats.intervals[0], fn(
+    earliest,
+    interval,
+  ) {
+    earliest.min(interval)
+  })
+  let max_interval_ms = stats.intervals.fold(init=stats.intervals[0], fn(
+    latest,
+    interval,
+  ) {
+    latest.max(interval)
+  })
   let elapsed_ms = if total_interval_ms > 0L {
     total_interval_ms
   } else {

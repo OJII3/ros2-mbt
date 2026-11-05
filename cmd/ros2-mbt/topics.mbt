@@ -122,15 +122,7 @@ fn print_topic_verbose_section(
     let endpoint_word = if publishers { "publisher" } else { "subscriber" }
     let plural_suffix = if count == 1 { "" } else { "s" }
     println(
-      " * " +
-      topic.ros_name +
-      " [" +
-      topic.type_names.join(", ") +
-      "] " +
-      count.to_string() +
-      " " +
-      endpoint_word +
-      plural_suffix,
+      " * \{topic.ros_name} [\{topic.type_names.join(", ")}] \{count} \{endpoint_word}\{plural_suffix}",
     )
   }
 }
