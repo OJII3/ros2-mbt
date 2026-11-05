@@ -114,7 +114,9 @@ pub fn Header::to_bytes(self : Header) -> Bytes {
   bytes.push(self.vendor_id.major)
   bytes.push(self.vendor_id.minor)
   let prefix = self.guid_prefix.as_bytes()
-  bytes.push_iter(prefix.iter())
+  for i in 0..<prefix.length() {
+    bytes.push(prefix[i])
+  }
   Bytes::from_array(bytes)
 }
 

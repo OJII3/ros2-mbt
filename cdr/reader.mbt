@@ -100,7 +100,10 @@ fn Reader::take_aligned(
   alignment : Int32,
   length : Int32,
 ) -> Result[BytesView, String] {
-  self.align(alignment).bind(fn(_) { self.take(length) })
+  match self.align(alignment) {
+    Ok(_) => self.take(length)
+    Err(message) => Err(message)
+  }
 }
 
 ///|
@@ -109,28 +112,31 @@ fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
   // alignment. XCDR1 therefore aligns from the first byte after the header.
   let remainder = (self.offset - ENCAPSULATION_LENGTH) % alignment
   let padding = if remainder == 0 { 0 } else { alignment - remainder }
-  self.take(padding).map(fn(_) { () })
+  match self.take(padding) {
+    Ok(_) => Ok(())
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an unaligned CDR octet.
 pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
-  self.take(1).map(fn(view) { view[0] })
+  match self.take(1) {
+    Ok(view) => Ok(view[0])
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read a signed CDR int8 without alignment.
 pub fn Reader::read_i8(self : Reader) -> Result[Int32, String] {
-  self
-  .read_u8()
-  .map(fn(value) {
-    let raw = value.to_int()
-    if raw >= 128 {
-      raw - 256
-    } else {
-      raw
+  match self.read_u8() {
+    Ok(value) => {
+      let raw = value.to_int()
+      Ok(if raw >= 128 { raw - 256 } else { raw })
     }
-  })
+    Err(message) => Err(message)
+  }
 }
 
 ///|
@@ -147,80 +153,84 @@ pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
 ///|
 /// Read a signed 16-bit integer.
 pub fn Reader::read_i16(self : Reader) -> Result[Int32, String] {
-  self
-  .take_aligned(2, 2)
-  .map(fn(view) {
-    let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
-    if raw >= 32768 {
-      raw - 65536
-    } else {
-      raw
+  match self.take_aligned(2, 2) {
+    Ok(view) => {
+      let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
+      Ok(if raw >= 32768 { raw - 65536 } else { raw })
     }
-  })
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an unsigned 16-bit integer.
 pub fn Reader::read_u16(self : Reader) -> Result[UInt32, String] {
-  self
-  .take_aligned(2, 2)
-  .map(fn(view) { cdr_reader_read_u16(view, self.little_endian) })
+  match self.take_aligned(2, 2) {
+    Ok(view) => Ok(cdr_reader_read_u16(view, self.little_endian))
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read a signed 32-bit integer.
 pub fn Reader::read_i32(self : Reader) -> Result[Int32, String] {
-  self
-  .take_aligned(4, 4)
-  .map(fn(view) {
-    cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int()
-  })
+  match self.take_aligned(4, 4) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int())
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an unsigned 32-bit integer.
 pub fn Reader::read_u32(self : Reader) -> Result[UInt32, String] {
-  self
-  .take_aligned(4, 4)
-  .map(fn(view) { cdr_reader_read_u32(view, self.little_endian) })
+  match self.take_aligned(4, 4) {
+    Ok(view) => Ok(cdr_reader_read_u32(view, self.little_endian))
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read a signed 64-bit integer.
 pub fn Reader::read_i64(self : Reader) -> Result[Int64, String] {
-  self
-  .take_aligned(8, 8)
-  .map(fn(view) {
-    cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64()
-  })
+  match self.take_aligned(8, 8) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64())
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an unsigned 64-bit integer.
 pub fn Reader::read_u64(self : Reader) -> Result[UInt64, String] {
-  self
-  .take_aligned(8, 8)
-  .map(fn(view) { cdr_reader_read_u64(view, self.little_endian) })
+  match self.take_aligned(8, 8) {
+    Ok(view) => Ok(cdr_reader_read_u64(view, self.little_endian))
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an IEEE-754 single-precision value.
 pub fn Reader::read_f32(self : Reader) -> Result[Float, String] {
-  self
-  .take_aligned(4, 4)
-  .map(fn(view) {
-    Float::reinterpret_from_uint(cdr_reader_read_u32(view, self.little_endian))
-  })
+  match self.take_aligned(4, 4) {
+    Ok(view) =>
+      Ok(
+        Float::reinterpret_from_uint(
+          cdr_reader_read_u32(view, self.little_endian),
+        ),
+      )
+    Err(message) => Err(message)
+  }
 }
 
 ///|
 /// Read an IEEE-754 double-precision value.
 pub fn Reader::read_f64(self : Reader) -> Result[Double, String] {
-  self
-  .take_aligned(8, 8)
-  .map(fn(view) {
-    cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double()
-  })
+  match self.take_aligned(8, 8) {
+    Ok(view) =>
+      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double())
+    Err(message) => Err(message)
+  }
 }
 
 ///|

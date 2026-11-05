@@ -294,11 +294,19 @@ pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  bytes.push_iter(reader_id[:4].iter())
-  bytes.push_iter(writer_id[:4].iter())
+  for i in 0..<4 {
+    bytes.push(reader_id[i])
+  }
+  for i in 0..<4 {
+    bytes.push(writer_id[i])
+  }
   append_sequence_number_le(bytes, self.writer_sequence_number)
-  bytes.push_iter(self.inline_qos.iter())
-  bytes.push_iter(self.serialized_payload.iter())
+  for i in 0..<self.inline_qos.length() {
+    bytes.push(self.inline_qos[i])
+  }
+  for i in 0..<self.serialized_payload.length() {
+    bytes.push(self.serialized_payload[i])
+  }
   Bytes::from_array(bytes)
 }
 
