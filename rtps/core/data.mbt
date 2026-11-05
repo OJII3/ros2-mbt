@@ -290,6 +290,11 @@ fn data_read_u32_le(input : Bytes, offset : Int32) -> UInt32 {
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
+  bytes.reserve_capacity(
+    DATA_FIXED_BODY_LENGTH +
+    self.inline_qos.length() +
+    self.serialized_payload.length(),
+  )
   data_append_u16_le(bytes, self.extra_flags)
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()

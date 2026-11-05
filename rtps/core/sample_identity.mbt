@@ -56,6 +56,7 @@ pub fn SampleIdentity::sequence_number(self : SampleIdentity) -> Int64 {
 /// inline-QoS parameter PID_RELATED_SAMPLE_IDENTITY.
 pub fn SampleIdentity::to_bytes(self : SampleIdentity) -> Bytes {
   let bytes : Array[Byte] = []
+  bytes.reserve_capacity(24)
   let guid = self.writer_guid.to_bytes()
   for i in 0..<guid.length() {
     bytes.push(guid[i])

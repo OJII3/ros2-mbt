@@ -109,6 +109,7 @@ pub fn Header::guid_prefix(self : Header) -> GuidPrefix {
 /// Serialize an RTPS message header in network byte order.
 pub fn Header::to_bytes(self : Header) -> Bytes {
   let bytes : Array[Byte] = [b'R', b'T', b'P', b'S']
+  bytes.reserve_capacity(HEADER_LENGTH)
   bytes.push(self.protocol_version.major)
   bytes.push(self.protocol_version.minor)
   bytes.push(self.vendor_id.major)
@@ -297,6 +298,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
     first_length,
     second_length,
   ]
+  bytes.reserve_capacity(SUBMESSAGE_HEADER_LENGTH + length)
   for i in 0..<length {
     bytes.push(self.payload[i])
   }

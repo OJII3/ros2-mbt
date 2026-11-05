@@ -181,6 +181,11 @@ pub fn DataFragSubmessage::serialized_payload(
 /// Serialize the DATA_FRAG body without its four-byte submessage header.
 pub fn DataFragSubmessage::to_payload(self : DataFragSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
+  bytes.reserve_capacity(
+    DATA_FRAG_FIXED_BODY_LENGTH +
+    self.inline_qos.length() +
+    self.serialized_payload.length(),
+  )
   data_append_u16_le(bytes, self.extra_flags)
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
