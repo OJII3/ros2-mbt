@@ -371,14 +371,15 @@ pub fn DataSubmessage::from_submessage(
     12,
     little_endian,
   )
-  let mut inline_qos = b""
-  let mut payload_offset = DATA_FIXED_BODY_LENGTH
   let inline_qos_offset = 4 + octets_to_inline_qos.to_int()
   if octets_to_inline_qos.to_int() < DATA_INLINE_QOS_OFFSET ||
     inline_qos_offset > submessage.payload.length() {
     return Err("RTPS DATA octetsToInlineQos points outside the DATA body")
   }
-  if (submessage.flags & DATA_FLAG_INLINE_QOS) != 0 {
+  let (inline_qos, payload_offset) = if (
+      submessage.flags & DATA_FLAG_INLINE_QOS
+    ) !=
+    0 {
     let remaining = bytes_from(
       submessage.payload,
       inline_qos_offset,
@@ -389,10 +390,9 @@ pub fn DataSubmessage::from_submessage(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    inline_qos = decoded_inline_qos
-    payload_offset = inline_qos_offset + consumed
+    (decoded_inline_qos, inline_qos_offset + consumed)
   } else {
-    payload_offset = inline_qos_offset
+    (b"", inline_qos_offset)
   }
   let data_and_key_flags = submessage.flags & (DATA_FLAG_DATA | DATA_FLAG_KEY)
   if data_and_key_flags == 0 {

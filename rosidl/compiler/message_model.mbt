@@ -282,23 +282,19 @@ pub fn MessageDefinition::new_with_types(
       )
     }
   }
-  for index in 0..<fields.length() {
-    let field = fields[index]
-    for previous_index in 0..<index {
-      if fields[previous_index].name == field.name {
-        return Err("ROS message field names must be unique")
-      }
+  for index, field in fields {
+    if fields[:index].any(fn(previous) { previous.name == field.name }) {
+      return Err("ROS message field names must be unique")
     }
     if !rosidl_identifier(field.name) {
       return Err("ROS message field names must be identifiers")
     }
-    match field.string_upper_bound {
-      Some(bound) =>
-        if (field.type_name != "string" && field.type_name != "wstring") ||
-          bound <= 0 {
-          return Err("ROS string upper bounds require a positive bound")
-        }
-      None => ()
+    if field.string_upper_bound is Some(bound) &&
+      (
+        (field.type_name != "string" && field.type_name != "wstring") ||
+        bound <= 0
+      ) {
+      return Err("ROS string upper bounds require a positive bound")
     }
     if rosidl_moon_type_for_field(field.type_name, nested_types) is Err(message) {
       return Err(message)
@@ -332,12 +328,9 @@ pub fn MessageDefinition::with_constants(
   self : MessageDefinition,
   constants : Array[MessageConstant],
 ) -> Result[MessageDefinition, String] {
-  for index in 0..<constants.length() {
-    let constant = constants[index]
-    for previous_index in 0..<index {
-      if constants[previous_index].name == constant.name {
-        return Err("ROS message constant names must be unique")
-      }
+  for index, constant in constants {
+    if constants[:index].any(fn(previous) { previous.name == constant.name }) {
+      return Err("ROS message constant names must be unique")
     }
     if !rosidl_constant_identifier(constant.name) {
       return Err("ROS message constant names must be uppercase identifiers")

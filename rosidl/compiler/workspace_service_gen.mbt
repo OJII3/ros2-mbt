@@ -41,19 +41,11 @@ pub fn MessageWorkspace::generate_service_moonbit(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let nested_types : Array[MessageTypeReference] = []
-  for reference in request_types {
-    nested_types.push(reference)
-  }
+  let nested_types = request_types.copy()
   for reference in response_types {
-    let mut already_present = false
-    for existing in nested_types {
-      if existing.ros_name == reference.ros_name {
-        already_present = true
-        break
-      }
-    }
-    if !already_present {
+    if !nested_types.any(fn(existing) {
+        existing.ros_name == reference.ros_name
+      }) {
       nested_types.push(reference)
     }
   }
@@ -65,10 +57,7 @@ pub fn MessageWorkspace::generate_service_moonbit(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let imports : Array[MessageImport] = []
-  for mapping in request_imports {
-    imports.push(mapping)
-  }
+  let imports = request_imports.copy()
   for mapping in response_imports {
     if !rosidl_workspace_contains_import(imports, mapping.ros_package_name) {
       imports.push(mapping)

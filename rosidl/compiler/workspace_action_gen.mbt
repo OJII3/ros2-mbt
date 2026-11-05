@@ -73,14 +73,9 @@ pub fn MessageWorkspace::generate_action_moonbit(
       Err(message) => return Err(message)
     }
     for reference in references {
-      let mut already_present = false
-      for existing in nested_types {
-        if existing.ros_name == reference.ros_name {
-          already_present = true
-          break
-        }
-      }
-      if !already_present {
+      if !nested_types.any(fn(existing) {
+          existing.ros_name == reference.ros_name
+        }) {
         nested_types.push(reference)
       }
     }

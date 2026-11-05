@@ -283,19 +283,17 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
   let length = self.payload.length()
   let length_low = (length & 0xFF).to_byte()
   let length_high = ((length >> 8) & 0xFF).to_byte()
+  let little = (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0
+  let (first_length, second_length) = if little {
+    (length_low, length_high)
+  } else {
+    (length_high, length_low)
+  }
   let bytes : Array[Byte] = [
     self.id.to_byte(),
     self.flags,
-    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
-      length_low
-    } else {
-      length_high
-    },
-    if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
-      length_high
-    } else {
-      length_low
-    },
+    first_length,
+    second_length,
   ]
   for i in 0..<length {
     bytes.push(self.payload[i])

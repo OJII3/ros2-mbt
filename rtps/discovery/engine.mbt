@@ -78,14 +78,13 @@ pub fn DiscoveryEngine::next_deadline(self : DiscoveryEngine) -> Int64? {
   for remote in self.spdp_fragment_readers {
     if remote.expires_at is Some(expiry) {
       deadline = match deadline {
-        Some(previous) =>
-          Some(if expiry < previous { expiry } else { previous })
+        Some(previous) => Some(previous.min(expiry))
         None => Some(expiry)
       }
     }
   }
   match (deadline, self.heartbeat_deadline) {
-    (Some(a), Some(b)) => Some(if a < b { a } else { b })
+    (Some(a), Some(b)) => Some(a.min(b))
     (Some(a), None) => Some(a)
     (None, deadline) => deadline
   }

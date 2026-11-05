@@ -325,18 +325,7 @@ fn rosidl_without_comment(line : String) -> String {
 
 ///|
 fn rosidl_trim(value : String) -> String {
-  let bytes = @utf8.encode(value)
-  let mut start = 0
-  let mut end = bytes.length()
-  while start < end && rosidl_space(bytes[start]) {
-    start += 1
-  }
-  while end > start && rosidl_space(bytes[end - 1]) {
-    end -= 1
-  }
-  @utf8.decode(bytes[start:end]) catch {
-    _ => ""
-  }
+  value.trim().to_string()
 }
 
 ///|

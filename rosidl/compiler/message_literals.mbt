@@ -5,7 +5,7 @@ fn rosidl_constant_literal(
 ) -> Result[String, String] {
   match type_name {
     "bool" =>
-      match rosidl_ascii_lower(value) {
+      match value.to_lower() {
         "true" | "1" => Ok("true")
         "false" | "0" => Ok("false")
         _ => Err("ROS bool constants must be true, false, 1, or 0")
@@ -167,31 +167,8 @@ fn rosidl_utf16_unit_count(value : String) -> Int32 {
 }
 
 ///|
-fn rosidl_ascii_lower(value : String) -> String {
-  let bytes = @utf8.encode(value)
-  let mut result = ""
-  let mut segment_start = 0
-  for index in 0..<bytes.length() {
-    let byte = bytes[index]
-    if byte >= 65 && byte <= 90 {
-      result += @utf8.decode(bytes[segment_start:index]) catch { _ => "" }
-      result += @utf8.decode(
-        Bytes::from_array([(byte.to_int() + 32).to_byte()]),
-      ) catch {
-        _ => ""
-      }
-      segment_start = index + 1
-    }
-  }
-  result + (@utf8.decode(bytes[segment_start:]) catch { _ => "" })
-}
-
-///|
 fn rosidl_string_constant_literal(value : String) -> Result[String, String] {
-  match rosidl_string_constant_value(value) {
-    Ok(value) => Ok(rosidl_moonbit_string_literal(value))
-    Err(message) => Err(message)
-  }
+  rosidl_string_constant_value(value).map(rosidl_moonbit_string_literal)
 }
 
 ///|

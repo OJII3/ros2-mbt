@@ -127,44 +127,15 @@ fn rosidl_hash_individual_json(
 }
 
 ///|
-fn rosidl_hash_string_less(left : String, right : String) -> Bool {
-  let left_bytes = @utf8.encode(left)
-  let right_bytes = @utf8.encode(right)
-  let length = if left_bytes.length() < right_bytes.length() {
-    left_bytes.length()
-  } else {
-    right_bytes.length()
-  }
-  for index in 0..<length {
-    if left_bytes[index] < right_bytes[index] {
-      return true
-    }
-    if left_bytes[index] > right_bytes[index] {
-      return false
-    }
-  }
-  left_bytes.length() < right_bytes.length()
-}
-
-///|
 fn rosidl_hash_sort_definitions(
   definitions : Array[MessageDefinition],
 ) -> Array[MessageDefinition] {
-  let sorted : Array[MessageDefinition] = []
-  for definition in definitions {
-    sorted.push(definition)
-    let mut index = sorted.length() - 1
-    while index > 0 &&
-          rosidl_hash_string_less(
-            rosidl_hash_type_name(sorted[index]),
-            rosidl_hash_type_name(sorted[index - 1]),
-          ) {
-      let previous = sorted[index - 1]
-      sorted[index - 1] = sorted[index]
-      sorted[index] = previous
-      index -= 1
-    }
-  }
+  let sorted = definitions.copy()
+  sorted
+  .mut_view()
+  .stable_sort_by(fn(left, right) {
+    rosidl_hash_type_name(left).lexical_compare(rosidl_hash_type_name(right))
+  })
   sorted
 }
 
@@ -178,21 +149,21 @@ fn rosidl_hash_json(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let mut result = "{\"type_description\": " +
-    top +
-    ", \"referenced_type_descriptions\": ["
-  for index in 0..<references.length() {
-    if index > 0 {
-      result += ", "
-    }
-    let (reference, field_names) = references[index]
+  let descriptions : Array[String] = []
+  for (reference, field_names) in references {
     let individual = match rosidl_hash_individual_json(reference, field_names) {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    result += individual
+    descriptions.push(individual)
   }
-  Ok(result + "]}")
+  Ok(
+    "{\"type_description\": " +
+    top +
+    ", \"referenced_type_descriptions\": [" +
+    descriptions.join(", ") +
+    "]}",
+  )
 }
 
 ///|
