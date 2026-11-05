@@ -228,16 +228,25 @@ fn rosidl_generate_default_field(
           " = " +
           rosidl_default_scalar(field, nested_types) +
           "\n"
-        FixedArray(length) =>
+        FixedArray(length) => {
+          let default = rosidl_default_scalar(field, nested_types)
+          let initializer = if rosidl_moon_type(field.type_name) is Ok(_) {
+            "Array::make(" + length.to_string() + ", " + default + ")"
+          } else {
+            "Array::makei(" +
+            length.to_string() +
+            ", fn(_) { " +
+            default +
+            " })"
+          }
           "  let " +
           field.name +
           " : " +
           field_type +
-          " = Array::make(" +
-          length.to_string() +
-          ", " +
-          rosidl_default_scalar(field, nested_types) +
-          ")\n"
+          " = " +
+          initializer +
+          "\n"
+        }
         Sequence | BoundedSequence(_) =>
           "  let " + field.name + " : " + field_type + " = []\n"
       }
