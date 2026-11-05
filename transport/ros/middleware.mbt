@@ -226,7 +226,7 @@ async fn MiddlewareServiceClient::receive_response(
       }
       Ok((data.serialized_payload(), source))
     }
-    CycloneDdsPayload => {
+    CycloneDdsPayload =>
       while true {
         let received = if self.shared_socket {
           self.response_reader.receive_data_with_writer(self.request_writer)
@@ -246,9 +246,9 @@ async fn MiddlewareServiceClient::receive_response(
           header.sequence_number() == request_identity.sequence_number() {
           return Ok((payload, source))
         }
+      } nobreak {
+        Err("reliable Cyclone DDS service response reader stopped")
       }
-      Err("reliable Cyclone DDS service response reader stopped")
-    }
   }
 }
 

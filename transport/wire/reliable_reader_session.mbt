@@ -364,8 +364,9 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
         _ => ()
       }
     }
+  } nobreak {
+    Err("reliable reader stopped")
   }
-  Err("reliable reader stopped")
 }
 
 ///|
@@ -408,8 +409,9 @@ async fn ReliableDataReaderSession::receive_related_data_with_optional_writer(
         return Ok((data, source))
       _ => ()
     }
+  } nobreak {
+    Err("reliable related-data reader stopped")
   }
-  Err("reliable related-data reader stopped")
 }
 
 ///|
@@ -526,8 +528,9 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
         _ => ()
       }
     }
+  } nobreak {
+    Err("reliable reader stopped")
   }
-  Err("reliable reader stopped")
 }
 
 ///|

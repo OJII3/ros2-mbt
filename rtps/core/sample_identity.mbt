@@ -57,9 +57,7 @@ pub fn SampleIdentity::sequence_number(self : SampleIdentity) -> Int64 {
 pub fn SampleIdentity::to_bytes(self : SampleIdentity) -> Bytes {
   let bytes : Array[Byte] = []
   let guid = self.writer_guid.to_bytes()
-  for i in 0..<guid.length() {
-    bytes.push(guid[i])
-  }
+  bytes.push_iter(guid.iter())
   let value = self.sequence_number.reinterpret_as_uint64()
   let high = value >> 32
   let low = value & 0xFFFFFFFFL.reinterpret_as_uint64()

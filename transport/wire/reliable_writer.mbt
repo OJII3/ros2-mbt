@@ -19,11 +19,7 @@ fn reliable_writer_bytes_from(
   start : Int32,
   length : Int32,
 ) -> Bytes {
-  let bytes : Array[Byte] = []
-  for i in 0..<length {
-    bytes.push(input[start + i])
-  }
-  Bytes::from_array(bytes)
+  input[start:start + length].to_owned()
 }
 
 ///|
@@ -605,8 +601,9 @@ pub async fn ReliableDataWriter::receive_acknack(
         Err(message) => return Err(message)
       }
     }
+  } nobreak {
+    Err("reliable writer stopped")
   }
-  Err("reliable writer stopped")
 }
 
 ///|
@@ -654,8 +651,9 @@ pub async fn ReliableDataWriter::receive_nackfrag(
         Err(message) => return Err(message)
       }
     }
+  } nobreak {
+    Err("reliable writer stopped")
   }
-  Err("reliable writer stopped")
 }
 
 ///|
@@ -676,8 +674,9 @@ pub async fn ReliableDataWriter::receive_control(
       Ok(false) => ()
       Err(message) => return Err(message)
     }
+  } nobreak {
+    Err("reliable writer stopped")
   }
-  Err("reliable writer stopped")
 }
 
 ///|

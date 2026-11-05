@@ -273,8 +273,9 @@ pub async fn DiscoverySession::announce_forever(
       return Err(message)
     }
     @async.sleep(interval_ms)
+  } nobreak {
+    Ok(())
   }
-  Ok(())
 }
 
 ///|

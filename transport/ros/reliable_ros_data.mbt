@@ -295,8 +295,9 @@ pub async fn ReliableRosPublisher::receive_acknack(
         None => ()
       }
     }
+  } nobreak {
+    Err("reliable publisher stopped")
   }
-  Err("reliable publisher stopped")
 }
 
 ///|
@@ -347,8 +348,9 @@ pub async fn ReliableRosPublisher::receive_nackfrag(
         None => ()
       }
     }
+  } nobreak {
+    Err("reliable publisher stopped")
   }
-  Err("reliable publisher stopped")
 }
 
 ///|
@@ -372,8 +374,9 @@ pub async fn ReliableRosPublisher::receive_control(
         None => ()
       }
     }
+  } nobreak {
+    Err("reliable publisher stopped")
   }
-  Err("reliable publisher stopped")
 }
 
 ///|

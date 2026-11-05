@@ -185,23 +185,15 @@ pub fn DataFragSubmessage::to_payload(self : DataFragSubmessage) -> Bytes {
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   append_sequence_number_le(bytes, self.writer_sequence_number)
   data_append_u32_le(bytes, self.fragment_starting_number)
   data_append_u16_le(bytes, self.fragments_in_submessage)
   data_append_u16_le(bytes, self.fragment_size)
   data_append_u32_le(bytes, self.sample_size)
-  for i in 0..<self.inline_qos.length() {
-    bytes.push(self.inline_qos[i])
-  }
-  for i in 0..<self.serialized_payload.length() {
-    bytes.push(self.serialized_payload[i])
-  }
+  bytes.push_iter(self.inline_qos.iter())
+  bytes.push_iter(self.serialized_payload.iter())
   Bytes::from_array(bytes)
 }
 

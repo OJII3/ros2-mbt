@@ -280,32 +280,19 @@ fn append_yaml_sequence_object_first(
 
 ///|
 fn dynamic_array_is_scalar(values : Array[Value]) -> Bool {
-  for value in values {
-    match value {
-      ObjectValue(_) | ArrayValue(_) => return false
-      _ => ()
-    }
-  }
-  true
+  values.all(fn(value) {
+    !(value is ObjectValue(_)) && !(value is ArrayValue(_))
+  })
 }
 
 ///|
 fn dynamic_yaml_array(values : Array[Value]) -> String {
-  let count = if values.length() > 128 { 128 } else { values.length() }
-  let mut output = "["
-  for index in 0..<count {
-    if index > 0 {
-      output += ", "
-    }
-    output += dynamic_yaml_scalar(values[index])
-  }
+  let count = values.length().min(128)
+  let parts = values[:count].map(dynamic_yaml_scalar)
   if count < values.length() {
-    if count > 0 {
-      output += ", "
-    }
-    output += "..."
+    parts.push("...")
   }
-  output + "]"
+  "[" + parts.join(", ") + "]"
 }
 
 ///|
@@ -322,9 +309,5 @@ fn dynamic_yaml_scalar(value : Value) -> String {
 
 ///|
 fn dynamic_indent(length : Int32) -> String {
-  let mut output = ""
-  for _ in 0..<length {
-    output += " "
-  }
-  output
+  " ".repeat(length)
 }

@@ -135,8 +135,9 @@ pub async fn DiscoveryService::announce_sedp_forever(
       return Err(message)
     }
     @async.sleep(interval_ms)
+  } nobreak {
+    Ok(())
   }
-  Ok(())
 }
 
 ///|

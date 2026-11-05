@@ -671,8 +671,9 @@ pub async fn Udp::receive_sedp(
       }
       return Ok((endpoint, source))
     }
+  } nobreak {
+    Err("SEDP receive loop stopped")
   }
-  Err("SEDP receive loop stopped")
 }
 
 ///|
@@ -771,8 +772,9 @@ pub async fn Udp::receive_discovery(
         Err(_) => continue
       }
     }
+  } nobreak {
+    Err("discovery receive loop stopped")
   }
-  Err("discovery receive loop stopped")
 }
 
 ///|

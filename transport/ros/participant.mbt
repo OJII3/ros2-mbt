@@ -757,8 +757,9 @@ pub async fn RosParticipant::announce_spdp_forever(
       return Err(message)
     }
     @async.sleep(interval_ms)
+  } nobreak {
+    Ok(())
   }
-  Ok(())
 }
 
 ///|

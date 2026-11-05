@@ -211,12 +211,8 @@ fn spdp_duration(seconds : Int32, nanoseconds : UInt32) -> Bytes {
     qos_nanoseconds_to_fraction(nanoseconds)
   }
   let fraction_bytes = spdp_u32_le(fraction)
-  for i in 0..<4 {
-    bytes.push(seconds_bytes[i])
-  }
-  for i in 0..<4 {
-    bytes.push(fraction_bytes[i])
-  }
+  bytes.push_iter(seconds_bytes[:4].iter())
+  bytes.push_iter(fraction_bytes[:4].iter())
   Bytes::from_array(bytes)
 }
 

@@ -114,9 +114,7 @@ pub fn Header::to_bytes(self : Header) -> Bytes {
   bytes.push(self.vendor_id.major)
   bytes.push(self.vendor_id.minor)
   let prefix = self.guid_prefix.as_bytes()
-  for i in 0..<prefix.length() {
-    bytes.push(prefix[i])
-  }
+  bytes.push_iter(prefix.iter())
   Bytes::from_array(bytes)
 }
 
@@ -307,11 +305,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
 
 ///|
 fn bytes_from(input : Bytes, start : Int32, length : Int32) -> Bytes {
-  let bytes : Array[Byte] = []
-  for i in 0..<length {
-    bytes.push(input[start + i])
-  }
-  Bytes::from_array(bytes)
+  input[start:start + length].to_owned()
 }
 
 ///|

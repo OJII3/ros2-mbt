@@ -79,26 +79,19 @@ pub fn Message::destination_contexts(
 pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
   let bytes : Array[Byte] = []
   let header = self.header.to_bytes()
-  for i in 0..<header.length() {
-    bytes.push(header[i])
-  }
+  bytes.push_iter(header.iter())
   for index in 0..<self.submessages.length() {
     let submessage = self.submessages[index]
     let encoded = match submessage.to_bytes() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    for i in 0..<encoded.length() {
-      bytes.push(encoded[i])
-    }
+    bytes.push_iter(encoded.iter())
     if index + 1 < self.submessages.length() {
       let remainder = encoded.length() % 4
       if remainder != 0 {
         let padding_length = 4 - remainder
-        let padding : Array[Byte] = []
-        for _ in 0..<padding_length {
-          padding.push(0)
-        }
+        let padding : Array[Byte] = Array::make(padding_length, 0)
         let encoded_padding = match
           Submessage::new(
             Pad,
@@ -108,9 +101,7 @@ pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
           Ok(value) => value
           Err(message) => return Err(message)
         }
-        for i in 0..<encoded_padding.length() {
-          bytes.push(encoded_padding[i])
-        }
+        bytes.push_iter(encoded_padding.iter())
       }
     }
   }

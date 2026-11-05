@@ -191,8 +191,9 @@ pub async fn RosActionClient::receive_feedback(
     if received_goal_id == goal_id {
       return Ok(payload)
     }
+  } nobreak {
+    Err("action feedback receive loop stopped")
   }
-  Err("action feedback receive loop stopped")
 }
 
 ///|
@@ -248,8 +249,9 @@ pub async fn RosActionClient::receive_next_goal_status(
         return Ok(goal_status)
       }
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped")
   }
-  Err("GoalStatusArray receive loop stopped")
 }
 
 ///|
@@ -266,8 +268,9 @@ pub async fn RosActionClient::receive_terminal_goal_status(
     if status.is_terminal() {
       return Ok(status)
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped before a terminal status")
   }
-  Err("GoalStatusArray receive loop stopped before a terminal status")
 }
 
 ///|
@@ -297,8 +300,9 @@ pub async fn RosActionClient::receive_goal_status(
     if status.status() == expected_status {
       return Ok(status)
     }
+  } nobreak {
+    Err("GoalStatusArray receive loop stopped")
   }
-  Err("GoalStatusArray receive loop stopped")
 }
 
 ///|

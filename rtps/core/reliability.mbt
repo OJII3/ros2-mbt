@@ -376,12 +376,8 @@ pub fn HeartbeatSubmessage::to_payload(self : HeartbeatSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   reliability_append_i64(bytes, self.first_sequence_number)
   reliability_append_i64(bytes, self.last_sequence_number)
   reliability_append_u32(bytes, self.count)
@@ -457,12 +453,8 @@ pub fn AckNackSubmessage::to_payload(self : AckNackSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   reliability_append_i64(bytes, self.bitmap_base)
   reliability_append_u32(bytes, self.num_bits)
   for word in self.bitmap {
@@ -549,12 +541,8 @@ pub fn GapSubmessage::to_payload(self : GapSubmessage) -> Bytes {
   let bytes : Array[Byte] = []
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
+  bytes.push_iter(reader_id[:4].iter())
+  bytes.push_iter(writer_id[:4].iter())
   reliability_append_i64(bytes, self.gap_start)
   reliability_append_i64(bytes, self.gap_list_base)
   reliability_append_u32(bytes, self.gap_list_num_bits)
