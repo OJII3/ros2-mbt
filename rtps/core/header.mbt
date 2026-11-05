@@ -298,6 +298,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
     first_length,
     second_length,
   ]
+  // Reserve the exact submessage size to avoid repeated reallocation.
   bytes.reserve_capacity(SUBMESSAGE_HEADER_LENGTH + length)
   for i in 0..<length {
     bytes.push(self.payload[i])
