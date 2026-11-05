@@ -190,6 +190,7 @@ pub fn DataFragSubmessage::to_payload(self : DataFragSubmessage) -> Bytes {
   data_append_u16_le(bytes, self.octets_to_inline_qos)
   let reader_id = self.reader_id.to_bytes()
   let writer_id = self.writer_id.to_bytes()
+  // Perf: index loops beat push_iter on this hot path.
   for i in 0..<4 {
     bytes.push(reader_id[i])
   }

@@ -79,6 +79,7 @@ pub fn Message::destination_contexts(
 pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
   let bytes : Array[Byte] = []
   let header = self.header.to_bytes()
+  // Perf: index loops + reserve_capacity beat push_iter on this hot path.
   for i in 0..<header.length() {
     bytes.push(header[i])
   }

@@ -95,6 +95,7 @@ fn Reader::take(self : Reader, length : Int32) -> Result[BytesView, String] {
 }
 
 ///|
+// Perf: explicit matches keep CDR reads free of per-call closure allocation.
 fn Reader::take_aligned(
   self : Reader,
   alignment : Int32,
@@ -120,6 +121,7 @@ fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
 
 ///|
 /// Read an unaligned CDR octet.
+// Perf: explicit match instead of Result::map avoids a closure per byte read.
 pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
   match self.take(1) {
     Ok(view) => Ok(view[0])
@@ -152,6 +154,7 @@ pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
 
 ///|
 /// Read a signed 16-bit integer.
+// Perf: use explicit matches instead of Result::map; closures cost a per-read allocation.
 pub fn Reader::read_i16(self : Reader) -> Result[Int32, String] {
   match self.take_aligned(2, 2) {
     Ok(view) => {

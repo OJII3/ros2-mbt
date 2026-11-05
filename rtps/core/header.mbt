@@ -115,6 +115,7 @@ pub fn Header::to_bytes(self : Header) -> Bytes {
   bytes.push(self.vendor_id.major)
   bytes.push(self.vendor_id.minor)
   let prefix = self.guid_prefix.as_bytes()
+  // Perf: index loop + reserve_capacity beats push_iter on this hot path.
   for i in 0..<prefix.length() {
     bytes.push(prefix[i])
   }
@@ -300,6 +301,7 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
   ]
   // Reserve the exact submessage size to avoid repeated reallocation.
   bytes.reserve_capacity(SUBMESSAGE_HEADER_LENGTH + length)
+  // Perf: index loop beats push_iter on this hot path.
   for i in 0..<length {
     bytes.push(self.payload[i])
   }
