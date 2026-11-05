@@ -236,21 +236,16 @@ fn rosidl_parse_field_type(
   type_spec : String,
 ) -> Result[(String, Int32?, MessageFieldCollection), String] {
   let parts = type_spec.split("[").collect()
+  let (base_type, string_upper_bound) = match
+    rosidl_parse_base_field_type(parts[0].to_owned()) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
   if parts.length() == 1 {
-    let (base_type, string_upper_bound) = match
-      rosidl_parse_base_field_type(parts[0].to_owned()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
     Ok((base_type, string_upper_bound, Scalar))
   } else if parts.length() != 2 {
     Err("ROS message field type has an invalid collection suffix")
   } else {
-    let (base_type, string_upper_bound) = match
-      rosidl_parse_base_field_type(parts[0].to_owned()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
     let suffix = parts[1].to_owned()
     if suffix.length() == 0 || suffix[suffix.length() - 1] != ']' {
       return Err("ROS message collection type must end with ]")

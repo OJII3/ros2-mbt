@@ -228,6 +228,19 @@ fn spdp_read_u32(value : Bytes) -> Result[UInt32, String] {
 }
 
 ///|
+fn spdp_push_locator(
+  locators : Array[@core.Locator],
+  value : Bytes,
+) -> Result[Unit, String] {
+  let locator = match @core.Locator::from_bytes(value) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  locators.push(locator)
+  Ok(())
+}
+
+///|
 fn spdp_read_protocol_version(
   value : Bytes,
 ) -> Result[@core.ProtocolVersion, String] {
@@ -414,33 +427,23 @@ fn SpdpParticipantData::from_parameter_list_with_default_domain(
           Err(message) => return Err(message)
         }
       @core.PID_METATRAFFIC_UNICAST_LOCATOR =>
-        metatraffic_unicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(metatraffic_unicast_locators, value)
+          is Err(message) {
+          return Err(message)
+        }
       @core.PID_METATRAFFIC_MULTICAST_LOCATOR =>
-        metatraffic_multicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(metatraffic_multicast_locators, value)
+          is Err(message) {
+          return Err(message)
+        }
       @core.PID_DEFAULT_UNICAST_LOCATOR =>
-        default_unicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(default_unicast_locators, value) is Err(message) {
+          return Err(message)
+        }
       @core.PID_DEFAULT_MULTICAST_LOCATOR =>
-        default_multicast_locators.push(
-          match @core.Locator::from_bytes(value) {
-            Ok(result) => result
-            Err(message) => return Err(message)
-          },
-        )
+        if spdp_push_locator(default_multicast_locators, value) is Err(message) {
+          return Err(message)
+        }
       _ => ()
     }
   }

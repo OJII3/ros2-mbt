@@ -179,10 +179,10 @@ pub fn DataSubmessage::serialized_payload(self : DataSubmessage) -> Bytes {
 }
 
 ///|
-/// Decode the related request identity from inline QoS, if present.
-pub fn DataSubmessage::related_sample_identity(
+fn DataSubmessage::inline_parameter(
   self : DataSubmessage,
-) -> Result[SampleIdentity?, String] {
+  id : UInt16,
+) -> Result[Bytes?, String] {
   if self.inline_qos.length() == 0 {
     return Ok(None)
   }
@@ -191,16 +191,27 @@ pub fn DataSubmessage::related_sample_identity(
     Err(message) => return Err(message)
   }
   for parameter in parameters.values() {
-    if parameter.id() != PID_RELATED_SAMPLE_IDENTITY {
-      continue
+    if parameter.id() == id {
+      return Ok(Some(parameter.value()))
     }
-    let identity = match SampleIdentity::from_bytes(parameter.value()) {
-      Ok(value) => value
-      Err(message) => return Err(message)
-    }
-    return Ok(Some(identity))
   }
   Ok(None)
+}
+
+///|
+/// Decode the related request identity from inline QoS, if present.
+pub fn DataSubmessage::related_sample_identity(
+  self : DataSubmessage,
+) -> Result[SampleIdentity?, String] {
+  let value = match self.inline_parameter(PID_RELATED_SAMPLE_IDENTITY) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  match value {
+    Some(value) =>
+      SampleIdentity::from_bytes(value).map(fn(identity) { Some(identity) })
+    None => Ok(None)
+  }
 }
 
 ///|
@@ -208,24 +219,19 @@ pub fn DataSubmessage::related_sample_identity(
 pub fn DataSubmessage::status_info(
   self : DataSubmessage,
 ) -> Result[UInt32?, String] {
-  if self.inline_qos.length() == 0 {
-    return Ok(None)
-  }
-  let parameters = match ParameterList::from_bytes(self.inline_qos) {
-    Ok((value, _)) => value
+  let value = match self.inline_parameter(PID_STATUS_INFO) {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  for parameter in parameters.values() {
-    if parameter.id() != PID_STATUS_INFO {
-      continue
-    }
-    let value = parameter.value()
-    if value.length() != 4 {
-      return Err("RTPS PID_STATUS_INFO must contain 4 bytes")
-    }
-    return Ok(Some(data_read_u32_le(value, 0)))
+  match value {
+    Some(value) =>
+      if value.length() != 4 {
+        Err("RTPS PID_STATUS_INFO must contain 4 bytes")
+      } else {
+        Ok(Some(data_read_u32_le(value, 0)))
+      }
+    None => Ok(None)
   }
-  Ok(None)
 }
 
 ///|
