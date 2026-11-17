@@ -46,6 +46,7 @@ pub struct DiscoveryEngine {
 }
 
 ///|
+/// Create a discovery engine for the local participant.
 pub fn DiscoveryEngine::new(
   participant : SpdpParticipantData,
   reader_id : @core.EntityId,
@@ -73,6 +74,8 @@ pub fn DiscoveryEngine::new(
 }
 
 ///|
+/// Return the earliest deadline for participant expiry, fragment reassembly,
+/// or SEDP heartbeat work.
 pub fn DiscoveryEngine::next_deadline(self : DiscoveryEngine) -> Int64? {
   let mut deadline = self.spdp.next_deadline()
   for remote in self.spdp_fragment_readers {
@@ -91,6 +94,7 @@ pub fn DiscoveryEngine::next_deadline(self : DiscoveryEngine) -> Int64? {
 }
 
 ///|
+/// Drop state whose deadline has passed at `now_ms` and emit due heartbeats.
 pub fn DiscoveryEngine::advance(
   self : DiscoveryEngine,
   now_ms : Int64,
@@ -115,11 +119,13 @@ pub fn DiscoveryEngine::advance(
 }
 
 ///|
+/// Return the next SPDP sequence number without consuming it.
 pub fn DiscoveryEngine::next_sequence_number(self : DiscoveryEngine) -> Int64 {
   self.sender.next_sequence_number()
 }
 
 ///|
+/// Build the SPDP announcement or disposal datagrams for the local participant.
 pub fn DiscoveryEngine::announce_spdp(
   self : DiscoveryEngine,
   dispose : Bool,
@@ -128,6 +134,7 @@ pub fn DiscoveryEngine::announce_spdp(
 }
 
 ///|
+/// Return the next SEDP sequence number for `kind` without consuming it.
 pub fn DiscoveryEngine::next_sedp_sequence_number(
   self : DiscoveryEngine,
   kind : SedpEndpointKind,
@@ -136,6 +143,8 @@ pub fn DiscoveryEngine::next_sedp_sequence_number(
 }
 
 ///|
+/// Build the SEDP announcement or disposal datagrams for `endpoint` directed
+/// at `remotes`.
 pub fn DiscoveryEngine::announce_sedp(
   self : DiscoveryEngine,
   endpoint : SedpEndpointData,
@@ -150,6 +159,7 @@ pub fn DiscoveryEngine::announce_sedp(
 }
 
 ///|
+/// Return the currently known remote participants.
 pub fn DiscoveryEngine::participants(
   self : DiscoveryEngine,
 ) -> Array[SpdpParticipantData] {

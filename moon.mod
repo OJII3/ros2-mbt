@@ -13,3 +13,9 @@ keywords = [ "dds", "rtps", "ros2" ]
 preferred_target = "native"
 
 description = "A small DDS/RTPS compatibility layer for MoonBit and ROS 2"
+
+// Treat every compiler warning, including opt-in lints, as an error.
+
+options(
+  warnings: "+all@all",
+)

@@ -57,6 +57,8 @@ pub struct DiscoverySender {
 }
 
 ///|
+/// Create an I/O-free sender with the local endpoint identities and
+/// metatraffic destination.
 pub fn DiscoverySender::new(
   participant : SpdpParticipantData,
   reader_id : @core.EntityId,
@@ -83,6 +85,7 @@ pub fn DiscoverySender::new(
 }
 
 ///|
+/// Return the next SPDP sequence number without consuming it.
 pub fn DiscoverySender::next_sequence_number(self : DiscoverySender) -> Int64 {
   self.next_sequence
 }
@@ -173,12 +176,12 @@ fn DiscoverySender::spdp_outputs(
 ) -> Array[DiscoveryOutput] {
   self
   .data_messages(write)
-  .map(fn(message) {
-    DiscoveryOutput::{ message, destination: self.destination, }
-  })
+  .map(fn(message) { { message, destination: self.destination, } })
 }
 
 ///|
+/// Build SPDP datagrams for `dispose`, reusing the previous datagrams when the
+/// dispose state has not changed.
 pub fn DiscoverySender::announce_spdp(
   self : DiscoverySender,
   dispose : Bool,
@@ -252,6 +255,7 @@ fn DiscoverySender::writer(
 }
 
 ///|
+/// Return the next SEDP sequence number for `kind` without consuming it.
 pub fn DiscoverySender::next_sedp_sequence_number(
   self : DiscoverySender,
   kind : SedpEndpointKind,
@@ -277,6 +281,8 @@ fn DiscoverySender::metatraffic_locators(
 }
 
 ///|
+/// Store `endpoint` in the transient-local SEDP history and build the
+/// announcement or disposal datagrams for `remotes`.
 pub fn DiscoverySender::announce_sedp(
   self : DiscoverySender,
   endpoint : SedpEndpointData,
@@ -398,6 +404,8 @@ fn discovery_sender_bitmap_contains(
 }
 
 ///|
+/// Retransmit the SEDP samples requested by an ACKNACK and emit GAPs for
+/// sequence numbers no longer retained.
 pub fn DiscoverySender::retransmit_acknack(
   self : DiscoverySender,
   reader_prefix : @core.GuidPrefix,
@@ -476,6 +484,8 @@ pub fn DiscoverySender::retransmit_acknack(
 }
 
 ///|
+/// Retransmit the SEDP fragments requested by a NACK_FRAG and emit a GAP when
+/// the sample is no longer retained.
 pub fn DiscoverySender::retransmit_nackfrag(
   self : DiscoverySender,
   reader_prefix : @core.GuidPrefix,

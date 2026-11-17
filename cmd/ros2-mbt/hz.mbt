@@ -20,7 +20,7 @@ async fn collect_hz_stats(
   receive_sample : async (Int32) -> Result[Bool, String],
 ) -> Result[HzStats, String] {
   let deadline = now_ms() + duration_ms.to_int64()
-  let stats = { samples: 0, intervals: [], }
+  let stats = HzStats::{ samples: 0, intervals: [], }
   let mut previous_sample_ms : Int64? = None
   while true {
     let remaining_ms = (deadline - now_ms()).to_int()

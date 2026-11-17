@@ -29,13 +29,13 @@ fn Writer::with_header(buffer : @buffer.Buffer) -> Writer {
 ///|
 /// Create an empty CDR little-endian payload.
 pub fn Writer::new() -> Writer {
-  Writer::with_header(@buffer.Buffer())
+  Writer::with_header(Buffer())
 }
 
 ///|
 /// Create a writer with a buffer capacity hint.
 pub fn Writer::with_capacity(size_hint : Int32) -> Writer {
-  Writer::with_header(@buffer.Buffer(size_hint~))
+  Writer::with_header(Buffer(size_hint~))
 }
 
 ///|

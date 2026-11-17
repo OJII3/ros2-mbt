@@ -2,3 +2,7 @@ import {
   "moonbitlang/core/async/io",
   "moonbitlang/core/encoding/utf8",
 }
+
+options(
+  "allow-experimental-packages": [ "moonbitlang/core/async/io" ],
+)

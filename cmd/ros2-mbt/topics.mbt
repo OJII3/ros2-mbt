@@ -63,7 +63,7 @@ fn add_topic_endpoint(
       return
     }
   }
-  let summary = {
+  let summary = TopicSummary::{
     ros_name,
     type_names: [type_name],
     publishers: 0,

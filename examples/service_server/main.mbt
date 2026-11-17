@@ -177,9 +177,7 @@ async fn serve_once(
 ) -> Result[Unit, String] {
   let mut result : Result[Unit, String] = Err("service dispatcher stopped")
   @async.with_task_group() <| group => {
-    let events : @aqueue.Queue[ServerEvent] = @aqueue.Queue(
-      kind=@aqueue.Unbounded,
-    )
+    let events : @aqueue.Queue[ServerEvent] = Queue(kind=Unbounded)
     group.spawn_bg(no_wait=true) <| () => {
       let result = discover_service(participant, service)
       events.put(Discovered(result))

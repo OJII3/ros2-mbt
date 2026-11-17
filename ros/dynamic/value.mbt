@@ -12,6 +12,12 @@ pub enum Value {
 }
 
 ///|
+pub extend Value with Eq::{not_equal, equal}
+
+///|
+pub extend Value with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Decode one serialized ROS message using its installed interface definition.
 pub fn decode(
   schema : @introspection.MessageSchema,

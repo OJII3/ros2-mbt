@@ -90,7 +90,7 @@ async test "executor skips malformed RTPS and decoder failures before valid data
     sender.local_unicast_locator().unwrap(),
   )
   node.handle_discovery_event(Subscription(incompatible_reader)).unwrap()
-  assert_eq(node_publisher.publisher.writers.length(), 0)
+  assert_eq(node_publisher.publisher.writer.writers.length(), 0)
   let unsupported_reader = topic
     .to_sedp_with_qos(
       Subscription,
@@ -110,7 +110,7 @@ async test "executor skips malformed RTPS and decoder failures before valid data
     @rtps.Locator::new(123, 0U, Bytes::make(16, 0)).unwrap(),
   )
   node.handle_discovery_event(Subscription(unsupported_reader)).unwrap()
-  assert_eq(node_publisher.publisher.writers.length(), 0)
+  assert_eq(node_publisher.publisher.writer.writers.length(), 0)
   sender.send_to(b"malformed RTPS", user_socket.local_addr())
   sender
   .send_message(
@@ -295,7 +295,7 @@ async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
   let local_writer = ReliableRosDiscoveryPublisher::new_for_subscription(
     user_socket, local_prefix, vendor_id, publication_id, remote_subscription, 1L,
   ).unwrap()
-  node.participant.ros_graph.graph_publishers.push(local_writer)
+  node.middleware.backend.ros_graph.graph_publishers.push(local_writer)
   let gid = @ros_types.Gid::from_guid(
     @rtps.Guid::new(local_prefix, publication_id),
   )
@@ -303,7 +303,9 @@ async test "periodic graph HEARTBEAT recovers a missed initial DATA sample" {
   let graph_node = @ros_types.NodeEntitiesInfo::new("/demo", "talker").unwrap()
   graph_node.add_writer_gid(gid)
   info.add_node(graph_node)
-  node.participant.ros_graph.graph_publishers[0].announce_once(info).unwrap()
+  node.middleware.backend.ros_graph.graph_publishers[0]
+  .announce_once(info)
+  .unwrap()
   ignore(remote_receiver.receive_message().unwrap())
   ignore(remote_receiver.receive_message().unwrap())
   let executor = Executor::new()
@@ -388,15 +390,15 @@ async test "RosNode enforces QoS compatibility for publishers and subscriptions"
 
   // Best-effort publisher does NOT match a reliable subscription
   node.handle_discovery_event(Subscription(remote_rel_sub)).unwrap()
-  assert_eq(be_publisher.publisher.writers.length(), 0)
+  assert_eq(be_publisher.publisher.writer.writers.length(), 0)
 
   // Reliable publisher DOES match reliable subscription
-  assert_eq(rel_publisher.publisher.writers.length(), 1)
+  assert_eq(rel_publisher.publisher.writer.writers.length(), 1)
 
   // Discovered best-effort subscription matches both best-effort and reliable publishers
   node.handle_discovery_event(Subscription(remote_be_sub)).unwrap()
-  assert_eq(be_publisher.publisher.writers.length(), 1)
-  assert_eq(rel_publisher.publisher.writers.length(), 2)
+  assert_eq(be_publisher.publisher.writer.writers.length(), 1)
+  assert_eq(rel_publisher.publisher.writer.writers.length(), 2)
 
   // 3. Create a reliable subscription (default) and best-effort subscription on the node
   let mut sub_received = 0
@@ -526,7 +528,7 @@ async test "reliable RosNode publisher recovers dropped DATA sample via HEARTBEA
   )
 
   node.handle_discovery_event(Subscription(remote_sub_sedp)).unwrap()
-  assert_eq(publisher.publisher.writers.length(), 1)
+  assert_eq(publisher.publisher.writer.writers.length(), 1)
 
   let remote_subscription = ReliableRosSubscription::new_for_publication(
     topic, remote_receiver, remote_prefix, vendor_id, reader_id, local_pub_sedp,
@@ -543,7 +545,7 @@ async test "reliable RosNode publisher recovers dropped DATA sample via HEARTBEA
 
   let (_dropped_data, hb_msg, hb_source) = if wbtest_message_has_submessage(
       datagram1,
-      @rtps.SubmessageId::Data,
+      Data,
     ) {
     (datagram1, datagram2, source2)
   } else {

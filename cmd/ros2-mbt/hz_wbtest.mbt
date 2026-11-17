@@ -1,6 +1,6 @@
 ///|
 test "hz statistics use intervals between samples" {
-  let stats : HzStats = { samples: 0, intervals: [], }
+  let stats = HzStats::{ samples: 0, intervals: [], }
   let first = add_sample(stats, None, 1000L)
   let second = add_sample(stats, Some(first), 1100L)
   ignore(add_sample(stats, Some(second), 1300L))
@@ -16,7 +16,7 @@ test "hz statistics use intervals between samples" {
 
 ///|
 test "hz statistics require two samples" {
-  let stats : HzStats = { samples: 0, intervals: [], }
+  let stats = HzStats::{ samples: 0, intervals: [], }
   assert_true(summarize_hz_stats(stats, 1000) is None)
   ignore(add_sample(stats, None, 100L))
   assert_true(summarize_hz_stats(stats, 1000) is None)
@@ -24,7 +24,7 @@ test "hz statistics require two samples" {
 
 ///|
 test "hz statistics fall back to measurement duration for simultaneous samples" {
-  let stats : HzStats = { samples: 2, intervals: [0L], }
+  let stats = HzStats::{ samples: 2, intervals: [0L], }
   guard summarize_hz_stats(stats, 2000) is Some(summary) else {
     fail("expected a summary")
   }
