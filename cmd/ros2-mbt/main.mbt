@@ -26,33 +26,31 @@ fn positive_option(
 
 ///|
 fn topic_list_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "list",
     about="List discovered ROS topics.",
     options=[
-      @argparse.OptionArg(
-        "spin-time-ms",
-        about="Discovery duration in milliseconds.",
-        default_values=[DEFAULT_SPIN_TIME_MS],
-      ),
+      OptionArg("spin-time-ms", about="Discovery duration in milliseconds.", default_values=[
+        DEFAULT_SPIN_TIME_MS,
+      ]),
     ],
     flags=[
-      @argparse.FlagArg(
+      FlagArg(
         "show-types",
         short='t',
         about="Additionally show each topic's type.",
       ),
-      @argparse.FlagArg(
+      FlagArg(
         "verbose",
         short='v',
         about="List publisher and subscriber counts by topic.",
       ),
-      @argparse.FlagArg(
+      FlagArg(
         "count-topics",
         short='c',
         about="Only display the number of discovered topics.",
       ),
-      @argparse.FlagArg(
+      FlagArg(
         "include-hidden-topics",
         about="Include hidden topics in the list.",
       ),
@@ -62,44 +60,38 @@ fn topic_list_command() -> @argparse.Command {
 
 ///|
 fn topic_hz_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "hz",
     about="Measure the arrival rate of one ROS topic.",
     options=[
-      @argparse.OptionArg(
-        "spin-time-ms",
-        about="Discovery duration in milliseconds.",
-        default_values=[DEFAULT_SPIN_TIME_MS],
-      ),
-      @argparse.OptionArg(
-        "duration-ms",
-        about="Measurement duration in milliseconds.",
-        default_values=[DEFAULT_MEASUREMENT_TIME_MS],
-      ),
+      OptionArg("spin-time-ms", about="Discovery duration in milliseconds.", default_values=[
+        DEFAULT_SPIN_TIME_MS,
+      ]),
+      OptionArg("duration-ms", about="Measurement duration in milliseconds.", default_values=[
+        DEFAULT_MEASUREMENT_TIME_MS,
+      ]),
     ],
-    positionals=[@argparse.PositionArg("topic", about="ROS topic name.")],
+    positionals=[PositionArg("topic", about="ROS topic name.")],
   )
 }
 
 ///|
 fn topic_echo_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "echo",
     about="Echo messages from a ROS topic, detecting its type from discovery.",
     options=[
-      @argparse.OptionArg(
-        "spin-time-ms",
-        about="Discovery duration in milliseconds.",
-        default_values=[DEFAULT_SPIN_TIME_MS],
-      ),
+      OptionArg("spin-time-ms", about="Discovery duration in milliseconds.", default_values=[
+        DEFAULT_SPIN_TIME_MS,
+      ]),
     ],
-    positionals=[@argparse.PositionArg("topic", about="ROS topic name.")],
+    positionals=[PositionArg("topic", about="ROS topic name.")],
   )
 }
 
 ///|
 fn topic_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "topic",
     about="Inspect ROS topics.",
     subcommands=[topic_list_command(), topic_hz_command(), topic_echo_command()],
@@ -109,18 +101,16 @@ fn topic_command() -> @argparse.Command {
 
 ///|
 fn node_list_command() -> @argparse.Command {
-  @argparse.Command("list", about="List discovered ROS nodes.", options=[
-    @argparse.OptionArg(
-      "spin-time-ms",
-      about="Discovery duration in milliseconds.",
-      default_values=[DEFAULT_SPIN_TIME_MS],
-    ),
+  Command("list", about="List discovered ROS nodes.", options=[
+    OptionArg("spin-time-ms", about="Discovery duration in milliseconds.", default_values=[
+      DEFAULT_SPIN_TIME_MS,
+    ]),
   ])
 }
 
 ///|
 fn node_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "node",
     about="Inspect ROS nodes.",
     subcommands=[node_list_command()],
@@ -130,35 +120,33 @@ fn node_command() -> @argparse.Command {
 
 ///|
 fn bag_play_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "play",
     about="Play a ROS 2 MCAP bag file.",
     options=[
-      @argparse.OptionArg(
+      OptionArg(
         "rate",
         about="Playback speed multiplier (for example, 0.5 or 2.0).",
         default_values=["1.0"],
       ),
-      @argparse.OptionArg(
+      OptionArg(
         "topics",
         about="Topic to play; repeat --topics to select multiple topics.",
       ),
-      @argparse.OptionArg(
+      OptionArg(
         "discovery-time-ms",
         about="Wait for ROS topic discovery before playback.",
         default_values=[DEFAULT_SPIN_TIME_MS],
       ),
     ],
-    flags=[
-      @argparse.FlagArg("loop", about="Repeat playback until interrupted."),
-    ],
-    positionals=[@argparse.PositionArg("file", about="MCAP file path.")],
+    flags=[FlagArg("loop", about="Repeat playback until interrupted.")],
+    positionals=[PositionArg("file", about="MCAP file path.")],
   )
 }
 
 ///|
 fn bag_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "bag",
     about="Play ROS bag recordings.",
     subcommands=[bag_play_command()],
@@ -168,7 +156,7 @@ fn bag_command() -> @argparse.Command {
 
 ///|
 fn root_command() -> @argparse.Command {
-  @argparse.Command(
+  Command(
     "ros2-mbt",
     about="Small ROS 2 discovery and diagnostics CLI for ros2-mbt.",
     subcommands=[topic_command(), node_command(), bag_command()],

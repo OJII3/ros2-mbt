@@ -553,8 +553,7 @@ test "virtual engines recover dropped history and fragments through clock-driven
   }
   let recovered : Array[DiscoveryEvent] = []
   // Repair the missing fragment first, then repair the entirely lost DATA.
-  for
-    control_kind in [@core.SubmessageId::NackFrag, @core.SubmessageId::AckNack] {
+  for control_kind in [@core.SubmessageId::NackFrag, AckNack] {
     for control in controls {
       if !control.message
         .submessages()

@@ -24,6 +24,9 @@ pub enum Value {
   ArrayValue(Array[Value])
   ObjectValue(Array[(String, Value)])
 }
+pub fn Value::equal(Self, Self) -> Bool
+pub fn Value::not_equal(Self, Self) -> Bool
+pub fn Value::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

@@ -2,8 +2,6 @@
 /// A lightweight ROS node that groups topic entities and callbacks.
 pub struct RosNode {
   priv middleware : RosMiddleware
-  // Kept for existing whitebox diagnostics; production access goes through middleware.
-  priv participant : RosParticipant
   priv subscriptions : Array[RosNodeSubscription]
   priv publishers : Array[RosNodePublisherEntry]
   priv timers : Array[RosNodeTimer]
@@ -81,7 +79,6 @@ pub async fn RosNode::new(
   }
   Ok({
     middleware,
-    participant,
     subscriptions: [],
     publishers: [],
     timers: [],
@@ -279,7 +276,7 @@ pub fn RosNode::create_timer(
   if period_ms <= 0 {
     return Err("a ROS timer period must be positive")
   }
-  self.timers.push({ timer: @async.Timer(period_ms), callback, })
+  self.timers.push({ timer: Timer(period_ms), callback, })
   Ok(())
 }
 
@@ -439,7 +436,7 @@ pub struct Executor {
 pub fn Executor::new() -> Executor {
   {
     nodes: [],
-    shutdown_queue: @aqueue.Queue(kind=@aqueue.Unbounded),
+    shutdown_queue: Queue(kind=Unbounded),
     running: false,
     shutdown_requested: false,
   }

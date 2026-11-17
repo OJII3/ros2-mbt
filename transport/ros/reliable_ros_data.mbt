@@ -291,7 +291,7 @@ pub async fn ReliableRosPublisher::receive_acknack(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.AckNackSubmessage, @socket.Addr), String] {
   self.receive_control_submessage(
-    @rtps.SubmessageId::AckNack,
+    AckNack,
     @rtps.AckNackSubmessage::from_submessage,
   )
 }
@@ -321,7 +321,7 @@ pub async fn ReliableRosPublisher::receive_nackfrag(
   self : ReliableRosPublisher,
 ) -> Result[(@rtps.NackFragSubmessage, @socket.Addr), String] {
   self.receive_control_submessage(
-    @rtps.SubmessageId::NackFrag,
+    NackFrag,
     @rtps.NackFragSubmessage::from_submessage,
   )
 }

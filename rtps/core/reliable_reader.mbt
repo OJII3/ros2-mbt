@@ -622,6 +622,8 @@ pub fn ReliableDataReader::fragment_receive_usage(
 }
 
 ///|
+/// Return whether a fragmented sample with `sequence` is still awaiting
+/// missing fragments.
 pub fn ReliableDataReader::has_incomplete_fragment(
   self : ReliableDataReader,
   sequence : Int64,

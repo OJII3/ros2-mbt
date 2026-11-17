@@ -16,4 +16,11 @@ import {
 
 supported_targets = "native"
 
+options(
+  "allow-experimental-packages": [
+    "moonbitlang/core/async",
+    "moonbitlang/core/async/fs",
+  ],
+)
+
 pkgtype(kind: "executable")

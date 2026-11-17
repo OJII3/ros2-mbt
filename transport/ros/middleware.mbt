@@ -508,8 +508,6 @@ fn MiddlewareQos::compatible_with(
 /// Callers exchange serialized payloads and do not need the RTPS writer type.
 priv struct MiddlewarePublisher {
   writer : ReliableRosPublisher
-  // Kept as a shared view for existing whitebox diagnostics.
-  writers : Array[ReliableRosTarget]
   info : MiddlewareEndpointInfo
 }
 
@@ -597,7 +595,6 @@ fn MiddlewarePublisher::new(
 ) -> MiddlewarePublisher {
   {
     writer,
-    writers: writer.writers,
     info: {
       topic_name: topic.dds_name(),
       type_name: topic.dds_type_name(),

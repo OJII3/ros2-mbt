@@ -14,5 +14,10 @@ import {
 max_concurrent_tests = 1
 
 options(
+  "allow-experimental-packages": [
+    "moonbitlang/core/async",
+    "moonbitlang/core/async/aqueue",
+    "moonbitlang/core/async/socket",
+  ],
   "is-main": false,
 )

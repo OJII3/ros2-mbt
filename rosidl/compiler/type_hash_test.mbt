@@ -218,7 +218,7 @@ test "ROS workspace service generation preserves primitive type hashes" {
       "example_interfaces", "AddTwoInts", "int64 a\nint64 b\n---\nint64 sum",
     )
     .unwrap()
-  assert_eq(generated.split("pub const AddTwoInts_TYPE_HASH").length(), 2)
+  assert_eq(generated.split("pub const AddTwoInts_TYPE_HASH").count(), 2)
   assert_true(
     generated.contains(
       "pub const AddTwoInts_TYPE_HASH : String = \"RIHS01_baab5d12c15b0dbfdde3e778fa22481c0ef1c02268debebacff3ef350edce27e\"",

@@ -19,17 +19,22 @@ async test "RosNode::new_ddsi creates and closes a participant" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let participant = node.participant.participant()
+  let participant = node.middleware.backend.participant()
   assert_eq(participant.vendor_id(), @rtps.VendorId::new(1, 15))
   let prefix = participant.participant_guid().prefix().as_bytes().to_array()
   assert_eq(prefix[0], 1)
   assert_eq(prefix[1], 15)
   assert_eq(
-    node.participant.ros_graph.ros_node_namespace,
+    node.middleware.backend.ros_graph.ros_node_namespace,
     Some("/node_setup_test"),
   )
-  assert_eq(node.participant.ros_graph.ros_node_name, Some("node_setup_test"))
-  assert_true(node.participant.ros_graph.graph_publication_id is Some(_))
-  assert_true(node.participant.ros_graph.graph_subscription_id is Some(_))
+  assert_eq(
+    node.middleware.backend.ros_graph.ros_node_name,
+    Some("node_setup_test"),
+  )
+  assert_true(node.middleware.backend.ros_graph.graph_publication_id is Some(_))
+  assert_true(
+    node.middleware.backend.ros_graph.graph_subscription_id is Some(_),
+  )
   node.dispose_and_close().unwrap()
 }

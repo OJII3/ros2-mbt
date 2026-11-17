@@ -58,7 +58,7 @@ pub async fn scan_mcap_catalog(
     }
     match record {
       None => return Ok({ topics, routes: channels, })
-      Some(@mcap.Record::Schema(id, name, encoding, data)) => {
+      Some(Schema(id, name, encoding, data)) => {
         if id == 0U.to_uint16() {
           continue
         }
@@ -71,15 +71,7 @@ pub async fn scan_mcap_catalog(
           None => schemas.push({ id, name, encoding, data, })
         }
       }
-      Some(
-        @mcap.Record::Channel(
-          id,
-          schema_id,
-          topic_name,
-          message_encoding,
-          metadata
-        )
-      ) => {
+      Some(Channel(id, schema_id, topic_name, message_encoding, metadata)) => {
         if message_encoding != "cdr" {
           return Err(
             "ROS 2 MCAP channel \{topic_name} uses unsupported encoding: \{message_encoding}",
@@ -155,11 +147,11 @@ pub async fn scan_mcap_catalog(
           }
         }
       }
-      Some(@mcap.Record::Message(channel_id, _, _, _, _)) =>
+      Some(Message(channel_id, _, _, _, _)) =>
         if channel_route_by_id(channels, channel_id) is None {
           return Err("MCAP message references an unknown channel")
         }
-      Some(@mcap.Record::Metadata(name, metadata)) if name == "rosbag2" => {
+      Some(Metadata(name, metadata)) if name == "rosbag2" => {
         let serialized_metadata = metadata_value(
           metadata, "serialized_metadata",
         )
@@ -167,8 +159,8 @@ pub async fn scan_mcap_catalog(
           return Err("rosbag2 message-compressed MCAP files are not supported")
         }
       }
-      Some(@mcap.Record::Metadata(_, _)) => ()
-      Some(@mcap.Record::DataEnd) => return Ok({ topics, routes: channels, })
+      Some(Metadata(_, _)) => ()
+      Some(DataEnd) => return Ok({ topics, routes: channels, })
     }
   } nobreak {
     Err("MCAP catalog scan stopped unexpectedly")
@@ -240,6 +232,9 @@ pub struct McapMessageSource {
 }
 
 ///|
+/// Open a message source over an MCAP reader and its scanned catalog.
+///
+/// The reader must belong to an MCAP file whose profile is `ros2`.
 pub fn McapMessageSource::new(
   reader : @mcap.Reader,
   catalog : BagCatalog,
@@ -262,17 +257,16 @@ pub async fn McapMessageSource::next(
     }
     match record {
       None => return Ok(None)
-      Some(@mcap.Record::Message(channel_id, _, log_time_ns, _, payload)) => {
+      Some(Message(channel_id, _, log_time_ns, _, payload)) => {
         let route = match channel_route_by_id(self.catalog.routes, channel_id) {
           Some(value) => value
           None => return Err("MCAP message references an unknown channel")
         }
         return Ok(Some({ topic_name: route.topic_name, log_time_ns, payload, }))
       }
-      Some(@mcap.Record::DataEnd) => return Ok(None)
-      Some(@mcap.Record::Schema(_, _, _, _))
-      | Some(@mcap.Record::Channel(_, _, _, _, _)) => ()
-      Some(@mcap.Record::Metadata(_, _)) => ()
+      Some(DataEnd) => return Ok(None)
+      Some(Schema(_, _, _, _)) | Some(Channel(_, _, _, _, _)) => ()
+      Some(Metadata(_, _)) => ()
     }
   } nobreak {
     Err("MCAP message stream stopped unexpectedly")
