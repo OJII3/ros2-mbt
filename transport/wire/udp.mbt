@@ -285,9 +285,12 @@ pub async fn Udp::send_spdp(
 ///|
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
-  // The socket keeps a reusable receive buffer. Allocating a fresh
-  // MAX_DATAGRAM_SIZE buffer for every fragment costs more than parsing it.
-  self.server.recv(max_len=MAX_DATAGRAM_SIZE)
+  let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
+  let (length, source) = self.server.recv_into(
+    buffer,
+    max_len=MAX_DATAGRAM_SIZE,
+  )
+  (Bytes::from_array(buffer[:length]), source)
 }
 
 ///|
