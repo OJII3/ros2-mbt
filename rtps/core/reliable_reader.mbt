@@ -1,4 +1,26 @@
 ///|
+/// Maximum sample size a reliable reader reassembles from DATA_FRAG.
+///
+/// Larger samples are dropped before allocation so a malformed or hostile
+/// fragment cannot reserve gigabytes of memory.
+pub const RELIABLE_READER_MAX_FRAGMENTED_SAMPLE_SIZE : Int32 = 64 * 1024 * 1024
+
+///|
+/// Maximum number of incomplete fragmented samples a reliable reader retains.
+pub const RELIABLE_READER_MAX_FRAGMENTED_SAMPLES : Int32 = 8
+
+///|
+/// Maximum combined payload size of incomplete fragmented samples.
+pub const RELIABLE_READER_MAX_FRAGMENTED_BYTES : Int32 = 64 * 1024 * 1024
+
+///|
+/// Maximum fragment-presence slots one sample may reserve.
+///
+/// A tiny fragment size with a large sample would otherwise allocate more
+/// bitmap storage than payload.
+pub const RELIABLE_READER_MAX_FRAGMENTS_PER_SAMPLE : Int32 = 65536
+
+///|
 /// Minimal reliable RTPS reader state for ACKNACK generation.
 ///
 /// UDP receive scheduling remains outside this type. The application feeds
@@ -12,7 +34,7 @@ pub struct ReliableFragmentedSample {
   fragment_size : Int32
   sample_size : Int32
   mut inline_qos : Bytes
-  payload : Array[Byte]
+  payload : FixedArray[Byte]
   received : Array[Bool]
   mut received_count : Int32
 }
@@ -24,14 +46,6 @@ fn reliable_fragmented_sample_new(
   let sample_size = fragment.sample_size().reinterpret_as_int()
   let fragment_size = fragment.fragment_size().to_int()
   let total_fragments = (sample_size + fragment_size - 1) / fragment_size
-  let payload : Array[Byte] = []
-  let received : Array[Bool] = []
-  for _ in 0..<sample_size {
-    payload.push(0)
-  }
-  for _ in 0..<total_fragments {
-    received.push(false)
-  }
   Ok({
     reader_id: fragment.reader_id(),
     writer_id: fragment.writer_id(),
@@ -44,8 +58,8 @@ fn reliable_fragmented_sample_new(
     fragment_size,
     sample_size,
     inline_qos: fragment.inline_qos(),
-    payload,
-    received,
+    payload: FixedArray::make(sample_size, 0),
+    received: Array::make(total_fragments, false),
     received_count: 0,
   })
 }
@@ -82,9 +96,7 @@ fn ReliableFragmentedSample::accept_fragment(
   if self.inline_qos.length() == 0 && fragment.inline_qos().length() > 0 {
     self.inline_qos = fragment.inline_qos()
   }
-  for i in 0..<payload.length() {
-    self.payload[payload_offset + i] = payload[i]
-  }
+  self.payload.blit_from_bytes(payload_offset, payload, 0, payload.length())
   for offset in 0..<count {
     let index = starting - 1 + offset
     if !self.received[index] {
@@ -110,7 +122,7 @@ fn ReliableFragmentedSample::to_data(
     self.reader_id,
     self.writer_id,
     self.sequence_number,
-    Bytes::from_array(self.payload),
+    Bytes::from_array(self.payload.exact_view()),
   )
   let data = if (self.data_flags & DATA_FLAG_KEY) != 0 {
     data.with_key(data.serialized_payload())
@@ -134,7 +146,11 @@ pub struct ReliableDataReader {
   mut samples : Array[Int64]
   mut gaps : Array[GapSubmessage]
   mut fragments : Array[ReliableFragmentedSample]
+  // Sequences abandoned by best-effort eviction. Ignoring their remaining
+  // fragments avoids allocating the same incomplete sample again.
+  mut abandoned_fragments : Array[Int64]
   mut acknowledged_through : Int64
+  mut max_received_sequence : Int64
   mut accepted_sample_count : Int32
 }
 
@@ -152,7 +168,9 @@ pub fn ReliableDataReader::new(
     samples: [],
     gaps: [],
     fragments: [],
+    abandoned_fragments: [],
     acknowledged_through: 0L,
+    max_received_sequence: 0L,
     accepted_sample_count: 0,
   }
 }
@@ -185,7 +203,12 @@ pub fn ReliableDataReader::has_received_sequence(
   self : ReliableDataReader,
   sequence_number : Int64,
 ) -> Bool {
-  sequence_number <= self.acknowledged_through ||
+  if sequence_number <= self.acknowledged_through {
+    return true
+  }
+  if sequence_number > self.max_received_sequence && self.gaps.length() == 0 {
+    return false
+  }
   reliable_reader_has_sequence(self.samples, sequence_number) ||
   reliable_reader_gap_contains_sequence(self.gaps, sequence_number)
 }
@@ -221,6 +244,26 @@ fn ReliableDataReader::advance_acknowledged_through(
     }
   }
   self.gaps = retained_gaps
+  let retained_abandoned : Array[Int64] = []
+  for abandoned in self.abandoned_fragments {
+    if abandoned > sequence_number {
+      retained_abandoned.push(abandoned)
+    }
+  }
+  self.abandoned_fragments = retained_abandoned
+}
+
+///|
+/// Record a completed sample in the receive history.
+fn ReliableDataReader::record_received_sequence(
+  self : ReliableDataReader,
+  sequence_number : Int64,
+) -> Unit {
+  self.samples.push(sequence_number)
+  if sequence_number > self.max_received_sequence {
+    self.max_received_sequence = sequence_number
+  }
+  self.accepted_sample_count += 1
 }
 
 ///|
@@ -239,8 +282,7 @@ pub fn ReliableDataReader::accept_data(
   if self.has_received_sequence(data.writer_sequence_number()) {
     return Ok(())
   }
-  self.samples.push(data.writer_sequence_number())
-  self.accepted_sample_count += 1
+  self.record_received_sequence(data.writer_sequence_number())
   Ok(())
 }
 
@@ -286,12 +328,29 @@ pub fn ReliableDataReader::accept_data_frag(
   if self.has_received_sequence(fragment.writer_sequence_number()) {
     return Ok(None)
   }
+  let sample_size = fragment.sample_size().reinterpret_as_int()
+  let fragment_size = fragment.fragment_size().to_int()
+  let total_fragments = if fragment_size > 0 {
+    (sample_size + fragment_size - 1) / fragment_size
+  } else {
+    0
+  }
+  if sample_size <= 0 ||
+    sample_size > RELIABLE_READER_MAX_FRAGMENTED_SAMPLE_SIZE ||
+    total_fragments > RELIABLE_READER_MAX_FRAGMENTS_PER_SAMPLE {
+    return Ok(None)
+  }
   let index = self.fragments.search_by(fn(sample) {
     sample.sequence_number == fragment.writer_sequence_number()
   })
   let index = match index {
     Some(value) => value
     None => {
+      if self.fragments.length() >= RELIABLE_READER_MAX_FRAGMENTED_SAMPLES ||
+        self.incomplete_fragment_payload_bytes() + sample_size >
+        RELIABLE_READER_MAX_FRAGMENTED_BYTES {
+        return Ok(None)
+      }
       let sample = match reliable_fragmented_sample_new(fragment) {
         Ok(value) => value
         Err(message) => return Err(message)
@@ -306,10 +365,11 @@ pub fn ReliableDataReader::accept_data_frag(
   if !self.fragments[index].is_complete() {
     return Ok(None)
   }
-  let data = self.fragments[index].to_data()
-  ignore(self.fragments.remove(index))
-  self.samples.push(data.writer_sequence_number())
-  self.accepted_sample_count += 1
+  // Remove the assembly before converting it so the payload buffer is the
+  // only reference and `Bytes::from_array` can reuse it without a copy.
+  let sample = self.fragments.remove(index)
+  let data = sample.to_data()
+  self.record_received_sequence(data.writer_sequence_number())
   Ok(Some(data))
 }
 
@@ -549,6 +609,31 @@ pub fn ReliableDataReader::prune_best_effort_receive_state(
 }
 
 ///|
+/// Remember an evicted sequence so its remaining fragments are ignored. The
+/// list is bounded by the duplicate-detection window.
+fn ReliableDataReader::remember_abandoned_fragment(
+  self : ReliableDataReader,
+  sequence : Int64,
+) -> Unit {
+  if self.abandoned_fragments.length() >= 256 {
+    ignore(self.abandoned_fragments.remove(0))
+  }
+  self.abandoned_fragments.push(sequence)
+}
+
+///|
+/// Return the payload bytes reserved by incomplete fragmented samples.
+fn ReliableDataReader::incomplete_fragment_payload_bytes(
+  self : ReliableDataReader,
+) -> Int32 {
+  let mut bytes = 0
+  for sample in self.fragments {
+    bytes += sample.sample_size
+  }
+  bytes
+}
+
+///|
 /// Reject oversized samples before allocating and evict the oldest incomplete
 /// samples when the count or payload budget is exhausted.
 pub fn ReliableDataReader::accept_best_effort_fragment(
@@ -562,6 +647,7 @@ pub fn ReliableDataReader::accept_best_effort_fragment(
     ) ||
     fragment.writer_id() != self.writer_id ||
     self.has_received_sequence(sequence) ||
+    self.abandoned_fragments.contains(sequence) ||
     fragment.sample_size() > 16U * 1024U * 1024U {
     return Ok(None)
   }
@@ -590,6 +676,7 @@ pub fn ReliableDataReader::accept_best_effort_fragment(
       if sequence <= oldest.sequence_number {
         return Ok(None)
       }
+      self.remember_abandoned_fragment(oldest.sequence_number)
       let retained : Array[ReliableFragmentedSample] = []
       for sample in self.fragments {
         if sample.sequence_number != oldest.sequence_number {

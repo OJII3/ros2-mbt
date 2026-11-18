@@ -143,14 +143,15 @@ pub fn DataReaderState::handle_message(
   self : DataReaderState,
   message : @rtps.Message,
 ) -> Result[@rtps.DataSubmessage?, String] {
-  let destinations = match message.destination_contexts() {
+  let submessages = message.submessages()
+  let destinations = match transport_destination_contexts(message) {
     Ok(value) => value
     Err(_) => return Ok(None)
   }
-  let submessages = message.submessages()
   for index in 0..<submessages.length() {
     let submessage = submessages[index]
-    if !transport_destination_matches(
+    if destinations.length() > 0 &&
+      !transport_destination_matches(
         destinations[index],
         self.participant_prefix,
       ) {
@@ -160,7 +161,7 @@ pub fn DataReaderState::handle_message(
       Data => {
         let data = match @rtps.DataSubmessage::from_submessage(submessage) {
           Ok(value) => value
-          Err(message) => return Err(message)
+          Err(_) => continue
         }
         let prefix_matches = match self.writer_prefix {
           Some(prefix) => message.header().guid_prefix() == prefix

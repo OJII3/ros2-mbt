@@ -162,6 +162,7 @@ type ReliableFragmentedWrite
 
 pub struct Udp {
   server : @socket.UdpServer
+  // private fields
 }
 pub async fn Udp::bind(@socket.Addr) -> Result[Self, String]
 pub fn Udp::close(Self) -> Unit
