@@ -101,7 +101,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ runner.temp }}/ros2-mbt-build
-          key: ros2-mbt-build-${{ runner.os }}-${{ hashFiles('moon.mod', 'moon.pkg', '**/moon.pkg', '**/*.mbt', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
+          key: ros2-mbt-build-${{ runner.os }}-${{ github.sha }}-${{ hashFiles('moon.mod', 'moon.pkg', '**/moon.pkg', '**/*.mbt', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
 
       - name: Prepare Podman environment
         env:
@@ -173,7 +173,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ runner.temp }}/ros2-mbt-build
-          key: ros2-mbt-build-${{ runner.os }}-${{ hashFiles('moon.mod', 'moon.pkg', '**/moon.pkg', '**/*.mbt', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
+          key: ros2-mbt-build-${{ runner.os }}-${{ github.sha }}-${{ hashFiles('moon.mod', 'moon.pkg', '**/moon.pkg', '**/*.mbt', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
 
       - name: Prepare Podman environment
         env:
