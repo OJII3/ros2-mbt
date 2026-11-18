@@ -1,4 +1,9 @@
 ///|
+/// Give the action server time to discover this client before sending a goal.
+/// A goal accepted before the feedback reader is matched loses its feedback.
+const ACTION_CLIENT_SETTLE_MS : Int32 = 1000
+
+///|
 fn action_service_wire_format(
   participant : @transport.RosParticipant,
   response_publication : @rtps.SedpEndpointData,
@@ -358,6 +363,7 @@ async fn main {
     discovered_endpoints = @transport.RosActionEndpoints::discover(
       participant, action,
     )
+    @async.sleep(ACTION_CLIENT_SETTLE_MS)
   }
   let endpoints = match discovered_endpoints {
     Ok(value) => value

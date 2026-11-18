@@ -8,6 +8,9 @@ container_name=ros2-mbt-ci
 ros_domain_id=${ROS_DOMAIN_ID:-42}
 discovery_range=${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}
 stage=${1:-all}
+# A stable source timestamp lets MoonBit reuse a cached build for repeated
+# runs of the same commit without treating unchanged files as modified.
+source_mtime=$(git -C "$repo_dir" log -1 --format=%ct 2>/dev/null || date +%s)
 
 if ! command -v podman >/dev/null 2>&1; then
   echo "Podman not found; install Podman and initialize its machine on macOS" >&2
@@ -54,7 +57,8 @@ start_container() {
     --entrypoint /bin/bash \
     "$image" -lc 'while :; do sleep 3600; done'
 
-  podman exec "$container_name" /bin/bash -lc '
+  podman exec --env SOURCE_MTIME="$source_mtime" \
+    "$container_name" /bin/bash -lc '
     set -euo pipefail
     set +u
     source /opt/ros/jazzy/setup.bash
@@ -69,7 +73,8 @@ start_container() {
       --exclude=.mooncakes \
       --exclude=_build \
       --exclude=target \
-      -C /source -cf - . | tar -C /tmp/ros2-mbt -xf -
+      -C /source -cf - . | tar --mtime="@$SOURCE_MTIME" -C /tmp/ros2-mbt -xf -
+    printf "%s" "$SOURCE_MTIME" > /tmp/ros2-mbt-source-mtime
 
     runner_ip=$(ip -4 route get 239.255.0.1 | awk '\''
       {for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}
@@ -93,14 +98,24 @@ run_in_container() {
     runner_ip=\$(cat /tmp/ros2-mbt-runner-ip)
     export ROS2_MBT_IP=\"\$runner_ip\"
     export ROS2_MBT_MULTICAST_IP=\"\$runner_ip\"
+    export SOURCE_MTIME=\$(cat /tmp/ros2-mbt-source-mtime)
     $command
   "
+}
+
+update_dependencies() {
+  run_in_container '
+    moon update
+    if [[ -d .mooncakes ]]; then
+      find .mooncakes -exec touch -h -d "@$SOURCE_MTIME" {} +
+    fi
+  '
 }
 
 run_all() {
   trap stop_container EXIT
   start_container
-  run_in_container 'moon update'
+  update_dependencies
   run_in_container 'bash /source/scripts/ros2_cli_interop.sh'
   run_in_container 'bash /source/scripts/ros2_action_interop.sh'
   run_in_container 'bash /source/scripts/ros2_parameter_interop.sh'
@@ -114,7 +129,7 @@ case "$stage" in
     start_container
     ;;
   update)
-    run_in_container 'moon update'
+    update_dependencies
     ;;
   cli)
     run_in_container 'bash /source/scripts/ros2_cli_interop.sh'
