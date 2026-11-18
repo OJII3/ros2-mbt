@@ -149,6 +149,7 @@ async fn main {
       return
     }
   }
+  eprintln("SERVICE_SERVER_READY")
   match
     serve_once(
       participant, service, prefix, vendor_id, request_reader_id, response_writer_id,

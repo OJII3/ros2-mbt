@@ -1,4 +1,9 @@
 ///|
+/// Give the service server time to discover this client before requesting.
+/// A response written before the peer has matched this client is dropped.
+const SERVICE_CLIENT_SETTLE_MS : Int32 = 1000
+
+///|
 /// Discover the service endpoints.
 async fn discover_service(
   participant : @transport.RosParticipant,
@@ -166,35 +171,71 @@ async fn main {
       @transport.RosServiceWireFormat::CycloneDdsPayload
     _ => DdsRpcInline
   }
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
   let client = match
     @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
-      service, user_socket, prefix, vendor_id, request_writer_id, request_subscription,
-      response_reader_id, response_publication, 1L, service_wire_format,
+      service,
+      participant.user_socket(),
+      prefix,
+      vendor_id,
+      request_writer_id,
+      request_subscription,
+      response_reader_id,
+      response_publication,
+      1L,
+      service_wire_format,
     ) {
     Ok(value) => value
     Err(message) => {
       println(message)
+      participant.close()
       return
     }
   }
   let request_writer = @cdr.Writer::new()
   request_writer.write_i64(2L)
   request_writer.write_i64(3L)
-  let request_identity = match client.request(request_writer.to_bytes()) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      client.close()
-      return
+  // Keep the client visible to discovery while the call is outstanding. The
+  // server may not have discovered this client when the request is sent, and
+  // it cannot deliver a response before the response reader is matched.
+  let mut response_payload : Bytes? = None
+  let mut call_error : String? = None
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match participant.announce_spdp_forever(1000) {
+        Ok(_) => ()
+        Err(message) => println(message)
+      }
+    }
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        match participant.receive_discovery_once() {
+          Ok(_) => ()
+          Err(_) => return
+        }
+      }
+    }
+    @async.sleep(SERVICE_CLIENT_SETTLE_MS)
+    let request_identity = match client.request(request_writer.to_bytes()) {
+      Ok(value) => value
+      Err(message) => {
+        call_error = Some(message)
+        return
+      }
+    }
+    match client.receive_response(request_identity) {
+      Ok((payload, _)) => response_payload = Some(payload)
+      Err(message) => call_error = Some(message)
     }
   }
-  let (response_payload, _) = match client.receive_response(request_identity) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
+  let response_payload = match response_payload {
+    Some(value) => value
+    None => {
+      match call_error {
+        Some(message) => println(message)
+        None => println("the service call did not run")
+      }
       client.close()
+      participant.close_discovery()
       return
     }
   }
@@ -203,6 +244,7 @@ async fn main {
     Err(message) => {
       println(message)
       client.close()
+      participant.close_discovery()
       return
     }
   }
@@ -211,4 +253,5 @@ async fn main {
     Err(message) => println(message)
   }
   client.close()
+  participant.close_discovery()
 }

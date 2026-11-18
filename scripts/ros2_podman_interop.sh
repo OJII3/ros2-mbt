@@ -8,6 +8,9 @@ container_name=ros2-mbt-ci
 ros_domain_id=${ROS_DOMAIN_ID:-42}
 discovery_range=${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}
 stage=${1:-all}
+# A stable source timestamp lets MoonBit reuse a cached build for repeated
+# runs of the same commit without treating unchanged files as modified.
+source_mtime=$(git -C "$repo_dir" log -1 --format=%ct 2>/dev/null || date +%s)
 
 if ! command -v podman >/dev/null 2>&1; then
   echo "Podman not found; install Podman and initialize its machine on macOS" >&2
@@ -20,6 +23,9 @@ stop_container() {
   fi
 }
 
+build_volume=ros2-mbt-build-cache
+build_cache_dir=${ROS2_MBT_PODMAN_BUILD_CACHE:-}
+
 start_container() {
   if [[ "${ROS2_MBT_PODMAN_BUILD:-1}" != "0" ]]; then
     podman build \
@@ -28,29 +34,48 @@ start_container() {
       "$repo_dir/podman/ros2-jazzy"
   fi
 
+  # Keep the container build directory across starts. A host directory is
+  # used when the caller provides one for CI caching; otherwise a named
+  # volume avoids root-owned files appearing inside the repository.
+  local build_mount
+  if [[ -n "$build_cache_dir" ]]; then
+    mkdir -p "$build_cache_dir"
+    build_mount="$build_cache_dir:/tmp/ros2-mbt/_build"
+  else
+    podman volume inspect "$build_volume" >/dev/null 2>&1 ||
+      podman volume create "$build_volume" >/dev/null
+    build_mount="$build_volume:/tmp/ros2-mbt/_build"
+  fi
+
   stop_container
   podman run --detach \
     --name "$container_name" \
     --volume "$repo_dir:/source:ro" \
+    --volume "$build_mount" \
     --env ROS_DOMAIN_ID="$ros_domain_id" \
     --env ROS_AUTOMATIC_DISCOVERY_RANGE="$discovery_range" \
     --entrypoint /bin/bash \
     "$image" -lc 'while :; do sleep 3600; done'
 
-  podman exec "$container_name" /bin/bash -lc '
+  podman exec --env SOURCE_MTIME="$source_mtime" \
+    "$container_name" /bin/bash -lc '
     set -euo pipefail
     set +u
     source /opt/ros/jazzy/setup.bash
     set -u
     mkdir -p /tmp/ros2-mbt
     tar \
+      --mtime="@$SOURCE_MTIME" \
       --exclude=.git \
       --exclude=.codex \
+      --exclude=.cache \
       --exclude=.direnv \
       --exclude=.moon \
       --exclude=.mooncakes \
+      --exclude=_build \
       --exclude=target \
       -C /source -cf - . | tar -C /tmp/ros2-mbt -xf -
+    printf "%s" "$SOURCE_MTIME" > /tmp/ros2-mbt-source-mtime
 
     runner_ip=$(ip -4 route get 239.255.0.1 | awk '\''
       {for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}
@@ -74,14 +99,24 @@ run_in_container() {
     runner_ip=\$(cat /tmp/ros2-mbt-runner-ip)
     export ROS2_MBT_IP=\"\$runner_ip\"
     export ROS2_MBT_MULTICAST_IP=\"\$runner_ip\"
+    export SOURCE_MTIME=\$(cat /tmp/ros2-mbt-source-mtime)
     $command
   "
+}
+
+update_dependencies() {
+  run_in_container '
+    moon update
+    if [[ -d .mooncakes ]]; then
+      find .mooncakes -exec touch -h -d "@$SOURCE_MTIME" {} +
+    fi
+  '
 }
 
 run_all() {
   trap stop_container EXIT
   start_container
-  run_in_container 'moon update'
+  update_dependencies
   run_in_container 'bash /source/scripts/ros2_cli_interop.sh'
   run_in_container 'bash /source/scripts/ros2_action_interop.sh'
   run_in_container 'bash /source/scripts/ros2_parameter_interop.sh'
@@ -95,7 +130,7 @@ case "$stage" in
     start_container
     ;;
   update)
-    run_in_container 'moon update'
+    update_dependencies
     ;;
   cli)
     run_in_container 'bash /source/scripts/ros2_cli_interop.sh'

@@ -347,6 +347,12 @@ Run the full ROS 2 interoperability suite in Podman:
 just interop-podman
 ```
 
+The CLI interoperability suite runs independent scenarios concurrently on
+separate ROS domains. `ROS2_MBT_E2E_JOBS` sets the number of concurrent
+scenarios and defaults to four. The container keeps its MoonBit build in a
+named volume; set `ROS2_MBT_PODMAN_BUILD_CACHE` to a host directory to reuse
+the build across container recreations.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

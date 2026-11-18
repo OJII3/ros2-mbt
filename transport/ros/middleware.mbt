@@ -202,6 +202,13 @@ async fn MiddlewareServiceClient::request(
 }
 
 ///|
+async fn MiddlewareServiceClient::send_request_heartbeat(
+  self : MiddlewareServiceClient,
+) -> Result[Unit, String] {
+  self.request_writer.send_heartbeat()
+}
+
+///|
 async fn MiddlewareServiceClient::receive_response(
   self : MiddlewareServiceClient,
   request_identity : @rtps.SampleIdentity,
