@@ -18,8 +18,8 @@ test "DDSI-RTPS default SPDP multicast address" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(address.ip(), 0xEFFF0001U)
-  assert_eq(address.port(), 7400)
+  assert_eq(address.ip, @socket.IpAddr::v4(0xEFFF0001U))
+  assert_eq(address.port, 7400)
 }
 
 ///|
@@ -36,12 +36,12 @@ test "DDSI-RTPS default IPv4 addresses" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  assert_eq(spdp.ip(), 0x7F000001U)
-  assert_eq(spdp.port(), 7410)
-  assert_eq(user.ip(), 0x7F000001U)
-  assert_eq(user.port(), 7411)
-  assert_eq(multicast.ip(), 0xEFFF0001U)
-  assert_eq(multicast.port(), 7401)
+  assert_eq(spdp.ip, @socket.IpAddr::v4(0x7F000001U))
+  assert_eq(spdp.port, 7410)
+  assert_eq(user.ip, @socket.IpAddr::v4(0x7F000001U))
+  assert_eq(user.port, 7411)
+  assert_eq(multicast.ip, @socket.IpAddr::v4(0xEFFF0001U))
+  assert_eq(multicast.port, 7401)
 }
 
 ///|

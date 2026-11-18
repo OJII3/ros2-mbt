@@ -31,18 +31,18 @@ async test "discovery service announces SEDP endpoints to a participant" {
     0,
     @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      receiver.local_addr().port().reinterpret_as_uint(),
+      receiver.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   remote_participant.add_metatraffic_unicast(locator)
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let reader_id = match
     @rtps.EntityId::new(
@@ -95,7 +95,7 @@ async test "discovery service announces SEDP endpoints to a participant" {
   }
   assert_eq(decoded.topic_name(), "rt/chatter")
   assert_eq(decoded.type_name(), "std_msgs::msg::dds_::String_")
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   let (heartbeat, _) = match test_receive(() => receiver.receive_heartbeat()) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -155,18 +155,18 @@ async test "discovery service announces SEDP to all discovered participants" {
     0,
     @rtps.BUILTIN_ENDPOINT_PUBLICATIONS_DETECTOR,
   )
-  let service_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let service_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer service_socket.close()
-  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let remote_receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer remote_receiver.close()
   let second_remote_receiver = @wire.Udp::bind(
-    @socket.Addr::new(0x7F000001U, 0),
+    @wire.udp_ipv4_addr(0x7F000001U, 0),
   ).unwrap()
   defer second_remote_receiver.close()
   let remote_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      remote_receiver.local_addr().port().reinterpret_as_uint(),
+      remote_receiver.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -175,7 +175,7 @@ async test "discovery service announces SEDP to all discovered participants" {
   let second_remote_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      second_remote_receiver.local_addr().port().reinterpret_as_uint(),
+      second_remote_receiver.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)

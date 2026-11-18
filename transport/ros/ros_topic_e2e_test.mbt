@@ -42,25 +42,19 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let receiver_address = receiver.local_addr()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let sender_address = sender.local_addr()
   let receiver_locator = match
-    @rtps.Locator::udp_v4(
-      b"\x7F\x00\x00\x01",
-      receiver_address.port().reinterpret_as_uint(),
-    ) {
+    @rtps.Locator::udp_v4(b"\x7F\x00\x00\x01", receiver_address.port.to_uint()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
   let sender_locator = match
-    @rtps.Locator::udp_v4(
-      b"\x7F\x00\x00\x01",
-      sender_address.port().reinterpret_as_uint(),
-    ) {
+    @rtps.Locator::udp_v4(b"\x7F\x00\x00\x01", sender_address.port.to_uint()) {
     Ok(value) => value
     Err(message) => fail(message)
   }
@@ -98,7 +92,7 @@ async test "ROS String topic flows through discovered best-effort endpoints" {
     Err(error) => fail(error)
   }
   assert_eq(decoded.data(), "hello from MoonBit")
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   writer.close()
   reader.close()
 }
@@ -135,9 +129,9 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let publisher_spdp = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer publisher_spdp.close()
-  let subscriber_spdp = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let subscriber_spdp = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer subscriber_spdp.close()
   let publisher_participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(publisher_prefix, participant_id),
@@ -168,7 +162,7 @@ async test "two discovery services establish a ROS String data path" {
   let publisher_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      publisher_spdp.local_addr().port().reinterpret_as_uint(),
+      publisher_spdp.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -176,7 +170,7 @@ async test "two discovery services establish a ROS String data path" {
   let subscriber_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      subscriber_spdp.local_addr().port().reinterpret_as_uint(),
+      subscriber_spdp.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -262,14 +256,14 @@ async test "two discovery services establish a ROS String data path" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let publisher_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let publisher_user = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer publisher_user.close()
-  let subscriber_user = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let subscriber_user = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer subscriber_user.close()
   let publisher_user_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      publisher_user.local_addr().port().reinterpret_as_uint(),
+      publisher_user.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -277,7 +271,7 @@ async test "two discovery services establish a ROS String data path" {
   let subscriber_user_locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      subscriber_user.local_addr().port().reinterpret_as_uint(),
+      subscriber_user.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -340,7 +334,7 @@ async test "two discovery services establish a ROS String data path" {
     Err(error) => fail(error)
   }
   assert_eq(message.data(), "discovered hello")
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   publisher_service.close()
   subscriber_service.close()
   writer.close()

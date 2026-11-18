@@ -5,13 +5,13 @@ async test "reliable reader handles an already received DATA datagram" {
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
-    sender.local_addr().port().reinterpret_as_uint(),
+    sender.local_addr().port.to_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
     Publication,
@@ -77,14 +77,14 @@ async test "reliable reader session receives discovered publication data" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      sender.local_addr().port().reinterpret_as_uint(),
+      sender.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)
@@ -201,7 +201,7 @@ async test "reliable reader session receives discovered publication data" {
   assert_eq(acknack.bitmap(), [])
   assert_eq(reader.state.samples.length(), 0)
   assert_eq(reader.sample_count(), 1)
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   reader.close()
 }
@@ -213,13 +213,13 @@ async test "reliable reader session applies GAP before acknowledging HEARTBEAT" 
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
-    sender.local_addr().port().reinterpret_as_uint(),
+    sender.local_addr().port.to_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
     Publication,
@@ -276,13 +276,13 @@ async test "reliable reader session limits ACKNACK to the first missing window" 
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
-    sender.local_addr().port().reinterpret_as_uint(),
+    sender.local_addr().port.to_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
     Publication,
@@ -329,13 +329,13 @@ async test "reliable reader session sends NACK_FRAG windows for a large sample" 
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
-    sender.local_addr().port().reinterpret_as_uint(),
+    sender.local_addr().port.to_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
     Publication,
@@ -386,13 +386,13 @@ async test "reliable reader session reassembles DATA_FRAG over UDP" {
   ]).unwrap()
   let reader_id = @rtps.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @rtps.EntityId::new(b"wrt", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = @rtps.Locator::udp_v4(
     b"\x7F\x00\x00\x01",
-    sender.local_addr().port().reinterpret_as_uint(),
+    sender.local_addr().port.to_uint(),
   ).unwrap()
   let publication = @rtps.SedpEndpointData::new(
     Publication,

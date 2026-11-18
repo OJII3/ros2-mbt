@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Keep this aligned with the MoonBit toolchain in flake.lock. The `latest`
 # selector moves independently of the flake and can break the interop tests.
-ARG MOONBIT_VERSION=0.10.19+bee578715
+ARG MOONBIT_VERSION=0.10.21+06da1ed44
 RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "${MOONBIT_VERSION}"
 
 ENV PATH="/root/.moon/bin:${PATH}"

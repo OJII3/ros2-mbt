@@ -29,9 +29,9 @@ async test "ROS publisher and subscription validate the topic identity" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
@@ -130,9 +130,9 @@ async test "ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
@@ -197,7 +197,7 @@ async test "ROS publisher and subscription exchange a CDR payload" {
   }
   assert_eq(decoded.data(), message.data())
   assert_eq(publisher.next_sequence_number(), 2L)
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   publisher.close()
   subscriber.close()
 }

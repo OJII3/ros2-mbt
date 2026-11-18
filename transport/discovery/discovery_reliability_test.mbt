@@ -19,13 +19,13 @@ async test "discovery session acknowledges reliable SEDP heartbeats from receive
     @rtps.ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
   ).unwrap()
   let sedp_writer = @rtps.EntityId::new(b"\x00\x00\x03", 0xC2).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let metatraffic = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let metatraffic = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer metatraffic.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
-  let ack_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let ack_receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer ack_receiver.close()
   let participant = @rtps.SpdpParticipantData::new(
     @rtps.Guid::new(local_prefix, participant_id),
@@ -75,7 +75,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats from receive
       assert_eq(discovered.participant_guid().prefix(), remote_prefix)
     _ => fail("expected an SPDP participant")
   }
-  assert_true(sender.local_addr().port() != ack_receiver.local_addr().port())
+  assert_true(sender.local_addr().port != ack_receiver.local_addr().port)
   sender
   .send_heartbeat(
     @rtps.HeartbeatSubmessage::new(
@@ -124,7 +124,7 @@ async test "discovery session acknowledges reliable SEDP heartbeats from receive
   assert_eq(acknack.bitmap_base(), 1L)
   assert_eq(acknack.num_bits(), 1U)
   assert_eq(acknack.bitmap(), [0x80000000U])
-  assert_eq(ack_source.port(), receiver.local_addr().port())
+  assert_eq(ack_source.port, receiver.local_addr().port)
   assert_true((acknack.flags() & @rtps.ACKNACK_FLAG_FINAL) == 0)
   sender
   .send_heartbeat(
@@ -215,9 +215,9 @@ async test "discovery session dispatches every SEDP endpoint in one RTPS message
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -324,9 +324,9 @@ async test "discovery session reassembles out-of-order SEDP DATA_FRAG" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -504,9 +504,9 @@ async test "discovery session requests missing SEDP fragments" {
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER |
     @rtps.BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR,
   )
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let session = @discovery.DiscoverySession::new(
     receiver,
@@ -584,7 +584,7 @@ async test "discovery session requests missing SEDP fragments" {
   assert_eq(nackfrag.bitmap_base(), 1U)
   assert_eq(nackfrag.num_bits(), 2U)
   assert_eq(nackfrag.bitmap(), [0x40000000U])
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   session.close()
   sender.close()
 }

@@ -89,22 +89,20 @@ pub async fn RosParticipant::new_ddsi(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let interface_addr = multicast_interface.map(fn(ip) {
-    @socket.Addr::new(ip, 0)
-  })
+  let interface_addr = multicast_interface.map(fn(ip) { @socket.IpAddr::v4(ip) })
   let discovery_receive_socket = match
     @wire.Udp::ddsi_spdp_multicast(domain_id, interface_addr?) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let discovery_send_socket = match @wire.Udp::bind(@socket.Addr::new(0, 0)) {
+  let discovery_send_socket = match @wire.Udp::bind(@wire.udp_ipv4_addr(0, 0)) {
     Ok(value) => value
     Err(message) => {
       discovery_receive_socket.close()
       return Err(message)
     }
   }
-  let spdp_send_socket = match @wire.Udp::bind(@socket.Addr::new(0, 0)) {
+  let spdp_send_socket = match @wire.Udp::bind(@wire.udp_ipv4_addr(0, 0)) {
     Ok(value) => value
     Err(message) => {
       discovery_receive_socket.close()

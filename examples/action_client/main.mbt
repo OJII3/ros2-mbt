@@ -217,7 +217,7 @@ async fn main {
   let feedback_reader_id = @rtps.EntityId::new(b"\x00\x00\x36", 0x04).unwrap()
   let status_reader_id = @rtps.EntityId::new(b"\x00\x00\x37", 0x04).unwrap()
   let feedback_socket = match
-    @transport.Udp::bind(@socket.Addr::new(config.ip, 0)) {
+    @transport.Udp::bind(@transport.udp_ipv4_addr(config.ip, 0)) {
     Ok(value) => value
     Err(message) => {
       println(message)
@@ -226,7 +226,7 @@ async fn main {
     }
   }
   let status_socket = match
-    @transport.Udp::bind(@socket.Addr::new(config.ip, 0)) {
+    @transport.Udp::bind(@transport.udp_ipv4_addr(config.ip, 0)) {
     Ok(value) => value
     Err(message) => {
       println(message)

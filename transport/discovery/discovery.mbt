@@ -303,7 +303,7 @@ pub async fn DiscoverySession::receive_once(
         let now_ms = self.clock.now_ms()
         self.enqueue_effects(
           self.engine.advance(now_ms),
-          @socket.Addr::new(0, 0),
+          @wire.udp_ipv4_addr(0, 0),
         )
         let effects = match
           self.engine.receive(

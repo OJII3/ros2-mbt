@@ -5,17 +5,13 @@ import {
   "OJII3/ros2-mbt/rtps",
   "OJII3/ros2-mbt/transport",
   "moonbitlang/core/async",
-  "moonbitlang/core/async/socket",
   "moonbitlang/core/env",
 }
 
 supported_targets = "native"
 
 options(
-  "allow-experimental-packages": [
-    "moonbitlang/core/async",
-    "moonbitlang/core/async/socket",
-  ],
+  "allow-experimental-packages": [ "moonbitlang/core/async" ],
 )
 
 pkgtype(kind: "executable")

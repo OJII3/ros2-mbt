@@ -51,7 +51,10 @@ fn discovery_lease_timer_segment(remaining_ms : Int64) -> Int32 {
 
 ///|
 fn discovery_addr_to_locator(address : @socket.Addr) -> @rtps.Locator {
-  let ip = address.ip()
+  let ip = match address.ip {
+    Ipv4(ip) => ip
+    Ipv6(_, ..) => abort("discovery sockets require IPv4 addresses")
+  }
   @rtps.Locator::udp_v4(
     Bytes::from_array([
       (ip >> 24).to_byte(),
@@ -59,7 +62,7 @@ fn discovery_addr_to_locator(address : @socket.Addr) -> @rtps.Locator {
       (ip >> 8).to_byte(),
       ip.to_byte(),
     ]),
-    address.port().reinterpret_as_uint(),
+    address.port.to_uint(),
   ).unwrap()
 }
 
@@ -78,7 +81,7 @@ fn discovery_locator_to_addr(
     (address[13].to_int().reinterpret_as_uint() << 16) |
     (address[14].to_int().reinterpret_as_uint() << 8) |
     address[15].to_int().reinterpret_as_uint()
-  Ok(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
+  Ok(@wire.udp_ipv4_addr(ip, locator.port().reinterpret_as_int()))
 }
 
 ///|
@@ -178,7 +181,7 @@ fn DiscoverySession::queue_expired_participants(
 ) -> Unit {
   self.enqueue_effects(
     self.engine.advance(self.clock.now_ms()),
-    @socket.Addr::new(0, 0),
+    @wire.udp_ipv4_addr(0, 0),
   )
 }
 

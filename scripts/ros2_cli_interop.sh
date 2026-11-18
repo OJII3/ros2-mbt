@@ -15,9 +15,11 @@ if ! command -v ros2 >/dev/null 2>&1; then
   exit 127
 fi
 if command -v moon >/dev/null 2>&1; then
-  moon_command=(moon run)
+  moon_command=(moon run --release)
+  moon_build_command=(moon build --release --target native)
 else
-  moon_command=(nix develop --command moon run)
+  moon_command=(nix develop --command moon run --release)
+  moon_build_command=(nix develop --command moon build --release --target native)
 fi
 
 tmp_dir=$(mktemp -d)
@@ -117,6 +119,10 @@ cleanup() {
   rm -rf -- "$tmp_dir"
 }
 trap cleanup EXIT
+
+# Build every example before any probe starts so compilation time is not
+# counted against probe discovery timeouts.
+"${moon_build_command[@]}"
 
 wait_for_node() {
   local node_name="$1"

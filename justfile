@@ -15,8 +15,11 @@ fmt-check:
 check:
     moon check
 
+# Native debug linking of `Array[@socket.Addr]` hits a MoonBit compiler ICE,
+# so native tests run in release mode until the compiler supports it.
+# https://github.com/moonbitlang/moonbit-docs/issues/1322
 test:
-    moon test --target native
+    moon test --target native --release
 
 # Run ROS 2 Jazzy interoperability checks.
 interop-cli:

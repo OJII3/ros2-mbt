@@ -45,6 +45,8 @@ pub fn ddsi_user_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
 pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt32, UInt32, UInt32, Int32) -> Result[@discovery.SpdpParticipantData, String]
 
+pub fn udp_ipv4_addr(UInt32, Int32) -> @socket.Addr
+
 // Errors
 
 // Types and methods
@@ -163,14 +165,14 @@ pub struct Udp {
 }
 pub async fn Udp::bind(@socket.Addr) -> Result[Self, String]
 pub fn Udp::close(Self) -> Unit
-pub async fn Udp::ddsi_spdp_multicast(UInt32, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_spdp_multicast(UInt32, interface_addr? : @socket.IpAddr) -> Result[Self, String]
 pub async fn Udp::ddsi_spdp_unicast(UInt32, UInt32, UInt32) -> Result[Self, String]
-pub async fn Udp::ddsi_user_multicast(UInt32, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::ddsi_user_multicast(UInt32, interface_addr? : @socket.IpAddr) -> Result[Self, String]
 pub async fn Udp::ddsi_user_unicast(UInt32, UInt32, UInt32) -> Result[Self, String]
 pub fn Udp::join_multicast_group(Self, @socket.Addr) -> Unit raise
 pub fn Udp::local_addr(Self) -> @socket.Addr
 pub fn Udp::local_unicast_locator(Self) -> Result[@core.Locator, String]
-pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.Addr) -> Result[Self, String]
+pub async fn Udp::multicast(@socket.Addr, interface_addr? : @socket.IpAddr) -> Result[Self, String]
 pub async fn Udp::receive(Self) -> (Bytes, @socket.Addr)
 pub async fn Udp::receive_acknack(Self) -> Result[(@core.AckNackSubmessage, @socket.Addr), String]
 pub async fn Udp::receive_data(Self) -> Result[(@core.DataSubmessage, @socket.Addr), String]
@@ -196,7 +198,7 @@ pub async fn Udp::send_sedp_to_participant(Self, @discovery.SedpEndpointData, @c
 pub async fn Udp::send_sedp_to_participant_with_heartbeat_count(Self, @discovery.SedpEndpointData, @core.VendorId, @discovery.SpdpParticipantData, Int64, UInt32) -> Result[Unit, String]
 pub async fn Udp::send_spdp(Self, @discovery.SpdpParticipantData, @core.EntityId, @core.EntityId, Int64, @socket.Addr) -> Result[Unit, String]
 pub async fn Udp::send_to(Self, Bytes, @socket.Addr) -> Unit
-pub fn Udp::set_multicast_interface(Self, @socket.Addr) -> Result[Unit, String]
+pub fn Udp::set_multicast_interface(Self, @socket.IpAddr) -> Result[Unit, String]
 
 // Type aliases
 pub using @core {type ReliableDataReader}

@@ -10,8 +10,11 @@
     nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/master";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";
     moonbit-overlay.url = "github:moonbit-community/moonbit-overlay";
+    # moon2nix 026f5a4 replaced `buildMoonPackage` with the moon-nix
+    # `buildProject` API, which does not recognize `pkgtype(kind: "executable")`
+    # yet. Keep the last revision that supports this package layout.
     moon2nix = {
-      url = "github:moonbit-community/moon2nix";
+      url = "github:moonbit-community/moon2nix/2aedf357c4ae945e121c03a4cb56ac86e9edbee2";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.moonbit-overlay.follows = "moonbit-overlay";
     };
