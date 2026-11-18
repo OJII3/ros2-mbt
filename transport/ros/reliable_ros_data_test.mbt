@@ -18,11 +18,11 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let second_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let second_receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer second_receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let receiver_locator = match receiver.local_unicast_locator() {
     Ok(value) => value
@@ -158,8 +158,8 @@ async test "reliable ROS publisher and subscription exchange a CDR payload" {
   assert_eq(publisher.next_sequence_number(), 2L)
   assert_eq(publisher.history_length(), 0)
   assert_eq(subscriber.sample_count(), 1)
-  assert_eq(source.ip(), 0x7F000001U)
-  assert_eq(second_source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
+  assert_eq(second_source.ip, @socket.IpAddr::v4(0x7F000001U))
   publisher.close()
   subscriber.close()
   second_subscriber.close()

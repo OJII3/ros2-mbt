@@ -35,7 +35,7 @@ pub fn Writer::new() -> Writer {
 ///|
 /// Create a writer with a buffer capacity hint.
 pub fn Writer::with_capacity(size_hint : Int32) -> Writer {
-  Writer::with_header(Buffer(size_hint~))
+  Writer::with_header(Buffer(capacity=size_hint))
 }
 
 ///|

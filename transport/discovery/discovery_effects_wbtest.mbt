@@ -15,9 +15,9 @@ fn effects_test_participant(id : Byte) -> @rtps.SpdpParticipantData {
 
 ///|
 async test "discovery commits only accepted sends and retries the same sequence" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let session = DiscoverySession::new_default(
     socket,
@@ -40,7 +40,7 @@ async test "discovery commits only accepted sends and retries the same sequence"
     1L,
   )
   session.enqueue_outgoing([{ message: second.message, destination: good, }])
-  let closed = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let closed = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   closed.close()
   assert_true(session.flush_outgoing_on(closed) is Err(_))
   assert_eq(session.outgoing.length(), 1)
@@ -61,8 +61,8 @@ async test "discovery commits only accepted sends and retries the same sequence"
 
 ///|
 async test "a failed heartbeat response does not discard later discovery events" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
-  let input = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  let input = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer input.close()
   let session = DiscoverySession::new_with_receive_sockets(
     socket,
@@ -131,8 +131,8 @@ async test "a failed heartbeat response does not discard later discovery events"
 
 ///|
 async test "concurrent discovery flushes send each queued SPDP refresh once" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let session = DiscoverySession::new_default(
     socket,
@@ -171,8 +171,8 @@ async test "concurrent discovery flushes send each queued SPDP refresh once" {
 
 ///|
 async test "permanently invalid destinations are retained separately without blocking unrelated sends" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
   let session = DiscoverySession::new_default(
     socket,
@@ -226,8 +226,8 @@ async test "permanently invalid destinations are retained separately without blo
 
 ///|
 async test "SEDP announcement wakes a receive sleeping on a long participant lease and repairs initial loss" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
-  let remote_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  let remote_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer remote_socket.close()
   let session = DiscoverySession::new_default(
     socket,
@@ -318,8 +318,8 @@ async test "SEDP announcement wakes a receive sleeping on a long participant lea
 
 ///|
 async test "a receive with no deadline wakes when a concurrent announcement starts reliability" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
-  let remote_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  let remote_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer remote_socket.close()
   let session = DiscoverySession::new_default(
     socket,

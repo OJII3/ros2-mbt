@@ -3,6 +3,13 @@
 pub const MAX_DATAGRAM_SIZE : Int32 = 65535
 
 ///|
+/// Create a UDP/IPv4 socket address from the host-order IPv4 integer used by
+/// RTPS locators.
+pub fn udp_ipv4_addr(ip : UInt32, port : Int32) -> @socket.Addr {
+  Addr(@socket.IpAddr::v4(ip), port.to_uint16())
+}
+
+///|
 fn transport_guid_prefix_is_unknown(prefix : @rtps.GuidPrefix) -> Bool {
   for byte in prefix.as_bytes() {
     if byte != 0 {
@@ -49,7 +56,7 @@ pub async fn Udp::bind(addr : @socket.Addr) -> Result[Udp, String] {
 /// Return bind failures as `Err`.
 pub async fn Udp::multicast(
   group : @socket.Addr,
-  interface_addr? : @socket.Addr,
+  interface_addr? : @socket.IpAddr,
 ) -> Result[Udp, String] {
   Ok({ server: @socket.UdpServer::multicast(group, interface_addr?), }) catch {
     _ => Err("could not bind UDP multicast socket")
@@ -60,7 +67,7 @@ pub async fn Udp::multicast(
 /// Select the IPv4 interface used when sending multicast packets.
 pub fn Udp::set_multicast_interface(
   self : Udp,
-  interface_addr : @socket.Addr,
+  interface_addr : @socket.IpAddr,
 ) -> Result[Unit, String] {
   try {
     self.server.set_multicast_interface(interface_addr)
@@ -74,7 +81,7 @@ pub fn Udp::set_multicast_interface(
 /// Bind to the DDSI-RTPS SPDP multicast port for a domain.
 pub async fn Udp::ddsi_spdp_multicast(
   domain_id : UInt32,
-  interface_addr? : @socket.Addr,
+  interface_addr? : @socket.IpAddr,
 ) -> Result[Udp, String] {
   let address = match ddsi_default_spdp_multicast_addr(domain_id) {
     Ok(value) => value
@@ -102,7 +109,7 @@ pub async fn Udp::ddsi_spdp_unicast(
 /// Bind to the DDSI-RTPS user-data multicast port for a domain.
 pub async fn Udp::ddsi_user_multicast(
   domain_id : UInt32,
-  interface_addr? : @socket.Addr,
+  interface_addr? : @socket.IpAddr,
 ) -> Result[Udp, String] {
   let address = match ddsi_default_user_multicast_addr(domain_id) {
     Ok(value) => value
@@ -135,8 +142,7 @@ pub fn Udp::local_addr(self : Udp) -> @socket.Addr {
 ///|
 /// Return the bound IPv4 address as an RTPS UDP locator.
 pub fn Udp::local_unicast_locator(self : Udp) -> Result[@rtps.Locator, String] {
-  let address = self.local_addr()
-  ddsi_udp_locator(address.ip(), address.port())
+  ddsi_udp_locator(self.local_addr())
 }
 
 ///|
@@ -155,7 +161,7 @@ pub async fn Udp::send_to(
   payload : Bytes,
   destination : @socket.Addr,
 ) -> Unit {
-  self.server.sendto(payload, destination)
+  self.server.send(payload, destination)
 }
 
 ///|
@@ -265,7 +271,10 @@ pub async fn Udp::send_spdp(
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
   let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
-  let (length, source) = self.server.recvfrom(buffer, max_len=MAX_DATAGRAM_SIZE)
+  let (length, source) = self.server.recv_into(
+    buffer,
+    max_len=MAX_DATAGRAM_SIZE,
+  )
   (Bytes::from_array(buffer[:length]), source)
 }
 
@@ -448,7 +457,7 @@ fn udp_locator_to_addr(locator : @rtps.Locator) -> Result[@socket.Addr, String] 
     (address[13].to_int().reinterpret_as_uint() << 16) |
     (address[14].to_int().reinterpret_as_uint() << 8) |
     address[15].to_int().reinterpret_as_uint()
-  Ok(@socket.Addr::new(ip, locator.port().reinterpret_as_int()))
+  Ok(udp_ipv4_addr(ip, locator.port().reinterpret_as_int()))
 }
 
 ///|

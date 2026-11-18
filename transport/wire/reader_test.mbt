@@ -28,9 +28,9 @@ async test "best-effort reader accepts its discovered publication" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let reader = match
     @wire.DataReader::new_for_publication_with_prefix(
@@ -48,7 +48,7 @@ async test "best-effort reader accepts its discovered publication" {
       },
       prefix,
       @rtps.VendorId::new(1, 15),
-      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+      @wire.udp_ipv4_addr(0x7F000001U, reader.socket.local_addr().port.to_int()),
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -66,7 +66,7 @@ async test "best-effort reader accepts its discovered publication" {
       ),
       prefix,
       @rtps.VendorId::new(1, 15),
-      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+      @wire.udp_ipv4_addr(0x7F000001U, reader.socket.local_addr().port.to_int()),
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -76,7 +76,7 @@ async test "best-effort reader accepts its discovered publication" {
       @rtps.DataSubmessage::new(reader_id, writer_id, 1L, b"other participant"),
       other_prefix,
       @rtps.VendorId::new(1, 15),
-      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+      @wire.udp_ipv4_addr(0x7F000001U, reader.socket.local_addr().port.to_int()),
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -93,7 +93,7 @@ async test "best-effort reader accepts its discovered publication" {
   match
     sender.send_message(
       wrong_destination,
-      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+      @wire.udp_ipv4_addr(0x7F000001U, reader.socket.local_addr().port.to_int()),
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -103,7 +103,7 @@ async test "best-effort reader accepts its discovered publication" {
       data,
       prefix,
       @rtps.VendorId::new(1, 15),
-      @socket.Addr::new(0x7F000001U, reader.socket.local_addr().port()),
+      @wire.udp_ipv4_addr(0x7F000001U, reader.socket.local_addr().port.to_int()),
     ) {
     Ok(_) => ()
     Err(message) => fail(message)
@@ -113,7 +113,7 @@ async test "best-effort reader accepts its discovered publication" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.serialized_payload(), b"payload")
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   reader.close()
 }
@@ -131,9 +131,9 @@ async test "best-effort reader accepts DATA with an unknown reader ID" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let reader = @wire.DataReader::new_for_publication(
     receiver, reader_id, publication,
@@ -170,9 +170,9 @@ async test "best-effort reader reassembles DATA_FRAG over UDP" {
     "rt/chatter",
     "std_msgs::msg::dds_::String_",
   ).unwrap()
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let reader = @wire.DataReader::new_for_publication(
     receiver, reader_id, publication,

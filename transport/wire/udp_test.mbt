@@ -1,30 +1,30 @@
 ///|
 async test "UDP binds an ephemeral loopback port" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let address = socket.local_addr()
-  assert_eq(address.ip(), 0x7F000001U)
-  assert_true(address.port() > 0)
+  assert_eq(address.ip, @socket.IpAddr::v4(0x7F000001U))
+  assert_true(address.port > 0)
   socket.close()
 }
 
 ///|
 async test "UDP bind reports an address-in-use error" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   assert_true(@wire.Udp::bind(socket.local_addr()) is Err(_))
 }
 
 ///|
 async test "UDP exposes its bound address as an RTPS locator" {
-  let socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let locator = match socket.local_unicast_locator() {
     Ok(value) => value
     Err(message) => fail(message)
   }
   assert_eq(locator.kind(), @rtps.LOCATOR_KIND_UDP_V4)
-  assert_eq(locator.port(), socket.local_addr().port().reinterpret_as_uint())
+  assert_eq(locator.port(), socket.local_addr().port.to_uint())
   assert_eq(locator.address()[12], 0x7F)
   assert_eq(locator.address()[15], 0x01)
   socket.close()
@@ -32,15 +32,16 @@ async test "UDP exposes its bound address as an RTPS locator" {
 
 ///|
 async test "UDP multicast sockets can use an explicit IPv4 interface" {
-  let loopback = @socket.Addr::new(0x7F000001U, 0)
+  let loopback = @wire.udp_ipv4_addr(0x7F000001U, 0)
+  let loopback_interface = @socket.IpAddr::v4(0x7F000001U)
   let receiver = @wire.Udp::multicast(
-    @socket.Addr::new(0xEFFF2A01U, 0),
-    interface_addr=loopback,
+    @wire.udp_ipv4_addr(0xEFFF2A01U, 0),
+    interface_addr=loopback_interface,
   ).unwrap()
   defer receiver.close()
   let sender = @wire.Udp::bind(loopback).unwrap()
   defer sender.close()
-  assert_eq(sender.set_multicast_interface(loopback), Ok(()))
+  assert_eq(sender.set_multicast_interface(loopback_interface), Ok(()))
   sender.close()
   receiver.close()
 }
@@ -53,14 +54,14 @@ async test "UDP DDSI constructors reject invalid domains before binding" {
 
 ///|
 async test "UDP sends and receives one datagram" {
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   sender.send_to(b"RTPS", receiver.local_addr())
   let (payload, source) = test_receive(() => receiver.receive())
   assert_eq(payload, b"RTPS")
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -75,9 +76,9 @@ async test "UDP sends and receives one RTPS message" {
   let header = @rtps.Header::new(prefix, @rtps.VendorId::new(1, 15))
   let message = @rtps.Message::new(header)
   message.add(@rtps.Submessage::new(Data, 0x05, b"payload"))
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match sender.send_message(message, receiver.local_addr()) {
     Ok(_) => ()
@@ -88,7 +89,7 @@ async test "UDP sends and receives one RTPS message" {
     Err(message) => fail(message)
   }
   assert_eq(decoded, message)
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -109,9 +110,9 @@ async test "UDP sends and receives one DATA sample" {
     Err(message) => fail(message)
   }
   let data = @rtps.DataSubmessage::new(reader_id, writer_id, 4L, b"payload")
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match
     sender.send_data(
@@ -128,7 +129,7 @@ async test "UDP sends and receives one DATA sample" {
     Err(message) => fail(message)
   }
   assert_eq(decoded, data)
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -158,9 +159,9 @@ async test "UDP sends and receives ROS graph-discovery info" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match
     sender.send_ros_discovery_info(
@@ -181,7 +182,7 @@ async test "UDP sends and receives ROS graph-discovery info" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.to_cdr_bytes(), info.to_cdr_bytes())
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -215,9 +216,9 @@ async test "UDP sends and receives one SPDP announcement" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match
     sender.send_spdp(
@@ -235,7 +236,7 @@ async test "UDP sends and receives one SPDP announcement" {
     Err(message) => fail(message)
   }
   assert_eq(decoded.to_cdr_bytes(), participant.to_cdr_bytes())
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -272,9 +273,9 @@ async test "UDP sends and receives one SEDP announcement" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match
     sender.send_sedp(
@@ -295,7 +296,7 @@ async test "UDP sends and receives one SEDP announcement" {
   }
   assert_eq(decoded.topic_name(), endpoint.topic_name())
   assert_eq(decoded.type_name(), endpoint.type_name())
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -329,9 +330,9 @@ async test "UDP classifies discovery samples by builtin writer" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let heartbeat = match
     @rtps.HeartbeatSubmessage::new(reader_id, writer_id, 1L, 1L, 1U) {
@@ -374,7 +375,7 @@ async test "UDP classifies discovery samples by builtin writer" {
     EndpointRemoved(_, _) => fail("expected an SEDP subscription event")
     ParticipantRemoved(_) => fail("expected an SEDP subscription event")
   }
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }
@@ -401,14 +402,14 @@ async test "UDP sends SEDP to a participant metatraffic locator" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   let locator = match
     @rtps.Locator::udp_v4(
       b"\x7F\x00\x00\x01",
-      receiver.local_addr().port().reinterpret_as_uint(),
+      receiver.local_addr().port.to_uint(),
     ) {
     Ok(value) => value
     Err(message) => fail(message)

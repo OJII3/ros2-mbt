@@ -42,9 +42,9 @@ async test "UDP sends and receives HEARTBEAT and ACKNACK" {
     Ok(value) => value
     Err(message) => fail(message)
   }
-  let receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer receiver.close()
-  let sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer sender.close()
   match
     sender.send_heartbeat(
@@ -78,7 +78,7 @@ async test "UDP sends and receives HEARTBEAT and ACKNACK" {
   }
   assert_eq(received_heartbeat.last_sequence_number(), 2L)
   assert_eq(received_acknack.bitmap(), [0x00000002U])
-  assert_eq(source.ip(), 0x7F000001U)
+  assert_eq(source.ip, @socket.IpAddr::v4(0x7F000001U))
   sender.close()
   receiver.close()
 }

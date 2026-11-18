@@ -45,6 +45,8 @@ pub fn ddsi_user_unicast_port(UInt32, UInt32) -> Result[Int32, String]
 
 pub fn new_ddsi_participant(@core.GuidPrefix, @core.VendorId, UInt32, UInt32, UInt32, Int32) -> Result[@OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData, String]
 
+pub fn udp_ipv4_addr(UInt32, Int32) -> @socket.Addr
+
 // Errors
 
 // Types and methods

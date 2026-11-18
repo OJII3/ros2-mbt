@@ -10,14 +10,14 @@ async test "participant dispatcher recovers a dropped graph announcement" {
   let local_identity = @wire.new_ddsi_participant(
     local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
   ).unwrap()
-  let discovery_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let discovery_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer discovery_socket.close()
-  let user_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let user_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer user_socket.close()
   let participant = RosParticipant::from_sockets(
     discovery_socket, user_socket, local_identity, 0, 1L,
   ).unwrap()
-  let remote_receiver = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let remote_receiver = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer remote_receiver.close()
   let publication_id = @rtps.EntityId::new(b"gph", 0x03).unwrap()
   let subscription_id = @rtps.EntityId::new(b"gph", 0x04).unwrap()

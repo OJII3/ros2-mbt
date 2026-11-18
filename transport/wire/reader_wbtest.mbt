@@ -11,9 +11,7 @@ fn best_effort_test_handle(
   )
   message.add(submessage)
   match
-    reader
-    .handle_message(message, @socket.Addr::new(0x7F000001U, 12345))
-    .unwrap() {
+    reader.handle_message(message, udp_ipv4_addr(0x7F000001U, 12345)).unwrap() {
     Some((data, _)) => Some(data)
     None => None
   }
@@ -55,7 +53,7 @@ fn best_effort_test_fragment(
 
 ///|
 async test "best-effort history stays bounded and rejects duplicate and expired DATA" {
-  let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = Udp::bind(udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let reader = DataReader::new(
     socket,
@@ -101,7 +99,7 @@ async test "best-effort history stays bounded and rejects duplicate and expired 
 
 ///|
 async test "best-effort caps incomplete samples and preserves out-of-order fragments" {
-  let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = Udp::bind(udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let reader = DataReader::new(
     socket,
@@ -158,7 +156,7 @@ async test "best-effort caps incomplete samples and preserves out-of-order fragm
 
 ///|
 async test "best-effort enforces its reassembly payload budget before allocating" {
-  let socket = Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let socket = Udp::bind(udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()
   let reader = DataReader::new(
     socket,

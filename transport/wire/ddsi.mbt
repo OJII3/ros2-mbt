@@ -31,8 +31,12 @@ pub const DDSI_USER_MULTICAST_OFFSET : Int32 = 1
 pub const DDSI_USER_UNICAST_OFFSET : Int32 = 11
 
 ///|
-/// Convert an IPv4 integer and port into an RTPS UDP locator.
-fn ddsi_udp_locator(ip : UInt32, port : Int32) -> Result[@rtps.Locator, String] {
+/// Convert a UDP address into an RTPS UDP locator.
+fn ddsi_udp_locator(address : @socket.Addr) -> Result[@rtps.Locator, String] {
+  let ip = match address.ip {
+    Ipv4(ip) => ip
+    Ipv6(_, ..) => return Err("only UDP/IPv4 RTPS locators are supported")
+  }
   @rtps.Locator::udp_v4(
     Bytes::from_array([
       (ip >> 24).to_byte(),
@@ -40,7 +44,7 @@ fn ddsi_udp_locator(ip : UInt32, port : Int32) -> Result[@rtps.Locator, String] 
       (ip >> 8).to_byte(),
       ip.to_byte(),
     ]),
-    port.reinterpret_as_uint(),
+    address.port.to_uint(),
   )
 }
 
@@ -110,7 +114,7 @@ pub fn ddsi_default_spdp_multicast_addr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(@socket.Addr::new(DDSI_DEFAULT_MULTICAST_IP, port))
+  Ok(udp_ipv4_addr(DDSI_DEFAULT_MULTICAST_IP, port))
 }
 
 ///|
@@ -124,7 +128,7 @@ pub fn ddsi_default_spdp_unicast_addr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(@socket.Addr::new(ip, port))
+  Ok(udp_ipv4_addr(ip, port))
 }
 
 ///|
@@ -136,7 +140,7 @@ pub fn ddsi_default_user_multicast_addr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(@socket.Addr::new(DDSI_DEFAULT_MULTICAST_IP, port))
+  Ok(udp_ipv4_addr(DDSI_DEFAULT_MULTICAST_IP, port))
 }
 
 ///|
@@ -150,7 +154,7 @@ pub fn ddsi_default_user_unicast_addr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  Ok(@socket.Addr::new(ip, port))
+  Ok(udp_ipv4_addr(ip, port))
 }
 
 ///|
@@ -203,27 +207,25 @@ pub fn new_ddsi_participant(
     Err(message) => return Err(message)
   }
   participant.add_metatraffic_unicast(
-    match
-      ddsi_udp_locator(metatraffic_unicast.ip(), metatraffic_unicast.port()) {
+    match ddsi_udp_locator(metatraffic_unicast) {
       Ok(value) => value
       Err(message) => return Err(message)
     },
   )
   participant.add_default_unicast(
-    match ddsi_udp_locator(user_unicast.ip(), user_unicast.port()) {
+    match ddsi_udp_locator(user_unicast) {
       Ok(value) => value
       Err(message) => return Err(message)
     },
   )
   participant.add_metatraffic_multicast(
-    match
-      ddsi_udp_locator(metatraffic_multicast.ip(), metatraffic_multicast.port()) {
+    match ddsi_udp_locator(metatraffic_multicast) {
       Ok(value) => value
       Err(message) => return Err(message)
     },
   )
   participant.add_default_multicast(
-    match ddsi_udp_locator(user_multicast.ip(), user_multicast.port()) {
+    match ddsi_udp_locator(user_multicast) {
       Ok(value) => value
       Err(message) => return Err(message)
     },

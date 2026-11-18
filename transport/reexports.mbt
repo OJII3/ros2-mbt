@@ -19,6 +19,7 @@ pub using @wire {
   ddsi_user_multicast_port,
   ddsi_user_unicast_port,
   new_ddsi_participant,
+  udp_ipv4_addr,
   type DataReader,
   type DataWriter,
   type DiscoveryEvent,

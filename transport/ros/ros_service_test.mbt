@@ -26,12 +26,12 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
 
-  let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let client_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer client_socket.close()
-  let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let server_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer server_socket.close()
   let client_address = client_socket.local_addr()
-  let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let ack_sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer ack_sender.close()
 
   let client_request_id = service_test_entity(b"crq", 0xC2)
@@ -125,7 +125,7 @@ async test "reliable ROS service client and server correlate a response" {
   }
   assert_eq(request, b"request")
   assert_eq(received_identity, request_identity)
-  assert_eq(request_source.ip(), 0x7F000001U)
+  assert_eq(request_source.ip, @socket.IpAddr::v4(0x7F000001U))
   let request_acknack = @rtps.AckNackSubmessage::new(
     server_request_id,
     client_request_id,
@@ -152,7 +152,7 @@ async test "reliable ROS service client and server correlate a response" {
     Err(message) => fail(message)
   }
   assert_eq(response, b"response")
-  assert_eq(response_source.ip(), 0x7F000001U)
+  assert_eq(response_source.ip, @socket.IpAddr::v4(0x7F000001U))
   let (retransmitted_request, _, _) = match
     test_receive(() => server.receive_request()) {
     Ok(value) => value
@@ -194,12 +194,12 @@ async test "ROS action SendGoal endpoint uses service request reply transport" {
     "/fibonacci", "example_interfaces", "Fibonacci",
   ).unwrap()
   let service = action.send_goal_service()
-  let client_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let client_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer client_socket.close()
-  let server_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let server_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer server_socket.close()
   let client_address = client_socket.local_addr()
-  let ack_sender = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let ack_sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer ack_sender.close()
   let client_request_id = service_test_entity(b"crq", 0xC2)
   let client_response_id = service_test_entity(b"crs", 0xC7)
@@ -311,9 +311,9 @@ async test "ROS service rejects mismatched related endpoint metadata" {
       request_guid,
     )
     .unwrap()
-  let request_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let request_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer request_socket.close()
-  let response_socket = @wire.Udp::bind(@socket.Addr::new(0x7F000001U, 0)).unwrap()
+  let response_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer response_socket.close()
   assert_true(
     @ros.RosServiceClient::new(
