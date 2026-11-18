@@ -6,11 +6,13 @@ import {
 }
 
 // Values
-pub async fn play(McapMessageSource, Array[String], UInt32, () -> Int64, async (Int32) -> Unit, async (String, Bytes) -> Result[Unit, String]) -> Result[UInt64, String]
+pub async fn play(BagRecording, Array[String], UInt32, () -> Int64, async (Int32) -> Unit, async (String, Bytes) -> Result[Unit, String]) -> Result[UInt64, String]
 
 pub async fn play_repeatedly(Bool, async () -> Result[UInt64, String]) -> Result[UInt64, String]
 
 pub fn playback_target_ms(UInt64, UInt64, UInt32) -> Result[Int64, String]
+
+pub async fn scan_bag(String) -> Result[BagRecording, String]
 
 pub async fn scan_mcap_catalog(@mcap.Reader) -> Result[BagCatalog, String]
 
@@ -20,7 +22,6 @@ pub async fn scan_mcap_catalog(@mcap.Reader) -> Result[BagCatalog, String]
 pub struct BagCatalog {
   // private fields
 }
-pub fn BagCatalog::select_topics(Self, Array[String]) -> Result[Array[BagTopic], String]
 pub fn BagCatalog::topics(Self) -> Array[BagTopic]
 
 pub struct BagMessage {
@@ -29,6 +30,12 @@ pub struct BagMessage {
 pub fn BagMessage::log_time_ns(Self) -> UInt64
 pub fn BagMessage::payload(Self) -> Bytes
 pub fn BagMessage::topic_name(Self) -> String
+
+pub struct BagRecording {
+  // private fields
+}
+pub fn BagRecording::select_topics(Self, Array[String]) -> Result[Array[BagTopic], String]
+pub fn BagRecording::topics(Self) -> Array[BagTopic]
 
 pub struct BagTopic {
   // private fields

@@ -122,7 +122,7 @@ fn node_command() -> @argparse.Command {
 fn bag_play_command() -> @argparse.Command {
   Command(
     "play",
-    about="Play a ROS 2 MCAP bag file.",
+    about="Play a ROS 2 MCAP bag.",
     options=[
       OptionArg(
         "rate",
@@ -140,7 +140,9 @@ fn bag_play_command() -> @argparse.Command {
       ),
     ],
     flags=[FlagArg("loop", about="Repeat playback until interrupted.")],
-    positionals=[PositionArg("file", about="MCAP file path.")],
+    positionals=[
+      PositionArg("bag_path", about="Bag directory or MCAP file path."),
+    ],
   )
 }
 
@@ -253,7 +255,7 @@ async fn dispatch_bag(matches : @argparse.Matches) -> Result[Unit, String] {
   match matches.subcommand {
     None => Err("a bag subcommand is required")
     Some(("play", play_matches)) => {
-      let file = match positional_value(play_matches, "file") {
+      let bag_path = match positional_value(play_matches, "bag_path") {
         Ok(value) => value
         Err(message) => return Err(message)
       }
@@ -273,7 +275,7 @@ async fn dispatch_bag(matches : @argparse.Matches) -> Result[Unit, String] {
       }
       let topics = play_matches.values.get("topics").unwrap_or([])
       run_bag_play(
-        file,
+        bag_path,
         topics,
         rate_milli,
         discovery_time_ms,

@@ -25,10 +25,11 @@ pub struct BagTopic {
 }
 
 ///|
-/// Catalog of all ROS 2 topics in an MCAP file.
+/// Catalog of the ROS 2 topics and channel routes in an MCAP file.
 pub struct BagCatalog {
   priv topics : Array[BagTopic]
   priv routes : Array[ChannelRoute]
+  priv first_log_time_ns : UInt64?
 }
 
 ///|
@@ -51,13 +52,14 @@ pub async fn scan_mcap_catalog(
   let schemas : Array[SchemaInfo] = []
   let channels : Array[ChannelRoute] = []
   let topics : Array[BagTopic] = []
+  let mut first_log_time_ns : UInt64? = None
   while true {
     let record = match reader.next_record() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
     match record {
-      None => return Ok({ topics, routes: channels, })
+      None => return Ok({ topics, routes: channels, first_log_time_ns, })
       Some(Schema(id, name, encoding, data)) => {
         if id == 0U.to_uint16() {
           continue
@@ -147,10 +149,14 @@ pub async fn scan_mcap_catalog(
           }
         }
       }
-      Some(Message(channel_id, _, _, _, _)) =>
+      Some(Message(channel_id, _, log_time_ns, _, _)) => {
         if channel_route_by_id(channels, channel_id) is None {
           return Err("MCAP message references an unknown channel")
         }
+        if first_log_time_ns is None {
+          first_log_time_ns = Some(log_time_ns)
+        }
+      }
       Some(Metadata(name, metadata)) if name == "rosbag2" => {
         let serialized_metadata = metadata_value(
           metadata, "serialized_metadata",
@@ -160,7 +166,8 @@ pub async fn scan_mcap_catalog(
         }
       }
       Some(Metadata(_, _)) => ()
-      Some(DataEnd) => return Ok({ topics, routes: channels, })
+      Some(DataEnd) =>
+        return Ok({ topics, routes: channels, first_log_time_ns, })
     }
   } nobreak {
     Err("MCAP catalog scan stopped unexpectedly")

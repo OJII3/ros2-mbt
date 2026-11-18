@@ -1,50 +1,4 @@
 ///|
-/// Return catalog topics selected by name, or all topics when the list is empty.
-pub fn BagCatalog::select_topics(
-  self : BagCatalog,
-  requested : Array[String],
-) -> Result[Array[BagTopic], String] {
-  if requested.length() == 0 {
-    let selected : Array[BagTopic] = []
-    for topic in self.topics {
-      selected.push(topic)
-    }
-    return Ok(selected)
-  }
-  let selected : Array[BagTopic] = []
-  for name in requested {
-    let topic = match bag_topic_by_name(self.topics, name) {
-      Some(value) => value
-      None => return Err("topic is not present in the bag: " + name)
-    }
-    if !contains_topic_name(selected, name) {
-      selected.push(topic)
-    }
-  }
-  Ok(selected)
-}
-
-///|
-fn bag_topic_by_name(topics : Array[BagTopic], name : String) -> BagTopic? {
-  for topic in topics {
-    if topic.name == name {
-      return Some(topic)
-    }
-  }
-  None
-}
-
-///|
-fn contains_topic_name(topics : Array[BagTopic], name : String) -> Bool {
-  for topic in topics {
-    if topic.name == name {
-      return true
-    }
-  }
-  false
-}
-
-///|
 /// Calculate a message's absolute playback offset in milliseconds.
 /// `rate_milli` stores the playback multiplier in thousandths.
 pub fn playback_target_ms(
@@ -69,11 +23,13 @@ pub fn playback_target_ms(
 }
 
 ///|
-/// Replay messages using injected clock, sleep, and publisher functions.
-/// File order is preserved. Messages with decreasing timestamps are sent
-/// immediately once their target time has passed.
+/// Replay a recording using injected clock, sleep, and publisher functions.
+///
+/// MCAP files are played in recording order on one timeline. File order is
+/// preserved. Messages with decreasing timestamps are sent immediately once
+/// their target time has passed.
 pub async fn play(
-  source : McapMessageSource,
+  recording : BagRecording,
   requested_topics : Array[String],
   rate_milli : UInt32,
   now_ms : () -> Int64,
@@ -83,8 +39,66 @@ pub async fn play(
   if rate_milli == 0U {
     return Err("playback rate must be positive")
   }
+  let first_log_time_ns = match recording.first_log_time_ns {
+    Some(value) => value
+    None => return Ok(0UL)
+  }
   let start_ms = now_ms()
-  let mut first_log_time_ns : UInt64? = None
+  let mut published = 0UL
+  for file in recording.files {
+    let file_messages = match
+      play_bag_file(
+        file, requested_topics, rate_milli, first_log_time_ns, start_ms, now_ms,
+        sleep_ms, publish,
+      ) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
+    published += file_messages
+  }
+  Ok(published)
+}
+
+///|
+async fn play_bag_file(
+  file : BagRecordingFile,
+  requested_topics : Array[String],
+  rate_milli : UInt32,
+  first_log_time_ns : UInt64,
+  start_ms : Int64,
+  now_ms : () -> Int64,
+  sleep_ms : async (Int32) -> Unit,
+  publish : async (String, Bytes) -> Result[Unit, String],
+) -> Result[UInt64, String] {
+  let handle = @fs.open(file.path, mode=ReadOnly) catch {
+    _ => return Err("could not reopen MCAP file for playback: " + file.path)
+  }
+  defer handle.close()
+  let reader = match @mcap.Reader::new(handle) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  let source = match McapMessageSource::new(reader, file.catalog) {
+    Ok(value) => value
+    Err(message) => return Err(message)
+  }
+  play_source(
+    source, requested_topics, rate_milli, first_log_time_ns, start_ms, now_ms, sleep_ms,
+    publish,
+  )
+}
+
+///|
+async fn play_source(
+  source : McapMessageSource,
+  requested_topics : Array[String],
+  rate_milli : UInt32,
+  first_log_time_ns : UInt64,
+  start_ms : Int64,
+  now_ms : () -> Int64,
+  sleep_ms : async (Int32) -> Unit,
+  publish : async (String, Bytes) -> Result[Unit, String],
+) -> Result[UInt64, String] {
   let mut published = 0UL
   while true {
     let message = match source.next() {
@@ -94,19 +108,12 @@ pub async fn play(
     match message {
       None => return Ok(published)
       Some(message) => {
-        let first_time = match first_log_time_ns {
-          Some(value) => value
-          None => {
-            first_log_time_ns = Some(message.log_time_ns)
-            message.log_time_ns
-          }
-        }
         if requested_topics.length() > 0 &&
-          !contains_string(requested_topics, message.topic_name) {
+          !requested_topics.contains(message.topic_name) {
           continue
         }
         let target_ms = match
-          playback_target_ms(message.log_time_ns, first_time, rate_milli) {
+          playback_target_ms(message.log_time_ns, first_log_time_ns, rate_milli) {
           Ok(value) => value
           Err(error) => return Err(error)
         }
