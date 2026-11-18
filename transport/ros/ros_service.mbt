@@ -1,4 +1,8 @@
 ///|
+/// Request heartbeat interval used while a service response is outstanding.
+const SERVICE_REQUEST_HEARTBEAT_MS : Int32 = 200
+
+///|
 /// Validate one discovered endpoint against a ROS service role.
 fn validate_service_endpoint(
   endpoint : @rtps.SedpEndpointData,
@@ -241,11 +245,28 @@ pub async fn RosServiceClient::request(
 
 ///|
 /// Receive the response associated with a previously sent request.
+///
+/// Request heartbeats continue while the response is outstanding so a service
+/// reader that starts after the initial request still asks for retransmission.
 pub async fn RosServiceClient::receive_response(
   self : RosServiceClient,
   request_identity : @rtps.SampleIdentity,
 ) -> Result[(Bytes, @socket.Addr), String] {
-  self.middleware.receive_response(request_identity)
+  let mut result : Result[(Bytes, @socket.Addr), String] = Err(
+    "the service response reader stopped",
+  )
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        if self.middleware.send_request_heartbeat() is Err(_) {
+          return
+        }
+        @async.sleep(SERVICE_REQUEST_HEARTBEAT_MS)
+      }
+    }
+    result = self.middleware.receive_response(request_identity)
+  }
+  result
 }
 
 ///|

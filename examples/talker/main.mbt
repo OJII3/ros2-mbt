@@ -27,9 +27,36 @@ async fn publish_reliable(
     }
     group.spawn_bg(no_wait=true) <| () => {
       while true {
-        match publisher.receive_control() {
+        match participant.send_ros_discovery_heartbeats() {
           Ok(_) => ()
+          Err(message) => {
+            println(message)
+            return
+          }
+        }
+        @async.sleep(1000)
+      }
+    }
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        let (message, source) = match
+          participant.user_socket().receive_message() {
+          Ok(value) => value
           Err(_) => return
+        }
+        match participant.handle_user_message(message, source) {
+          Ok(_) => ()
+          Err(message) => {
+            println(message)
+            return
+          }
+        }
+        match publisher.handle_message(message) {
+          Ok(_) => ()
+          Err(message) => {
+            println(message)
+            return
+          }
         }
       }
     }

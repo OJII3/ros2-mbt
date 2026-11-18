@@ -20,6 +20,9 @@ stop_container() {
   fi
 }
 
+build_volume=ros2-mbt-build-cache
+build_cache_dir=${ROS2_MBT_PODMAN_BUILD_CACHE:-}
+
 start_container() {
   if [[ "${ROS2_MBT_PODMAN_BUILD:-1}" != "0" ]]; then
     podman build \
@@ -28,10 +31,24 @@ start_container() {
       "$repo_dir/podman/ros2-jazzy"
   fi
 
+  # Keep the container build directory across starts. A host directory is
+  # used when the caller provides one for CI caching; otherwise a named
+  # volume avoids root-owned files appearing inside the repository.
+  local build_mount
+  if [[ -n "$build_cache_dir" ]]; then
+    mkdir -p "$build_cache_dir"
+    build_mount="$build_cache_dir:/tmp/ros2-mbt/_build"
+  else
+    podman volume inspect "$build_volume" >/dev/null 2>&1 ||
+      podman volume create "$build_volume" >/dev/null
+    build_mount="$build_volume:/tmp/ros2-mbt/_build"
+  fi
+
   stop_container
   podman run --detach \
     --name "$container_name" \
     --volume "$repo_dir:/source:ro" \
+    --volume "$build_mount" \
     --env ROS_DOMAIN_ID="$ros_domain_id" \
     --env ROS_AUTOMATIC_DISCOVERY_RANGE="$discovery_range" \
     --entrypoint /bin/bash \
@@ -46,9 +63,11 @@ start_container() {
     tar \
       --exclude=.git \
       --exclude=.codex \
+      --exclude=.cache \
       --exclude=.direnv \
       --exclude=.moon \
       --exclude=.mooncakes \
+      --exclude=_build \
       --exclude=target \
       -C /source -cf - . | tar -C /tmp/ros2-mbt -xf -
 

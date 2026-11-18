@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
+# scenario_directory is assigned inside each scenario subshell. ShellCheck
+# cannot see that the scenario functions run in the same subshell.
+# shellcheck disable=SC2030,SC2031
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-# Keep reversed startup-order cases separate from the first participant leases.
-base_ros_domain_id=${ROS_DOMAIN_ID:-0}
-startup_order_ros_domain_id=$(((base_ros_domain_id + 1) % 233))
 
 if ! command -v ros2 >/dev/null 2>&1 && [[ -f /opt/ros/jazzy/setup.bash ]]; then
   # shellcheck disable=SC1091
@@ -15,451 +15,598 @@ if ! command -v ros2 >/dev/null 2>&1; then
   exit 127
 fi
 if command -v moon >/dev/null 2>&1; then
-  moon_command=(moon run --release)
   moon_build_command=(moon build --release --target native)
 else
-  moon_command=(nix develop --command moon run --release)
   moon_build_command=(nix develop --command moon build --release --target native)
 fi
 
+# Advertise the interface that carries multicast. The container runner sets
+# these explicitly; on a Linux host, fall back to the multicast route so the
+# MoonBit participants and the ROS 2 processes use the same interface.
+if [[ -z "${ROS2_MBT_IP:-}" && -z "${ROS2_MBT_MULTICAST_IP:-}" ]] &&
+  command -v ip >/dev/null 2>&1; then
+  host_ip=$(ip -4 route get 239.255.0.1 2>/dev/null | awk '
+    {for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}
+  ' || true)
+  if [[ -n "$host_ip" ]]; then
+    export ROS2_MBT_IP="$host_ip"
+    export ROS2_MBT_MULTICAST_IP="$host_ip"
+  fi
+elif [[ -n "${ROS2_MBT_IP:-}" && -z "${ROS2_MBT_MULTICAST_IP:-}" ]]; then
+  export ROS2_MBT_MULTICAST_IP="$ROS2_MBT_IP"
+fi
+
+# Every scenario owns a ROS domain, so independent startup orders and
+# discovery leases cannot leak into one another. Scenarios run in waves of at
+# most ROS2_MBT_E2E_JOBS and each wave is joined before the next starts.
+# Scenarios use base .. base + 10. Override with ROS_DOMAIN_ID to move the
+# whole range away from other ROS 2 traffic on the host.
+base_ros_domain_id=${ROS_DOMAIN_ID:-42}
+scenario_timeout_seconds=${ROS2_MBT_E2E_TIMEOUT_SECONDS:-45}
+expected_hello_prefix="hello from MoonBit #"
+verify_ros_graph=0
+if [[ "$(uname -s)" == "Linux" || "${ROS2_MBT_VERIFY_ROS_GRAPH:-0}" == "1" ]]; then
+  verify_ros_graph=1
+fi
+
+use_setsid=0
+if command -v setsid >/dev/null 2>&1; then
+  use_setsid=1
+fi
+
+max_parallel_scenarios=${ROS2_MBT_E2E_JOBS:-4}
+if ! [[ "$max_parallel_scenarios" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ROS2_MBT_E2E_JOBS must be a positive integer" >&2
+  exit 2
+fi
+
 tmp_dir=$(mktemp -d)
-probe_log="$tmp_dir/topic-probe.log"
-second_probe_log="$tmp_dir/topic-probe-second-subscriber.log"
-graph_observer_log="$tmp_dir/ros-graph-observer.log"
-publisher_first_probe_log="$tmp_dir/publisher-first-topic-probe.log"
-publisher_first_talker_log="$tmp_dir/publisher-first-moonbit-talker.log"
-talker_log="$tmp_dir/moonbit-talker.log"
-listener_log="$tmp_dir/moonbit-listener.log"
-publisher_log="$tmp_dir/topic-pub.log"
-publisher_first_listener_log="$tmp_dir/publisher-first-moonbit-listener.log"
-publisher_first_publisher_log="$tmp_dir/publisher-first-topic-pub.log"
-wstring_probe_log="$tmp_dir/wstring-topic-probe.log"
-wstring_talker_log="$tmp_dir/moonbit-wstring-talker.log"
-wstring_listener_log="$tmp_dir/moonbit-wstring-listener.log"
-wstring_publisher_log="$tmp_dir/wstring-topic-pub.log"
-topic_list_talker_log="$tmp_dir/ros2-topic-list-talker.log"
-first_topic_list_log="$tmp_dir/ros2-mbt-topic-list-first.log"
-second_topic_list_log="$tmp_dir/ros2-mbt-topic-list-second.log"
-moon_service_log="$tmp_dir/moonbit-service-server.log"
-service_graph_observer_log="$tmp_dir/ros-service-graph-observer.log"
-service_call_log="$tmp_dir/ros2-service-call.log"
-ros_service_log="$tmp_dir/ros2-service-server.log"
-moon_client_log="$tmp_dir/moonbit-service-client.log"
-probe_pid=""
-second_probe_pid=""
-graph_observer_pid=""
-talker_pid=""
-listener_pid=""
-publisher_pid=""
-moon_service_pid=""
-service_graph_observer_pid=""
-ros_service_pid=""
-moon_client_pid=""
-topic_list_talker_pid=""
+scenario_pids=()
+scenario_names=()
+scenario_domains=()
+scenario_dirs=()
+queued_names=()
+queued_functions=()
+queued_domains=()
+scenario_count=0
+failed=0
+
+# Send TERM first so ROS nodes can shut down, then KILL the process group.
+# `ros2 run` starts the node as a child that can outlive its CLI wrapper, so
+# killing only the wrapper leaves participants bound to the scenario's ports.
+terminate_process() {
+  local process_pid="$1"
+  local process_grouped="${2:-0}"
+  local target="$process_pid"
+  if [[ "$process_grouped" -eq 1 ]]; then
+    target="-$process_pid"
+  fi
+  if ! kill -0 -- "$target" 2>/dev/null; then
+    return 0
+  fi
+  kill -TERM -- "$target" 2>/dev/null || true
+  sleep 0.1
+  kill -KILL -- "$target" 2>/dev/null || true
+}
 
 cleanup() {
   local exit_status=$?
-  if [[ -n "$probe_pid" ]]; then
-    kill -- "-$probe_pid" 2>/dev/null || true
-    wait "$probe_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$second_probe_pid" ]]; then
-    kill -- "-$second_probe_pid" 2>/dev/null || true
-    wait "$second_probe_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$graph_observer_pid" ]]; then
-    kill -- "-$graph_observer_pid" 2>/dev/null || true
-    wait "$graph_observer_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$talker_pid" ]]; then
-    kill -- "-$talker_pid" 2>/dev/null || true
-    wait "$talker_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$listener_pid" ]]; then
-    kill -- "-$listener_pid" 2>/dev/null || true
-    wait "$listener_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$publisher_pid" ]]; then
-    kill -- "-$publisher_pid" 2>/dev/null || true
-    wait "$publisher_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$moon_service_pid" ]]; then
-    kill -- "-$moon_service_pid" 2>/dev/null || true
-    wait "$moon_service_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$service_graph_observer_pid" ]]; then
-    kill -- "-$service_graph_observer_pid" 2>/dev/null || true
-    wait "$service_graph_observer_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$ros_service_pid" ]]; then
-    kill -- "-$ros_service_pid" 2>/dev/null || true
-    wait "$ros_service_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$moon_client_pid" ]]; then
-    kill -- "-$moon_client_pid" 2>/dev/null || true
-    wait "$moon_client_pid" 2>/dev/null || true
-  fi
-  if [[ -n "$topic_list_talker_pid" ]]; then
-    kill -- "-$topic_list_talker_pid" 2>/dev/null || true
-    wait "$topic_list_talker_pid" 2>/dev/null || true
-  fi
-  if [[ $exit_status -ne 0 ]]; then
-    cat "$talker_log" "$probe_log" "$second_probe_log" "$graph_observer_log" \
-      "$listener_log" "$publisher_log" "$publisher_first_probe_log" \
-      "$publisher_first_talker_log" "$publisher_first_listener_log" \
-      "$publisher_first_publisher_log" \
-      "$wstring_talker_log" "$wstring_probe_log" \
-      "$wstring_listener_log" "$wstring_publisher_log" \
-      "$topic_list_talker_log" "$first_topic_list_log" \
-      "$second_topic_list_log" \
-      "$moon_service_log" "$service_graph_observer_log" \
-      "$service_call_log" "$ros_service_log" \
-      "$moon_client_log" 2>/dev/null || true
-  fi
+  trap - EXIT INT TERM
+  local process_file
+  for process_file in "$tmp_dir"/*/processes; do
+    [[ -f "$process_file" ]] || continue
+    while read -r process_pid process_grouped; do
+      [[ -n "$process_pid" ]] || continue
+      terminate_process "$process_pid" "${process_grouped:-0}"
+    done <"$process_file"
+  done
+  for scenario_pid in "${scenario_pids[@]}"; do
+    kill -TERM "$scenario_pid" 2>/dev/null || true
+  done
+  sleep 0.1
+  for scenario_pid in "${scenario_pids[@]}"; do
+    kill -KILL "$scenario_pid" 2>/dev/null || true
+    wait "$scenario_pid" 2>/dev/null || true
+  done
   rm -rf -- "$tmp_dir"
+  exit "$exit_status"
 }
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-# Build every example before any probe starts so compilation time is not
-# counted against probe discovery timeouts.
-"${moon_build_command[@]}"
-
-wait_for_node() {
-  local node_name="$1"
-  local process_pid="$2"
-  local daemon_args=()
-  if [[ "${ROS2_MBT_NO_DAEMON:-0}" == "1" ]]; then
-    daemon_args+=(--no-daemon)
+start_scenario() {
+  local name="$1"
+  shift
+  local domain_id=$(((base_ros_domain_id + scenario_count) % 233))
+  scenario_count=$((scenario_count + 1))
+  if [[ -n "${ROS2_MBT_E2E_SCENARIOS:-}" &&
+    ",${ROS2_MBT_E2E_SCENARIOS}," != *",$name,"* ]]; then
+    return 0
   fi
-  local deadline=$((SECONDS + 45))
-  while ((SECONDS < deadline)); do
-    local nodes
-    nodes=$(timeout --kill-after=1s 3s ros2 node list "${daemon_args[@]}" \
-      --spin-time 1.0 2>/dev/null || true)
-    if grep -Fxq "$node_name" <<<"$nodes"; then
-      return 0
+  queued_names+=("$name")
+  queued_functions+=("$1")
+  queued_domains+=("$domain_id")
+}
+
+launch_scenario() {
+  local name="$1"
+  local domain_id="$2"
+  local scenario_function="$3"
+  local scenario_dir="$tmp_dir/$name"
+  mkdir -p "$scenario_dir"
+  (
+    export ROS_DOMAIN_ID="$domain_id"
+    scenario_directory="$scenario_dir"
+    "$scenario_function"
+  ) >"$scenario_dir/run.log" 2>&1 &
+  scenario_pids+=("$!")
+  scenario_names+=("$name")
+  scenario_domains+=("$domain_id")
+  scenario_dirs+=("$scenario_dir")
+}
+
+wait_for_scenarios() {
+  local index
+  for index in "${!scenario_pids[@]}"; do
+    if ! wait "${scenario_pids[$index]}"; then
+      failed=1
+      printf '\n=== scenario %s failed (ROS_DOMAIN_ID=%s) ===\n' \
+        "${scenario_names[$index]}" "${scenario_domains[$index]}" >&2
+      if [[ -s "${scenario_dirs[$index]}/run.log" ]]; then
+        cat "${scenario_dirs[$index]}/run.log" >&2
+      fi
     fi
-    if [[ -n "$process_pid" ]] && ! kill -0 "$process_pid" 2>/dev/null; then
+  done
+  scenario_pids=()
+  scenario_names=()
+  scenario_domains=()
+  scenario_dirs=()
+}
+
+run_queued_scenarios() {
+  local index=0
+  local wave_end
+  while ((index < ${#queued_names[@]})); do
+    wave_end=$((index + max_parallel_scenarios))
+    if ((wave_end > ${#queued_names[@]})); then
+      wave_end=${#queued_names[@]}
+    fi
+    while ((index < wave_end)); do
+      launch_scenario "${queued_names[$index]}" "${queued_domains[$index]}" \
+        "${queued_functions[$index]}"
+      index=$((index + 1))
+    done
+    wait_for_scenarios
+  done
+}
+
+bg_pids=()
+bg_grouped=()
+last_bg_pid=""
+last_bg_grouped=0
+
+scenario_cleanup() {
+  local exit_status=$?
+  trap - EXIT INT TERM
+  local process_index
+  for process_index in "${!bg_pids[@]}"; do
+    terminate_process "${bg_pids[$process_index]}" \
+      "${bg_grouped[$process_index]:-0}"
+  done
+  for process_pid in "${bg_pids[@]}"; do
+    wait "$process_pid" 2>/dev/null || true
+  done
+  if [[ "$exit_status" -ne 0 ]]; then
+    local log_file
+    for log_file in "$scenario_directory"/*.log; do
+      [[ -f "$log_file" ]] || continue
+      [[ "$log_file" == "$scenario_directory/run.log" ]] && continue
+      printf '\n--- %s ---\n' "$log_file"
+      cat "$log_file"
+    done
+  fi
+  exit "$exit_status"
+}
+
+begin_scenario() {
+  bg_pids=()
+  bg_grouped=()
+  trap scenario_cleanup EXIT INT TERM
+}
+
+start_bg() {
+  local log_file="$1"
+  shift
+  local process_grouped=0
+  if [[ "$use_setsid" -eq 1 ]]; then
+    setsid timeout --kill-after=2s "${scenario_timeout_seconds}s" "$@" \
+      >"$log_file" 2>&1 &
+    process_grouped=1
+  else
+    timeout --kill-after=2s "${scenario_timeout_seconds}s" "$@" \
+      >"$log_file" 2>&1 &
+  fi
+  last_bg_pid=$!
+  last_bg_grouped=$process_grouped
+  bg_pids+=("$last_bg_pid")
+  bg_grouped+=("$last_bg_grouped")
+  printf '%s %s\n' "$last_bg_pid" "$last_bg_grouped" \
+    >>"$scenario_directory/processes"
+}
+
+stop_bg() {
+  local process_pid="$1"
+  if [[ -z "$process_pid" ]]; then
+    return 0
+  fi
+  local process_index
+  local process_grouped=0
+  for process_index in "${!bg_pids[@]}"; do
+    if [[ "${bg_pids[$process_index]}" == "$process_pid" ]]; then
+      process_grouped="${bg_grouped[$process_index]:-0}"
       break
     fi
-    sleep 0.5
   done
-  echo "ROS 2 CLI did not discover $node_name"
-  return 1
+  terminate_process "$process_pid" "$process_grouped"
+  wait "$process_pid" 2>/dev/null || true
 }
 
-wait_for_node_endpoint() {
-  local node_name="$1"
-  local endpoint_section="$2"
-  local endpoint_name="$3"
-  local daemon_args=()
-  if [[ "${ROS2_MBT_NO_DAEMON:-0}" == "1" ]]; then
-    daemon_args+=(--no-daemon)
-  fi
-  for _ in {1..20}; do
-    local node_info
-    node_info=$(timeout --kill-after=1s 3s ros2 node info \
-      "${daemon_args[@]}" "$node_name" 2>/dev/null || true)
-    if awk -v section="  $endpoint_section:" -v endpoint="    $endpoint_name:" '
-      $0 == section { in_section = 1; next }
-      /^  [[:alpha:] ]+:$/ { in_section = 0 }
-      in_section && index($0, endpoint) == 1 { found = 1 }
-      END { exit !found }
-    ' <<<"$node_info"; then
+wait_for_marker() {
+  local log_file="$1"
+  local marker="$2"
+  local process_pid="${3:-}"
+  local deadline=$((SECONDS + ${4:-$scenario_timeout_seconds}))
+  while ((SECONDS < deadline)); do
+    if [[ -f "$log_file" ]] && grep -Fq -- "$marker" "$log_file"; then
       return 0
     fi
-    sleep 0.5
-  done
-  echo "ROS 2 CLI did not discover $endpoint_section endpoint $endpoint_name on $node_name"
-  return 1
-}
-
-wait_for_ros_endpoint() {
-  local node_name="$1"
-  local process_pid="$2"
-  local endpoint_section="$3"
-  local endpoint_name="$4"
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    sleep 1
     if [[ -n "$process_pid" ]] && ! kill -0 "$process_pid" 2>/dev/null; then
-      echo "ROS 2 test process exited before checking $endpoint_name"
+      if [[ -f "$log_file" ]] && grep -Fq -- "$marker" "$log_file"; then
+        return 0
+      fi
+      echo "process $process_pid exited before emitting marker: $marker" >&2
       return 1
     fi
-    return 0
-  fi
-  wait_for_node "$node_name" "$process_pid"
-  wait_for_node_endpoint "$node_name" "$endpoint_section" "$endpoint_name"
-}
-
-# Each CLI invocation must rediscover endpoints from a participant that remains
-# alive after the previous ros2-mbt process exits.
-timeout --kill-after=2s 45s ros2 run demo_nodes_cpp talker \
-  >"$topic_list_talker_log" 2>&1 &
-topic_list_talker_pid=$!
-wait_for_node "/talker" "$topic_list_talker_pid"
-for topic_list_log in "$first_topic_list_log" "$second_topic_list_log"; do
-  timeout --kill-after=2s 45s "${moon_command[@]}" cmd/ros2-mbt topic list -t \
-    >"$topic_list_log" 2>&1
-  if ! grep -Fq "/chatter [std_msgs/msg/String]" "$topic_list_log"; then
-    echo "ros2-mbt topic list did not discover /chatter from the ROS 2 talker"
-    exit 1
-  fi
-done
-kill -- "-$topic_list_talker_pid" 2>/dev/null || true
-wait "$topic_list_talker_pid" 2>/dev/null || true
-topic_list_talker_pid=""
-
-wait_for_probe_marker() {
-  local output_log="$1"
-  local process_pid="$2"
-  local marker="$3"
-  while true; do
-    if grep -Fq "$marker" "$output_log"; then
-      return 0
-    fi
-    if ! kill -0 "$process_pid" 2>/dev/null; then
-      break
-    fi
-    sleep 0.1
+    sleep 0.05
   done
-  if grep -Fq "$marker" "$output_log"; then
-    return 0
-  fi
-  echo "ROS 2 topic probe did not emit $marker: $output_log"
+  echo "timed out waiting for marker: $marker in $log_file" >&2
   return 1
 }
 
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string --expected-prefix "hello from MoonBit #" \
-  >"$probe_log" 2>&1 &
-probe_pid=$!
-wait_for_probe_marker "$probe_log" "$probe_pid" "PROBE_READY "
-if [[ "$(uname -s)" == "Linux" || "${ROS2_MBT_VERIFY_ROS_GRAPH:-0}" == "1" ]]; then
-  timeout --kill-after=2s 45s python3 -u \
-    "$script_dir/ros2_graph_interop_observer.py" >"$graph_observer_log" 2>&1 &
-  graph_observer_pid=$!
-fi
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
-  >"$talker_log" 2>&1 &
-talker_pid=$!
-
-wait "$talker_pid"
-talker_pid=""
-wait "$probe_pid"
-probe_pid=""
-if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$probe_log"; then
-  echo "ROS 2 subscriber probe did not receive a MoonBit String sample"
-  exit 1
-fi
-if [[ -n "$graph_observer_pid" ]]; then
-  wait "$graph_observer_pid"
-  graph_observer_pid=""
-  if ! grep -Fq "ROS_DISCOVERY_INFO_MATCHED /demo/moon_talker /chatter" \
-    "$graph_observer_log"; then
-    echo "ROS 2 graph observer did not validate MoonBit participant metadata"
-    exit 1
+assert_log_contains() {
+  local log_file="$1"
+  local expected="$2"
+  local message="$3"
+  if ! grep -Fq -- "$expected" "$log_file"; then
+    echo "$message" >&2
+    return 1
   fi
-fi
+}
+
+# A ROS 2 publisher endpoint must be discovered by two successive ros2-mbt CLI
+# invocations that each start after the previous one exited.
+run_topic_list() {
+  begin_scenario
+  local talker_log="$scenario_directory/ros2-topic-list-talker.log"
+  start_bg "$talker_log" ros2 run demo_nodes_cpp talker
+  local talker_pid=$last_bg_pid
+  wait_for_marker "$talker_log" "Publishing:" "$talker_pid"
+
+  # Wait until a ROS 2 participant can match the talker's topic endpoint.
+  # Otherwise the bounded ros2-mbt discovery window can start before the
+  # talker has announced /chatter and the CLI would legitimately see nothing.
+  local readiness_log="$scenario_directory/topic-readiness-probe.log"
+  start_bg "$readiness_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --expected-prefix "Hello World"
+  local readiness_pid=$last_bg_pid
+  wait_for_marker "$readiness_log" "PROBE_MATCHED " "$readiness_pid"
+  wait "$readiness_pid"
+
+  local list_log
+  for list_log in "$scenario_directory/moonbit-topic-list-first.log" \
+    "$scenario_directory/moonbit-topic-list-second.log"; do
+    start_bg "$list_log" "$topic_list_executable" topic list -t \
+      --spin-time-ms 5000
+    wait "$last_bg_pid"
+    assert_log_contains "$list_log" "/chatter [std_msgs/msg/String]" \
+      "ros2-mbt topic list did not discover /chatter from the ROS 2 talker"
+  done
+  stop_bg "$talker_pid"
+}
+
+# A ROS 2 reliable subscription and the ROS graph must both observe a MoonBit
+# talker. The graph observer is ready before the talker starts, so the test
+# measures discovery instead of racing Python process startup.
+run_moonbit_talker() {
+  begin_scenario
+  local probe_log="$scenario_directory/topic-probe.log"
+  start_bg "$probe_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --expected-prefix "$expected_hello_prefix"
+  local probe_pid=$last_bg_pid
+  wait_for_marker "$probe_log" "PROBE_READY " "$probe_pid"
+
+  local observer_pid=""
+  local observer_log=""
+  if [[ "$verify_ros_graph" -eq 1 ]]; then
+    observer_log="$scenario_directory/ros-graph-observer.log"
+    start_bg "$observer_log" env ROS2_MBT_GRAPH_TIMEOUT=20 \
+      python3 -u "$script_dir/ros2_graph_interop_observer.py"
+    observer_pid=$last_bg_pid
+    wait_for_marker "$observer_log" "ROS_GRAPH_OBSERVER_READY" "$observer_pid"
+  fi
+
+  local talker_log="$scenario_directory/moonbit-talker.log"
+  start_bg "$talker_log" "$talker_executable"
+  local talker_pid=$last_bg_pid
+
+  wait "$probe_pid"
+  assert_log_contains "$probe_log" "PROBE_RECEIVED $expected_hello_prefix" \
+    "ROS 2 subscriber probe did not receive a MoonBit String sample"
+  wait "$talker_pid"
+  if [[ -n "$observer_pid" ]]; then
+    wait "$observer_pid"
+    assert_log_contains "$observer_log" \
+      "ROS_DISCOVERY_INFO_MATCHED /demo/moon_talker /chatter" \
+      "ROS 2 graph observer did not validate MoonBit participant metadata"
+  fi
+}
 
 # One ROS 2 publisher endpoint must deliver the same topic stream to two
-# independently discovered subscriptions.
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string --expected-prefix "hello from MoonBit #" \
-  >"$probe_log" 2>&1 &
-probe_pid=$!
-wait_for_probe_marker "$probe_log" "$probe_pid" "PROBE_READY "
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string --reliability best_effort \
-  --expected-prefix "hello from MoonBit #" >"$second_probe_log" 2>&1 &
-second_probe_pid=$!
-wait_for_probe_marker "$second_probe_log" "$second_probe_pid" "PROBE_READY "
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
-  >"$talker_log" 2>&1 &
-talker_pid=$!
-wait "$talker_pid"
-talker_pid=""
-wait "$probe_pid"
-probe_pid=""
-wait "$second_probe_pid"
-second_probe_pid=""
-for subscriber_log in "$probe_log" "$second_probe_log"; do
-  if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$subscriber_log"; then
-    echo "A ROS 2 subscriber probe did not receive a sample from the shared publisher"
-    exit 1
-  fi
-done
+# independently discovered subscriptions with different reliability.
+run_two_subscribers() {
+  begin_scenario
+  local reliable_log="$scenario_directory/topic-probe.log"
+  start_bg "$reliable_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --expected-prefix "$expected_hello_prefix"
+  local reliable_pid=$last_bg_pid
+  wait_for_marker "$reliable_log" "PROBE_READY " "$reliable_pid"
 
-# A publisher that starts before its subscriber must keep announcing until the
+  local best_effort_log="$scenario_directory/topic-probe-best-effort.log"
+  start_bg "$best_effort_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --reliability best_effort \
+    --expected-prefix "$expected_hello_prefix"
+  local best_effort_pid=$last_bg_pid
+  wait_for_marker "$best_effort_log" "PROBE_READY " "$best_effort_pid"
+
+  local talker_log="$scenario_directory/moonbit-talker.log"
+  start_bg "$talker_log" "$talker_executable"
+  local talker_pid=$last_bg_pid
+
+  wait "$reliable_pid"
+  wait "$best_effort_pid"
+  wait "$talker_pid"
+  assert_log_contains "$reliable_log" "PROBE_RECEIVED $expected_hello_prefix" \
+    "The reliable ROS 2 subscriber probe did not receive a sample"
+  assert_log_contains "$best_effort_log" \
+    "PROBE_RECEIVED $expected_hello_prefix" \
+    "The best-effort ROS 2 subscriber probe did not receive a sample"
+}
+
+# A publisher that starts before its subscribers must keep announcing until a
 # later subscriber is discovered, rather than relying on startup order.
-ROS_DOMAIN_ID="$startup_order_ros_domain_id"
-export ROS_DOMAIN_ID
-ROS2_MBT_TALKER_PUBLISH_UNTIL_STOP=1 \
-  timeout --kill-after=2s 45s "${moon_command[@]}" examples/talker \
-  >"$publisher_first_talker_log" 2>&1 &
-talker_pid=$!
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string \
-  --expected-prefix "hello from MoonBit #" >"$publisher_first_probe_log" 2>&1 &
-probe_pid=$!
-wait_for_probe_marker "$publisher_first_probe_log" "$probe_pid" "PROBE_MATCHED "
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /chatter --type string --reliability best_effort \
-  --expected-prefix "hello from MoonBit #" \
-  >"$second_probe_log" 2>&1 &
-second_probe_pid=$!
-wait_for_probe_marker "$second_probe_log" "$second_probe_pid" "PROBE_MATCHED "
-wait "$probe_pid"
-probe_pid=""
-wait "$second_probe_pid"
-second_probe_pid=""
-kill -- "-$talker_pid" 2>/dev/null || true
-wait "$talker_pid" 2>/dev/null || true
-talker_pid=""
-if ! grep -Fq "PROBE_RECEIVED hello from MoonBit #" "$second_probe_log"; then
-  echo "A later ROS 2 subscriber probe did not receive a subsequent sample"
-  exit 1
-fi
-ROS_DOMAIN_ID="$base_ros_domain_id"
-export ROS_DOMAIN_ID
+run_publisher_first() {
+  begin_scenario
+  local talker_log="$scenario_directory/moonbit-talker.log"
+  start_bg "$talker_log" env ROS2_MBT_TALKER_PUBLISH_UNTIL_STOP=1 \
+    "$talker_executable"
+  local talker_pid=$last_bg_pid
 
-timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
-  --wait-matching-subscriptions 1 /chatter std_msgs/msg/String \
-  "{data: 'hello from ROS 2'}" >"$publisher_log" 2>&1 &
-publisher_pid=$!
-sleep 1
-if ! kill -0 "$publisher_pid" 2>/dev/null; then
-  echo "ROS 2 publisher exited before the MoonBit listener started"
-  exit 1
-fi
+  local first_log="$scenario_directory/topic-probe.log"
+  start_bg "$first_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --expected-prefix "$expected_hello_prefix"
+  local first_pid=$last_bg_pid
+  wait_for_marker "$first_log" "PROBE_MATCHED " "$first_pid"
 
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
-  >"$listener_log" 2>&1 &
-listener_pid=$!
+  local second_log="$scenario_directory/topic-probe-second-subscriber.log"
+  start_bg "$second_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /chatter --type string --reliability best_effort \
+    --expected-prefix "$expected_hello_prefix"
+  local second_pid=$last_bg_pid
+  wait_for_marker "$second_log" "PROBE_MATCHED " "$second_pid"
 
-wait "$publisher_pid"
-publisher_pid=""
-wait "$listener_pid"
-listener_pid=""
+  wait "$first_pid"
+  wait "$second_pid"
+  stop_bg "$talker_pid"
+  assert_log_contains "$second_log" "PROBE_RECEIVED $expected_hello_prefix" \
+    "A later ROS 2 subscriber probe did not receive a subsequent sample"
+}
 
-received_count=$(grep -Fxc "hello from ROS 2" "$listener_log" || true)
-if [[ "$received_count" -ne 5 ]]; then
-  echo "MoonBit listener received $received_count of 5 ROS 2 String samples"
-  exit 1
-fi
+# A ROS 2 publisher waits for a MoonBit listener that starts later, then every
+# post-match sample must arrive.
+run_ros_publisher_to_listener() {
+  begin_scenario
+  local publisher_log="$scenario_directory/ros2-topic-pub.log"
+  start_bg "$publisher_log" ros2 topic pub --times 5 --rate 10 \
+    --wait-matching-subscriptions 1 /chatter std_msgs/msg/String \
+    "{data: 'hello from ROS 2'}"
+  local publisher_pid=$last_bg_pid
+  wait_for_marker "$publisher_log" \
+    "Waiting for at least 1 matching subscription" "$publisher_pid"
 
-# Keep the ROS 2 publisher alive while waiting for a MoonBit listener that
-# starts later, then verify all post-match samples arrive.
-ROS_DOMAIN_ID="$startup_order_ros_domain_id"
-export ROS_DOMAIN_ID
-timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
-  --wait-matching-subscriptions 1 /chatter std_msgs/msg/String \
-  "{data: 'hello from ROS 2'}" >"$publisher_first_publisher_log" 2>&1 &
-publisher_pid=$!
-sleep 1
-if ! kill -0 "$publisher_pid" 2>/dev/null; then
-  echo "ROS 2 publisher exited before the later MoonBit subscriber started"
-  exit 1
-fi
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/listener \
-  >"$publisher_first_listener_log" 2>&1 &
-listener_pid=$!
-wait "$publisher_pid"
-publisher_pid=""
-wait "$listener_pid"
-listener_pid=""
-received_count=$(grep -Fxc "hello from ROS 2" "$publisher_first_listener_log" || true)
-if [[ "$received_count" -ne 5 ]]; then
-  echo "MoonBit listener received $received_count of 5 publisher-first ROS 2 samples"
-  exit 1
-fi
-ROS_DOMAIN_ID="$base_ros_domain_id"
-export ROS_DOMAIN_ID
+  local listener_log="$scenario_directory/moonbit-listener.log"
+  start_bg "$listener_log" "$listener_executable"
+  local listener_pid=$last_bg_pid
 
-timeout --kill-after=2s 45s python3 -u "$script_dir/ros2_topic_probe.py" \
-  --topic /wide_chatter --type wstring --expected-prefix "wide こんにちは 🙂 #" \
-  >"$wstring_probe_log" 2>&1 &
-probe_pid=$!
-wait_for_probe_marker "$wstring_probe_log" "$probe_pid" "PROBE_READY "
-timeout --kill-after=2s 45s "${moon_command[@]}" \
-  examples/wstring_talker >"$wstring_talker_log" 2>&1 &
-talker_pid=$!
-wait "$talker_pid"
-talker_pid=""
-wait "$probe_pid"
-probe_pid=""
-if ! grep -Fq "PROBE_RECEIVED wide こんにちは 🙂 #" "$wstring_probe_log"; then
-  echo "ROS 2 subscriber probe did not receive a MoonBit WString sample"
-  exit 1
-fi
-
-timeout --kill-after=2s 45s "${moon_command[@]}" \
-  examples/wstring_listener >"$wstring_listener_log" 2>&1 &
-listener_pid=$!
-timeout --kill-after=2s 45s ros2 topic pub --times 5 --rate 10 \
-  --qos-reliability reliable /wide_chatter example_interfaces/msg/WString \
-  "{data: 'wide こんにちは 🙂'}" >"$wstring_publisher_log" 2>&1
-wait "$listener_pid"
-listener_pid=""
-
-received_count=$(grep -Fxc "wide こんにちは 🙂" "$wstring_listener_log" || true)
-if [[ "$received_count" -ne 5 ]]; then
-  echo "MoonBit listener received $received_count of 5 ROS 2 WString samples"
-  exit 1
-fi
-
-timeout --kill-after=2s 60s python3 -u \
-  "$script_dir/ros2_service_graph_interop_observer.py" \
-  >"$service_graph_observer_log" 2>&1 &
-service_graph_observer_pid=$!
-for _ in {1..40}; do
-  if grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
-    break
+  wait "$publisher_pid"
+  wait "$listener_pid"
+  local received_count
+  received_count=$(grep -Fxc "hello from ROS 2" "$listener_log" || true)
+  if [[ "$received_count" -ne 5 ]]; then
+    echo "MoonBit listener received $received_count of 5 ROS 2 String samples" >&2
+    return 1
   fi
-  sleep 0.25
-done
-if ! grep -Fq "ROS_GRAPH_OBSERVER_READY" "$service_graph_observer_log"; then
-  echo "ROS 2 service graph observer did not start"
-  exit 1
-fi
+}
 
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/service_server \
-  >"$moon_service_log" 2>&1 &
-moon_service_pid=$!
-ROS2_MBT_NO_DAEMON=1 wait_for_ros_endpoint \
-  "/demo/moon_add_two_ints_server" "$moon_service_pid" \
-  "Service Servers" "/add_two_ints"
-wait "$service_graph_observer_pid"
-service_graph_observer_pid=""
-timeout --kill-after=2s 45s ros2 service call /add_two_ints \
-  example_interfaces/srv/AddTwoInts "{a: 2, b: 3}" \
-  >"$service_call_log" 2>&1
-wait "$moon_service_pid"
-moon_service_pid=""
-if ! grep -Eq "sum[=:][[:space:]]*5" "$service_call_log" || \
-  ! grep -Fq "served AddTwoInts request" "$moon_service_log"; then
-  echo "ROS 2 CLI service call did not complete with the expected sum"
-  exit 1
-fi
+# The MoonBit WString talker must satisfy a ROS 2 WString subscription.
+run_wstring_talker() {
+  begin_scenario
+  local probe_log="$scenario_directory/wstring-topic-probe.log"
+  start_bg "$probe_log" python3 -u "$script_dir/ros2_topic_probe.py" \
+    --topic /wide_chatter --type wstring \
+    --expected-prefix "wide こんにちは 🙂 #"
+  local probe_pid=$last_bg_pid
+  wait_for_marker "$probe_log" "PROBE_READY " "$probe_pid"
 
-timeout --kill-after=2s 45s ros2 run demo_nodes_cpp add_two_ints_server \
-  >"$ros_service_log" 2>&1 &
-ros_service_pid=$!
-wait_for_ros_endpoint "/add_two_ints_server" "$ros_service_pid" \
-  "Service Servers" "/add_two_ints"
-timeout --kill-after=2s 45s "${moon_command[@]}" examples/service_client \
-  >"$moon_client_log" 2>&1 &
-moon_client_pid=$!
-wait "$moon_client_pid"
-moon_client_pid=""
-if ! grep -Fq "AddTwoInts result: 5" "$moon_client_log"; then
-  echo "MoonBit service client did not receive the expected ROS 2 response"
-  exit 1
-fi
-kill "$ros_service_pid" 2>/dev/null || true
-wait "$ros_service_pid" 2>/dev/null || true
-ros_service_pid=""
+  local talker_log="$scenario_directory/moonbit-wstring-talker.log"
+  start_bg "$talker_log" "$wstring_talker_executable"
+  local talker_pid=$last_bg_pid
+
+  wait "$talker_pid"
+  wait "$probe_pid"
+  assert_log_contains "$probe_log" \
+    "PROBE_RECEIVED wide こんにちは 🙂 #" \
+    "ROS 2 subscriber probe did not receive a MoonBit WString sample"
+}
+
+# A ROS 2 WString publisher must satisfy a MoonBit WString subscription.
+run_wstring_listener() {
+  begin_scenario
+  local listener_log="$scenario_directory/moonbit-wstring-listener.log"
+  start_bg "$listener_log" "$wstring_listener_executable"
+  local listener_pid=$last_bg_pid
+
+  local publisher_log="$scenario_directory/wstring-topic-pub.log"
+  start_bg "$publisher_log" ros2 topic pub --times 5 --rate 10 \
+    --wait-matching-subscriptions 1 --qos-reliability reliable \
+    /wide_chatter example_interfaces/msg/WString \
+    "{data: 'wide こんにちは 🙂'}"
+  local publisher_pid=$last_bg_pid
+
+  wait "$publisher_pid"
+  wait "$listener_pid"
+  local received_count
+  received_count=$(grep -Fxc "wide こんにちは 🙂" "$listener_log" || true)
+  if [[ "$received_count" -ne 5 ]]; then
+    echo "MoonBit listener received $received_count of 5 ROS 2 WString samples" >&2
+    return 1
+  fi
+}
+
+# The MoonBit service server must serve a ROS 2 CLI call and expose its ROS
+# graph identity before the call.
+run_moonbit_service_server() {
+  begin_scenario
+  local observer_log="$scenario_directory/ros-service-graph-observer.log"
+  start_bg "$observer_log" python3 -u \
+    "$script_dir/ros2_service_graph_interop_observer.py"
+  local observer_pid=$last_bg_pid
+  wait_for_marker "$observer_log" "ROS_GRAPH_OBSERVER_READY" "$observer_pid"
+
+  local server_log="$scenario_directory/moonbit-service-server.log"
+  start_bg "$server_log" "$service_server_executable"
+  local server_pid=$last_bg_pid
+  wait_for_marker "$server_log" "SERVICE_SERVER_READY" "$server_pid"
+  wait_for_marker "$observer_log" \
+    "ROS_DISCOVERY_INFO_MATCHED /demo/moon_add_two_ints_server" "$observer_pid"
+
+  local call_log="$scenario_directory/ros2-service-call.log"
+  start_bg "$call_log" ros2 service call /add_two_ints \
+    example_interfaces/srv/AddTwoInts "{a: 2, b: 3}"
+  wait "$last_bg_pid"
+  wait "$server_pid"
+  wait "$observer_pid"
+  if ! grep -Eq "sum[=:][[:space:]]*5" "$call_log"; then
+    echo "ROS 2 CLI service call did not complete with the expected sum" >&2
+    return 1
+  fi
+  assert_log_contains "$server_log" "served AddTwoInts request" \
+    "The MoonBit service server did not report a served request"
+}
+
+# A MoonBit service client must discover and call a ROS 2 service server.
+run_ros_service_server() {
+  begin_scenario
+  local server_log="$scenario_directory/ros2-service-server.log"
+  start_bg "$server_log" ros2 run demo_nodes_cpp add_two_ints_server
+  local server_pid=$last_bg_pid
+
+  local client_log="$scenario_directory/moonbit-service-client.log"
+  start_bg "$client_log" "$service_client_executable"
+  local client_pid=$last_bg_pid
+
+  wait "$client_pid"
+  stop_bg "$server_pid"
+  assert_log_contains "$client_log" "AddTwoInts result: 5" \
+    "MoonBit service client did not receive the expected ROS 2 response"
+}
 
 # Exercise the high-level node API, including its reliable ROS graph traffic.
-timeout --kill-after=2s 45s python3 -u \
-  "$script_dir/ros2_node_interop_probe.py" \
-  "${moon_command[@]}" examples/node_talker
+run_node_talker() {
+  begin_scenario
+  local probe_log="$scenario_directory/node-interop-probe.log"
+  start_bg "$probe_log" python3 -u \
+    "$script_dir/ros2_node_interop_probe.py" "$node_talker_executable"
+  wait "$last_bg_pid"
+  assert_log_contains "$probe_log" \
+    "ROS_NODE_API_MATCHED /demo/moon_node_talker /chatter" \
+    "The high-level ROS node API did not publish or expose the expected graph"
+}
+
+# Build every fixture before starting any probe so compilation time is not
+# counted against discovery timeouts. Scenario processes invoke the built
+# executables directly, so concurrent scenarios do not contend on the MoonBit
+# build system while they run.
+build_artifacts="$tmp_dir/build-artifacts.json"
+"${moon_build_command[@]}" --output-json \
+  cmd/ros2-mbt \
+  examples/listener \
+  examples/node_talker \
+  examples/service_client \
+  examples/service_server \
+  examples/talker \
+  examples/wstring_listener \
+  examples/wstring_talker >"$build_artifacts"
+
+fixture_paths=()
+while IFS= read -r artifact_line; do
+  [[ -n "$artifact_line" ]] || continue
+  artifact_path=$(sed -n 's/.*"path":"\([^"]*\)".*/\1/p' <<<"$artifact_line")
+  [[ -n "$artifact_path" ]] || continue
+  artifact_directory=$(dirname "$artifact_path")
+  artifact_relative="$(basename "$(dirname "$artifact_directory")")/$(basename "$artifact_directory")"
+  fixture_paths+=("$artifact_relative=$artifact_path")
+done <"$build_artifacts"
+
+fixture_executable() {
+  local fixture="$1"
+  local entry
+  for entry in "${fixture_paths[@]}"; do
+    if [[ "$entry" == "$fixture="* ]]; then
+      printf '%s\n' "${entry#*=}"
+      return 0
+    fi
+  done
+  echo "no build artifact was reported for $fixture" >&2
+  return 1
+}
+
+topic_list_executable=$(fixture_executable cmd/ros2-mbt)
+talker_executable=$(fixture_executable examples/talker)
+listener_executable=$(fixture_executable examples/listener)
+node_talker_executable=$(fixture_executable examples/node_talker)
+service_client_executable=$(fixture_executable examples/service_client)
+service_server_executable=$(fixture_executable examples/service_server)
+wstring_listener_executable=$(fixture_executable examples/wstring_listener)
+wstring_talker_executable=$(fixture_executable examples/wstring_talker)
+
+start_scenario topic_list run_topic_list
+start_scenario moonbit_talker run_moonbit_talker
+start_scenario two_subscribers run_two_subscribers
+start_scenario publisher_first run_publisher_first
+start_scenario ros_publisher_to_listener run_ros_publisher_to_listener
+start_scenario ros_publisher_to_late_listener run_ros_publisher_to_listener
+start_scenario wstring_talker run_wstring_talker
+start_scenario wstring_listener run_wstring_listener
+start_scenario moonbit_service_server run_moonbit_service_server
+start_scenario ros_service_server run_ros_service_server
+start_scenario node_talker run_node_talker
+
+run_queued_scenarios
+
+if [[ "$failed" -ne 0 ]]; then
+  echo "ROS 2 interoperability checks failed" >&2
+  exit 1
+fi
+
+echo "ROS 2 String/WString topic, graph, service, and node API interoperability passed."

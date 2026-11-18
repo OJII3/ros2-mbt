@@ -34,6 +34,7 @@ class RosGraphObserver(Node):
 def main() -> int:
     rclpy.init()
     node = RosGraphObserver()
+    print("ROS_GRAPH_OBSERVER_READY", flush=True)
     deadline = time.monotonic() + float(os.environ.get("ROS2_MBT_GRAPH_TIMEOUT", "40"))
     graph_publishers: list[str] = []
     discovered_nodes: list[tuple[str, str]] = []

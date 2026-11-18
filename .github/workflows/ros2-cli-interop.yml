@@ -73,6 +73,7 @@ jobs:
     env:
       ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
       ROS2_MBT_PODMAN_BUILD: "0"
+      ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
     permissions:
       contents: read
       packages: read
@@ -97,6 +98,14 @@ jobs:
           podman pull "$image:$GITHUB_SHA"
           podman tag "$image:$GITHUB_SHA" "$local_image"
 
+      - name: Cache container build
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/ros2-mbt-build
+          key: ros2-mbt-build-${{ runner.os }}-${{ hashFiles('moon.mod', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
+          restore-keys: |
+            ros2-mbt-build-${{ runner.os }}-
+
       - name: Prepare Podman environment
         run: nix develop --command just interop-podman start
 
@@ -112,6 +121,13 @@ jobs:
       - name: Test ROS 2 parameter interoperability
         run: nix develop --command just interop-podman parameter
 
+      - name: Fix build cache ownership
+        if: always()
+        run: |
+          if [[ -d "$ROS2_MBT_PODMAN_BUILD_CACHE" ]]; then
+            sudo chown -R "$(id -u):$(id -g)" "$ROS2_MBT_PODMAN_BUILD_CACHE"
+          fi
+
       - name: Stop Podman environment
         if: always()
         run: nix develop --command just interop-podman stop
@@ -123,6 +139,7 @@ jobs:
     env:
       ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
       ROS2_MBT_PODMAN_BUILD: "0"
+      ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
     permissions:
       contents: read
       packages: read
@@ -152,6 +169,14 @@ jobs:
             --tag "$local_image" \
             podman/ros2-jazzy
 
+      - name: Cache container build
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/ros2-mbt-build
+          key: ros2-mbt-build-${{ runner.os }}-${{ hashFiles('moon.mod', 'flake.lock', 'podman/ros2-jazzy/Containerfile') }}
+          restore-keys: |
+            ros2-mbt-build-${{ runner.os }}-
+
       - name: Prepare Podman environment
         run: nix develop --command just interop-podman start
 
@@ -166,6 +191,13 @@ jobs:
 
       - name: Test ROS 2 parameter interoperability
         run: nix develop --command just interop-podman parameter
+
+      - name: Fix build cache ownership
+        if: always()
+        run: |
+          if [[ -d "$ROS2_MBT_PODMAN_BUILD_CACHE" ]]; then
+            sudo chown -R "$(id -u):$(id -g)" "$ROS2_MBT_PODMAN_BUILD_CACHE"
+          fi
 
       - name: Stop Podman environment
         if: always()
