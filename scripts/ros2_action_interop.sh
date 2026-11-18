@@ -111,9 +111,15 @@ stop_server() {
 
 if [[ -n "${ROS_DISTRO:-}" || -n "${IN_NIX_SHELL:-}" ]]; then
   moon_command=(moon run --release examples/action_client)
+  moon_build_command=(moon build --release --target native)
 else
   moon_command=(nix develop --command moon run --release examples/action_client)
+  moon_build_command=(nix develop --command moon build --release --target native)
 fi
+
+# Build before the client starts so compilation time is not counted against
+# the client's discovery and completion timeouts.
+"${moon_build_command[@]}"
 
 run_client() {
   local mode="$1"
