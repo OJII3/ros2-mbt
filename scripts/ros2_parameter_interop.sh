@@ -85,9 +85,9 @@ if [[ "$ready" -ne 1 ]]; then
 fi
 
 if [[ -n "${ROS_DISTRO:-}" || -n "${IN_NIX_SHELL:-}" ]]; then
-  moon_command=(moon run examples/parameter_client)
+  moon_command=(moon run --release examples/parameter_client)
 else
-  moon_command=(nix develop --command moon run examples/parameter_client)
+  moon_command=(nix develop --command moon run --release examples/parameter_client)
 fi
 if command -v setsid >/dev/null 2>&1; then
   setsid "${moon_command[@]}" >"$client_log" 2>&1 &

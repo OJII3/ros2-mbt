@@ -110,9 +110,9 @@ stop_server() {
 }
 
 if [[ -n "${ROS_DISTRO:-}" || -n "${IN_NIX_SHELL:-}" ]]; then
-  moon_command=(moon run examples/action_client)
+  moon_command=(moon run --release examples/action_client)
 else
-  moon_command=(nix develop --command moon run examples/action_client)
+  moon_command=(nix develop --command moon run --release examples/action_client)
 fi
 
 run_client() {

@@ -15,9 +15,9 @@ if ! command -v ros2 >/dev/null 2>&1; then
   exit 127
 fi
 if command -v moon >/dev/null 2>&1; then
-  moon_command=(moon run)
+  moon_command=(moon run --release)
 else
-  moon_command=(nix develop --command moon run)
+  moon_command=(nix develop --command moon run --release)
 fi
 
 tmp_dir=$(mktemp -d)
