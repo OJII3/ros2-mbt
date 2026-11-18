@@ -134,6 +134,14 @@ pub const PROTOCOL_VERSION_MAJOR : Byte = 2
 
 pub const PROTOCOL_VERSION_MINOR : Byte = 3
 
+pub const RELIABLE_READER_MAX_FRAGMENTED_BYTES : Int32 = 67108864
+
+pub const RELIABLE_READER_MAX_FRAGMENTED_SAMPLES : Int32 = 8
+
+pub const RELIABLE_READER_MAX_FRAGMENTED_SAMPLE_SIZE : Int32 = 67108864
+
+pub const RELIABLE_READER_MAX_FRAGMENTS_PER_SAMPLE : Int32 = 65536
+
 pub const SAMPLE_IDENTITY_UNKNOWN_SEQUENCE : Int64 = -4294967296
 
 pub const STATUS_INFO_ALIVE : UInt32 = 0x00000000
@@ -515,7 +523,9 @@ pub struct ReliableDataReader {
   mut samples : Array[Int64]
   mut gaps : Array[GapSubmessage]
   mut fragments : Array[ReliableFragmentedSample]
+  mut abandoned_fragments : Array[Int64]
   mut acknowledged_through : Int64
+  mut max_received_sequence : Int64
   mut accepted_sample_count : Int32
 }
 pub fn ReliableDataReader::accept_best_effort_fragment(Self, DataFragSubmessage) -> Result[DataSubmessage?, String]
@@ -543,7 +553,7 @@ pub struct ReliableFragmentedSample {
   fragment_size : Int32
   sample_size : Int32
   mut inline_qos : Bytes
-  payload : Array[Byte]
+  payload : FixedArray[Byte]
   received : Array[Bool]
   mut received_count : Int32
 }

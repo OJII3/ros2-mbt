@@ -189,6 +189,44 @@ test "reliable reader reassembles DATA_FRAG samples out of order" {
 }
 
 ///|
+test "reliable reader reassembles a large sample received in reverse order" {
+  let reader_id = @core.EntityId::new(b"rdr", 0xC7).unwrap()
+  let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()
+  let reader = @core.ReliableDataReader::new(reader_id, writer_id)
+  let fragment_size = 1024
+  let fragment_count = 128
+  let sample_size = fragment_size * fragment_count
+  let bytes : Array[Byte] = []
+  for index in 0..<sample_size {
+    bytes.push((index % 251).to_byte())
+  }
+  let payload = Bytes::from_array(bytes)
+  let mut completed : @core.DataSubmessage? = None
+  let mut index = fragment_count - 1
+  while index >= 0 {
+    let offset = index * fragment_size
+    let fragment = @core.DataFragSubmessage::new(
+      reader_id,
+      writer_id,
+      42L,
+      (index + 1).reinterpret_as_uint(),
+      1U.to_uint16(),
+      fragment_size.to_uint16(),
+      sample_size.reinterpret_as_uint(),
+      payload[offset:offset + fragment_size].to_owned(),
+    ).unwrap()
+    completed = reader.accept_data_frag(fragment).unwrap()
+    index -= 1
+  }
+  let data = match completed {
+    Some(value) => value
+    None => fail("the reverse-ordered DATA_FRAGs did not complete the sample")
+  }
+  assert_eq(data.serialized_payload(), payload)
+  assert_eq(reader.fragments.length(), 0)
+}
+
+///|
 test "reliable reader preserves KEY flag when reassembling DATA_FRAG" {
   let reader_id = @core.EntityId::new(b"rdr", 0xC7).unwrap()
   let writer_id = @core.EntityId::new(b"wrt", 0xC2).unwrap()

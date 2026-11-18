@@ -318,8 +318,13 @@ Each best-effort reader retains duplicate-detection history for the latest 256
 sequence numbers. It can reassemble at most four incomplete samples with a
 combined payload size of 16 MiB (plus fragment metadata). Oversized fragmented
 samples are dropped before allocation. When the budget is exhausted, newer
-samples replace the oldest incomplete samples; samples outside the receive
-window and duplicate samples are discarded.
+samples replace the oldest incomplete samples, and the rest of an evicted
+sample's fragments are ignored instead of starting the assembly again. Samples
+outside the receive window and duplicate samples are discarded.
+
+A reliable reader can hold at most eight incomplete samples with 64 MiB of
+payload in total. One sample may use at most 64 MiB and 65536 fragment slots.
+Data beyond these limits is not allocated; the writer retransmits it later.
 
 ## Development
 

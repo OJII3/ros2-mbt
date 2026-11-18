@@ -52,6 +52,31 @@ fn best_effort_test_fragment(
 }
 
 ///|
+async test "best-effort reader skips malformed DATA and keeps later submessages" {
+  let socket = Udp::bind(udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer socket.close()
+  let reader = DataReader::new(
+    socket,
+    @rtps.EntityId::new(b"rdr", 0x04).unwrap(),
+    @rtps.EntityId::new(b"wrt", 0x03).unwrap(),
+  )
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let message = @rtps.Message::new(
+    @rtps.Header::new(prefix, @rtps.VendorId::new(1, 15)),
+  )
+  message.add(@rtps.Submessage::new(Data, 0x01, b"short"))
+  message.add(best_effort_test_data(reader, 1L))
+  let sample = match
+    reader.handle_message(message, udp_ipv4_addr(0x7F000001U, 12345)).unwrap() {
+    Some((data, _)) => data
+    None => fail("the valid DATA after a malformed submessage was dropped")
+  }
+  assert_eq(sample.writer_sequence_number(), 1L)
+}
+
+///|
 async test "best-effort history stays bounded and rejects duplicate and expired DATA" {
   let socket = Udp::bind(udp_ipv4_addr(0x7F000001U, 0)).unwrap()
   defer socket.close()

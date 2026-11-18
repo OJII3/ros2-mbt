@@ -60,14 +60,15 @@ pub async fn ReliableDataReaderSession::handle_message(
   source : @socket.Addr,
 ) -> Result[Array[(@rtps.DataSubmessage, @socket.Addr)], String] {
   let samples : Array[(@rtps.DataSubmessage, @socket.Addr)] = []
-  let destinations = match message.destination_contexts() {
+  let submessages = message.submessages()
+  let destinations = match transport_destination_contexts(message) {
     Ok(value) => value
     Err(_) => return Ok(samples)
   }
-  let submessages = message.submessages()
   for index in 0..<submessages.length() {
     let submessage = submessages[index]
-    if !transport_destination_matches(
+    if destinations.length() > 0 &&
+      !transport_destination_matches(
         destinations[index],
         Some(self.guid_prefix),
       ) {
@@ -217,14 +218,15 @@ async fn ReliableDataReaderSession::receive_data_with_optional_writer(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let destinations = match message.destination_contexts() {
+    let submessages = message.submessages()
+    let destinations = match transport_destination_contexts(message) {
       Ok(value) => value
       Err(_) => continue
     }
-    let submessages = message.submessages()
     for index in 0..<submessages.length() {
       let submessage = submessages[index]
-      if !transport_destination_matches(
+      if destinations.length() > 0 &&
+        !transport_destination_matches(
           destinations[index],
           Some(self.guid_prefix),
         ) {
@@ -424,14 +426,15 @@ pub async fn ReliableDataReaderSession::receive_heartbeat(
       Ok(value) => value
       Err(message) => return Err(message)
     }
-    let destinations = match message.destination_contexts() {
+    let submessages = message.submessages()
+    let destinations = match transport_destination_contexts(message) {
       Ok(value) => value
       Err(_) => continue
     }
-    let submessages = message.submessages()
     for index in 0..<submessages.length() {
       let submessage = submessages[index]
-      if !transport_destination_matches(
+      if destinations.length() > 0 &&
+        !transport_destination_matches(
           destinations[index],
           Some(self.guid_prefix),
         ) {

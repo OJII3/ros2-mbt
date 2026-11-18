@@ -32,6 +32,21 @@ fn transport_destination_matches(
   }
 }
 
+///|
+/// Return per-submessage destination contexts, or an empty array when the
+/// message has no INFO_DST. Most user-data datagrams take the empty path, so
+/// callers avoid allocating one array entry per fragment.
+fn transport_destination_contexts(
+  message : @rtps.Message,
+) -> Result[Array[@rtps.GuidPrefix?], String] {
+  let submessages = message.submessages()
+  if submessages.any(fn(submessage) { submessage.id() == InfoDestination }) {
+    message.destination_contexts()
+  } else {
+    Ok([])
+  }
+}
+
 ///| A small UDP server wrapper for RTPS datagrams.
 
 ///|
@@ -270,12 +285,9 @@ pub async fn Udp::send_spdp(
 ///|
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
-  let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
-  let (length, source) = self.server.recv_into(
-    buffer,
-    max_len=MAX_DATAGRAM_SIZE,
-  )
-  (Bytes::from_array(buffer[:length]), source)
+  // The socket keeps a reusable receive buffer. Allocating a fresh
+  // MAX_DATAGRAM_SIZE buffer for every fragment costs more than parsing it.
+  self.server.recv(max_len=MAX_DATAGRAM_SIZE)
 }
 
 ///|
