@@ -55,13 +55,17 @@ fn transport_destination_contexts(
 /// how to dispatch each received datagram.
 pub struct Udp {
   server : @socket.UdpServer
+  priv receive_buffer : FixedArray[Byte]
 }
 
 ///|
 /// Bind a UDP socket to an address.
 /// Return bind failures as `Err`.
 pub async fn Udp::bind(addr : @socket.Addr) -> Result[Udp, String] {
-  Ok({ server: UdpServer(addr), }) catch {
+  Ok({
+    server: UdpServer(addr),
+    receive_buffer: FixedArray::make(MAX_DATAGRAM_SIZE, 0),
+  }) catch {
     _ => Err("could not bind UDP socket")
   }
 }
@@ -73,7 +77,10 @@ pub async fn Udp::multicast(
   group : @socket.Addr,
   interface_addr? : @socket.IpAddr,
 ) -> Result[Udp, String] {
-  Ok({ server: @socket.UdpServer::multicast(group, interface_addr?), }) catch {
+  Ok({
+    server: @socket.UdpServer::multicast(group, interface_addr?),
+    receive_buffer: FixedArray::make(MAX_DATAGRAM_SIZE, 0),
+  }) catch {
     _ => Err("could not bind UDP multicast socket")
   }
 }
@@ -285,12 +292,11 @@ pub async fn Udp::send_spdp(
 ///|
 /// Receive one complete UDP datagram and its source address.
 pub async fn Udp::receive(self : Udp) -> (Bytes, @socket.Addr) {
-  let buffer : FixedArray[Byte] = FixedArray::make(MAX_DATAGRAM_SIZE, 0)
   let (length, source) = self.server.recv_into(
-    buffer,
+    self.receive_buffer,
     max_len=MAX_DATAGRAM_SIZE,
   )
-  (Bytes::from_array(buffer[:length]), source)
+  (Bytes::from_array(self.receive_buffer[:length]), source)
 }
 
 ///|
