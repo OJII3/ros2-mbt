@@ -73,7 +73,6 @@ jobs:
     env:
       ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
       ROS2_MBT_PODMAN_BUILD: "0"
-      ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
     permissions:
       contents: read
       packages: read
@@ -107,6 +106,8 @@ jobs:
             ros2-mbt-build-${{ runner.os }}-
 
       - name: Prepare Podman environment
+        env:
+          ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
         run: nix develop --command just interop-podman start
 
       - name: Update MoonBit dependencies
@@ -123,6 +124,8 @@ jobs:
 
       - name: Fix build cache ownership
         if: always()
+        env:
+          ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
         run: |
           if [[ -d "$ROS2_MBT_PODMAN_BUILD_CACHE" ]]; then
             sudo chown -R "$(id -u):$(id -g)" "$ROS2_MBT_PODMAN_BUILD_CACHE"
@@ -139,7 +142,6 @@ jobs:
     env:
       ROS2_MBT_PODMAN_IMAGE: localhost/ros2-mbt-jazzy:${{ github.sha }}
       ROS2_MBT_PODMAN_BUILD: "0"
-      ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
     permissions:
       contents: read
       packages: read
@@ -178,6 +180,8 @@ jobs:
             ros2-mbt-build-${{ runner.os }}-
 
       - name: Prepare Podman environment
+        env:
+          ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
         run: nix develop --command just interop-podman start
 
       - name: Update MoonBit dependencies
@@ -194,6 +198,8 @@ jobs:
 
       - name: Fix build cache ownership
         if: always()
+        env:
+          ROS2_MBT_PODMAN_BUILD_CACHE: ${{ runner.temp }}/ros2-mbt-build
         run: |
           if [[ -d "$ROS2_MBT_PODMAN_BUILD_CACHE" ]]; then
             sudo chown -R "$(id -u):$(id -g)" "$ROS2_MBT_PODMAN_BUILD_CACHE"
