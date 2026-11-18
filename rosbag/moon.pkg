@@ -1,3 +1,16 @@
 import {
   "OJII3/ros2-mbt/mcap",
+  "moonbitlang/core/async/fs",
 }
+
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/async",
+} for "wbtest"
+
+options(
+  "allow-experimental-packages": [
+    "moonbitlang/core/async",
+    "moonbitlang/core/async/fs",
+  ],
+)

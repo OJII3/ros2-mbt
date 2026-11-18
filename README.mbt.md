@@ -169,17 +169,21 @@ moon run examples/listener
 
 ## Play an MCAP recording
 
-Replay a ROS 2 MCAP file at its recorded timing:
+Replay a ROS 2 MCAP bag at its recorded timing:
 
 ```sh
-ros2-mbt bag play recording.mcap
+ros2-mbt bag play my_bag
 ```
+
+The bag directory must contain `metadata.yaml`. Its MCAP files are played in
+the order that the metadata lists them, so split recordings continue on one
+playback timeline. A path to a single MCAP file is also accepted.
 
 Change the playback rate or select one or more topics with repeated
 `--topics` options:
 
 ```sh
-ros2-mbt bag play recording.mcap --rate 0.5 \
+ros2-mbt bag play my_bag --rate 0.5 \
   --topics /camera/image --topics /tf
 ```
 
@@ -188,7 +192,7 @@ with Ctrl-C. Looping stops with an error if no selected messages are published,
 so an empty pass cannot spin continuously:
 
 ```sh
-ros2-mbt bag play recording.mcap --loop
+ros2-mbt bag play my_bag --loop
 ```
 
 Playback sends the recorded CDR payloads through native ROS publishers and
