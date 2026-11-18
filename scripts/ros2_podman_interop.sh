@@ -65,6 +65,7 @@ start_container() {
     set -u
     mkdir -p /tmp/ros2-mbt
     tar \
+      --mtime="@$SOURCE_MTIME" \
       --exclude=.git \
       --exclude=.codex \
       --exclude=.cache \
@@ -73,7 +74,7 @@ start_container() {
       --exclude=.mooncakes \
       --exclude=_build \
       --exclude=target \
-      -C /source -cf - . | tar --mtime="@$SOURCE_MTIME" -C /tmp/ros2-mbt -xf -
+      -C /source -cf - . | tar -C /tmp/ros2-mbt -xf -
     printf "%s" "$SOURCE_MTIME" > /tmp/ros2-mbt-source-mtime
 
     runner_ip=$(ip -4 route get 239.255.0.1 | awk '\''
