@@ -19,9 +19,9 @@ const IMAGE_COUNT : Int32 = 10
 const IMAGE_PERIOD_MS : Int32 = 50
 
 ///|
-/// Let discovery finish before the first frame so no sample is sent before a
-/// subscriber is known.
-const IMAGE_DISCOVERY_DELAY_MS : Int64 = 2000L
+/// Stop when no subscriber appears; the stream itself should start as soon as
+/// discovery reports a match.
+const IMAGE_SUBSCRIBER_TIMEOUT_MS : Int64 = 30000L
 
 ///|
 fn image_data() -> Array[Byte] {
@@ -76,11 +76,19 @@ async fn main {
   let step = (IMAGE_WIDTH * 3).reinterpret_as_uint()
   let data = image_data()
   let started_ms = @async.now()
+  let mut streaming = false
   let mut next_index : Int32 = 0
   match
     node.create_timer(IMAGE_PERIOD_MS, async fn() {
-      if @async.now() - started_ms < IMAGE_DISCOVERY_DELAY_MS {
-        return
+      if !streaming {
+        if publisher.subscriber_count() == 0 {
+          if @async.now() - started_ms >= IMAGE_SUBSCRIBER_TIMEOUT_MS {
+            eprintln("IMAGE_TALKER_TIMEOUT waiting for a subscriber")
+            executor.shutdown()
+          }
+          return
+        }
+        streaming = true
       }
       if next_index >= IMAGE_COUNT {
         return
