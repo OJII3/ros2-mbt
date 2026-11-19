@@ -543,6 +543,49 @@ run_node_talker() {
     "The high-level ROS node API did not publish or expose the expected graph"
 }
 
+# A camera-sized Image stream must cross DATA_FRAG reassembly intact at a
+# sustained frame rate.
+run_moonbit_image_talker() {
+  begin_scenario
+  local probe_log="$scenario_directory/image-probe.log"
+  start_bg "$probe_log" python3 -u "$script_dir/ros2_image_probe.py" \
+    --mode subscribe --topic /image --count 10
+  local probe_pid=$last_bg_pid
+  wait_for_marker "$probe_log" "IMAGE_PROBE_READY " "$probe_pid"
+
+  local talker_log="$scenario_directory/moonbit-image-talker.log"
+  start_bg "$talker_log" "$image_talker_executable"
+  local talker_pid=$last_bg_pid
+
+  wait "$talker_pid"
+  wait "$probe_pid"
+  assert_log_contains "$talker_log" "IMAGE_TALKER_DONE count=10 " \
+    "The MoonBit image talker did not publish the expected stream"
+  assert_log_contains "$probe_log" "IMAGE_STREAM_OK count=10 " \
+    "The ROS 2 image probe did not receive the complete MoonBit stream"
+}
+
+# A ROS 2 camera-sized Image stream must satisfy a MoonBit Image subscription.
+run_ros_image_publisher() {
+  begin_scenario
+  local listener_log="$scenario_directory/moonbit-image-listener.log"
+  start_bg "$listener_log" "$image_listener_executable"
+  local listener_pid=$last_bg_pid
+  wait_for_marker "$listener_log" "IMAGE_LISTENER_READY " "$listener_pid"
+
+  local publisher_log="$scenario_directory/ros2-image-publisher.log"
+  start_bg "$publisher_log" python3 -u "$script_dir/ros2_image_probe.py" \
+    --mode publish --topic /image --count 10
+  local publisher_pid=$last_bg_pid
+
+  wait "$publisher_pid"
+  wait "$listener_pid"
+  assert_log_contains "$publisher_log" "IMAGE_PUBLISHER_DONE count=10 " \
+    "The ROS 2 image publisher did not finish the expected stream"
+  assert_log_contains "$listener_log" "IMAGE_STREAM_OK count=10 " \
+    "The MoonBit image listener did not receive the complete ROS 2 stream"
+}
+
 # Build every fixture before starting any probe so compilation time is not
 # counted against discovery timeouts. Scenario processes invoke the built
 # executables directly, so concurrent scenarios do not contend on the MoonBit
@@ -550,6 +593,8 @@ run_node_talker() {
 build_artifacts="$tmp_dir/build-artifacts.json"
 "${moon_build_command[@]}" --output-json \
   cmd/ros2-mbt \
+  examples/image_listener \
+  examples/image_talker \
   examples/listener \
   examples/node_talker \
   examples/service_client \
@@ -582,6 +627,8 @@ fixture_executable() {
 }
 
 topic_list_executable=$(fixture_executable cmd/ros2-mbt)
+image_listener_executable=$(fixture_executable examples/image_listener)
+image_talker_executable=$(fixture_executable examples/image_talker)
 talker_executable=$(fixture_executable examples/talker)
 listener_executable=$(fixture_executable examples/listener)
 node_talker_executable=$(fixture_executable examples/node_talker)
@@ -601,6 +648,8 @@ start_scenario wstring_listener run_wstring_listener
 start_scenario moonbit_service_server run_moonbit_service_server
 start_scenario ros_service_server run_ros_service_server
 start_scenario node_talker run_node_talker
+start_scenario moonbit_image_talker run_moonbit_image_talker
+start_scenario ros_image_publisher run_ros_image_publisher
 
 run_queued_scenarios
 
@@ -609,4 +658,4 @@ if [[ "$failed" -ne 0 ]]; then
   exit 1
 fi
 
-echo "ROS 2 String/WString topic, graph, service, and node API interoperability passed."
+echo "ROS 2 String/WString/Image topic, graph, service, and node API interoperability passed."
