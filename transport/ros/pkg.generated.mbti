@@ -74,6 +74,7 @@ pub async fn ReliableRosPublisher::receive_nackfrag(Self) -> Result[(@core.NackF
 pub fn ReliableRosPublisher::remove_subscription(Self, @core.Guid) -> Unit
 pub fn ReliableRosPublisher::remove_subscriptions_from_participant(Self, @core.GuidPrefix) -> Unit
 pub async fn ReliableRosPublisher::send_heartbeat(Self) -> Result[Unit, String]
+pub fn ReliableRosPublisher::subscriber_count(Self) -> Int32
 pub fn ReliableRosPublisher::topic(Self) -> @endpoints.RosTopic
 
 pub struct ReliableRosSubscription {
@@ -170,6 +171,7 @@ pub struct RosNodePublisher[T] {
 }
 pub async fn[T] RosNodePublisher::publish(Self[T], T) -> Result[Unit, String]
 pub async fn[T] RosNodePublisher::publish_without_heartbeat(Self[T], T) -> Result[Unit, String]
+pub fn[T] RosNodePublisher::subscriber_count(Self[T]) -> Int32
 
 pub struct RosParticipant {
   participant : @OJII3/ros2-mbt/rtps/discovery.SpdpParticipantData

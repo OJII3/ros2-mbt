@@ -184,6 +184,14 @@ pub fn ReliableRosPublisher::topic(
 }
 
 ///|
+/// Return the number of matching remote subscriptions currently attached.
+pub fn ReliableRosPublisher::subscriber_count(
+  self : ReliableRosPublisher,
+) -> Int32 {
+  self.writers.length()
+}
+
+///|
 /// Return the next RTPS sequence number that will be published.
 pub fn ReliableRosPublisher::next_sequence_number(
   self : ReliableRosPublisher,
