@@ -152,6 +152,17 @@ pub async fn[T] RosNode::create_publisher(
 }
 
 ///|
+/// Return the number of remote subscriptions matched to this publisher.
+///
+/// Discovery events are processed by the executor, so the count reaches its
+/// final value only after the executor has delivered them.
+pub fn[T] RosNodePublisher::subscriber_count(
+  self : RosNodePublisher[T],
+) -> Int32 {
+  self.publisher.subscriber_count()
+}
+
+///|
 /// Serialize and publish one message.
 pub async fn[T] RosNodePublisher::publish(
   self : RosNodePublisher[T],

@@ -655,3 +655,75 @@ async test "two RosNodes exchange typed reliable messages through Executor" {
   @async.with_timeout(3000, () => executor.spin()).unwrap()
   assert_eq(received_msg, "hello from talker")
 }
+
+///|
+async test "RosNodePublisher reports the matched subscriber count" {
+  let prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let participant = @wire.new_ddsi_participant(
+    prefix,
+    @rtps.VendorId::new(1, 15),
+    0,
+    0,
+    0x7F000001U,
+    60,
+  ).unwrap()
+  let discovery_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer discovery_socket.close()
+  let user_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer user_socket.close()
+  let participant = RosParticipant::from_sockets(
+    discovery_socket, user_socket, participant, 0, 1L,
+  ).unwrap()
+  let node = RosNode::new(participant, "/demo", "subscriber_count_test").unwrap()
+  let topic = @ros_types.RosTopic::new(
+    "/counted_chatter", "std_msgs", "msg", "String",
+  ).unwrap()
+  let publisher = node
+    .create_publisher(topic, "test_hash", fn(_value : String) { Ok(b"data") })
+    .unwrap()
+  assert_eq(publisher.subscriber_count(), 0)
+
+  let locator = @rtps.Locator::udp_v4(b"\x7F\x00\x00\x01", 12345U).unwrap()
+  let subscriber_id = @rtps.EntityId::new(b"sb1", 0x04).unwrap()
+  let subscription = topic
+    .to_sedp_with_qos(
+      Subscription,
+      @rtps.Guid::new(remote_prefix, subscriber_id),
+      @rtps.SedpQos::reliable(),
+    )
+    .unwrap()
+  subscription.add_unicast_locator(locator)
+  node.handle_discovery_event(Subscription(subscription)).unwrap()
+  assert_eq(publisher.subscriber_count(), 1)
+
+  // Rediscovery of the same subscription does not count twice.
+  node.handle_discovery_event(Subscription(subscription)).unwrap()
+  assert_eq(publisher.subscriber_count(), 1)
+
+  let other_topic = @ros_types.RosTopic::new(
+    "/other_chatter", "std_msgs", "msg", "String",
+  ).unwrap()
+  let other_subscription = other_topic
+    .to_sedp_with_qos(
+      Subscription,
+      @rtps.Guid::new(remote_prefix, @rtps.EntityId::new(b"sb2", 0x04).unwrap()),
+      @rtps.SedpQos::reliable(),
+    )
+    .unwrap()
+  other_subscription.add_unicast_locator(locator)
+  node.handle_discovery_event(Subscription(other_subscription)).unwrap()
+  assert_eq(publisher.subscriber_count(), 1)
+
+  // Removing the matched subscription decreases the count.
+  node
+  .handle_discovery_event(
+    EndpointRemoved(Subscription, subscription.endpoint_guid()),
+  )
+  .unwrap()
+  assert_eq(publisher.subscriber_count(), 0)
+}

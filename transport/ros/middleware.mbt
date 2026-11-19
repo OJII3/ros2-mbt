@@ -629,6 +629,11 @@ async fn MiddlewarePublisher::send_heartbeat(
 }
 
 ///|
+fn MiddlewarePublisher::subscriber_count(self : MiddlewarePublisher) -> Int32 {
+  self.writer.subscriber_count()
+}
+
+///|
 fn MiddlewarePublisher::add_subscription(
   self : MiddlewarePublisher,
   subscription : @rtps.SedpEndpointData,
