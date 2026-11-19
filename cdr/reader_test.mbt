@@ -66,6 +66,19 @@ test "CDR signed 8-bit and MoonBit-sized 16-bit helpers" {
 }
 
 ///|
+test "CDR reader copies byte arrays into mutable arrays" {
+  let writer = @cdr.Writer::new()
+  writer.write_byte_array(b"\x01\x02\x03")
+  let reader = @cdr.Reader::from_bytes(writer.to_bytes()).unwrap()
+  assert_eq(reader.read_byte_array_to_array(3), Ok([1, 2, 3]))
+  assert_eq(reader.remaining(), 0)
+
+  let truncated = @cdr.Reader::from_bytes(b"\x00\x01\x00\x00\x01\x02").unwrap()
+  assert_true(truncated.read_byte_array_to_array(3) is Err(_))
+  assert_true(truncated.read_byte_array_to_array(-1) is Err(_))
+}
+
+///|
 test "CDR reader round trips strings and sequences" {
   let writer = @cdr.Writer::new()
   writer.write_string("こんにちは")

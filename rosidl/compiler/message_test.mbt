@@ -402,6 +402,28 @@ test "ROS message generator handles fixed arrays and sequences" {
 }
 
 ///|
+test "ROS message generator bulk-copies byte collections" {
+  let definition = @compiler.parse_message(
+    "demo", "msg", "Blob", "uint8[] data\nbyte[4] id\nchar[<=8] text",
+  ).unwrap()
+  let generated = definition.generate_moonbit()
+  assert_true(
+    generated.contains(
+      "writer.write_byte_sequence(Bytes::from_array(self.data))",
+    ),
+  )
+  assert_true(
+    generated.contains("writer.write_byte_array(Bytes::from_array(self.id))"),
+  )
+  assert_true(
+    generated.contains("reader.read_byte_array_to_array(data_length)"),
+  )
+  assert_true(generated.contains("reader.read_byte_array_to_array(4)"))
+  assert_true(generated.contains("if self.text.length() > 8"))
+  assert_false(generated.contains("writer.write_u8(value)"))
+}
+
+///|
 test "ROS message writer checks narrow integer field ranges" {
   let definition = @compiler.parse_message(
     "demo", "msg", "IntegerWidths", "int8 small\nint16 medium\nuint16 count\nint8[] samples",

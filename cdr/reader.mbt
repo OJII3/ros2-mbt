@@ -246,6 +246,19 @@ pub fn Reader::read_byte_array(
 }
 
 ///|
+/// Read a fixed-size byte array into a mutable array.
+// Perf: bulk-copy byte payloads instead of pushing one octet at a time.
+pub fn Reader::read_byte_array_to_array(
+  self : Reader,
+  length : Int32,
+) -> Result[Array[Byte], String] {
+  match self.take(length) {
+    Ok(view) => Ok(view.to_array())
+    Err(message) => Err(message)
+  }
+}
+
+///|
 /// Read a byte sequence with a CDR uint32 length prefix.
 pub fn Reader::read_byte_sequence(self : Reader) -> Result[Bytes, String] {
   self
