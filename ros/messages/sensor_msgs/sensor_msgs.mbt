@@ -115,21 +115,15 @@ pub fn Imu::write_cdr(self : Imu, writer : @cdr.Writer) -> Result[Unit, String] 
   if self.orientation.write_cdr(writer) is Err(message) {
     return Err(message)
   }
-  for value in self.orientation_covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.orientation_covariance)
   if self.angular_velocity.write_cdr(writer) is Err(message) {
     return Err(message)
   }
-  for value in self.angular_velocity_covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.angular_velocity_covariance)
   if self.linear_acceleration.write_cdr(writer) is Err(message) {
     return Err(message)
   }
-  for value in self.linear_acceleration_covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.linear_acceleration_covariance)
   Ok(())
 }
 
@@ -144,40 +138,25 @@ pub fn Imu::read_cdr(reader : @cdr.Reader) -> Result[Imu, String] {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let orientation_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    orientation_covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let orientation_covariance = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let angular_velocity = match @geometry.Vector3::read_cdr(reader) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let angular_velocity_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    angular_velocity_covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let angular_velocity_covariance = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let linear_acceleration = match @geometry.Vector3::read_cdr(reader) {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let linear_acceleration_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    linear_acceleration_covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let linear_acceleration_covariance = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   Ok(
     Imu::new(
@@ -355,14 +334,8 @@ pub fn LaserScan::write_cdr(
   writer.write_f32(self.scan_time)
   writer.write_f32(self.range_min)
   writer.write_f32(self.range_max)
-  writer.write_u32(self.ranges.length().reinterpret_as_uint())
-  for value in self.ranges {
-    writer.write_f32(value)
-  }
-  writer.write_u32(self.intensities.length().reinterpret_as_uint())
-  for value in self.intensities {
-    writer.write_f32(value)
-  }
+  writer.write_f32_sequence(self.ranges)
+  writer.write_f32_sequence(self.intensities)
   Ok(())
 }
 
@@ -401,37 +374,13 @@ pub fn LaserScan::read_cdr(reader : @cdr.Reader) -> Result[LaserScan, String] {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let ranges_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let ranges = match reader.read_f32_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  if ranges_length < 0 || ranges_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
-  }
-  let ranges : Array[Float] = []
-  for _ in 0..<ranges_length {
-    ranges.push(
-      match reader.read_f32() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
-  }
-  let intensities_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let intensities = match reader.read_f32_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
-  }
-  if intensities_length < 0 || intensities_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
-  }
-  let intensities : Array[Float] = []
-  for _ in 0..<intensities_length {
-    intensities.push(
-      match reader.read_f32() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
   }
   Ok(
     LaserScan::new(
@@ -837,18 +786,9 @@ pub fn JointState::write_cdr(
   for value in self.name {
     writer.write_string(value)
   }
-  writer.write_u32(self.position.length().reinterpret_as_uint())
-  for value in self.position {
-    writer.write_f64(value)
-  }
-  writer.write_u32(self.velocity.length().reinterpret_as_uint())
-  for value in self.velocity {
-    writer.write_f64(value)
-  }
-  writer.write_u32(self.effort.length().reinterpret_as_uint())
-  for value in self.effort {
-    writer.write_f64(value)
-  }
+  writer.write_f64_sequence(self.position)
+  writer.write_f64_sequence(self.velocity)
+  writer.write_f64_sequence(self.effort)
   Ok(())
 }
 
@@ -875,53 +815,17 @@ pub fn JointState::read_cdr(reader : @cdr.Reader) -> Result[JointState, String] 
       },
     )
   }
-  let position_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let position = match reader.read_f64_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  if position_length < 0 || position_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
-  }
-  let position : Array[Double] = []
-  for _ in 0..<position_length {
-    position.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
-  }
-  let velocity_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let velocity = match reader.read_f64_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  if velocity_length < 0 || velocity_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
-  }
-  let velocity : Array[Double] = []
-  for _ in 0..<velocity_length {
-    velocity.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
-  }
-  let effort_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let effort = match reader.read_f64_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
-  }
-  if effort_length < 0 || effort_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
-  }
-  let effort : Array[Double] = []
-  for _ in 0..<effort_length {
-    effort.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
   }
   Ok(JointState::new(header, name, position, velocity, effort))
 }
@@ -1536,19 +1440,10 @@ pub fn CameraInfo::write_cdr(
   writer.write_u32(self.height)
   writer.write_u32(self.width)
   writer.write_string(self.distortion_model)
-  writer.write_u32(self.d.length().reinterpret_as_uint())
-  for value in self.d {
-    writer.write_f64(value)
-  }
-  for value in self.k {
-    writer.write_f64(value)
-  }
-  for value in self.r {
-    writer.write_f64(value)
-  }
-  for value in self.p {
-    writer.write_f64(value)
-  }
+  writer.write_f64_sequence(self.d)
+  writer.write_f64_array(self.k)
+  writer.write_f64_array(self.r)
+  writer.write_f64_array(self.p)
   writer.write_u32(self.binning_x)
   writer.write_u32(self.binning_y)
   if self.roi.write_cdr(writer) is Err(message) {
@@ -1576,48 +1471,21 @@ pub fn CameraInfo::read_cdr(reader : @cdr.Reader) -> Result[CameraInfo, String] 
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let d_length = match reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
+  let d = match reader.read_f64_sequence() {
+    Ok(value) => value
     Err(message) => return Err(message)
   }
-  if d_length < 0 || d_length > reader.remaining() {
-    return Err("generated ROS sequence is truncated")
+  let k = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
-  let d : Array[Double] = []
-  for _ in 0..<d_length {
-    d.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let r = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
-  let k : Array[Double] = []
-  for _ in 0..<9 {
-    k.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
-  }
-  let r : Array[Double] = []
-  for _ in 0..<9 {
-    r.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
-  }
-  let p : Array[Double] = []
-  for _ in 0..<12 {
-    p.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let p = match reader.read_f64_array(12) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let binning_x = match reader.read_u32() {
     Ok(value) => value
@@ -2100,9 +1968,7 @@ pub fn NavSatFix::write_cdr(
   writer.write_f64(self.latitude)
   writer.write_f64(self.longitude)
   writer.write_f64(self.altitude)
-  for value in self.position_covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.position_covariance)
   writer.write_u8(self.position_covariance_type)
   Ok(())
 }
@@ -2130,14 +1996,9 @@ pub fn NavSatFix::read_cdr(reader : @cdr.Reader) -> Result[NavSatFix, String] {
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let position_covariance : Array[Double] = []
-  for _ in 0..<9 {
-    position_covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let position_covariance = match reader.read_f64_array(9) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let position_covariance_type = match reader.read_u8() {
     Ok(value) => value

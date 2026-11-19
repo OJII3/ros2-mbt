@@ -6,6 +6,10 @@ import {
   "OJII3/ros2-mbt/ros/messages/std_msgs" @std,
 }
 
+import {
+  "moonbitlang/core/bench",
+} for "test"
+
 options(
   "is-main": false,
 )

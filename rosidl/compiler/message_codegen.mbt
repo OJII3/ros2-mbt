@@ -307,6 +307,26 @@ fn rosidl_generate_writer(field : MessageField) -> String {
           "))\n"
     }
   }
+  if rosidl_bulk_array_suffix(field.type_name) is Some(suffix) {
+    let accessor = "writer.write_" + suffix
+    match field.collection {
+      Scalar => ()
+      FixedArray(_) =>
+        return "  " + accessor + "_array(self." + field.name + ")\n"
+      Sequence =>
+        return "  " + accessor + "_sequence(self." + field.name + ")\n"
+      BoundedSequence(bound) =>
+        return "  if self." +
+          field.name +
+          ".length() > " +
+          bound.to_string() +
+          " {\n    return Err(\"generated ROS bounded sequence exceeds its bound\")\n  }\n  " +
+          accessor +
+          "_sequence(self." +
+          field.name +
+          ")\n"
+    }
+  }
   match field.collection {
     Scalar =>
       rosidl_generate_writer_call(
@@ -502,6 +522,34 @@ fn rosidl_generate_reader(
           "    Ok(value) => value\n" +
           "    Err(message) => return Err(message)\n" +
           "  }\n"
+    }
+  }
+  if rosidl_bulk_array_suffix(field.type_name) is Some(suffix) {
+    let accessor = "reader.read_" + suffix
+    match field.collection {
+      Scalar => ()
+      FixedArray(length) =>
+        return "  let " +
+          field.name +
+          " = match " +
+          accessor +
+          "_array(" +
+          length.to_string() +
+          ") {\n" +
+          "    Ok(value) => value\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n"
+      Sequence =>
+        return "  let " +
+          field.name +
+          " = match " +
+          accessor +
+          "_sequence() {\n" +
+          "    Ok(value) => value\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n"
+      // Bounded sequences keep the scalar loop so the bound check stays exact.
+      BoundedSequence(_) => ()
     }
   }
   match field.collection {

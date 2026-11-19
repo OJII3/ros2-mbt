@@ -108,18 +108,17 @@ pub fn Header::guid_prefix(self : Header) -> GuidPrefix {
 ///|
 /// Serialize an RTPS message header in network byte order.
 pub fn Header::to_bytes(self : Header) -> Bytes {
-  let bytes : Array[Byte] = [b'R', b'T', b'P', b'S']
-  bytes.reserve_capacity(HEADER_LENGTH)
-  bytes.push(self.protocol_version.major)
-  bytes.push(self.protocol_version.minor)
-  bytes.push(self.vendor_id.major)
-  bytes.push(self.vendor_id.minor)
-  let prefix = self.guid_prefix.as_bytes()
-  // Perf: index loop + reserve_capacity beats push_iter on this hot path.
-  for i in 0..<prefix.length() {
-    bytes.push(prefix[i])
-  }
-  Bytes::from_array(bytes)
+  let buffer = @buffer.Buffer(capacity=HEADER_LENGTH)
+  buffer.write_byte(b'R')
+  buffer.write_byte(b'T')
+  buffer.write_byte(b'P')
+  buffer.write_byte(b'S')
+  buffer.write_byte(self.protocol_version.major)
+  buffer.write_byte(self.protocol_version.minor)
+  buffer.write_byte(self.vendor_id.major)
+  buffer.write_byte(self.vendor_id.minor)
+  buffer.write_bytes(self.guid_prefix.as_bytes())
+  buffer.to_bytes()
 }
 
 ///|
@@ -134,11 +133,7 @@ pub fn Header::from_bytes(input : Bytes) -> Result[Header, String] {
     input[3] != b'S' {
     return Err("invalid RTPS magic")
   }
-  let prefix_bytes : Array[Byte] = []
-  for i in 0..<12 {
-    prefix_bytes.push(input[8 + i])
-  }
-  let prefix = match GuidPrefix::from_array(prefix_bytes) {
+  let prefix = match GuidPrefix::new(input[8:20].to_owned()) {
     Ok(prefix) => prefix
     Err(message) => return Err(message)
   }
@@ -284,28 +279,18 @@ pub fn Submessage::to_bytes(self : Submessage) -> Result[Bytes, String] {
   if self.payload.length() > 0xFFFF {
     return Err("an RTPS submessage payload cannot exceed 65535 bytes")
   }
-  let length = self.payload.length()
-  let length_low = (length & 0xFF).to_byte()
-  let length_high = ((length >> 8) & 0xFF).to_byte()
-  let little = (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0
-  let (first_length, second_length) = if little {
-    (length_low, length_high)
+  let buffer = @buffer.Buffer(
+    capacity=SUBMESSAGE_HEADER_LENGTH + self.payload.length(),
+  )
+  buffer.write_byte(self.id.to_byte())
+  buffer.write_byte(self.flags)
+  if (self.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+    buffer.write_uint16_le(self.payload.length().to_uint16())
   } else {
-    (length_high, length_low)
+    buffer.write_uint16_be(self.payload.length().to_uint16())
   }
-  let bytes : Array[Byte] = [
-    self.id.to_byte(),
-    self.flags,
-    first_length,
-    second_length,
-  ]
-  // Reserve the exact submessage size to avoid repeated reallocation.
-  bytes.reserve_capacity(SUBMESSAGE_HEADER_LENGTH + length)
-  // Perf: index loop beats push_iter on this hot path.
-  for i in 0..<length {
-    bytes.push(self.payload[i])
-  }
-  Ok(Bytes::from_array(bytes))
+  buffer.write_bytes(self.payload)
+  Ok(buffer.to_bytes())
 }
 
 ///|
@@ -318,37 +303,48 @@ fn bytes_from(input : Bytes, start : Int32, length : Int32) -> Bytes {
 pub fn Submessage::from_bytes(
   input : Bytes,
 ) -> Result[(Submessage, Int32), String] {
-  if input.length() < SUBMESSAGE_HEADER_LENGTH {
+  Submessage::from_bytes_at(input, 0)
+}
+
+///|
+// Perf: parse at an absolute offset so a message with several submessages does
+// not copy the remaining input for every one of them.
+fn Submessage::from_bytes_at(
+  input : Bytes,
+  offset : Int32,
+) -> Result[(Submessage, Int32), String] {
+  if input.length() - offset < SUBMESSAGE_HEADER_LENGTH {
     return Err("an RTPS submessage header is 4 bytes")
   }
-  let id = match SubmessageId::from_byte(input[0]) {
+  let id = match SubmessageId::from_byte(input[offset]) {
     Ok(id) => id
     Err(message) => return Err(message)
   }
-  let encoded_payload_length = if (input[1] & SUBMESSAGE_FLAG_LITTLE_ENDIAN) !=
-    0 {
-    input[2].to_int() | (input[3].to_int() << 8)
+  let flags = input[offset + 1]
+  let encoded_payload_length = if (flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+    input[offset + 2].to_int() | (input[offset + 3].to_int() << 8)
   } else {
-    (input[2].to_int() << 8) | input[3].to_int()
+    (input[offset + 2].to_int() << 8) | input[offset + 3].to_int()
   }
   let payload_length = if encoded_payload_length == 0 {
     match id {
       Pad | InfoTimestamp => 0
-      _ => input.length() - SUBMESSAGE_HEADER_LENGTH
+      _ => input.length() - offset - SUBMESSAGE_HEADER_LENGTH
     }
   } else {
     encoded_payload_length
   }
   let total_length = SUBMESSAGE_HEADER_LENGTH + payload_length
-  if input.length() < total_length {
+  if input.length() - offset < total_length {
     return Err("truncated RTPS submessage payload")
   }
+  let payload_start = offset + SUBMESSAGE_HEADER_LENGTH
   Ok(
     (
       {
         id,
-        flags: input[1],
-        payload: bytes_from(input, SUBMESSAGE_HEADER_LENGTH, payload_length),
+        flags,
+        payload: input[payload_start:payload_start + payload_length].to_owned(),
       },
       total_length,
     ),

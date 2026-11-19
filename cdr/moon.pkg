@@ -3,6 +3,10 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
+import {
+  "moonbitlang/core/bench",
+} for "test"
+
 options(
   "is-main": false,
 )

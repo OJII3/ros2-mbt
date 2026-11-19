@@ -342,6 +342,12 @@ Run formatting, type checking, and native tests:
 just verify
 ```
 
+Run native release benchmarks for the CDR, ROS message, and RTPS hot paths:
+
+```sh
+just bench
+```
+
 Run the full ROS 2 interoperability suite in Podman:
 
 ```sh

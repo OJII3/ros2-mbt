@@ -396,9 +396,10 @@ test "ROS message generator handles fixed arrays and sequences" {
   assert_eq(definition.fields()[0].collection(), FixedArray(3))
   assert_eq(definition.fields()[1].collection(), Sequence)
   let generated = definition.generate_moonbit()
-  assert_true(generated.contains("for _ in 0..<3"))
-  assert_true(generated.contains("writer.write_u32(self.samples.length()"))
-  assert_true(generated.contains("samples_length"))
+  assert_true(generated.contains("writer.write_i32_array(self.values)"))
+  assert_true(generated.contains("reader.read_i32_array(3)"))
+  assert_true(generated.contains("writer.write_f64_sequence(self.samples)"))
+  assert_true(generated.contains("reader.read_f64_sequence()"))
 }
 
 ///|
@@ -447,7 +448,7 @@ test "ROS message generator handles bounded sequences" {
   }
   assert_eq(definition.fields()[0].collection(), BoundedSequence(3))
   let generated = definition.generate_moonbit()
-  assert_true(generated.contains("writer.write_u32(self.values.length()"))
+  assert_true(generated.contains("writer.write_i32_sequence(self.values)"))
   assert_true(generated.contains("if self.values.length() > 3"))
   assert_true(
     generated.contains("generated ROS bounded sequence exceeds its bound"),

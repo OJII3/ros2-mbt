@@ -55,25 +55,13 @@ pub fn SampleIdentity::sequence_number(self : SampleIdentity) -> Int64 {
 /// encapsulation header. This is the representation required by the RTPS
 /// inline-QoS parameter PID_RELATED_SAMPLE_IDENTITY.
 pub fn SampleIdentity::to_bytes(self : SampleIdentity) -> Bytes {
-  let bytes : Array[Byte] = []
-  bytes.reserve_capacity(24)
-  let guid = self.writer_guid.to_bytes()
-  // Perf: index loop beats push_iter on this hot path.
-  for i in 0..<guid.length() {
-    bytes.push(guid[i])
-  }
+  let buffer = @buffer.Buffer(capacity=24)
+  buffer.write_bytes(self.writer_guid.prefix.as_bytes())
+  self.writer_guid.entity_id.write_to(buffer)
   let value = self.sequence_number.reinterpret_as_uint64()
-  let high = value >> 32
-  let low = value & 0xFFFFFFFFL.reinterpret_as_uint64()
-  bytes.push(high.to_byte())
-  bytes.push((high >> 8).to_byte())
-  bytes.push((high >> 16).to_byte())
-  bytes.push((high >> 24).to_byte())
-  bytes.push(low.to_byte())
-  bytes.push((low >> 8).to_byte())
-  bytes.push((low >> 16).to_byte())
-  bytes.push((low >> 24).to_byte())
-  Bytes::from_array(bytes)
+  buffer.write_uint_le((value >> 32).to_uint())
+  buffer.write_uint_le(value.to_uint())
+  buffer.to_bytes()
 }
 
 ///|

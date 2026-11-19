@@ -247,13 +247,6 @@ pub fn DataSubmessage::sample_identity(
 }
 
 ///|
-fn data_append_u16_le(bytes : Array[Byte], value : UInt16) -> Unit {
-  let int_value = value.to_int()
-  bytes.push((int_value & 0xFF).to_byte())
-  bytes.push(((int_value >> 8) & 0xFF).to_byte())
-}
-
-///|
 fn data_append_u32_le(bytes : Array[Byte], value : UInt32) -> Unit {
   bytes.push(value.to_byte())
   bytes.push((value >> 8).to_byte())
@@ -289,32 +282,23 @@ fn data_read_u32_le(input : Bytes, offset : Int32) -> UInt32 {
 ///|
 /// Serialize the DATA body without its four-byte submessage header.
 pub fn DataSubmessage::to_payload(self : DataSubmessage) -> Bytes {
-  let bytes : Array[Byte] = []
-  // Reserve the exact payload size to avoid repeated reallocation per sample.
-  bytes.reserve_capacity(
-    DATA_FIXED_BODY_LENGTH +
-    self.inline_qos.length() +
-    self.serialized_payload.length(),
+  let buffer = @buffer.Buffer(
+    capacity=DATA_FIXED_BODY_LENGTH +
+      self.inline_qos.length() +
+      self.serialized_payload.length(),
   )
-  data_append_u16_le(bytes, self.extra_flags)
-  data_append_u16_le(bytes, self.octets_to_inline_qos)
-  let reader_id = self.reader_id.to_bytes()
-  let writer_id = self.writer_id.to_bytes()
-  // Perf: index loops beat push_iter on this hot path.
-  for i in 0..<4 {
-    bytes.push(reader_id[i])
-  }
-  for i in 0..<4 {
-    bytes.push(writer_id[i])
-  }
-  append_sequence_number_le(bytes, self.writer_sequence_number)
-  for i in 0..<self.inline_qos.length() {
-    bytes.push(self.inline_qos[i])
-  }
-  for i in 0..<self.serialized_payload.length() {
-    bytes.push(self.serialized_payload[i])
-  }
-  Bytes::from_array(bytes)
+  buffer.write_uint16_le(self.extra_flags)
+  buffer.write_uint16_le(self.octets_to_inline_qos)
+  self.reader_id.write_to(buffer)
+  self.writer_id.write_to(buffer)
+  // RTPS writes sequence numbers as a high word followed by a low word, each
+  // in the negotiated endianness.
+  let sequence_number = self.writer_sequence_number.reinterpret_as_uint64()
+  buffer.write_uint_le((sequence_number >> 32).to_uint())
+  buffer.write_uint_le(sequence_number.to_uint())
+  buffer.write_bytes(self.inline_qos)
+  buffer.write_bytes(self.serialized_payload)
+  buffer.to_bytes()
 }
 
 ///|

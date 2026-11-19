@@ -49,3 +49,17 @@ fn rosidl_reader_method(type_name : String) -> String {
     _ => ""
   }
 }
+
+///|
+/// Return the CDR bulk-array suffix for primitive numeric types that have a
+/// contiguous wire representation, or `None` when elements need the scalar
+/// codec.
+fn rosidl_bulk_array_suffix(type_name : String) -> String? {
+  match type_name {
+    "float64" => Some("f64")
+    "float32" => Some("f32")
+    "int32" => Some("i32")
+    "uint32" => Some("u32")
+    _ => None
+  }
+}
