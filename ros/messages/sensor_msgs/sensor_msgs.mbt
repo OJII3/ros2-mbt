@@ -566,10 +566,7 @@ pub fn Image::write_cdr(
   writer.write_string(self.encoding)
   writer.write_u8(self.is_bigendian)
   writer.write_u32(self.step)
-  writer.write_u32(self.data.length().reinterpret_as_uint())
-  for value in self.data {
-    writer.write_u8(value)
-  }
+  writer.write_byte_sequence(Bytes::from_array(self.data))
   Ok(())
 }
 
@@ -607,14 +604,9 @@ pub fn Image::read_cdr(reader : @cdr.Reader) -> Result[Image, String] {
   if data_length < 0 || data_length > reader.remaining() {
     return Err("generated ROS sequence is truncated")
   }
-  let data : Array[Byte] = []
-  for _ in 0..<data_length {
-    data.push(
-      match reader.read_u8() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let data = match reader.read_byte_array_to_array(data_length) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   Ok(Image::new(header, height, width, encoding, is_bigendian, step, data))
 }
@@ -704,10 +696,7 @@ pub fn CompressedImage::write_cdr(
     return Err(message)
   }
   writer.write_string(self.format)
-  writer.write_u32(self.data.length().reinterpret_as_uint())
-  for value in self.data {
-    writer.write_u8(value)
-  }
+  writer.write_byte_sequence(Bytes::from_array(self.data))
   Ok(())
 }
 
@@ -731,14 +720,9 @@ pub fn CompressedImage::read_cdr(
   if data_length < 0 || data_length > reader.remaining() {
     return Err("generated ROS sequence is truncated")
   }
-  let data : Array[Byte] = []
-  for _ in 0..<data_length {
-    data.push(
-      match reader.read_u8() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let data = match reader.read_byte_array_to_array(data_length) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   Ok(CompressedImage::new(header, format, data))
 }
@@ -1816,10 +1800,7 @@ pub fn PointCloud2::write_cdr(
   writer.write_bool(self.is_bigendian)
   writer.write_u32(self.point_step)
   writer.write_u32(self.row_step)
-  writer.write_u32(self.data.length().reinterpret_as_uint())
-  for value in self.data {
-    writer.write_u8(value)
-  }
+  writer.write_byte_sequence(Bytes::from_array(self.data))
   writer.write_bool(self.is_dense)
   Ok(())
 }
@@ -1879,14 +1860,9 @@ pub fn PointCloud2::read_cdr(
   if data_length < 0 || data_length > reader.remaining() {
     return Err("generated ROS sequence is truncated")
   }
-  let data : Array[Byte] = []
-  for _ in 0..<data_length {
-    data.push(
-      match reader.read_u8() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let data = match reader.read_byte_array_to_array(data_length) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   let is_dense = match reader.read_bool() {
     Ok(value) => value

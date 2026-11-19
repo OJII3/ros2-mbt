@@ -95,6 +95,28 @@ test "sensor_msgs Image round trips a camera-sized payload" {
 }
 
 ///|
+test "sensor_msgs Image round trips a 4K payload" {
+  let width = 3840U
+  let height = 2160U
+  let size = (width * height * 3U).reinterpret_as_int()
+  let data = Array::makei(size, fn(index) { (index % 251).to_byte() })
+  let image = @sensor_msgs.Image::new(
+    @std.Header::default(),
+    height,
+    width,
+    "rgb8",
+    0,
+    width * 3U,
+    data,
+  )
+  let encoded = image.to_cdr_bytes().unwrap()
+  assert_true(encoded.length() > size)
+  let decoded = @sensor_msgs.Image::from_cdr_bytes(encoded).unwrap()
+  assert_eq(decoded.data().length(), size)
+  assert_eq(decoded, image)
+}
+
+///|
 test "sensor_msgs sequence fields CDR round trip" {
   let laser_scan = @sensor_msgs.LaserScan::new(
     @std.Header::default(),

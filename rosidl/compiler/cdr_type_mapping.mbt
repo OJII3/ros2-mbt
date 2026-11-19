@@ -1,4 +1,12 @@
 ///|
+fn rosidl_is_byte_type(type_name : String) -> Bool {
+  match type_name {
+    "byte" | "char" | "uint8" => true
+    _ => false
+  }
+}
+
+///|
 fn rosidl_writer_method(type_name : String) -> String {
   match type_name {
     "bool" => "write_bool"

@@ -285,6 +285,28 @@ fn rosidl_generate_writer(field : MessageField) -> String {
   if rosidl_moon_type(field.type_name) is Err(_) {
     return rosidl_generate_nested_writer(field)
   }
+  if rosidl_is_byte_type(field.type_name) {
+    match field.collection {
+      Scalar => ()
+      FixedArray(_) =>
+        return "  writer.write_byte_array(Bytes::from_array(self." +
+          field.name +
+          "))\n"
+      Sequence =>
+        return "  writer.write_byte_sequence(Bytes::from_array(self." +
+          field.name +
+          "))\n"
+      BoundedSequence(bound) =>
+        return "  if self." +
+          field.name +
+          ".length() > " +
+          bound.to_string() +
+          " {\n    return Err(\"generated ROS bounded sequence exceeds its bound\")\n  }\n" +
+          "  writer.write_byte_sequence(Bytes::from_array(self." +
+          field.name +
+          "))\n"
+    }
+  }
   match field.collection {
     Scalar =>
       rosidl_generate_writer_call(
@@ -416,6 +438,71 @@ fn rosidl_generate_reader(
   let base = rosidl_moon_type_for_field(field.type_name, nested_types).unwrap()
   if rosidl_moon_type(field.type_name) is Err(_) {
     return rosidl_generate_nested_reader(field, base)
+  }
+  if rosidl_is_byte_type(field.type_name) {
+    match field.collection {
+      Scalar => ()
+      FixedArray(length) =>
+        return "  let " +
+          field.name +
+          " = match reader.read_byte_array_to_array(" +
+          length.to_string() +
+          ") {\n" +
+          "    Ok(value) => value\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n"
+      Sequence =>
+        return "  let " +
+          field.name +
+          "_length = match reader.read_u32() {\n" +
+          "    Ok(value) => value.reinterpret_as_int()\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n" +
+          "  if " +
+          field.name +
+          "_length < 0 || " +
+          field.name +
+          "_length > reader.remaining() {\n" +
+          "    return Err(\"generated ROS sequence is truncated\")\n" +
+          "  }\n" +
+          "  let " +
+          field.name +
+          " = match reader.read_byte_array_to_array(" +
+          field.name +
+          "_length) {\n" +
+          "    Ok(value) => value\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n"
+      BoundedSequence(bound) =>
+        return "  let " +
+          field.name +
+          "_length = match reader.read_u32() {\n" +
+          "    Ok(value) => value.reinterpret_as_int()\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n" +
+          "  if " +
+          field.name +
+          "_length < 0 || " +
+          field.name +
+          "_length > " +
+          bound.to_string() +
+          " {\n" +
+          "    return Err(\"generated ROS bounded sequence exceeds its bound\")\n" +
+          "  }\n" +
+          "  if " +
+          field.name +
+          "_length > reader.remaining() {\n" +
+          "    return Err(\"generated ROS sequence is truncated\")\n" +
+          "  }\n" +
+          "  let " +
+          field.name +
+          " = match reader.read_byte_array_to_array(" +
+          field.name +
+          "_length) {\n" +
+          "    Ok(value) => value\n" +
+          "    Err(message) => return Err(message)\n" +
+          "  }\n"
+    }
   }
   match field.collection {
     Scalar =>
