@@ -298,12 +298,13 @@ async main {
 Run the finite publisher with `moon run examples/node_talker`; it reads
 `ROS_DOMAIN_ID`, `ROS2_MBT_IP`, and `ROS2_MBT_MULTICAST_IP` from the environment.
 
-`Executor::spin` reads each participant's user-data socket once and routes each
-RTPS message to matching subscriptions and the reliable ROS graph endpoints.
-Malformed RTPS datagrams and samples rejected by a subscription's decoder are
-discarded, allowing later samples to be processed. It runs callbacks
-sequentially and waits asynchronously for network input, timers, or
-`Executor::shutdown()`.
+`Executor::spin` continuously reads each participant's user-data socket into a
+bounded queue and drains that queue in batches, so a fragmented camera frame
+does not cost one scheduler round-trip per datagram. It routes each RTPS message
+to matching subscriptions and the reliable ROS graph endpoints. Malformed RTPS
+datagrams and samples rejected by a subscription's decoder are discarded,
+allowing later samples to be processed. It runs callbacks sequentially and waits
+asynchronously for network input, timers, or `Executor::shutdown()`.
 The node API supports both reliable and best-effort topic QoS, with automatic
 HEARTBEAT/ACKNACK state handling on the shared user socket. A reliable publisher
 can communicate with both reliable and best-effort subscriptions, while a

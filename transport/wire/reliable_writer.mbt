@@ -664,7 +664,7 @@ pub async fn ReliableDataWriter::handle_control_message(
   self : ReliableDataWriter,
   message : @rtps.Message,
 ) -> Result[Bool, String] {
-  let destinations = match message.destination_contexts() {
+  let destinations = match transport_destination_contexts(message) {
     Ok(value) => value
     Err(_) => return Ok(false)
   }
@@ -672,7 +672,8 @@ pub async fn ReliableDataWriter::handle_control_message(
   let submessages = message.submessages()
   for index in 0..<submessages.length() {
     let submessage = submessages[index]
-    if !transport_destination_matches(
+    if destinations.length() > 0 &&
+      !transport_destination_matches(
         destinations[index],
         Some(self.guid_prefix),
       ) {

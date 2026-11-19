@@ -655,3 +655,73 @@ async test "two RosNodes exchange typed reliable messages through Executor" {
   @async.with_timeout(3000, () => executor.spin()).unwrap()
   assert_eq(received_msg, "hello from talker")
 }
+
+///|
+async test "executor reassembles a fragmented frame through the datagram queue" {
+  let local_prefix = @rtps.GuidPrefix::from_array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  ]).unwrap()
+  let remote_prefix = @rtps.GuidPrefix::from_array([
+    11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+  ]).unwrap()
+  let vendor_id = @rtps.VendorId::new(1, 15)
+  let local_identity = @wire.new_ddsi_participant(
+    local_prefix, vendor_id, 0, 0, 0x7F000001U, 60,
+  ).unwrap()
+  let discovery_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer discovery_socket.close()
+  let user_socket = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer user_socket.close()
+  let participant = RosParticipant::from_sockets(
+    discovery_socket, user_socket, local_identity, 0, 1L,
+  ).unwrap()
+  let node = RosNode::new(participant, "/frame_test", "frame_test").unwrap()
+  let topic = @ros_types.RosTopic::new(
+    "/camera/image_raw", "sensor_msgs", "msg", "Image",
+  ).unwrap()
+  let sender = @wire.Udp::bind(@wire.udp_ipv4_addr(0x7F000001U, 0)).unwrap()
+  defer sender.close()
+  let writer_id = @rtps.EntityId::new(b"pub", 0x03).unwrap()
+  let reader_id = @rtps.EntityId::new([0, 0, 1], 0x04).unwrap()
+  // 64 KiB is ~55 DATA_FRAG datagrams, so one frame spans many executor wakeups.
+  let payload = Bytes::make(64 * 1024, 7)
+  let publication = topic
+    .to_sedp_with_qos(
+      Publication,
+      @rtps.Guid::new(remote_prefix, writer_id),
+      @rtps.SedpQos::reliable(),
+    )
+    .unwrap()
+  publication.add_unicast_locator(sender.local_unicast_locator().unwrap())
+  let subscription = topic
+    .to_sedp_with_qos(
+      Subscription,
+      @rtps.Guid::new(local_prefix, reader_id),
+      @rtps.SedpQos::reliable(),
+    )
+    .unwrap()
+  subscription.add_unicast_locator(user_socket.local_unicast_locator().unwrap())
+  let executor = Executor::new()
+  let mut received_length = -1
+  node
+  .create_subscription(topic, "test_hash", fn(payload) { Ok(payload) }, fn(
+    frame,
+  ) {
+    received_length = frame.length()
+    executor.shutdown()
+  })
+  .unwrap()
+  node.add_publication(publication).unwrap()
+  executor.add_node(node).unwrap()
+  let writer = @wire.ReliableDataWriter::new_for_subscription(
+    sender, remote_prefix, vendor_id, writer_id, subscription, 1L,
+  ).unwrap()
+  @async.with_task_group() <| group => {
+    group.spawn_bg() <| () => {
+      @async.sleep(10)
+      writer.write(payload).unwrap()
+    }
+    @async.with_timeout(3000, () => executor.spin()).unwrap()
+  }
+  assert_eq(received_length, payload.length())
+}

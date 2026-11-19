@@ -309,9 +309,83 @@ pub async fn RosNode::dispose_and_close(self : RosNode) -> Result[Unit, String] 
 /// One event selected by the executor's asynchronous wait loop.
 priv enum RosExecutorEvent {
   Discovery(Int32, Result[MiddlewareDiscovery, String])
-  Datagram(Int32, Result[MiddlewareIncoming, String])
+  DatagramsReady
   Timer(Int32, Int32)
   Shutdown
+}
+
+///|
+/// Maximum datagrams buffered between the socket reader and the callback
+/// dispatcher. A 640x480 116 KiB frame spans roughly 100 RTPS fragments, so
+/// this holds a few frames while a slow callback is running.
+const EXECUTOR_DATAGRAM_BUFFER_CAPACITY : Int32 = 256
+
+///|
+/// Upper bound on datagrams handled before discovery, timers and shutdown are
+/// polled again. About 2.5 camera frames at 30fps with 100 fragments each.
+const EXECUTOR_MAX_DATAGRAMS_PER_WAKEUP : Int32 = 256
+
+///|
+/// Datagrams buffered between socket readers and the callback dispatcher.
+/// Unlike a consuming queue, `wait_for_data` leaves pending items in place when
+/// the wait is cancelled, so a datagram cannot be lost between wakeups.
+priv struct ExecutorDatagramInbox {
+  pending : Array[(Int32, MiddlewareIncoming)]
+  has_pending : @async.Cond
+  has_space : @async.Cond
+}
+
+///|
+fn ExecutorDatagramInbox::new() -> ExecutorDatagramInbox {
+  { pending: [], has_pending: Cond(), has_space: Cond(), }
+}
+
+///|
+fn ExecutorDatagramInbox::is_empty(self : ExecutorDatagramInbox) -> Bool {
+  self.pending.length() == 0
+}
+
+///|
+fn ExecutorDatagramInbox::is_full(self : ExecutorDatagramInbox) -> Bool {
+  self.pending.length() >= EXECUTOR_DATAGRAM_BUFFER_CAPACITY
+}
+
+///|
+fn ExecutorDatagramInbox::push(
+  self : ExecutorDatagramInbox,
+  node_index : Int32,
+  incoming : MiddlewareIncoming,
+) -> Unit {
+  self.pending.push((node_index, incoming))
+  self.has_pending.signal()
+}
+
+///|
+fn ExecutorDatagramInbox::pop(
+  self : ExecutorDatagramInbox,
+) -> (Int32, MiddlewareIncoming) {
+  self.pending.remove(0)
+}
+
+///|
+async fn ExecutorDatagramInbox::wait_for_data(
+  self : ExecutorDatagramInbox,
+) -> Unit {
+  self.has_pending.wait()
+}
+
+///|
+async fn ExecutorDatagramInbox::wait_for_space(
+  self : ExecutorDatagramInbox,
+) -> Unit {
+  self.has_space.wait()
+}
+
+///|
+fn ExecutorDatagramInbox::release_space(self : ExecutorDatagramInbox) -> Unit {
+  if !self.is_full() {
+    self.has_space.broadcast()
+  }
 }
 
 ///|
@@ -545,7 +619,72 @@ pub async fn Executor::spin(self : Executor) -> Result[Unit, String] {
 }
 
 ///|
+/// Continuously read user datagrams into `inbox` so a burst of fragments does
+/// not overflow the socket receive buffer while callbacks are running.
+async fn Executor::receive_datagrams_forever(
+  self : Executor,
+  node_index : Int32,
+  inbox : ExecutorDatagramInbox,
+) -> Unit {
+  let node = self.nodes[node_index]
+  while !self.shutdown_requested {
+    match node.receive_datagram() {
+      Ok(incoming) => {
+        while !self.shutdown_requested && inbox.is_full() {
+          inbox.wait_for_space()
+        }
+        if self.shutdown_requested {
+          return
+        }
+        inbox.push(node_index, incoming)
+      }
+      // Malformed datagrams are dropped; the next one may still be valid.
+      Err(_) => ()
+    }
+  }
+}
+
+///|
+/// Handle up to one wakeup's worth of buffered datagrams, then let discovery
+/// and timers run before draining the next batch.
+async fn Executor::handle_datagram_batch(
+  self : Executor,
+  inbox : ExecutorDatagramInbox,
+) -> Result[Unit, String] {
+  let mut handled = 0
+  while handled < EXECUTOR_MAX_DATAGRAMS_PER_WAKEUP &&
+        !self.shutdown_requested &&
+        !inbox.is_empty() {
+    let (node_index, incoming) = inbox.pop()
+    if self.nodes[node_index].handle_message(incoming) is Err(message) {
+      return Err(message)
+    }
+    handled += 1
+  }
+  inbox.release_space()
+  Ok(())
+}
+
+///|
 async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
+  let inbox = ExecutorDatagramInbox::new()
+  let mut result : Result[Unit, String] = Ok(())
+  @async.with_task_group() <| group => {
+    for node_index in 0..<self.nodes.length() {
+      group.spawn_bg(no_wait=true) <| () => {
+        self.receive_datagrams_forever(node_index, inbox)
+      }
+    }
+    result = self.dispatch_loop(inbox)
+  }
+  result
+}
+
+///|
+async fn Executor::dispatch_loop(
+  self : Executor,
+  inbox : ExecutorDatagramInbox,
+) -> Result[Unit, String] {
   while !self.shutdown_requested {
     let tasks : Array[async () -> RosExecutorEvent] = []
     tasks.push(async fn() {
@@ -555,7 +694,6 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
     for node_index in 0..<self.nodes.length() {
       let node = self.nodes[node_index]
       tasks.push(async fn() { Discovery(node_index, node.receive_discovery()) })
-      tasks.push(async fn() { Datagram(node_index, node.receive_datagram()) })
       for timer_index in 0..<node.timer_count() {
         tasks.push(async fn() {
           node.wait_timer(timer_index)
@@ -563,6 +701,15 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
         })
       }
     }
+    tasks.push(async fn() {
+      if inbox.is_empty() {
+        inbox.wait_for_data()
+      } else {
+        // Pending datagrams must not starve discovery, timers or shutdown.
+        @async.pause()
+      }
+      DatagramsReady
+    })
     match @async.any(tasks, allow_failure=true) {
       Shutdown => return Ok(())
       Discovery(node_index, result) =>
@@ -574,13 +721,10 @@ async fn Executor::spin_loop(self : Executor) -> Result[Unit, String] {
             }
           Err(message) => return Err(message)
         }
-      Datagram(node_index, result) =>
-        match result {
-          Ok(incoming) =>
-            if self.nodes[node_index].handle_message(incoming) is Err(message) {
-              return Err(message)
-            }
-          Err(_) => ()
+      DatagramsReady =>
+        match self.handle_datagram_batch(inbox) {
+          Ok(_) => ()
+          Err(message) => return Err(message)
         }
       Timer(node_index, timer_index) =>
         self.nodes[node_index].run_timer(timer_index)
