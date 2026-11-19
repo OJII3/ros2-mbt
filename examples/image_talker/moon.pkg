@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/core/async",
+  "OJII3/ros2-mbt/examples/config",
+  "OJII3/ros2-mbt/ros/messages/builtin_interfaces",
+  "OJII3/ros2-mbt/ros/messages/sensor_msgs",
+  "OJII3/ros2-mbt/ros/messages/std_msgs",
+  "OJII3/ros2-mbt/transport",
+}
+
+supported_targets = "native"
+
+options(
+  "allow-experimental-packages": [ "moonbitlang/core/async" ],
+)
+
+pkgtype(kind: "executable")

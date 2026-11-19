@@ -218,6 +218,7 @@ actions, and parameters:
 | Example | Purpose |
 | --- | --- |
 | `examples/talker` / `examples/listener` | String topic publisher and subscriber |
+| `examples/image_talker` / `image_listener` | 640×480 RGB8 Image stream at 20 Hz |
 | `examples/wstring_talker` / `wstring_listener` | WString topic publisher and subscriber |
 | `examples/service_server` / `service_client` | ROS 2 service server and client |
 | `examples/action_client` | Fibonacci Action client |
