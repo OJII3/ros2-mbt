@@ -543,8 +543,8 @@ run_node_talker() {
     "The high-level ROS node API did not publish or expose the expected graph"
 }
 
-# A camera-sized Image stream must cross DATA_FRAG reassembly intact at a
-# sustained frame rate.
+# A MoonBit Image publisher must wait for the discovered subscriber, then stream
+# the whole camera-sized set.
 run_moonbit_image_talker() {
   begin_scenario
   local probe_log="$scenario_directory/image-probe.log"
