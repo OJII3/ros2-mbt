@@ -21,6 +21,10 @@ check:
 test:
     moon test --target native --release
 
+# Run native release benchmarks.
+bench:
+    moon bench --target native --release
+
 # Run ROS 2 Jazzy interoperability checks.
 interop-cli:
     nix develop .#ros2 --command bash scripts/ros2_cli_interop.sh

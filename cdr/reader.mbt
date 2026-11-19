@@ -25,39 +25,67 @@ pub fn Reader::from_bytes(bytes : Bytes) -> Result[Reader, String] {
 }
 
 ///|
-fn cdr_reader_read_u16(input : BytesView, little_endian : Bool) -> UInt32 {
+#inline
+fn cdr_reader_read_u16(
+  input : Bytes,
+  offset : Int32,
+  little_endian : Bool,
+) -> UInt32 {
   if little_endian {
-    input[0].to_int().reinterpret_as_uint() |
-    (input[1].to_int().reinterpret_as_uint() << 8)
+    input[offset].to_int().reinterpret_as_uint() |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 8)
   } else {
-    (input[0].to_int().reinterpret_as_uint() << 8) |
-    input[1].to_int().reinterpret_as_uint()
+    (input[offset].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 1].to_int().reinterpret_as_uint()
   }
 }
 
 ///|
-fn cdr_reader_read_u32(input : BytesView, little_endian : Bool) -> UInt32 {
+#inline
+fn cdr_reader_read_u32(
+  input : Bytes,
+  offset : Int32,
+  little_endian : Bool,
+) -> UInt32 {
   if little_endian {
-    input[0].to_int().reinterpret_as_uint() |
-    (input[1].to_int().reinterpret_as_uint() << 8) |
-    (input[2].to_int().reinterpret_as_uint() << 16) |
-    (input[3].to_int().reinterpret_as_uint() << 24)
+    input[offset].to_int().reinterpret_as_uint() |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 8) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 3].to_int().reinterpret_as_uint() << 24)
   } else {
-    (input[0].to_int().reinterpret_as_uint() << 24) |
-    (input[1].to_int().reinterpret_as_uint() << 16) |
-    (input[2].to_int().reinterpret_as_uint() << 8) |
-    input[3].to_int().reinterpret_as_uint()
+    (input[offset].to_int().reinterpret_as_uint() << 24) |
+    (input[offset + 1].to_int().reinterpret_as_uint() << 16) |
+    (input[offset + 2].to_int().reinterpret_as_uint() << 8) |
+    input[offset + 3].to_int().reinterpret_as_uint()
   }
 }
 
 ///|
-fn cdr_reader_read_u64(input : BytesView, little_endian : Bool) -> UInt64 {
-  let mut value = 0UL
-  for index in 0..<8 {
-    let shift = if little_endian { index * 8 } else { (7 - index) * 8 }
-    value = value | (input[index].to_int().to_uint64() << shift)
+#inline
+fn cdr_reader_read_u64(
+  input : Bytes,
+  offset : Int32,
+  little_endian : Bool,
+) -> UInt64 {
+  if little_endian {
+    input[offset].to_int().to_uint64() |
+    (input[offset + 1].to_int().to_uint64() << 8) |
+    (input[offset + 2].to_int().to_uint64() << 16) |
+    (input[offset + 3].to_int().to_uint64() << 24) |
+    (input[offset + 4].to_int().to_uint64() << 32) |
+    (input[offset + 5].to_int().to_uint64() << 40) |
+    (input[offset + 6].to_int().to_uint64() << 48) |
+    (input[offset + 7].to_int().to_uint64() << 56)
+  } else {
+    (input[offset].to_int().to_uint64() << 56) |
+    (input[offset + 1].to_int().to_uint64() << 48) |
+    (input[offset + 2].to_int().to_uint64() << 40) |
+    (input[offset + 3].to_int().to_uint64() << 32) |
+    (input[offset + 4].to_int().to_uint64() << 24) |
+    (input[offset + 5].to_int().to_uint64() << 16) |
+    (input[offset + 6].to_int().to_uint64() << 8) |
+    input[offset + 7].to_int().to_uint64()
   }
-  value
 }
 
 ///|
@@ -85,155 +113,150 @@ pub fn Reader::remaining_is_zero_padding(
 }
 
 ///|
-fn Reader::take(self : Reader, length : Int32) -> Result[BytesView, String] {
-  if length < 0 || length > self.bytes.length() - self.offset {
-    return Err("truncated CDR payload")
-  }
-  let view = self.bytes[self.offset:self.offset + length]
-  self.offset += length
-  Ok(view)
-}
-
-///|
-// Perf: explicit matches keep CDR reads free of per-call closure allocation.
-fn Reader::take_aligned(
-  self : Reader,
-  alignment : Int32,
-  length : Int32,
-) -> Result[BytesView, String] {
-  match self.align(alignment) {
-    Ok(_) => self.take(length)
-    Err(message) => Err(message)
-  }
-}
-
-///|
-fn Reader::align(self : Reader, alignment : Int32) -> Result[Unit, String] {
-  // The encapsulation header is not part of the CDR stream used for
-  // alignment. XCDR1 therefore aligns from the first byte after the header.
+// Perf: compute the aligned start without allocating an intermediate
+// `Result[Unit, String]`. The CDR header is not part of the aligned stream.
+#inline
+fn Reader::aligned_offset(self : Reader, alignment : Int32) -> Int32 {
   let remainder = (self.offset - ENCAPSULATION_LENGTH) % alignment
-  let padding = if remainder == 0 { 0 } else { alignment - remainder }
-  match self.take(padding) {
-    Ok(_) => Ok(())
-    Err(message) => Err(message)
-  }
+  self.offset + (if remainder == 0 { 0 } else { alignment - remainder })
 }
 
 ///|
 /// Read an unaligned CDR octet.
-// Perf: explicit match instead of Result::map avoids a closure per byte read.
+// Perf: one bounds check and one `Ok` instead of `take`'s boxed byte view.
 pub fn Reader::read_u8(self : Reader) -> Result[Byte, String] {
-  match self.take(1) {
-    Ok(view) => Ok(view[0])
-    Err(message) => Err(message)
+  let offset = self.offset
+  if offset >= self.bytes.length() {
+    return Err("truncated CDR payload")
   }
+  self.offset = offset + 1
+  Ok(self.bytes[offset])
 }
 
 ///|
 /// Read a signed CDR int8 without alignment.
 pub fn Reader::read_i8(self : Reader) -> Result[Int32, String] {
-  match self.read_u8() {
-    Ok(value) => {
-      let raw = value.to_int()
-      Ok(if raw >= 128 { raw - 256 } else { raw })
-    }
-    Err(message) => Err(message)
+  let offset = self.offset
+  if offset >= self.bytes.length() {
+    return Err("truncated CDR payload")
   }
+  self.offset = offset + 1
+  let raw = self.bytes[offset].to_int()
+  Ok(if raw >= 128 { raw - 256 } else { raw })
 }
 
 ///|
 /// Read a CDR boolean encoded as 0 or 1.
 pub fn Reader::read_bool(self : Reader) -> Result[Bool, String] {
-  match self.read_u8() {
-    Ok(0) => Ok(false)
-    Ok(1) => Ok(true)
-    Ok(_) => Err("invalid CDR boolean")
-    Err(message) => Err(message)
+  let offset = self.offset
+  if offset >= self.bytes.length() {
+    return Err("truncated CDR payload")
+  }
+  self.offset = offset + 1
+  match self.bytes[offset] {
+    0 => Ok(false)
+    1 => Ok(true)
+    _ => Err("invalid CDR boolean")
   }
 }
 
 ///|
-/// Read a signed 16-bit integer.
-// Perf: use explicit matches instead of Result::map; closures cost a per-read allocation.
+/// Read a signed CDR 16-bit integer.
 pub fn Reader::read_i16(self : Reader) -> Result[Int32, String] {
-  match self.take_aligned(2, 2) {
-    Ok(view) => {
-      let raw = cdr_reader_read_u16(view, self.little_endian).reinterpret_as_int()
-      Ok(if raw >= 32768 { raw - 65536 } else { raw })
-    }
-    Err(message) => Err(message)
+  let start = self.aligned_offset(2)
+  if start > self.bytes.length() - 2 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 2
+  let raw = cdr_reader_read_u16(self.bytes, start, self.little_endian).reinterpret_as_int()
+  Ok(if raw >= 32768 { raw - 65536 } else { raw })
 }
 
 ///|
-/// Read an unsigned 16-bit integer.
+/// Read an unsigned CDR 16-bit integer.
 pub fn Reader::read_u16(self : Reader) -> Result[UInt32, String] {
-  match self.take_aligned(2, 2) {
-    Ok(view) => Ok(cdr_reader_read_u16(view, self.little_endian))
-    Err(message) => Err(message)
+  let start = self.aligned_offset(2)
+  if start > self.bytes.length() - 2 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 2
+  Ok(cdr_reader_read_u16(self.bytes, start, self.little_endian))
 }
 
 ///|
-/// Read a signed 32-bit integer.
+/// Read a signed CDR 32-bit integer.
 pub fn Reader::read_i32(self : Reader) -> Result[Int32, String] {
-  match self.take_aligned(4, 4) {
-    Ok(view) =>
-      Ok(cdr_reader_read_u32(view, self.little_endian).reinterpret_as_int())
-    Err(message) => Err(message)
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 4
+  Ok(
+    cdr_reader_read_u32(self.bytes, start, self.little_endian).reinterpret_as_int(),
+  )
 }
 
 ///|
-/// Read an unsigned 32-bit integer.
+/// Read an unsigned CDR 32-bit integer.
 pub fn Reader::read_u32(self : Reader) -> Result[UInt32, String] {
-  match self.take_aligned(4, 4) {
-    Ok(view) => Ok(cdr_reader_read_u32(view, self.little_endian))
-    Err(message) => Err(message)
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 4
+  Ok(cdr_reader_read_u32(self.bytes, start, self.little_endian))
 }
 
 ///|
-/// Read a signed 64-bit integer.
+/// Read a signed CDR 64-bit integer.
 pub fn Reader::read_i64(self : Reader) -> Result[Int64, String] {
-  match self.take_aligned(8, 8) {
-    Ok(view) =>
-      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_int64())
-    Err(message) => Err(message)
+  let start = self.aligned_offset(8)
+  if start > self.bytes.length() - 8 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 8
+  Ok(
+    cdr_reader_read_u64(self.bytes, start, self.little_endian).reinterpret_as_int64(),
+  )
 }
 
 ///|
-/// Read an unsigned 64-bit integer.
+/// Read an unsigned CDR 64-bit integer.
 pub fn Reader::read_u64(self : Reader) -> Result[UInt64, String] {
-  match self.take_aligned(8, 8) {
-    Ok(view) => Ok(cdr_reader_read_u64(view, self.little_endian))
-    Err(message) => Err(message)
+  let start = self.aligned_offset(8)
+  if start > self.bytes.length() - 8 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 8
+  Ok(cdr_reader_read_u64(self.bytes, start, self.little_endian))
 }
 
 ///|
 /// Read an IEEE-754 single-precision value.
 pub fn Reader::read_f32(self : Reader) -> Result[Float, String] {
-  match self.take_aligned(4, 4) {
-    Ok(view) =>
-      Ok(
-        Float::reinterpret_from_uint(
-          cdr_reader_read_u32(view, self.little_endian),
-        ),
-      )
-    Err(message) => Err(message)
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 4
+  Ok(
+    Float::reinterpret_from_uint(
+      cdr_reader_read_u32(self.bytes, start, self.little_endian),
+    ),
+  )
 }
 
 ///|
 /// Read an IEEE-754 double-precision value.
 pub fn Reader::read_f64(self : Reader) -> Result[Double, String] {
-  match self.take_aligned(8, 8) {
-    Ok(view) =>
-      Ok(cdr_reader_read_u64(view, self.little_endian).reinterpret_as_double())
-    Err(message) => Err(message)
+  let start = self.aligned_offset(8)
+  if start > self.bytes.length() - 8 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 8
+  Ok(
+    cdr_reader_read_u64(self.bytes, start, self.little_endian).reinterpret_as_double(),
+  )
 }
 
 ///|
@@ -242,7 +265,12 @@ pub fn Reader::read_byte_array(
   self : Reader,
   length : Int32,
 ) -> Result[Bytes, String] {
-  self.take(length).map(fn(view) { view.to_owned() })
+  if length < 0 || length > self.bytes.length() - self.offset {
+    return Err("truncated CDR payload")
+  }
+  let start = self.offset
+  self.offset = start + length
+  Ok(self.bytes[start:start + length].to_owned())
 }
 
 ///|
@@ -252,38 +280,47 @@ pub fn Reader::read_byte_array_to_array(
   self : Reader,
   length : Int32,
 ) -> Result[Array[Byte], String] {
-  match self.take(length) {
-    Ok(view) => Ok(view.to_array())
-    Err(message) => Err(message)
+  if length < 0 || length > self.bytes.length() - self.offset {
+    return Err("truncated CDR payload")
   }
+  let start = self.offset
+  self.offset = start + length
+  Ok(self.bytes[start:start + length].to_array())
 }
 
 ///|
 /// Read a byte sequence with a CDR uint32 length prefix.
 pub fn Reader::read_byte_sequence(self : Reader) -> Result[Bytes, String] {
-  self
-  .read_u32()
-  .bind(fn(length) { self.read_byte_array(length.reinterpret_as_int()) })
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
+  }
+  self.offset = start + 4
+  let length = cdr_reader_read_u32(self.bytes, start, self.little_endian).reinterpret_as_int()
+  self.read_byte_array(length)
 }
 
 ///|
 /// Read a UTF-8 CDR string and remove its terminating NUL byte.
 pub fn Reader::read_string(self : Reader) -> Result[String, String] {
-  let length = match self.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => return Err(message)
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 4
+  let length = cdr_reader_read_u32(self.bytes, start, self.little_endian).reinterpret_as_int()
   if length <= 0 {
     return Err("a CDR string length must include a terminating NUL")
   }
-  let encoded = match self.take(length) {
-    Ok(value) => value
-    Err(message) => return Err(message)
+  if length > self.bytes.length() - self.offset {
+    return Err("truncated CDR payload")
   }
-  if encoded[length - 1] != 0 {
+  let encoded_start = self.offset
+  self.offset = encoded_start + length
+  if self.bytes[encoded_start + length - 1] != 0 {
     return Err("a CDR string must end with NUL")
   }
-  Ok(@utf8.decode(encoded[0:length - 1])) catch {
+  Ok(@utf8.decode(self.bytes[encoded_start:encoded_start + length - 1])) catch {
     _ => Err("invalid UTF-8 in CDR string")
   }
 }
@@ -310,14 +347,17 @@ pub fn Reader::read_bounded_string(
 ///|
 /// Read a ROS wide string encoded as widened UTF-16 code units.
 pub fn Reader::read_wstring(self : Reader) -> Result[String, String] {
-  let length = match self.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => return Err(message)
+  let start = self.aligned_offset(4)
+  if start > self.bytes.length() - 4 {
+    return Err("truncated CDR payload")
   }
+  self.offset = start + 4
+  let length = cdr_reader_read_u32(self.bytes, start, self.little_endian).reinterpret_as_int()
   if length < 0 || length > self.remaining() / 4 {
     return Err("a CDR wide string is truncated")
   }
   let encoded : Array[Byte] = []
+  encoded.reserve_capacity(length)
   let mut index = 0
   while index < length {
     let first = match self.read_u32() {

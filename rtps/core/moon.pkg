@@ -1,7 +1,9 @@
 import {
+  "moonbitlang/core/buffer",
   "moonbitlang/core/debug",
 }
 
-options(
-  "is-main": false,
-)
+import {
+  "moonbitlang/core/bench",
+  "OJII3/ros2-mbt/cdr",
+} for "test"

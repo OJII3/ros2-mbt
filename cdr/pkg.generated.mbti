@@ -28,14 +28,22 @@ pub fn Reader::read_byte_array(Self, Int32) -> Result[Bytes, String]
 pub fn Reader::read_byte_array_to_array(Self, Int32) -> Result[Array[Byte], String]
 pub fn Reader::read_byte_sequence(Self) -> Result[Bytes, String]
 pub fn Reader::read_f32(Self) -> Result[Float, String]
+pub fn Reader::read_f32_array(Self, Int32) -> Result[Array[Float], String]
+pub fn Reader::read_f32_sequence(Self) -> Result[Array[Float], String]
 pub fn Reader::read_f64(Self) -> Result[Double, String]
+pub fn Reader::read_f64_array(Self, Int32) -> Result[Array[Double], String]
+pub fn Reader::read_f64_sequence(Self) -> Result[Array[Double], String]
 pub fn Reader::read_i16(Self) -> Result[Int32, String]
 pub fn Reader::read_i32(Self) -> Result[Int32, String]
+pub fn Reader::read_i32_array(Self, Int32) -> Result[Array[Int32], String]
+pub fn Reader::read_i32_sequence(Self) -> Result[Array[Int32], String]
 pub fn Reader::read_i64(Self) -> Result[Int64, String]
 pub fn Reader::read_i8(Self) -> Result[Int32, String]
 pub fn Reader::read_string(Self) -> Result[String, String]
 pub fn Reader::read_u16(Self) -> Result[UInt32, String]
 pub fn Reader::read_u32(Self) -> Result[UInt32, String]
+pub fn Reader::read_u32_array(Self, Int32) -> Result[Array[UInt32], String]
+pub fn Reader::read_u32_sequence(Self) -> Result[Array[UInt32], String]
 pub fn Reader::read_u64(Self) -> Result[UInt64, String]
 pub fn Reader::read_u8(Self) -> Result[Byte, String]
 pub fn Reader::read_wstring(Self) -> Result[String, String]
@@ -55,16 +63,24 @@ pub fn Writer::write_bounded_wstring(Self, String, Int32) -> Result[Unit, String
 pub fn Writer::write_byte_array(Self, Bytes) -> Unit
 pub fn Writer::write_byte_sequence(Self, Bytes) -> Unit
 pub fn Writer::write_f32(Self, Float) -> Unit
+pub fn Writer::write_f32_array(Self, ArrayView[Float]) -> Unit
+pub fn Writer::write_f32_sequence(Self, ArrayView[Float]) -> Unit
 pub fn Writer::write_f64(Self, Double) -> Unit
+pub fn Writer::write_f64_array(Self, ArrayView[Double]) -> Unit
+pub fn Writer::write_f64_sequence(Self, ArrayView[Double]) -> Unit
 pub fn Writer::write_i16(Self, Int16) -> Unit
 pub fn Writer::write_i16_int(Self, Int32) -> Unit
 pub fn Writer::write_i32(Self, Int32) -> Unit
+pub fn Writer::write_i32_array(Self, ArrayView[Int32]) -> Unit
+pub fn Writer::write_i32_sequence(Self, ArrayView[Int32]) -> Unit
 pub fn Writer::write_i64(Self, Int64) -> Unit
 pub fn Writer::write_i8(Self, Int32) -> Unit
 pub fn Writer::write_string(Self, String) -> Unit
 pub fn Writer::write_u16(Self, UInt16) -> Unit
 pub fn Writer::write_u16_uint(Self, UInt32) -> Unit
 pub fn Writer::write_u32(Self, UInt32) -> Unit
+pub fn Writer::write_u32_array(Self, ArrayView[UInt32]) -> Unit
+pub fn Writer::write_u32_sequence(Self, ArrayView[UInt32]) -> Unit
 pub fn Writer::write_u64(Self, UInt64) -> Unit
 pub fn Writer::write_u8(Self, Byte) -> Unit
 pub fn Writer::write_wstring(Self, String) -> Result[Unit, String]

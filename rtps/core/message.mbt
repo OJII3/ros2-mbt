@@ -77,42 +77,46 @@ pub fn Message::destination_contexts(
 ///|
 /// Serialize the RTPS header followed by all submessages.
 pub fn Message::to_bytes(self : Message) -> Result[Bytes, String] {
-  let bytes : Array[Byte] = []
-  let header = self.header.to_bytes()
-  // Perf: index loops + reserve_capacity beat push_iter on this hot path.
-  for i in 0..<header.length() {
-    bytes.push(header[i])
+  let mut capacity = HEADER_LENGTH
+  for index in 0..<self.submessages.length() {
+    let payload_length = self.submessages[index].payload.length()
+    if payload_length > 0xFFFF {
+      return Err("an RTPS submessage payload cannot exceed 65535 bytes")
+    }
+    capacity += SUBMESSAGE_HEADER_LENGTH + payload_length
+    if index + 1 < self.submessages.length() {
+      let remainder = (SUBMESSAGE_HEADER_LENGTH + payload_length) % 4
+      if remainder != 0 {
+        capacity += SUBMESSAGE_HEADER_LENGTH + 4 - remainder
+      }
+    }
   }
+  let buffer = @buffer.Buffer(capacity~)
+  buffer.write_bytes(self.header.to_bytes())
   for index in 0..<self.submessages.length() {
     let submessage = self.submessages[index]
-    let encoded = match submessage.to_bytes() {
-      Ok(value) => value
-      Err(message) => return Err(message)
+    buffer.write_byte(submessage.id.to_byte())
+    buffer.write_byte(submessage.flags)
+    if (submessage.flags & SUBMESSAGE_FLAG_LITTLE_ENDIAN) != 0 {
+      buffer.write_uint16_le(submessage.payload.length().to_uint16())
+    } else {
+      buffer.write_uint16_be(submessage.payload.length().to_uint16())
     }
-    for i in 0..<encoded.length() {
-      bytes.push(encoded[i])
-    }
+    buffer.write_bytes(submessage.payload)
     if index + 1 < self.submessages.length() {
-      let remainder = encoded.length() % 4
+      let remainder = (SUBMESSAGE_HEADER_LENGTH + submessage.payload.length()) %
+        4
       if remainder != 0 {
-        let padding_length = 4 - remainder
-        let padding : Array[Byte] = Array::make(padding_length, 0)
-        let encoded_padding = match
-          Submessage::new(
-            Pad,
-            SUBMESSAGE_FLAG_LITTLE_ENDIAN,
-            Bytes::from_array(padding),
-          ).to_bytes() {
-          Ok(value) => value
-          Err(message) => return Err(message)
-        }
-        for i in 0..<encoded_padding.length() {
-          bytes.push(encoded_padding[i])
+        buffer.write_byte(Pad.to_byte())
+        buffer.write_byte(SUBMESSAGE_FLAG_LITTLE_ENDIAN)
+        buffer.write_uint16_le((4 - remainder).to_uint16())
+        for _ in 0..<(4 - remainder) {
+          buffer.write_byte(0)
         }
       }
     }
   }
-  Ok(Bytes::from_array(bytes))
+  Ok(buffer.to_bytes())
 }
 
 ///|
@@ -125,8 +129,7 @@ pub fn Message::from_bytes(input : Bytes) -> Result[Message, String] {
   let message = Message::new(header)
   let mut offset = HEADER_LENGTH
   while offset < input.length() {
-    let parsed = match
-      Submessage::from_bytes(bytes_from(input, offset, input.length() - offset)) {
+    let parsed = match Submessage::from_bytes_at(input, offset) {
       Ok(value) => value
       Err(message) => return Err(message)
     }

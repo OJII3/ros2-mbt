@@ -864,9 +864,7 @@ pub fn PoseWithCovariance::write_cdr(
   if self.pose.write_cdr(writer) is Err(message) {
     return Err(message)
   }
-  for value in self.covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.covariance)
   Ok(())
 }
 
@@ -879,14 +877,9 @@ pub fn PoseWithCovariance::read_cdr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let covariance : Array[Double] = []
-  for _ in 0..<36 {
-    covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let covariance = match reader.read_f64_array(36) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   Ok(PoseWithCovariance::new(pose, covariance))
 }
@@ -1037,9 +1030,7 @@ pub fn TwistWithCovariance::write_cdr(
   if self.twist.write_cdr(writer) is Err(message) {
     return Err(message)
   }
-  for value in self.covariance {
-    writer.write_f64(value)
-  }
+  writer.write_f64_array(self.covariance)
   Ok(())
 }
 
@@ -1052,14 +1043,9 @@ pub fn TwistWithCovariance::read_cdr(
     Ok(value) => value
     Err(message) => return Err(message)
   }
-  let covariance : Array[Double] = []
-  for _ in 0..<36 {
-    covariance.push(
-      match reader.read_f64() {
-        Ok(value) => value
-        Err(message) => return Err(message)
-      },
-    )
+  let covariance = match reader.read_f64_array(36) {
+    Ok(value) => value
+    Err(message) => return Err(message)
   }
   Ok(TwistWithCovariance::new(twist, covariance))
 }
