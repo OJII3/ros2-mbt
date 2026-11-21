@@ -363,7 +363,6 @@ async fn main {
     discovered_endpoints = @transport.RosActionEndpoints::discover(
       participant, action,
     )
-    @async.sleep(ACTION_CLIENT_SETTLE_MS)
   }
   let endpoints = match discovered_endpoints {
     Ok(value) => value
@@ -387,8 +386,7 @@ async fn main {
     participant,
     endpoints.cancel_goal_response_publication(),
   )
-  let (discovery, user_socket) = participant.into_parts()
-  discovery.close()
+  let user_socket = participant.user_socket()
   let send_goal_client = match
     @transport.RosServiceClient::new_with_shared_socket_and_wire_format(
       send_goal,
@@ -506,67 +504,53 @@ async fn main {
     }
   }
 
-  let goal_id = Bytes::from_array([
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    if cancel_requested {
-      17
-    } else {
-      16
-    },
-  ])
-  let goal_order = 6
-  let send_goal_writer = @cdr.Writer::new()
-  send_goal_writer.write_i32(goal_order)
-  let goal = match
-    action_client.send_goal(goal_id, send_goal_writer.to_bytes()) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
+  // Keep discovery alive while the goal runs. The server can only match the
+  // request machinery after receiving this client's SEDP samples, and retained
+  // samples are retransmitted only while discovery keeps receiving.
+  @async.with_task_group() <| group => {
+    group.spawn_bg(no_wait=true) <| () => {
+      match participant.announce_spdp_forever(1000) {
+        Ok(_) => ()
+        Err(message) => fail(message)
+      }
     }
-  }
-  println("Fibonacci goal accepted: " + goal.accepted().to_string())
-  if !goal.accepted() {
-    close_action_client_io(
-      send_goal_client, feedback_subscription, status_subscription,
-    )
-    return
-  }
-
-  let feedback_sequence = match
-    receive_fibonacci_feedback(action_client, goal) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
+    group.spawn_bg(no_wait=true) <| () => {
+      while true {
+        match participant.receive_discovery_once() {
+          Ok(_) => ()
+          Err(_) => return
+        }
+      }
     }
-  }
-  println(
-    "Fibonacci feedback: [" + format_int_sequence(feedback_sequence) + "]",
-  )
+    @async.sleep(ACTION_CLIENT_SETTLE_MS)
 
-  if cancel_requested {
-    let cancel_response = match action_client.cancel_goal(goal) {
+    let goal_id = Bytes::from_array([
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      if cancel_requested {
+        17
+      } else {
+        16
+      },
+    ])
+    let goal_order = 6
+    let send_goal_writer = @cdr.Writer::new()
+    send_goal_writer.write_i32(goal_order)
+    let goal = match
+      action_client.send_goal(goal_id, send_goal_writer.to_bytes()) {
       Ok(value) => value
       Err(message) => {
         println(message)
@@ -576,77 +560,17 @@ async fn main {
         return
       }
     }
-    let found_goal = cancel_response
-      .goals_canceling()
-      .any(fn(canceled_goal) { canceled_goal.goal_id() == goal.goal_id() })
-    if !found_goal {
-      println("CancelGoal response did not include the requested goal")
+    println("Fibonacci goal accepted: " + goal.accepted().to_string())
+    if !goal.accepted() {
       close_action_client_io(
         send_goal_client, feedback_subscription, status_subscription,
       )
       return
     }
-    let cancel_return_code = cancel_response.return_code()
-    println("Fibonacci cancel return code: " + cancel_return_code.to_string())
-    if cancel_return_code != 0 {
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
 
-  let get_result_payload = match action_client.get_result(goal) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  let get_result_reader = match @cdr.Reader::from_bytes(get_result_payload) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  let status = match get_result_reader.read_i8() {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  let sequence_length = match get_result_reader.read_u32() {
-    Ok(value) => value.reinterpret_as_int()
-    Err(message) => {
-      println(message)
-      close_action_client_io(
-        send_goal_client, feedback_subscription, status_subscription,
-      )
-      return
-    }
-  }
-  if sequence_length < 0 || sequence_length > get_result_reader.remaining() / 4 {
-    println("invalid Fibonacci result sequence length")
-    close_action_client_io(
-      send_goal_client, feedback_subscription, status_subscription,
-    )
-    return
-  }
-  let sequence : Array[Int32] = []
-  for _ in 0..<sequence_length {
-    match get_result_reader.read_i32() {
-      Ok(value) => sequence.push(value)
+    let feedback_sequence = match
+      receive_fibonacci_feedback(action_client, goal) {
+      Ok(value) => value
       Err(message) => {
         println(message)
         close_action_client_io(
@@ -655,31 +579,128 @@ async fn main {
         return
       }
     }
-  }
-  println("Fibonacci result status: " + status.to_string())
-  println("Fibonacci result: [" + format_int_sequence(sequence) + "]")
-  let status_topic_goal_status = match
-    action_client.receive_goal_terminal_status(goal) {
-    Ok(value) => value
-    Err(message) => {
-      println(message)
+    println(
+      "Fibonacci feedback: [" + format_int_sequence(feedback_sequence) + "]",
+    )
+
+    if cancel_requested {
+      let cancel_response = match action_client.cancel_goal(goal) {
+        Ok(value) => value
+        Err(message) => {
+          println(message)
+          close_action_client_io(
+            send_goal_client, feedback_subscription, status_subscription,
+          )
+          return
+        }
+      }
+      let found_goal = cancel_response
+        .goals_canceling()
+        .any(fn(canceled_goal) { canceled_goal.goal_id() == goal.goal_id() })
+      if !found_goal {
+        println("CancelGoal response did not include the requested goal")
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+      let cancel_return_code = cancel_response.return_code()
+      println("Fibonacci cancel return code: " + cancel_return_code.to_string())
+      if cancel_return_code != 0 {
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+
+    let get_result_payload = match action_client.get_result(goal) {
+      Ok(value) => value
+      Err(message) => {
+        println(message)
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+    let get_result_reader = match @cdr.Reader::from_bytes(get_result_payload) {
+      Ok(value) => value
+      Err(message) => {
+        println(message)
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+    let status = match get_result_reader.read_i8() {
+      Ok(value) => value
+      Err(message) => {
+        println(message)
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+    let sequence_length = match get_result_reader.read_u32() {
+      Ok(value) => value.reinterpret_as_int()
+      Err(message) => {
+        println(message)
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+    if sequence_length < 0 ||
+      sequence_length > get_result_reader.remaining() / 4 {
+      println("invalid Fibonacci result sequence length")
       close_action_client_io(
         send_goal_client, feedback_subscription, status_subscription,
       )
       return
     }
-  }
-  if status_topic_goal_status.status() != status {
+    let sequence : Array[Int32] = []
+    for _ in 0..<sequence_length {
+      match get_result_reader.read_i32() {
+        Ok(value) => sequence.push(value)
+        Err(message) => {
+          println(message)
+          close_action_client_io(
+            send_goal_client, feedback_subscription, status_subscription,
+          )
+          return
+        }
+      }
+    }
+    println("Fibonacci result status: " + status.to_string())
+    println("Fibonacci result: [" + format_int_sequence(sequence) + "]")
+    let status_topic_goal_status = match
+      action_client.receive_goal_terminal_status(goal) {
+      Ok(value) => value
+      Err(message) => {
+        println(message)
+        close_action_client_io(
+          send_goal_client, feedback_subscription, status_subscription,
+        )
+        return
+      }
+    }
+    if status_topic_goal_status.status() != status {
+      println(
+        "Fibonacci result and GoalStatusArray reported different terminal states",
+      )
+      close_action_client_io(
+        send_goal_client, feedback_subscription, status_subscription,
+      )
+      return
+    }
     println(
-      "Fibonacci result and GoalStatusArray reported different terminal states",
+      "Fibonacci status topic: " + status_topic_goal_status.status().to_string(),
     )
-    close_action_client_io(
-      send_goal_client, feedback_subscription, status_subscription,
-    )
-    return
+    action_client.close()
   }
-  println(
-    "Fibonacci status topic: " + status_topic_goal_status.status().to_string(),
-  )
-  action_client.close()
+  participant.close_discovery()
 }
