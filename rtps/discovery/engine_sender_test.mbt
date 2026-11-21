@@ -47,14 +47,14 @@ fn sender_test_remote() -> @discovery.SpdpParticipantData {
 }
 
 ///|
-test "discovery sender reuses unchanged SPDP samples for refreshes" {
+test "discovery sender writes a new SPDP sample for each refresh" {
   let sender = sender_test_new()
   let first = sender.announce_spdp(false).unwrap()
   let refresh = sender.announce_spdp(false).unwrap()
   let second = sender.announce_spdp(true).unwrap()
   let dispose_refresh = sender.announce_spdp(true).unwrap()
   let after_dispose = sender.announce_spdp(false).unwrap()
-  assert_eq(sender.next_sequence_number(), 20L)
+  assert_eq(sender.next_sequence_number(), 22L)
   assert_eq(first.length(), 1)
   let data = @core.DataSubmessage::from_submessage(
     first[0].message.submessages()[0],
@@ -63,23 +63,23 @@ test "discovery sender reuses unchanged SPDP samples for refreshes" {
   let refreshed = @core.DataSubmessage::from_submessage(
     refresh[0].message.submessages()[0],
   ).unwrap()
-  assert_eq(refreshed.writer_sequence_number(), 17L)
+  assert_eq(refreshed.writer_sequence_number(), 18L)
   let disposed = @core.DataSubmessage::from_submessage(
     second[0].message.submessages()[0],
   ).unwrap()
-  assert_eq(disposed.writer_sequence_number(), 18L)
-  let disposed_again = @core.DataSubmessage::from_submessage(
-    dispose_refresh[0].message.submessages()[0],
-  ).unwrap()
-  assert_eq(disposed_again.writer_sequence_number(), 18L)
+  assert_eq(disposed.writer_sequence_number(), 19L)
   assert_eq(
     disposed.status_info().unwrap(),
     Some(@core.STATUS_INFO_DISPOSED | @core.STATUS_INFO_UNREGISTERED),
   )
+  let disposed_again = @core.DataSubmessage::from_submessage(
+    dispose_refresh[0].message.submessages()[0],
+  ).unwrap()
+  assert_eq(disposed_again.writer_sequence_number(), 20L)
   let announced_again = @core.DataSubmessage::from_submessage(
     after_dispose[0].message.submessages()[0],
   ).unwrap()
-  assert_eq(announced_again.writer_sequence_number(), 19L)
+  assert_eq(announced_again.writer_sequence_number(), 21L)
 }
 
 ///|

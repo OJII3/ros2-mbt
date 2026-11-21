@@ -53,9 +53,9 @@ async test "discovery commits only accepted sends and retries the same sequence"
     @rtps.DataSubmessage::from_submessage(message.submessages()[0])
     .unwrap()
     .writer_sequence_number(),
-    1L,
+    2L,
   )
-  assert_eq(session.engine.next_sequence_number(), 2L)
+  assert_eq(session.engine.next_sequence_number(), 3L)
   assert_eq(session.outgoing.length(), 0)
 }
 
@@ -155,7 +155,7 @@ async test "concurrent discovery flushes send each queued SPDP refresh once" {
     async fn() { session.flush_outgoing().unwrap() },
   ])
   |> ignore
-  for _ in 0..<20 {
+  for index in 0..<20 {
     let (message, _) = @async.with_timeout(1000, async fn() {
       receiver.receive_message().unwrap()
     })
@@ -163,7 +163,7 @@ async test "concurrent discovery flushes send each queued SPDP refresh once" {
       @rtps.DataSubmessage::from_submessage(message.submessages()[0])
       .unwrap()
       .writer_sequence_number(),
-      1L,
+      index.to_int64() + 1L,
     )
   }
   assert_eq(session.outgoing.length(), 0)
@@ -187,6 +187,7 @@ async test "permanently invalid destinations are retained separately without blo
     7450U,
     Bytes::from_array(Array::make(16, 0)),
   ).unwrap()
+  let mut next_sequence = 1L
   for
     destination in [
       ipv6,
@@ -195,10 +196,16 @@ async test "permanently invalid destinations are retained separately without blo
       good,
     ] {
     let output = session.engine.announce_spdp(false).unwrap()[0]
+    let data = @rtps.DataSubmessage::from_submessage(
+      output.message.submessages()[0],
+    ).unwrap()
+    assert_eq(data.writer_sequence_number(), next_sequence)
+    next_sequence += 1L
     session.enqueue_outgoing([{ message: output.message, destination, }])
   }
   assert_true(session.flush_outgoing() is Err(_))
   assert_eq(session.outgoing.length(), 0)
+  let mut delivered_sequence = 2L
   for _ in 0..<2 {
     let (message, _) = @async.with_timeout(1000, async fn() {
       receiver.receive_message().unwrap()
@@ -207,8 +214,9 @@ async test "permanently invalid destinations are retained separately without blo
       @rtps.DataSubmessage::from_submessage(message.submessages()[0])
       .unwrap()
       .writer_sequence_number(),
-      1L,
+      delivered_sequence,
     )
+    delivered_sequence += 2L
   }
   // A permanent rejection reports once; it cannot poison subsequent flushes.
   session.flush_outgoing().unwrap()

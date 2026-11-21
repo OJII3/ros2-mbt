@@ -68,10 +68,13 @@ permanent failures cannot block the active queue. Concurrent SEDP announcements
 wake an idle receive to recalculate its heartbeat deadline.
 
 All local SEDP endpoints of a kind share the engine's builtin writer and sequence
-space. Participant discovery or changed SPDP metadata replays registered samples;
-unchanged SPDP refreshes do not create writes. History retains each endpoint's
-latest announcement or dispose tombstone, answers compacted sequences with GAP,
-and remains available independently of acknowledgements from other peers. Peers
+space. Every SPDP refresh is written as a new sample so peers can refresh the
+participant lease and observe metadata changes. Participant discovery replays
+registered SEDP samples; a retransmitted SPDP announcement (which peers send
+when they rediscover or restart the participant) also replays them and resets
+the peer's reliability control counts. History retains each endpoint's latest
+announcement or dispose tombstone, answers compacted sequences with GAP, and
+remains available independently of acknowledgements from other peers. Peers
 without a supported metatraffic locator are skipped when announcing endpoints;
 local registration and retained history remain available for supported peers.
 

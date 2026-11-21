@@ -56,7 +56,13 @@ pub fn DiscoveryEngine::receive(
               ) {
               continue
             }
-            self.dispatch_spdp_data(events, data, now_ms)
+            self.dispatch_spdp_data(
+              events,
+              outgoing,
+              message.header().guid_prefix(),
+              data,
+              now_ms,
+            )
           }
         }
       }
@@ -128,7 +134,14 @@ pub fn DiscoveryEngine::receive(
               Err(_) => continue
             }
             match data {
-              Some(data) => self.dispatch_spdp_data(events, data, now_ms)
+              Some(data) =>
+                self.dispatch_spdp_data(
+                  events,
+                  outgoing,
+                  message.header().guid_prefix(),
+                  data,
+                  now_ms,
+                )
               None => ()
             }
           }

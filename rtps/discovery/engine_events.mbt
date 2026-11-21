@@ -55,13 +55,52 @@ fn DiscoveryEngine::dispatch_sedp_data(
 
 ///|
 /// Dispatch a parsed SPDP announcement or participant removal.
+///
+/// A retransmitted announcement means the peer recreated its view of this
+/// participant, so replay the retained SEDP samples and accept control counts
+/// from the peer's fresh EDP readers. A lower sequence means the peer restarted
+/// with the same prefix; its SEDP writers restarted too.
 fn DiscoveryEngine::dispatch_spdp_data(
   self : DiscoveryEngine,
   events : Array[DiscoveryEvent],
+  outgoing : Array[DiscoveryOutput],
+  writer_prefix : @core.GuidPrefix,
   data : @core.DataSubmessage,
   now_ms : Int64,
 ) -> Unit {
-  for event in self.spdp.receive(data, now_ms) {
+  let participant_events = self.spdp.receive(data, now_ms)
+  if participant_events.length() == 0 {
+    return
+  }
+  let announcement = self.record_spdp_writer_sequence(
+    writer_prefix,
+    data.writer_sequence_number(),
+  )
+  match announcement {
+    New => ()
+    Retransmitted => self.sender.forget_remote_participant(writer_prefix)
+    Restarted => self.forget_remote_participant_reliability(writer_prefix)
+  }
+  let replayed = match announcement {
+    New => false
+    Retransmitted | Restarted => true
+  }
+  for event in participant_events {
+    if replayed {
+      match event {
+        Participant(participant) =>
+          if participant.participant_guid().prefix() == writer_prefix {
+            match self.replay_sedp(participant) {
+              Ok(outputs) =>
+                for output in outputs {
+                  outgoing.push(output)
+                }
+              Err(_) => ()
+            }
+          }
+        ParticipantRemoved(_) => ()
+      }
+    }
     events.push(self.map_participant_event(event))
   }
 }

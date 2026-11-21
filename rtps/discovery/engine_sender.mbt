@@ -49,9 +49,6 @@ pub struct DiscoverySender {
   destination : @core.Locator
   mut next_sequence : Int64
   mut sequence_exhausted : Bool
-  priv mut spdp_data : @core.DataSubmessage?
-  priv mut spdp_fragments : Array[@core.DataFragSubmessage]
-  priv mut spdp_dispose_state : Bool?
   writers : Array[DiscoveryWriter]
   mut controls : Array[DiscoveryReaderControl]
 }
@@ -76,9 +73,6 @@ pub fn DiscoverySender::new(
     destination,
     next_sequence: first_sequence_number,
     sequence_exhausted: false,
-    spdp_data: None,
-    spdp_fragments: [],
-    spdp_dispose_state: None,
     writers: [],
     controls: [],
   })
@@ -180,23 +174,15 @@ fn DiscoverySender::spdp_outputs(
 }
 
 ///|
-/// Build SPDP datagrams for `dispose`, reusing the previous datagrams when the
-/// dispose state has not changed.
+/// Build SPDP datagrams for `dispose`.
+///
+/// Every call writes a new sample. Reusing one sequence number for periodic
+/// refreshes makes peers that de-duplicate announcements ignore the refresh,
+/// so the participant lease and metadata updates stop reaching them.
 pub fn DiscoverySender::announce_spdp(
   self : DiscoverySender,
   dispose : Bool,
 ) -> Result[Array[DiscoveryOutput], String] {
-  match (self.spdp_data, self.spdp_dispose_state) {
-    (Some(data), Some(previous_dispose)) if previous_dispose == dispose =>
-      return Ok(
-        self.spdp_outputs({
-          endpoint_guid: self.participant.participant_guid(),
-          data,
-          fragments: self.spdp_fragments,
-        }),
-      )
-    _ => ()
-  }
   if self.sequence_exhausted {
     return Err("the SPDP sequence number space is exhausted")
   }
@@ -227,9 +213,6 @@ pub fn DiscoverySender::announce_spdp(
   } else {
     self.next_sequence += 1L
   }
-  self.spdp_data = Some(data)
-  self.spdp_fragments = fragments
-  self.spdp_dispose_state = Some(dispose)
   Ok(self.spdp_outputs(write))
 }
 
@@ -388,6 +371,10 @@ fn DiscoverySender::control(
 }
 
 ///|
+/// ACKNACK/NACK_FRAG counts only increase within one reader incarnation.
+/// A peer that rediscovers or restarts this participant creates fresh readers
+/// whose counts start over; those are handled by forgetting the control state
+/// from the participant announcement, not by accepting a lower count here.
 fn discovery_control_count_is_new(previous : UInt32?, count : UInt32) -> Bool {
   match previous {
     None => true
