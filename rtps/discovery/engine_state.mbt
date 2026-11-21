@@ -60,18 +60,57 @@ fn DiscoveryEngine::spdp_fragment_reader_index(
 }
 
 ///|
+/// Drop reliability state for one remote participant incarnation.
+fn DiscoveryEngine::forget_remote_participant_reliability(
+  self : DiscoveryEngine,
+  participant_prefix : @core.GuidPrefix,
+) -> Unit {
+  self.sedp_readers = self.sedp_readers.filter(fn(reader) {
+    reader.writer_prefix != participant_prefix
+  })
+  self.spdp_fragment_readers = self.spdp_fragment_readers.filter(fn(reader) {
+    reader.writer_prefix != participant_prefix
+  })
+  self.sender.forget_remote_participant(participant_prefix)
+}
+
+///|
+/// Record one SPDP sequence and classify the announcement.
+///
+/// A retransmitted sequence means the peer recreated its view of this
+/// participant (for example after dropping it), so its fresh EDP readers
+/// restart their ACKNACK/NACK_FRAG counts. A lower sequence means the peer
+/// restarted with the same GUID prefix, so both its readers and writers start
+/// over and this side must also drop the stale receive high-water marks.
+fn DiscoveryEngine::record_spdp_writer_sequence(
+  self : DiscoveryEngine,
+  writer_prefix : @core.GuidPrefix,
+  sequence_number : Int64,
+) -> DiscoverySpdpAnnouncement {
+  for entry in self.spdp_writer_sequences {
+    if entry.writer_prefix == writer_prefix {
+      if sequence_number == entry.sequence_number {
+        return Retransmitted
+      }
+      let restarted = sequence_number < entry.sequence_number
+      entry.sequence_number = sequence_number
+      return if restarted { Restarted } else { New }
+    }
+  }
+  self.spdp_writer_sequences.push({ writer_prefix, sequence_number, })
+  New
+}
+
+///|
 /// Drop reliability receive state after a participant disappears.
 fn DiscoveryEngine::forget_remote_participant(
   self : DiscoveryEngine,
   participant_guid : @core.Guid,
 ) -> Unit {
-  self.sedp_readers = self.sedp_readers.filter(fn(reader) {
-    reader.writer_prefix != participant_guid.prefix()
+  self.forget_remote_participant_reliability(participant_guid.prefix())
+  self.spdp_writer_sequences = self.spdp_writer_sequences.filter(fn(entry) {
+    entry.writer_prefix != participant_guid.prefix()
   })
-  self.spdp_fragment_readers = self.spdp_fragment_readers.filter(fn(reader) {
-    reader.writer_prefix != participant_guid.prefix()
-  })
-  self.sender.forget_remote_participant(participant_guid.prefix())
 }
 
 ///|

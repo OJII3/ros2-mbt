@@ -32,6 +32,21 @@ struct DiscoveryRemoteDataReader {
 }
 
 ///|
+/// Latest SPDP sequence observed from one remote participant.
+struct DiscoverySpdpWriterSequence {
+  writer_prefix : @core.GuidPrefix
+  mut sequence_number : Int64
+}
+
+///|
+/// How a new SPDP sample relates to the previous sample from that writer.
+priv enum DiscoverySpdpAnnouncement {
+  New
+  Retransmitted
+  Restarted
+}
+
+///|
 /// Sans-I/O discovery. Callers supply nondecreasing milliseconds and decoded
 /// messages; no socket, clock, or async task is retained here.
 pub struct DiscoveryEngine {
@@ -43,6 +58,7 @@ pub struct DiscoveryEngine {
   mut heartbeat_deadline : Int64?
   mut sedp_readers : Array[DiscoveryRemoteDataReader]
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
+  priv mut spdp_writer_sequences : Array[DiscoverySpdpWriterSequence]
 }
 
 ///|
@@ -70,6 +86,7 @@ pub fn DiscoveryEngine::new(
     heartbeat_deadline: None,
     sedp_readers: [],
     spdp_fragment_readers: [],
+    spdp_writer_sequences: [],
   })
 }
 

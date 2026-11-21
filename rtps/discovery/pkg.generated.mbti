@@ -114,6 +114,7 @@ pub struct DiscoveryEngine {
   mut heartbeat_deadline : Int64?
   mut sedp_readers : Array[DiscoveryRemoteDataReader]
   mut spdp_fragment_readers : Array[DiscoveryRemoteDataReader]
+  // private fields
 }
 pub fn DiscoveryEngine::advance(Self, Int64) -> DiscoveryEffects
 pub fn DiscoveryEngine::announce_sedp(Self, SedpEndpointData, Array[SpdpParticipantData], Bool) -> Result[Array[DiscoveryOutput], String]
@@ -152,7 +153,6 @@ pub struct DiscoverySender {
   mut sequence_exhausted : Bool
   writers : Array[DiscoveryWriter]
   mut controls : Array[DiscoveryReaderControl]
-  // private fields
 }
 pub fn DiscoverySender::announce_sedp(Self, SedpEndpointData, Array[SpdpParticipantData], Bool) -> Result[Array[DiscoveryOutput], String]
 pub fn DiscoverySender::announce_spdp(Self, Bool) -> Result[Array[DiscoveryOutput], String]
@@ -164,6 +164,8 @@ pub fn DiscoverySender::next_sequence_number(Self) -> Int64
 pub fn DiscoverySender::replay_sedp(Self, SpdpParticipantData) -> Result[Array[DiscoveryOutput], String]
 pub fn DiscoverySender::retransmit_acknack(Self, @core.GuidPrefix, @core.AckNackSubmessage, @core.Locator) -> Result[Array[DiscoveryOutput], String]
 pub fn DiscoverySender::retransmit_nackfrag(Self, @core.GuidPrefix, @core.NackFragSubmessage, @core.Locator) -> Result[Array[DiscoveryOutput], String]
+
+type DiscoverySpdpWriterSequence
 
 type DiscoveryWriter
 

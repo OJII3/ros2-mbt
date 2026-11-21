@@ -693,3 +693,112 @@ test "discovery acknowledgements select the configured transport family from dua
   assert_eq(effects.outgoing.length(), 1)
   assert_eq(effects.outgoing[0].destination, ipv4)
 }
+
+///|
+test "repeated SPDP announcement resets peer reliability and replays SEDP" {
+  let engine = engine_test_new()
+  let remote = engine_test_participant(1, 60)
+  remote.add_metatraffic_unicast(
+    @core.Locator::udp_v4(b"\x7F\x00\x00\x01", 7410).unwrap(),
+  )
+  let spdp = remote
+    .to_data_submessage(engine.reader_id, engine.writer_id, 5L)
+    .to_submessage()
+  let effects = engine_test_receive(engine, remote, spdp, 0L)
+  assert_eq(effects.events.length(), 1)
+  assert_true(effects.events[0] is Participant(_))
+
+  let endpoint = engine_test_endpoint(engine.participant, 1)
+  ignore(engine.announce_sedp(endpoint, [remote], false).unwrap())
+  let kind = SedpEndpointKind::Publication
+  let request = @core.AckNackSubmessage::new(
+    kind.builtin_reader_id(),
+    kind.builtin_writer_id(),
+    1L,
+    1U,
+    [0x80000000U],
+    1U,
+  ).unwrap()
+  let effects = engine_test_receive(engine, remote, request.to_submessage(), 0L)
+  assert_true(effects.outgoing.length() > 0)
+  assert_eq(engine.sender.controls.length(), 1)
+  assert_eq(engine.sender.controls[0].acknack_count, Some(1U))
+
+  // The peer retransmits the same announcement after recreating its view of
+  // this participant. Its fresh EDP reader restarts its ACKNACK count at one.
+  let effects = engine_test_receive(engine, remote, spdp, 1L)
+  assert_true(effects.events[0] is Participant(_))
+  assert_eq(engine.sender.controls.length(), 0)
+  assert_true(effects.outgoing.length() > 0)
+  let effects = engine_test_receive(engine, remote, request.to_submessage(), 1L)
+  assert_true(effects.outgoing.length() > 0)
+
+  // A normal periodic announcement is not a repeat and must not reset state.
+  ignore(engine.announce_sedp(endpoint, [remote], false).unwrap())
+  let later_request = @core.AckNackSubmessage::new(
+    kind.builtin_reader_id(),
+    kind.builtin_writer_id(),
+    2L,
+    1U,
+    [0x80000000U],
+    2U,
+  ).unwrap()
+  let effects = engine_test_receive(
+    engine,
+    remote,
+    later_request.to_submessage(),
+    2L,
+  )
+  assert_true(effects.outgoing.length() > 0)
+  assert_eq(engine.sender.controls.length(), 1)
+  let refreshed = remote
+    .to_data_submessage(engine.reader_id, engine.writer_id, 6L)
+    .to_submessage()
+  let effects = engine_test_receive(engine, remote, refreshed, 2L)
+  assert_eq(effects.outgoing.length(), 0)
+  assert_eq(engine.sender.controls.length(), 1)
+}
+
+///|
+test "restarted SPDP announcement allows a peer to restart its SEDP writer" {
+  let engine = engine_test_new()
+  let remote = engine_test_participant(1, 60)
+  let spdp = remote
+    .to_data_submessage(engine.reader_id, engine.writer_id, 5L)
+    .to_submessage()
+  ignore(engine_test_receive(engine, remote, spdp, 0L))
+  let endpoint = engine_test_endpoint(remote, 1)
+  let kind = SedpEndpointKind::Publication
+  let data = engine_test_data(endpoint, 10L).to_submessage()
+  ignore(engine_test_receive(engine, remote, data, 0L))
+  let heartbeat = @core.HeartbeatSubmessage::new(
+    kind.builtin_reader_id(),
+    kind.builtin_writer_id(),
+    10L,
+    10L,
+    1U,
+  ).unwrap()
+  let effects = engine_test_receive(
+    engine,
+    remote,
+    heartbeat.to_submessage(),
+    0L,
+  )
+  assert_true(effects.outgoing.length() > 0)
+  assert_eq(engine.sedp_readers[0].reader.acknowledged_through, 10L)
+  // A retransmitted announcement only recreates the peer's EDP readers; the
+  // peer's SEDP writers keep their sequence numbers.
+  ignore(engine_test_receive(engine, remote, spdp, 1L))
+  assert_eq(engine.sedp_readers.length(), 1)
+  // A lower announcement sequence means the peer restarted with the same GUID
+  // prefix, so its SEDP writers start again at sequence one and the stale
+  // receive state would otherwise classify them as duplicates.
+  let restarted_spdp = remote
+    .to_data_submessage(engine.reader_id, engine.writer_id, 4L)
+    .to_submessage()
+  ignore(engine_test_receive(engine, remote, restarted_spdp, 1L))
+  assert_eq(engine.sedp_readers.length(), 0)
+  let restarted = engine_test_data(endpoint, 1L).to_submessage()
+  let effects = engine_test_receive(engine, remote, restarted, 1L)
+  assert_true(effects.events[0] is Publication(_))
+}
