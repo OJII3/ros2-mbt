@@ -114,6 +114,51 @@ async fn publish_bag_message(
 }
 
 ///|
+const BAG_DRAIN_TIMEOUT_MS : Int64 = 10_000
+
+///|
+const BAG_DRAIN_POLL_MS : Int32 = 25
+
+///|
+const BAG_DRAIN_HEARTBEAT_MS : Int64 = 100
+
+///|
+fn pending_bag_messages(publishers : Array[BagPlaybackPublisher]) -> Int32 {
+  let mut pending = 0
+  for target in publishers {
+    pending += target.publisher.pending_sample_count()
+  }
+  pending
+}
+
+///|
+/// Wait for reliable subscribers to acknowledge the final samples.
+///
+/// A high-speed pass can overrun a subscriber's UDP receive buffer. Without a
+/// final heartbeat the reader cannot notice a missing tail because no later
+/// sample reveals the gap, so the samples are lost when the player exits.
+async fn drain_bag_publishers(
+  node : @transport.RosNode,
+  publishers : Array[BagPlaybackPublisher],
+) -> Unit {
+  let mut pending = pending_bag_messages(publishers)
+  if pending == 0 {
+    return
+  }
+  ignore(node.send_publisher_heartbeats())
+  let deadline_ms = @async.now() + BAG_DRAIN_TIMEOUT_MS
+  let mut next_heartbeat_ms = @async.now() + BAG_DRAIN_HEARTBEAT_MS
+  while pending > 0 && @async.now() < deadline_ms {
+    @async.sleep(BAG_DRAIN_POLL_MS)
+    pending = pending_bag_messages(publishers)
+    if pending > 0 && @async.now() >= next_heartbeat_ms {
+      ignore(node.send_publisher_heartbeats())
+      next_heartbeat_ms = @async.now() + BAG_DRAIN_HEARTBEAT_MS
+    }
+  }
+}
+
+///|
 async fn play_bag_pass(
   recording : @rosbag.BagRecording,
   topic_names : Array[String],
@@ -195,9 +240,13 @@ async fn run_bag_play(
       if loop_enabled {
         println("looping playback; press Ctrl-C to stop")
       }
-      playback_result = @rosbag.play_repeatedly(loop_enabled, async fn() {
-        play_bag_pass(recording, topic_names, rate_milli, publishers)
-      })
+      playback_result = @rosbag.play_repeatedly(
+        loop_enabled,
+        async fn() {
+          play_bag_pass(recording, topic_names, rate_milli, publishers)
+        },
+        async fn(_message_count) { drain_bag_publishers(node, publishers) },
+      )
     }
   catch {
     _ => playback_result = Err("ROS executor failed while playing the bag")

@@ -138,16 +138,22 @@ async fn play_source(
 
 ///|
 /// Run a playback pass once or repeat it until it fails.
+///
+/// `after_pass` runs after every pass, including the final one, before the
+/// next pass starts or the result is returned. It can wait for downstream
+/// consumers so a repeated playback cannot outrun them.
 /// A loop that publishes no messages is rejected to prevent a busy loop.
 pub async fn play_repeatedly(
   loop_enabled : Bool,
   play_pass : async () -> Result[UInt64, String],
+  after_pass : async (UInt64) -> Unit,
 ) -> Result[UInt64, String] {
   while true {
     let message_count = match play_pass() {
       Ok(value) => value
       Err(message) => return Err(message)
     }
+    after_pass(message_count)
     if !loop_enabled {
       return Ok(message_count)
     }

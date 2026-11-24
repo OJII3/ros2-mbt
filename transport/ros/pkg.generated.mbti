@@ -169,6 +169,7 @@ pub async fn RosNode::send_publisher_heartbeats(Self) -> Result[Unit, String]
 pub struct RosNodePublisher[T] {
   // private fields
 }
+pub fn[T] RosNodePublisher::pending_sample_count(Self[T]) -> Int32
 pub async fn[T] RosNodePublisher::publish(Self[T], T) -> Result[Unit, String]
 pub async fn[T] RosNodePublisher::publish_without_heartbeat(Self[T], T) -> Result[Unit, String]
 pub fn[T] RosNodePublisher::subscriber_count(Self[T]) -> Int32
