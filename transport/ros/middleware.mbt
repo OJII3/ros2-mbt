@@ -634,6 +634,11 @@ fn MiddlewarePublisher::subscriber_count(self : MiddlewarePublisher) -> Int32 {
 }
 
 ///|
+fn MiddlewarePublisher::history_length(self : MiddlewarePublisher) -> Int32 {
+  self.writer.history_length()
+}
+
+///|
 fn MiddlewarePublisher::add_subscription(
   self : MiddlewarePublisher,
   subscription : @rtps.SedpEndpointData,

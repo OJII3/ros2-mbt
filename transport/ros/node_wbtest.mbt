@@ -719,6 +719,21 @@ async test "RosNodePublisher reports the matched subscriber count" {
   node.handle_discovery_event(Subscription(other_subscription)).unwrap()
   assert_eq(publisher.subscriber_count(), 1)
 
+  // Reliable samples stay pending until the reader acknowledges them.
+  publisher.publish("data").unwrap()
+  assert_eq(publisher.pending_sample_count(), 1)
+  let writer_id = publisher.publisher.writer.writer_id
+  let acknack = @rtps.AckNackSubmessage::new(
+    subscriber_id,
+    writer_id,
+    2L,
+    0U,
+    [],
+    1U,
+  ).unwrap()
+  publisher.publisher.writer.handle_acknack(acknack).unwrap()
+  assert_eq(publisher.pending_sample_count(), 0)
+
   // Removing the matched subscription decreases the count.
   node
   .handle_discovery_event(

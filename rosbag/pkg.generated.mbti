@@ -8,7 +8,7 @@ import {
 // Values
 pub async fn play(BagRecording, Array[String], UInt32, () -> Int64, async (Int32) -> Unit, async (String, Bytes) -> Result[Unit, String]) -> Result[UInt64, String]
 
-pub async fn play_repeatedly(Bool, async () -> Result[UInt64, String]) -> Result[UInt64, String]
+pub async fn play_repeatedly(Bool, async () -> Result[UInt64, String], async (UInt64) -> Unit) -> Result[UInt64, String]
 
 pub fn playback_target_ms(UInt64, UInt64, UInt32) -> Result[Int64, String]
 

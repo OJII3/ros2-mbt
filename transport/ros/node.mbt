@@ -163,6 +163,18 @@ pub fn[T] RosNodePublisher::subscriber_count(
 }
 
 ///|
+/// Return the number of published samples retained for retransmission.
+///
+/// Reliable writers keep samples until a matching reader acknowledges them.
+/// A zero count means every sample is either acknowledged or had no reliable
+/// reader to receive it.
+pub fn[T] RosNodePublisher::pending_sample_count(
+  self : RosNodePublisher[T],
+) -> Int32 {
+  self.publisher.history_length()
+}
+
+///|
 /// Serialize and publish one message.
 pub async fn[T] RosNodePublisher::publish(
   self : RosNodePublisher[T],
