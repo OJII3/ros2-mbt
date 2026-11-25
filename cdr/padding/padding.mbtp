@@ -1,0 +1,3 @@
+predicate zero_filled(bytes : Bytes, start : Int32, stop : Int32) {
+  ∀ index : Int32, start <= index && index < stop → bytes[index] == 0
+}

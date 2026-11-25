@@ -1,0 +1,5 @@
+proof_enabled = true
+
+options(
+  "is-main": false,
+)

@@ -104,12 +104,7 @@ pub fn Reader::remaining_is_zero_padding(
   if alignment <= 0 || remaining >= alignment {
     return remaining == 0
   }
-  for index in 0..<remaining {
-    if self.bytes[self.offset + index] != 0 {
-      return false
-    }
-  }
-  true
+  @padding.is_zero_filled(self.bytes, self.offset, self.offset + remaining)
 }
 
 ///|

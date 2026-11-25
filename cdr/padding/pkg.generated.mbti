@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "OJII3/ros2-mbt/cdr/padding"
+
+// Values
+pub fn is_zero_filled(Bytes, Int32, Int32) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
