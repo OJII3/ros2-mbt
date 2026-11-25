@@ -56,12 +56,13 @@
 
           devShells = {
             default = pkgs.mkShell {
-              packages = [ moonbit pkgs.just ];
+              packages = [ moonbit pkgs.just pkgs.z3 ];
             };
             ros2 = rosPkgs.mkShell {
               packages = [
                 moonbit
                 pkgs.just
+                pkgs.z3
                 rosPkgs.coreutils
                 (rosPkgs.rosPackages.jazzy.buildEnv {
                   underlay = true;

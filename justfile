@@ -6,8 +6,8 @@ default:
 fmt:
     moon fmt
 
-# Check formatting, types, and native tests.
-verify: fmt-check check test
+# Check formatting, types, native tests, and proofs.
+verify: fmt-check check test prove
 
 fmt-check:
     moon fmt --check
@@ -24,6 +24,10 @@ test:
 # Run native release benchmarks.
 bench:
     moon bench --target native --release
+
+# Prove contracts and loop invariants in proof-enabled packages.
+prove:
+    moon prove
 
 # Run ROS 2 Jazzy interoperability checks.
 interop-cli:
